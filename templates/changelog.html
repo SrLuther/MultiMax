@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Changelog — MultiMax{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0">Changelog de Limpezas</h3>
+  <span class="text-muted">Atualizado a cada conclusão</span>
+  </div>
+
+<div class="table-responsive-sm mb-3">
+  <table class="table table-striped table-hover align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th style="width: 12rem">Data</th>
+        <th style="width: 22rem">Tipo de Limpeza</th>
+        <th>Observações</th>
+        <th style="width: 14rem">Designados</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in items %}
+      <tr>
+        <td>{{ r.data.strftime('%d/%m/%Y %H:%M') }}</td>
+        <td>{{ r.tipo }}</td>
+        <td>{{ r.observacao or '-' }}</td>
+        <td>{{ r.designados or '-' }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="4" class="text-center text-muted">Sem registros</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<nav aria-label="Paginação Changelog" class="mt-2">
+  <ul class="pagination justify-content-center">
+    <li class="page-item {% if not history.has_prev %}disabled{% endif %}">
+      <a class="page-link" href="{{ url_for('cronograma.changelog', page=history.prev_num) }}">Anterior</a>
+    </li>
+    <li class="page-item disabled"><span class="page-link">Página {{ history.page }} de {{ history.pages }}</span></li>
+    <li class="page-item {% if not history.has_next %}disabled{% endif %}">
+      <a class="page-link" href="{{ url_for('cronograma.changelog', page=history.next_num) }}">Próxima</a>
+    </li>
+  </ul>
+  <div class="text-center text-muted">Mostrando {{ items|length }} registros por página</div>
+</nav>
+{% endblock %}

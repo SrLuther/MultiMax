@@ -3,10 +3,24 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h3 class="mb-0">Cronograma de Limpeza</h3>
-    <span class="text-muted">Planejamento e histórico</span>
+    <div class="d-flex align-items-center gap-2">
+        <span class="text-muted">Planejamento e histórico</span>
+        <a class="btn btn-outline-primary btn-sm" href="{{ url_for('cronograma.changelog') }}">Changelog</a>
     </div>
+</div>
 
 <div class="row">
+    {% if current_user.nivel != 'admin' %}
+    <div class="col-12">
+        <div class="alert alert-danger d-flex align-items-center" role="alert">
+            <i class="fas fa-lock me-2"></i>
+            <div>
+                <div class="fw-bold">Acesso restrito</div>
+                <small>Somente Gerente pode concluir tarefas e editar Observações/Designados. Solicite autorização ao responsável.</small>
+            </div>
+        </div>
+    </div>
+    {% endif %}
     {% for tarefa in cronograma_tarefas %}
     {% set atrasado = false %}
     {% set card_class = 'card-noprazo' %}
@@ -47,6 +61,7 @@
                 <p class="small text-muted mb-2">Frequência: {{ tarefa.frequencia }}</p>
                 {% endif %}
 
+                {% if current_user.nivel == 'admin' %}
                 <form method="post" action="{{ url_for('cronograma.salvar_cronograma') }}" class="mt-3">
                     <input type="hidden" name="concluir_id" value="{{ tarefa.id }}">
                     <div class="d-flex gap-2 mb-2">
@@ -56,6 +71,9 @@
                     <button type="submit" class="btn btn-success btn-sm btn-sm-wide">Concluir Agora</button>
                     <a class="btn btn-outline-secondary btn-sm ms-2 btn-sm-wide" href="{{ url_for('exportacao.exportar_tarefa_pdf', id=tarefa.id) }}">Exportar PDF</a>
                 </form>
+                {% else %}
+                <a class="btn btn-outline-secondary btn-sm btn-sm-wide" href="{{ url_for('exportacao.exportar_tarefa_pdf', id=tarefa.id) }}">Exportar PDF</a>
+                {% endif %}
             </div>
         </div>
     </div>

@@ -117,8 +117,8 @@ def cronograma():
 @bp.route('/cronograma/salvar', methods=['POST'])
 @login_required
 def salvar_cronograma():
-    if current_user.nivel not in ['operador', 'admin']:
-        flash('Você não tem permissão para atualizar o cronograma.', 'danger')
+    if current_user.nivel != 'admin':
+        flash('Apenas Gerente (Admin) pode concluir e atualizar o cronograma.', 'danger')
         return redirect(url_for('cronograma.cronograma'))
     concluir_id = request.form.get('concluir_id')
     if concluir_id:
@@ -136,11 +136,29 @@ def salvar_cronograma():
             db.session.add(hist)
             tarefa.ultima_data = datetime.utcnow().date()
             tarefa.proxima_data = calcular_proxima_prevista(tarefa.ultima_data, tarefa.frequencia, tarefa.tipo)
-            tarefa.observacao = None
-            tarefa.designados = None
+            tarefa.observacao = observacao if observacao else tarefa.observacao
+            tarefa.designados = designados if designados else tarefa.designados
             db.session.commit()
             flash(f'Limpeza "{tarefa.nome_limpeza}" marcada como concluída e reagendada para {tarefa.proxima_data.strftime("%d/%m/%Y")}.', 'success')
         except Exception as e:
             db.session.rollback()
             flash(f'Erro ao concluir a tarefa de limpeza: {e}', 'danger')
     return redirect(url_for('cronograma.cronograma'))
+
+@bp.route('/cronograma/changelog')
+@login_required
+def changelog():
+    if current_user.nivel not in ['operador', 'admin']:
+        flash('Acesso negado. Apenas Operadores e Administradores podem visualizar o changelog.', 'danger')
+        return redirect(url_for('estoque.index'))
+    page = request.args.get('page', 1, type=int)
+    hist = CleaningHistory.query.order_by(CleaningHistory.data_conclusao.desc()).paginate(page=page, per_page=10, error_out=False)
+    items = []
+    for h in hist.items:
+        items.append({
+            'data': h.data_conclusao,
+            'tipo': h.nome_limpeza,
+            'observacao': h.observacao,
+            'designados': h.designados,
+        })
+    return render_template('changelog.html', active_page='cronograma', history=hist, items=items)

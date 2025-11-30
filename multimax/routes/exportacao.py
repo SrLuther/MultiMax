@@ -1,14 +1,16 @@
 from datetime import datetime
+import os
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import inch
-from flask import Blueprint, redirect, url_for, flash, send_file
+from flask import Blueprint, redirect, url_for, flash, send_file, request
 from flask_login import login_required, current_user
 from ..models import Produto, CleaningTask, CleaningHistory, Historico
 from io import BytesIO
 from reportlab.platypus import Image
+from reportlab.pdfbase.pdfmetrics import stringWidth
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -23,7 +25,8 @@ def exportar_cronograma_pdf():
         return redirect(url_for('cronograma.cronograma'))
     try:
         filename = 'cronograma_limpeza_multimax.pdf'
-        doc = SimpleDocTemplate(filename, pagesize=letter)
+        pdf_buffer = BytesIO()
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
         styles = getSampleStyleSheet()
         story = []
         styles.add(ParagraphStyle(name='Footer', fontSize=8, alignment=2, textColor=colors.gray))
@@ -35,10 +38,17 @@ def exportar_cronograma_pdf():
         story.append(Paragraph('<b>Tarefas de Limpeza Agendadas</b>', styles['h2']))
         story.append(Spacer(1, 0.2 * inch))
         tarefas = CleaningTask.query.order_by(CleaningTask.proxima_data.asc()).all()
-        data = [["Área/Limpeza", "Frequência", "Última Data", "Próxima Prevista", "Designado(s)"]]
+        data = [["Área/Limpeza", "Frequência", "Última Data", "Próxima Prevista", "Designado(s)", "Observações"]]
         for t in tarefas:
-            data.append([Paragraph(t.nome_limpeza, styles['Normal']), t.frequencia, t.ultima_data.strftime('%d/%m/%Y'), t.proxima_data.strftime('%d/%m/%Y'), Paragraph(t.designados or 'Não especificado', styles['Normal'])])
-        table = Table(data, colWidths=[2*inch, 0.8*inch, 1*inch, 1*inch, 1.5*inch])
+            data.append([
+                Paragraph(t.nome_limpeza, styles['Normal']),
+                t.frequencia,
+                t.ultima_data.strftime('%d/%m/%Y'),
+                t.proxima_data.strftime('%d/%m/%Y'),
+                Paragraph(t.designados or 'Não especificado', styles['Normal']),
+                Paragraph(t.observacao or '-', styles['Normal'])
+            ])
+        table = Table(data, colWidths=[2*inch, 0.8*inch, 1*inch, 1*inch, 1.5*inch, 2.5*inch])
         table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#007bff')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -74,7 +84,8 @@ def exportar_cronograma_pdf():
             canvas.drawString(inch, 0.5 * inch, footer_text)
             canvas.restoreState()
         doc.build(story, onFirstPage=footer_on_page, onLaterPages=footer_on_page)
-        return send_file(filename, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        pdf_buffer.seek(0)
+        return send_file(pdf_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
     except Exception as e:
         flash(f'Erro ao gerar PDF do Cronograma: {e}', 'danger')
         return redirect(url_for('cronograma.cronograma'))
@@ -88,7 +99,8 @@ def exportar_tarefa_pdf(id):
     try:
         tarefa = CleaningTask.query.get_or_404(id)
         filename = f"tarefa_{tarefa.id}_cronograma.pdf"
-        doc = SimpleDocTemplate(filename, pagesize=letter)
+        pdf_buffer = BytesIO()
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
         styles = getSampleStyleSheet()
         story = []
         story.append(Paragraph('<b>MultiMax - Detalhes da Tarefa de Limpeza</b>', styles['Title']))
@@ -124,7 +136,8 @@ def exportar_tarefa_pdf(id):
             canvas.drawString(inch, 0.5 * inch, footer_text)
             canvas.restoreState()
         doc.build(story, onFirstPage=footer_on_page, onLaterPages=footer_on_page)
-        return send_file(filename, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        pdf_buffer.seek(0)
+        return send_file(pdf_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
     except Exception as e:
         flash(f'Erro ao gerar PDF da Tarefa: {e}', 'danger')
         return redirect(url_for('cronograma.cronograma'))
@@ -134,7 +147,8 @@ def exportar_tarefa_pdf(id):
 def exportar():
     try:
         filename = 'relatorio_estoque_multimax.pdf'
-        doc = SimpleDocTemplate(filename, pagesize=letter)
+        pdf_buffer = BytesIO()
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
         styles = getSampleStyleSheet()
         story = []
         story.append(Paragraph('<b>MultiMax - Relatório de Estoque</b>', styles['Title']))
@@ -144,14 +158,73 @@ def exportar():
         story.append(Spacer(1, 0.5 * inch))
         produtos = Produto.query.order_by(Produto.quantidade.asc()).all()
         data = [["Cód.", "Produto", "Estoque", "Mínimo", "Custo (R$)", "Venda (R$)", "Status"]]
+        # Larguras dinâmicas baseadas na largura disponível da página
+        avail_in = (doc.width) / inch
+        code_env_in = float(os.getenv('PDF_CODE_COL_IN', '0.5'))
+        # Medir código com hífen não separável para manter em uma única linha
+        def code_display(c):
+            return (c or '').replace('-', '\u2011')
+        try:
+            max_code_pts = max(stringWidth(code_display(p.codigo), 'Helvetica', 8) for p in produtos) if produtos else 0
+        except Exception:
+            max_code_pts = 0
+        code_req_in = (max_code_pts / inch) + 0.08  # padding
+        code_col_width_in = min(max(code_env_in, code_req_in), 1.2)  # limitar para não consumir demais
+        # Larguras fixas para colunas numéricas/status
+        estoque_in = 0.8
+        minimo_in = 0.8
+        custo_in = 1.0
+        venda_in = 1.0
+        status_in = 1.0
+        numeric_sum_in = estoque_in + minimo_in + custo_in + venda_in + status_in
+        # Produto ocupa o restante e quebra linha
+        product_col_width_in = max(1.2, avail_in - code_col_width_in - numeric_sum_in)
+        code_col_width = code_col_width_in * inch
+        product_col_width = product_col_width_in * inch
+        code_style = ParagraphStyle(name='CodeCell', fontName='Helvetica', fontSize=8, leading=9)
+        product_style = ParagraphStyle(name='ProductCell', fontName='Helvetica', fontSize=9, leading=10, wordWrap='LTR')
+        def fit_text_to_width(text, width_pts, font='Helvetica', font_size=8, padding=4):
+            if text is None:
+                return ''
+            t = str(text)
+            max_width = max(0, width_pts - padding)
+            if stringWidth(t, font, font_size) <= max_width:
+                return t
+            # truncate with ellipsis
+            ell = '…'
+            # conservative start
+            low, high = 0, len(t)
+            best = ''
+            while low <= high:
+                mid = (low + high) // 2
+                cand = t[:mid] + ell
+                w = stringWidth(cand, font, font_size)
+                if w <= max_width:
+                    best = cand
+                    low = mid + 1
+                else:
+                    high = mid - 1
+            return best or ell
         for p in produtos:
             status = 'OK'
             if p.quantidade < p.estoque_minimo:
                 status = 'CRÍTICO'
             elif p.quantidade == p.estoque_minimo:
                 status = 'ATENÇÃO'
-            data.append([p.codigo, Paragraph(p.nome, styles['Normal']), str(p.quantidade), str(p.estoque_minimo), f"{p.preco_custo:.2f}", f"{p.preco_venda:.2f}", status])
-        table = Table(data, colWidths=[0.5*inch, 2*inch, 0.8*inch, 0.8*inch, 1*inch, 1*inch, 1*inch])
+            codigo_nb = code_display(p.codigo)
+            data.append([
+                Paragraph(codigo_nb, code_style),
+                Paragraph(p.nome or '-', product_style),
+                str(p.quantidade),
+                str(p.estoque_minimo),
+                f"{p.preco_custo:.2f}",
+                f"{p.preco_venda:.2f}",
+                status
+            ])
+        table = Table(
+            data,
+            colWidths=[code_col_width, product_col_width, estoque_in*inch, minimo_in*inch, custo_in*inch, venda_in*inch, status_in*inch]
+        )
         table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#007bff')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -182,7 +255,8 @@ def exportar():
             canvas.drawString(inch, 0.5 * inch, footer_text)
             canvas.restoreState()
         doc.build(story, onFirstPage=footer_on_page, onLaterPages=footer_on_page)
-        return send_file(filename, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        pdf_buffer.seek(0)
+        return send_file(pdf_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
     except Exception as e:
         flash(f'Erro ao gerar PDF do Estoque: {e}', 'danger')
         return redirect(url_for('estoque.index'))
@@ -192,8 +266,11 @@ def exportar():
 def exportar_graficos_produto(id):
     try:
         produto = Produto.query.get_or_404(id)
+        data_inicio_str = request.args.get('data_inicio', '').strip()
+        data_fim_str = request.args.get('data_fim', '').strip()
         filename = f"graficos_{produto.codigo}.pdf"
-        doc = SimpleDocTemplate(filename, pagesize=letter)
+        pdf_buffer = BytesIO()
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
         styles = getSampleStyleSheet()
         story = []
         story.append(Paragraph('<b>MultiMax - Gráficos de Movimentação</b>', styles['Title']))
@@ -300,6 +377,37 @@ def exportar_graficos_produto(id):
         buf = build_fig(labels, entradas, saidas, 'Anual (Últimos 5 anos)')
         story.append(Image(buf, width=6.5*inch, height=2.7*inch))
 
+        def parse_date_safe(s):
+            from datetime import datetime as _dt
+            try:
+                return _dt.strptime(s, '%Y-%m-%d')
+            except Exception:
+                return None
+
+        di_dt = parse_date_safe(data_inicio_str)
+        df_dt = parse_date_safe(data_fim_str)
+        if di_dt and df_dt:
+            if di_dt > df_dt:
+                di_dt, df_dt = df_dt, di_dt
+            hist = fetch_hist(di_dt, df_dt)
+            from datetime import timedelta as _td
+            buckets = {}
+            cursor = di_dt.date()
+            while cursor <= df_dt.date():
+                buckets[cursor] = {'entrada': 0, 'saida': 0, 'label': cursor.strftime('%d/%m')}
+                cursor += _td(days=1)
+            for h in hist:
+                d = h.data.date()
+                if d in buckets:
+                    buckets[d][h.action] += (h.quantidade or 0)
+            items = [buckets[k] for k in sorted(buckets.keys())]
+            labels = [v['label'] for v in items]
+            entradas = [v['entrada'] for v in items]
+            saidas = [v['saida'] for v in items]
+            buf = build_fig(labels, entradas, saidas, 'Período Personalizado')
+            story.append(Spacer(1, 0.2 * inch))
+            story.append(Image(buf, width=6.5*inch, height=2.7*inch))
+
         def footer_on_page(canvas, doc):
             canvas.saveState()
             canvas.setFont('Helvetica', 8)
@@ -307,7 +415,8 @@ def exportar_graficos_produto(id):
             canvas.drawString(inch, 0.5 * inch, footer_text)
             canvas.restoreState()
         doc.build(story, onFirstPage=footer_on_page, onLaterPages=footer_on_page)
-        return send_file(filename, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        pdf_buffer.seek(0)
+        return send_file(pdf_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
     except Exception as e:
         flash(f'Erro ao gerar PDF de Gráficos: {e}', 'danger')
         return redirect(url_for('usuarios.graficos'))

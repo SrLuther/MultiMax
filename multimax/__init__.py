@@ -1,4 +1,5 @@
 import os
+import sys
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
@@ -20,14 +21,23 @@ def _load_env(path):
         pass
 
 def create_app():
-    base_dir = os.path.dirname(os.path.dirname(__file__))
+    base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.dirname(__file__)))
     _load_env(os.path.join(base_dir, '.env.txt'))
 
     app = Flask(
         __name__,
         template_folder=os.path.join(base_dir, 'templates'),
     )
-    db_path = os.path.join(base_dir, 'instance', 'estoque.db').replace('\\', '/')
+    data_dir = None
+    if os.name == 'nt':
+        localapp = os.getenv('LOCALAPPDATA')
+        if localapp:
+            data_dir = os.path.join(localapp, 'MultiMax')
+    if not data_dir:
+        home = os.path.expanduser('~')
+        data_dir = os.path.join(home, '.multimax')
+    os.makedirs(data_dir, exist_ok=True)
+    db_path = os.path.join(data_dir, 'estoque.db').replace('\\', '/')
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'uma_chave_secreta_muito_forte_e_aleatoria')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -56,6 +66,62 @@ def create_app():
     app.register_blueprint(cronograma_bp)
     app.register_blueprint(exportacao_bp)
     app.register_blueprint(usuarios_bp)
+
+    @app.context_processor
+    def inject_notifications():
+        try:
+            from .models import Produto, CleaningTask, NotificationRead
+            from datetime import date
+            from flask import url_for, request
+            from flask_login import current_user
+            if not current_user.is_authenticated:
+                return {'notif_items': [], 'notif_count': 0}
+            nf = request.args.get('nf', '').strip()  # filtro: '', 'estoque', 'limpeza'
+            cat = request.args.get('cat', '').strip().upper()  # categoria estoque: CX/PC/VA/AV
+            today = date.today()
+            low_stock = Produto.query.filter(Produto.quantidade <= Produto.estoque_minimo).order_by(Produto.nome.asc()).all()
+            overdue = CleaningTask.query.filter(CleaningTask.proxima_data < today).order_by(CleaningTask.proxima_data.asc()).all()
+            reads = NotificationRead.query.filter_by(user_id=current_user.id).all()
+            read_set = {(r.tipo, r.ref_id) for r in reads}
+            items = []
+            for p in low_stock:
+                categoria = (p.codigo or '').split('-', 1)[0]
+                if nf == 'limpeza':
+                    pass
+                else:
+                    if cat and categoria != cat:
+                        pass
+                    else:
+                        sev = 2 if (p.quantidade or 0) == 0 else 1
+                        if ('estoque', p.id) not in read_set:
+                            items.append({
+                                'tipo': 'estoque',
+                                'id': p.id,
+                                'categoria': categoria,
+                                'titulo': p.nome,
+                                'descricao': f"Estoque baixo: {p.quantidade}/{p.estoque_minimo}",
+                                'url': url_for('estoque.editar', id=p.id),
+                                'sev': sev,
+                            })
+            for t in overdue:
+                if nf == 'estoque':
+                    pass
+                else:
+                    days = (today - t.proxima_data).days
+                    sev = 2 if days >= 7 else 1
+                    if ('limpeza', t.id) not in read_set:
+                        items.append({
+                            'tipo': 'limpeza',
+                            'id': t.id,
+                            'titulo': t.nome_limpeza,
+                            'descricao': f"Atrasada desde {t.proxima_data.strftime('%d/%m/%Y')}",
+                            'url': url_for('cronograma.cronograma'),
+                            'sev': sev,
+                        })
+            items.sort(key=lambda x: (x['sev'], x['tipo']), reverse=True)
+            return {'notif_items': items, 'notif_count': len(items)}
+        except Exception:
+            return {'notif_items': [], 'notif_count': 0}
 
     with app.app_context():
         db.create_all()
