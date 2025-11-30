@@ -1,0 +1,10 @@
+instance/
+*.db
+*.pdf
+__pycache__/
+*.pyc
+.env
+.env.txt
+venv/
+.venv/
+.DS_Store
