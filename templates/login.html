@@ -18,6 +18,9 @@
             overflow: hidden;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
+        .login-card {
+            width: 420px;
+        }
         .card-header {
             background: #0d6efd;
             color: white;
@@ -38,12 +41,8 @@
 <body>
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-md-4 col-sm-8">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="mb-0 fw-bold">MultiMax</h2>
-                        <p class="mb-0 opacity-75">Controle de Estoque</p>
-                    </div>
+            <div class="col-auto">
+                <div class="card login-card">
                     <div class="card-body p-5">
                         {% with messages = get_flashed_messages() %}
                           {% if messages %}
