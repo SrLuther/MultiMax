@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block title %}Produtos — MultiMax{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">Produtos</h2>
+  {% if current_user.nivel in ('operador','admin') %}
+  <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addModal">Adicionar Produto</button>
+  {% endif %}
+  </div>
+<div class="table-responsive-sm">
+  <table class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr>
+        <th>Código</th>
+        <th>Nome</th>
+        <th>Estoque</th>
+        <th>Mínimo</th>
+        <th class="d-none d-sm-table-cell">Custo</th>
+        <th class="d-none d-sm-table-cell">Venda</th>
+        <th class="text-center">Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in produtos %}
+      <tr>
+        <td>{{ p.codigo }}</td>
+        <td>{{ p.nome }}</td>
+        <td>{{ p.quantidade }}</td>
+        <td>{{ p.estoque_minimo }}</td>
+        <td class="d-none d-sm-table-cell">R$ {{ '%.2f'|format(p.preco_custo) }}</td>
+        <td class="d-none d-sm-table-cell">R$ {{ '%.2f'|format(p.preco_venda) }}</td>
+        <td class="text-center">
+          {% if current_user.nivel in ('operador','admin') %}
+          <div class="btn-group btn-group-sm" role="group">
+            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#entradaModal{{p.id}}">Entrada</button>
+            <button class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#saidaModal{{p.id}}">Saída</button>
+            <a class="btn btn-outline-info" href="{{ url_for('estoque.editar', id=p.id) }}">Editar</a>
+            {% if current_user.nivel == 'admin' %}
+            <a class="btn btn-outline-danger" href="{{ url_for('estoque.excluir', id=p.id) }}">Excluir</a>
+            {% endif %}
+          </div>
+          {% endif %}
+        </td>
+      </tr>
+      <div class="modal fade" id="entradaModal{{p.id}}" tabindex="-1">
+        <div class="modal-dialog">
+          <form class="modal-content" method="post" action="{{ url_for('estoque.entrada_produto', id=p.id) }}">
+            <div class="modal-header"><h5 class="modal-title">Entrada: {{ p.nome }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+              <div class="mb-3"><label class="form-label">Quantidade</label><input type="number" name="quantidade" class="form-control" min="1" required></div>
+              <div class="mb-3"><label class="form-label">Detalhes</label><input type="text" name="detalhes" class="form-control"></div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary" type="submit">Salvar</button></div>
+          </form>
+        </div>
+      </div>
+      <div class="modal fade" id="saidaModal{{p.id}}" tabindex="-1">
+        <div class="modal-dialog">
+          <form class="modal-content" method="post" action="{{ url_for('estoque.saida_produto', id=p.id) }}">
+            <div class="modal-header"><h5 class="modal-title">Saída: {{ p.nome }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+              <div class="mb-3"><label class="form-label">Quantidade</label><input type="number" name="quantidade" class="form-control" min="1" required></div>
+              <div class="mb-3"><label class="form-label">Detalhes</label><input type="text" name="detalhes" class="form-control"></div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-warning" type="submit">Salvar</button></div>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="modal fade" id="addModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{{ url_for('estoque.adicionar_produto') }}">
+      <div class="modal-header"><h5 class="modal-title">Adicionar Produto</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-2"><label class="form-label">Código</label><input name="codigo" class="form-control" required></div>
+        <div class="mb-2"><label class="form-label">Nome</label><input name="nome" class="form-control" required></div>
+        <div class="mb-2"><label class="form-label">Quantidade</label><input type="number" name="quantidade" class="form-control" min="0" value="0" required></div>
+        <div class="mb-2"><label class="form-label">Estoque Mínimo</label><input type="number" name="estoque_minimo" class="form-control" min="0" value="0" required></div>
+        <div class="mb-2"><label class="form-label">Preço Custo</label><input type="number" step="0.01" name="preco_custo" class="form-control" value="0" required></div>
+        <div class="mb-2"><label class="form-label">Preço Venda</label><input type="number" step="0.01" name="preco_venda" class="form-control" value="0" required></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-success" type="submit">Adicionar</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}
