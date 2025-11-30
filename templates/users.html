@@ -33,11 +33,11 @@
                             <button type="submit" class="btn btn-primary btn-sm">Atualizar</button>
                         </form>
                         
-                        <!-- Botão de Excluir (Só aparece se NÃO for o usuário logado) -->
+                        <!-- Exclusão direta com confirmação (não permite excluir a si mesmo) -->
                         {% if u.id != current_user.id %}
-                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalExcluirUser{{ u.id }}">
-                            Excluir
-                        </button>
+                        <form method="post" action="{{ url_for('usuarios.excluir_user', user_id=u.id) }}" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir o usuário {{ u.name }} ({{ u.username }})? Esta ação é irreversível.')">
+                            <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
+                        </form>
                         {% else %}
                         <span class="badge text-bg-warning">Você</span>
                         {% endif %}
@@ -65,9 +65,14 @@
                         <input type="text" name="name" class="form-control" required autofocus>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Senha (edite se quiser)</label>
+                        <label class="form-label fw-bold">Login</label>
+                        <input type="text" name="username" class="form-control" placeholder="ex.: joaosilva">
+                        <div class="form-text">Se deixar vazio, um login será gerado automaticamente.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Senha</label>
                         <input type="text" name="password" class="form-control" value="{{ senha_sugestao }}" required>
-                        <div class="form-text">Login será gerado automaticamente.</div>
+                        <div class="form-text">Defina a senha inicial do usuário.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Nível inicial</label>
@@ -85,30 +90,5 @@
             </div>
         </form>
     </div>
-<!-- Modais de Confirmação de Exclusão (Gerados dentro do loop para cada usuário) -->
-{% for u in users %}
-{% if u.id != current_user.id %}
-<div class="modal fade" id="modalExcluirUser{{ u.id }}" tabindex="-1" aria-labelledby="modalExcluirUserLabel{{ u.id }}" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="modalExcluirUserLabel{{ u.id }}">Confirmar Exclusão</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Tem certeza que deseja excluir o usuário <strong>{{ u.name }}</strong> (Login: {{ u.username }})?</p>
-                <p class="text-danger fw-bold">Esta ação é irreversível.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <!-- Formulário POST para exclusão -->
-                <form method="post" action="{{ url_for('usuarios.excluir_user', user_id=u.id) }}" class="d-inline">
-                    <button type="submit" class="btn btn-danger">Sim, Excluir Usuário</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-{% endfor %}
+<!-- Removido modal: confirmação feita diretamente no envio do formulário -->
 {% endblock %}

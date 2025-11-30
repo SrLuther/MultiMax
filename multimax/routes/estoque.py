@@ -31,7 +31,27 @@ def lista_produtos():
 @bp.route('/produtos/adicionar', methods=['POST'])
 @login_required
 def adicionar_produto():
-    codigo = request.form.get('codigo')
+    categoria = request.form.get('categoria', 'AV').strip().upper()
+    prefix_map = {
+        'CX': 'CX',  # Caixas
+        'PC': 'PC',  # Pacotes
+        'VA': 'VA',  # A vácuo
+        'AV': 'AV',  # Avulsos/Não categorizados
+    }
+    prefix = prefix_map.get(categoria, 'AV')
+    def gerar_codigo(pref):
+        existentes = Produto.query.with_entities(Produto.codigo).filter(Produto.codigo.like(f"{pref}-%")).all()
+        maior = 0
+        for (cod,) in existentes:
+            try:
+                sufixo = cod.split('-', 1)[1]
+                num = int(sufixo)
+                if num > maior:
+                    maior = num
+            except Exception:
+                continue
+        return f"{pref}-{maior+1:04d}"
+    codigo = gerar_codigo(prefix)
     nome = request.form.get('nome')
     quantidade = int(request.form.get('quantidade', 0))
     estoque_minimo = int(request.form.get('estoque_minimo', 0))
@@ -114,9 +134,29 @@ def adicionar():
         if Produto.query.filter_by(nome=request.form['nome']).first():
             flash(f'Produto com o nome "{request.form["nome"]}" já existe.', 'danger')
             return redirect(url_for('estoque.index'))
-        proximo_codigo = Produto.query.count() + 1
+        categoria = request.form.get('categoria', 'AV').strip().upper()
+        prefix_map = {
+            'CX': 'CX',
+            'PC': 'PC',
+            'VA': 'VA',
+            'AV': 'AV',
+        }
+        prefix = prefix_map.get(categoria, 'AV')
+        def gerar_codigo(pref):
+            existentes = Produto.query.with_entities(Produto.codigo).filter(Produto.codigo.like(f"{pref}-%")).all()
+            maior = 0
+            for (cod,) in existentes:
+                try:
+                    sufixo = cod.split('-', 1)[1]
+                    num = int(sufixo)
+                    if num > maior:
+                        maior = num
+                except Exception:
+                    continue
+            return f"{pref}-{maior+1:04d}"
+        proximo_codigo = gerar_codigo(prefix)
         new_produto = Produto(
-            codigo=str(proximo_codigo).zfill(4),
+            codigo=proximo_codigo,
             nome=request.form['nome'],
             quantidade=int(request.form['quantidade']),
             estoque_minimo=int(request.form['estoque_minimo']),
@@ -222,3 +262,21 @@ def excluir(id):
         flash(f'Erro ao excluir produto: {e}', 'danger')
     return redirect(url_for('estoque.index'))
 
+@bp.route('/produtos/<int:id>/minimo', methods=['POST'])
+@login_required
+def atualizar_minimo(id):
+    if current_user.nivel not in ['operador', 'admin']:
+        flash('Você não tem permissão para atualizar estoque mínimo.', 'danger')
+        return redirect(url_for('estoque.index'))
+    produto = Produto.query.get_or_404(id)
+    try:
+        novo_min = int(request.form.get('novo_minimo', produto.estoque_minimo))
+        if novo_min < 0:
+            novo_min = 0
+        produto.estoque_minimo = novo_min
+        db.session.commit()
+        flash(f'Estoque mínimo de "{produto.nome}" atualizado para {novo_min}.', 'info')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao atualizar estoque mínimo: {e}', 'danger')
+    return redirect(request.form.get('next') or url_for('estoque.index'))

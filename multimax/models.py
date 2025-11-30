@@ -45,3 +45,18 @@ class CleaningHistory(db.Model):
     observacao = db.Column(db.String(500))
     designados = db.Column(db.String(255))
     usuario_conclusao = db.Column(db.String(100))
+
+class SystemLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    data = db.Column(db.DateTime, default=datetime.utcnow)
+    origem = db.Column(db.String(50))
+    evento = db.Column(db.String(50))
+    detalhes = db.Column(db.String(255))
+    usuario = db.Column(db.String(100))
+
+class NotificationRead(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, nullable=False)
+    tipo = db.Column(db.String(20), nullable=False)  # 'estoque' ou 'limpeza'
+    ref_id = db.Column(db.Integer, nullable=False)   # Produto.id ou CleaningTask.id
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

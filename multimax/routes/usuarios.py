@@ -2,9 +2,14 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
 from .. import db
-from ..models import User, Produto, Historico
+from ..models import User, Produto, Historico, CleaningHistory, SystemLog, NotificationRead
 from datetime import datetime, timedelta, date
 from collections import defaultdict, OrderedDict
+import os
+import socket
+import base64
+from io import BytesIO
+import qrcode
 
 bp = Blueprint('usuarios', __name__)
 
@@ -12,25 +17,34 @@ bp = Blueprint('usuarios', __name__)
 @login_required
 def users():
     if current_user.nivel != 'admin':
-        flash('Acesso negado. Apenas Administradores podem gerenciar usuários.', 'danger')
+        flash('Acesso negado. Apenas Gerente pode gerenciar usuários.', 'danger')
         return redirect(url_for('estoque.index'))
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
+        username_input = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
         nivel = request.form.get('nivel', 'visualizador').strip()
         if not name or not password:
             flash('Nome e senha são obrigatórios.', 'warning')
             return redirect(url_for('usuarios.users'))
-        base_username = ''.join(ch for ch in name.lower() if ch.isalnum()) or 'user'
-        username = base_username
-        suffix = 1
-        while User.query.filter_by(username=username).first() is not None:
-            username = f"{base_username}{suffix}"
-            suffix += 1
+        if username_input:
+            base_username = ''.join(ch for ch in username_input.lower() if ch.isalnum()) or 'user'
+            username = base_username
+            if User.query.filter_by(username=username).first() is not None:
+                flash('Login já existe. Escolha outro.', 'danger')
+                return redirect(url_for('usuarios.users'))
+        else:
+            base_username = ''.join(ch for ch in name.lower() if ch.isalnum()) or 'user'
+            username = base_username
+            suffix = 1
+            while User.query.filter_by(username=username).first() is not None:
+                username = f"{base_username}{suffix}"
+                suffix += 1
         new_user = User(name=name, username=username, nivel=nivel)
         new_user.password_hash = generate_password_hash(password)
         try:
             db.session.add(new_user)
+            db.session.add(SystemLog(origem='Usuarios', evento='criar', detalhes=f'Criado {name} ({username}) nivel {nivel}', usuario=current_user.name))
             db.session.commit()
             flash(f'Usuário "{name}" criado com login "{username}".', 'success')
         except Exception as e:
@@ -194,6 +208,7 @@ def update_level(user_id):
         return redirect(url_for('usuarios.users'))
     try:
         user.nivel = nivel
+        db.session.add(SystemLog(origem='Usuarios', evento='nivel', detalhes=f'Nivel {user.username} -> {nivel}', usuario=current_user.name))
         db.session.commit()
         flash(f'Nivel do usuário "{user.name}" atualizado para "{nivel}".', 'info')
     except Exception as e:
@@ -213,9 +228,107 @@ def excluir_user(user_id):
     user = User.query.get_or_404(user_id)
     try:
         db.session.delete(user)
+        db.session.add(SystemLog(origem='Usuarios', evento='excluir', detalhes=f'Excluido {user.name} ({user.username})', usuario=current_user.name))
         db.session.commit()
         flash(f'Usuário "{user.name}" excluído com sucesso.', 'danger')
     except Exception as e:
         db.session.rollback()
         flash(f'Erro ao excluir usuário: {e}', 'danger')
     return redirect(url_for('usuarios.users'))
+
+@bp.route('/monitor')
+@login_required
+def monitor():
+    if current_user.nivel != 'admin':
+        flash('Acesso negado. Apenas Administradores podem acessar o Monitor.', 'danger')
+        return redirect(url_for('estoque.index'))
+    port = int(os.getenv('PORT', '5000'))
+    ip = None
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+        s.close()
+    except Exception:
+        ip = request.host.split(':')[0]
+    url = f"http://{ip}:{port}"
+    img = qrcode.make(url)
+    buf = BytesIO()
+    img.save(buf, format='PNG')
+    b64 = base64.b64encode(buf.getvalue()).decode('ascii')
+    hist_estoque = Historico.query.order_by(Historico.data.desc()).limit(50).all()
+    hist_limpeza = CleaningHistory.query.order_by(CleaningHistory.data_conclusao.desc()).limit(50).all()
+    hist_sistema = SystemLog.query.order_by(SystemLog.data.desc()).limit(50).all()
+    logs = []
+    for h in hist_estoque:
+        logs.append({
+            'data': h.data,
+            'origem': 'Estoque',
+            'evento': h.action,
+            'detalhes': h.details,
+            'usuario': h.usuario,
+            'produto': h.product_name,
+            'quantidade': h.quantidade,
+        })
+    for h in hist_limpeza:
+        logs.append({
+            'data': h.data_conclusao,
+            'origem': 'Limpeza',
+            'evento': 'conclusao',
+            'detalhes': h.observacao,
+            'usuario': h.usuario_conclusao,
+            'produto': h.nome_limpeza,
+            'quantidade': None,
+        })
+    for s in hist_sistema:
+        logs.append({
+            'data': s.data,
+            'origem': s.origem,
+            'evento': s.evento,
+            'detalhes': s.detalhes,
+            'usuario': s.usuario,
+            'produto': None,
+            'quantidade': None,
+        })
+    logs.sort(key=lambda x: x['data'], reverse=True)
+    return render_template('monitor.html', active_page='monitor', url=url, qr_base64=b64, logs=logs)
+
+@bp.route('/notifications/read')
+@login_required
+def notifications_read():
+    tipo = request.args.get('tipo')
+    ref_id = request.args.get('id', type=int)
+    nxt = request.args.get('next', url_for('estoque.index'))
+    if tipo in ('estoque', 'limpeza') and ref_id:
+        try:
+            if NotificationRead.query.filter_by(user_id=current_user.id, tipo=tipo, ref_id=ref_id).first() is None:
+                db.session.add(NotificationRead(user_id=current_user.id, tipo=tipo, ref_id=ref_id))
+                db.session.commit()
+        except Exception:
+            db.session.rollback()
+    return redirect(nxt)
+
+@bp.route('/notifications/unread')
+@login_required
+def notifications_unread():
+    tipo = request.args.get('tipo')
+    ref_id = request.args.get('id', type=int)
+    nxt = request.args.get('next', url_for('estoque.index'))
+    if tipo in ('estoque', 'limpeza') and ref_id:
+        try:
+            NotificationRead.query.filter_by(user_id=current_user.id, tipo=tipo, ref_id=ref_id).delete()
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+    return redirect(nxt)
+
+@bp.route('/notifications/unread_all')
+@login_required
+def notifications_unread_all():
+    nxt = request.args.get('next', url_for('estoque.index'))
+    try:
+        NotificationRead.query.filter_by(user_id=current_user.id).delete()
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+    return redirect(nxt)

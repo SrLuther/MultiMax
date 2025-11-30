@@ -42,41 +42,25 @@
           {% endif %}
         </td>
       </tr>
-      <div class="modal fade" id="entradaModal{{p.id}}" tabindex="-1">
-        <div class="modal-dialog">
-          <form class="modal-content" method="post" action="{{ url_for('estoque.entrada_produto', id=p.id) }}">
-            <div class="modal-header"><h5 class="modal-title">Entrada: {{ p.nome }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body">
-              <div class="mb-3"><label class="form-label">Quantidade</label><input type="number" name="quantidade" class="form-control" min="1" required></div>
-              <div class="mb-3"><label class="form-label">Detalhes</label><input type="text" name="detalhes" class="form-control"></div>
-            </div>
-            <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary" type="submit">Salvar</button></div>
-          </form>
-        </div>
-      </div>
-      <div class="modal fade" id="saidaModal{{p.id}}" tabindex="-1">
-        <div class="modal-dialog">
-          <form class="modal-content" method="post" action="{{ url_for('estoque.saida_produto', id=p.id) }}">
-            <div class="modal-header"><h5 class="modal-title">Saída: {{ p.nome }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body">
-              <div class="mb-3"><label class="form-label">Quantidade</label><input type="number" name="quantidade" class="form-control" min="1" required></div>
-              <div class="mb-3"><label class="form-label">Detalhes</label><input type="text" name="detalhes" class="form-control"></div>
-            </div>
-            <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-warning" type="submit">Salvar</button></div>
-          </form>
-        </div>
-      </div>
       {% endfor %}
     </tbody>
   </table>
 </div>
 
 <div class="modal fade" id="addModal" tabindex="-1">
-  <div class="modal-dialog">
-    <form class="modal-content" method="post" action="{{ url_for('estoque.adicionar_produto') }}">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content bg-white" method="post" action="{{ url_for('estoque.adicionar_produto') }}">
       <div class="modal-header"><h5 class="modal-title">Adicionar Produto</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
       <div class="modal-body">
-        <div class="mb-2"><label class="form-label">Código</label><input name="codigo" class="form-control" required></div>
+        <div class="mb-2">
+          <label class="form-label">Categoria</label>
+          <select name="categoria" class="form-select" required>
+            <option value="CX">Caixas</option>
+            <option value="PC">Pacotes</option>
+            <option value="VA">A vácuo</option>
+            <option value="AV" selected>Avulsos/Não categorizados</option>
+          </select>
+        </div>
         <div class="mb-2"><label class="form-label">Nome</label><input name="nome" class="form-control" required></div>
         <div class="mb-2"><label class="form-label">Quantidade</label><input type="number" name="quantidade" class="form-control" min="0" value="0" required></div>
         <div class="mb-2"><label class="form-label">Estoque Mínimo</label><input type="number" name="estoque_minimo" class="form-control" min="0" value="0" required></div>
@@ -87,4 +71,32 @@
     </form>
   </div>
 </div>
+
+{# Renderizar modais fora da tabela para evitar problemas de foco/estilo #}
+{% for p in produtos %}
+<div class="modal fade" id="entradaModal{{p.id}}" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content bg-white" method="post" action="{{ url_for('estoque.entrada_produto', id=p.id) }}">
+      <div class="modal-header"><h5 class="modal-title">Entrada: {{ p.nome }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-3"><label class="form-label">Quantidade</label><input type="number" name="quantidade" class="form-control" min="1" required></div>
+        <div class="mb-3"><label class="form-label">Detalhes</label><input type="text" name="detalhes" class="form-control"></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary" type="submit">Salvar</button></div>
+    </form>
+  </div>
+  </div>
+<div class="modal fade" id="saidaModal{{p.id}}" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content bg-white" method="post" action="{{ url_for('estoque.saida_produto', id=p.id) }}">
+      <div class="modal-header"><h5 class="modal-title">Saída: {{ p.nome }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-3"><label class="form-label">Quantidade</label><input type="number" name="quantidade" class="form-control" min="1" required></div>
+        <div class="mb-3"><label class="form-label">Detalhes</label><input type="text" name="detalhes" class="form-control"></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-warning" type="submit">Salvar</button></div>
+    </form>
+  </div>
+</div>
+{% endfor %}
 {% endblock %}

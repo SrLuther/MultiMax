@@ -39,14 +39,65 @@
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav">
+            <ul class="navbar-nav ms-auto align-items-center">
+                <li class="nav-item dropdown me-2">
+                    <a class="nav-link text-white position-relative" href="#" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-bell"></i>
+                        {% if notif_count and notif_count > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ notif_count }}</span>
+                        {% endif %}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notifDropdown" style="min-width: 360px;">
+                        <li class="px-3 py-2 border-bottom">
+                            <div class="d-flex gap-2 flex-wrap">
+                                <a class="badge bg-secondary text-decoration-none" href="{{ request.path }}">Todos</a>
+                                <a class="badge bg-primary text-decoration-none" href="{{ request.path }}?nf=estoque">Estoque</a>
+                                <a class="badge bg-info text-decoration-none" href="{{ request.path }}?nf=limpeza">Limpeza</a>
+                                <a class="badge bg-dark text-decoration-none" href="{{ url_for('usuarios.notifications_unread_all', next=request.path) }}">Mostrar todas</a>
+                                <div class="vr"></div>
+                                <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=CX">CX</a>
+                                <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=PC">PC</a>
+                                <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=VA">VA</a>
+                                <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=AV">AV</a>
+                            </div>
+                        </li>
+                        {% if notif_items and notif_items|length > 0 %}
+                            {% for n in notif_items %}
+                            <li>
+                                <div class="dropdown-item">
+                                    {% if n.tipo == 'estoque' %}
+                                    <i class="fas fa-box-open text-warning me-2"></i>
+                                    {% elif n.tipo == 'limpeza' %}
+                                    <i class="fas fa-broom text-info me-2"></i>
+                                    {% endif %}
+                                    <div class="d-inline-block">
+                                        <div class="fw-bold">{{ n.titulo }}</div>
+                                        <div class="small text-muted">{{ n.descricao }}</div>
+                                    </div>
+                                    <div class="mt-2 d-flex gap-2">
+                                        <a class="btn btn-sm btn-outline-secondary" href="{{ n.url }}">Abrir</a>
+                                        <a class="btn btn-sm btn-outline-success" href="{{ url_for('usuarios.notifications_read', tipo=n.tipo, id=n.id, next=request.path) }}">Ocultar</a>
+                                        {% if n.tipo == 'estoque' %}
+                                        <form method="post" action="{{ url_for('estoque.atualizar_minimo', id=n.id) }}" class="d-flex align-items-center gap-1">
+                                            <input type="number" name="novo_minimo" class="form-control form-control-sm" style="width:90px" min="0" placeholder="Min" required>
+                                            <input type="hidden" name="next" value="{{ request.path }}">
+                                            <button class="btn btn-sm btn-outline-primary" type="submit">Salvar</button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        {% else %}
+                            <li><span class="dropdown-item text-muted">Sem notificações</span></li>
+                        {% endif %}
+                    </ul>
+                </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fas fa-user-circle me-1"></i> {{ current_user.name }} ({{ current_user.nivel | upper }})
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                        <li><a class="dropdown-item" href="{{ url_for('exportacao.exportar') }}"><i class="fas fa-file-pdf me-1"></i> Exportar Estoque (PDF)</a></li>
-                        <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-1"></i> Sair</a></li>
                     </ul>
                 </li>
@@ -65,6 +116,7 @@
                 {% endif %}
                 <a class="list-group-item list-group-item-action {% if active_page == 'graficos' %}active{% endif %}" href="{{ url_for('usuarios.graficos') }}"><i class="fas fa-chart-bar me-2"></i>Gráficos</a>
                 {% if current_user.nivel == 'admin' %}
+                <a class="list-group-item list-group-item-action {% if active_page == 'monitor' %}active{% endif %}" href="{{ url_for('usuarios.monitor') }}"><i class="fas fa-desktop me-2"></i>Monitor</a>
                 <a class="list-group-item list-group-item-action {% if active_page == 'users' %}active{% endif %}" href="{{ url_for('usuarios.users') }}"><i class="fas fa-users-cog me-2"></i>Usuários</a>
                 {% endif %}
             </div>

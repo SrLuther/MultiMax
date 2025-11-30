@@ -1,16 +1,22 @@
 {% extends 'base.html' %}
 {% block title %}Estoque — MultiMax{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h2 class="mb-0">Controle de Estoque</h2>
-  {% if current_user.nivel in ('operador','admin') %}
-  <a class="btn btn-outline-success" href="{{ url_for('estoque.lista_produtos') }}">Gerenciar Produtos</a>
-  {% endif %}
-  {% if current_user.nivel == 'admin' %}
-  <a class="btn btn-outline-primary ms-2" href="{{ url_for('usuarios.users') }}">Usuários</a>
-  {% endif %}
-  <a class="btn btn-outline-secondary ms-2" href="{{ url_for('auth.logout') }}">Sair</a>
-  <span class="ms-auto text-muted">{{ current_user.username }}</span>
+<div class="mb-3">
+  <h2 class="mb-2">Controle de Estoque</h2>
+  <div class="d-flex flex-wrap align-items-center gap-2">
+    {% if current_user.nivel in ('operador','admin') %}
+    <a class="btn btn-outline-success" href="{{ url_for('estoque.lista_produtos') }}">Gerenciar Produtos</a>
+    {% endif %}
+    <a class="btn btn-outline-danger" href="{{ url_for('exportacao.exportar') }}">Exportar Estoque (PDF)</a>
+    <span class="ms-auto text-muted">{{ current_user.username }}</span>
+  </div>
+  <div class="mt-2 small text-muted">
+    <span class="me-2">Legenda:</span>
+    <span class="badge bg-secondary me-1">CX</span> Caixas
+    <span class="badge bg-secondary ms-3 me-1">PC</span> Pacotes
+    <span class="badge bg-secondary ms-3 me-1">VA</span> A vácuo
+    <span class="badge bg-secondary ms-3 me-1">AV</span> Avulsos
+  </div>
 </div>
 
 <form class="row g-3 mb-3" method="get" action="{{ url_for('estoque.index') }}">
