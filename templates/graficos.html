@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Gráficos — MultiMax{% endblock %}
+{% block title %}MultiMax{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h3 class="mb-0">Gráficos por Produto</h3>
@@ -80,8 +80,10 @@
 {% endif %}
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<div id="chartsDataHolder" data-json='{{ charts|tojson if charts else none|tojson }}' style="display:none"></div>
 <script>
-  const chartsData = {{ charts|tojson if charts else 'null' }};
+  const chartsDataEl = document.getElementById('chartsDataHolder');
+  const chartsData = chartsDataEl ? JSON.parse(chartsDataEl.dataset.json || 'null') : null;
   function makeChart(ctxId, labels, entradas, saidas, title) {
     const ctx = document.getElementById(ctxId);
     if (!ctx) return;

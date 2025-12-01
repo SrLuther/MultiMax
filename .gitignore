@@ -1,10 +1,37 @@
-instance/
-*.db
-*.pdf
+# Python
 __pycache__/
-*.pyc
-.env
-.env.txt
-venv/
+*.py[cod]
+*.so
+*.egg-info/
+build/
+dist/
+
+# Virtual environments
 .venv/
-.DS_Store
+venv/
+env/
+
+# Environment files and secrets
+.env
+.env.*
+.env.txt
+
+# IDE/Editor
+.vscode/
+*.code-workspace
+.idea/
+
+# Logs and caches
+*.log
+.cache/
+pip-wheel-metadata/
+
+# OS-specific
+Thumbs.db
+Desktop.ini
+
+# Trae workspace
+.trae/
+
+# Databases
+*.db

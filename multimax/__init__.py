@@ -27,6 +27,7 @@ def create_app():
     app = Flask(
         __name__,
         template_folder=os.path.join(base_dir, 'templates'),
+        static_folder=os.path.join(base_dir, 'static'),
     )
     data_dir = None
     if os.name == 'nt':
@@ -45,7 +46,7 @@ def create_app():
 
     db.init_app(app)
     login_manager.init_app(app)
-    login_manager.login_view = 'auth.login'
+    setattr(login_manager, 'login_view', 'auth.login')
     login_manager.login_message = "Por favor, faça login para acessar esta página."
     login_manager.login_message_category = "warning"
 
@@ -56,16 +57,26 @@ def create_app():
         return User.query.get(int(user_id))
 
     from .routes.auth import bp as auth_bp
+    from .routes.home import bp as home_bp
     from .routes.estoque import bp as estoque_bp
     from .routes.cronograma import bp as cronograma_bp, setup_cleaning_tasks
     from .routes.exportacao import bp as exportacao_bp
     from .routes.usuarios import bp as usuarios_bp
 
     app.register_blueprint(auth_bp)
+    app.register_blueprint(home_bp)
     app.register_blueprint(estoque_bp)
     app.register_blueprint(cronograma_bp)
     app.register_blueprint(exportacao_bp)
     app.register_blueprint(usuarios_bp)
+
+    @app.route('/', strict_slashes=False)
+    def _root_redirect():
+        from flask_login import current_user
+        from flask import redirect, url_for
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login'))
+        return redirect(url_for('home.index'))
 
     @app.context_processor
     def inject_notifications():
@@ -176,13 +187,19 @@ def create_app():
     with app.app_context():
         db.create_all()
         if User.query.filter_by(username='admin').first() is None:
-            admin = User(name='Administrador', username='admin', nivel='admin')
+            admin = User()
+            admin.name = 'Administrador'
+            admin.username = 'admin'
+            admin.nivel = 'admin'
             from werkzeug.security import generate_password_hash
             admin.password_hash = generate_password_hash(os.getenv('SENHA_ADMIN', 'admin123'))
             db.session.add(admin)
             db.session.commit()
         if User.query.filter_by(username='operador').first() is None:
-            operador = User(name='Operador Padrão', username='operador', nivel='operador')
+            operador = User()
+            operador.name = 'Operador Padrão'
+            operador.username = 'operador'
+            operador.nivel = 'operador'
             from werkzeug.security import generate_password_hash
             operador.password_hash = generate_password_hash(os.getenv('SENHA_OPERADOR', 'op123'))
             db.session.add(operador)
