@@ -1,12 +1,12 @@
-const CACHE_NAME = 'multimax-cache-v5';
+const CACHE_NAME = 'multimax-cache-v6';
 const STATIC_ASSETS = [
   '/static/manifest.json',
-  '/static/icons/icon-192-v2.png',
-  '/static/icons/icon-512-v2.png',
-  '/static/icons/icon-192-maskable-v2.png',
-  '/static/icons/icon-512-maskable-v2.png',
-  '/static/icons/apple-touch-icon-180-v2.png',
-  '/static/favicon.svg'
+  '/static/icons/icon-192.png',
+  '/static/icons/icon-512.png',
+  '/static/icons/icon-192-maskable.png',
+  '/static/icons/icon-512-maskable.png',
+  '/static/icons/apple-touch-icon-180.png',
+  '/static/icons/favicon.ico'
 ];
 
 self.addEventListener('install', (event) => {
