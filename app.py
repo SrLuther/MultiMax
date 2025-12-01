@@ -9,6 +9,9 @@ if __name__ == '__main__':
     debug = os.getenv('DEBUG', 'false').lower() == 'true'
     try:
         from waitress import serve
+    except ImportError:
+        serve = None
+    if serve:
         serve(app, host=host, port=port)
-    except Exception:
+    else:
         app.run(host=host, port=port, debug=debug)
