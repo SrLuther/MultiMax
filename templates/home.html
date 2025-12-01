@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}Home — MultiMax{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <div class="p-4 bg-primary text-white rounded">
+    <h2 class="mb-1">Bem-vindo ao MultiMax — Gestão Amora</h2>
+    <p class="mb-0">Controle de estoque, cronograma de limpeza, gráficos e gestão de usuários.</p>
+  </div>
+</div>
+
+<h3 class="mb-3">Home</h3>
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">Estoque</h5>
+        <p class="card-text">Cadastre produtos, registre entradas e saídas, defina mínimos e acompanhe alertas.</p>
+        <a class="btn btn-outline-primary" href="{{ url_for('estoque.index') }}">Ir para Estoque</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">Cronograma de Limpeza</h5>
+        <p class="card-text">Visualize tarefas, frequências e datas, marque conclusões e mantenha tudo em dia.</p>
+        {% if current_user.nivel in ('operador','admin') %}
+        <a class="btn btn-outline-primary" href="{{ url_for('cronograma.cronograma') }}">Abrir Cronograma</a>
+        {% else %}
+        <span class="btn btn-outline-secondary disabled">Acesso restrito</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">Gráficos</h5>
+        <p class="card-text">Acompanhe entradas e saídas ao longo do tempo e gere relatórios visuais.</p>
+        <a class="btn btn-outline-primary" href="{{ url_for('usuarios.graficos') }}">Ver Gráficos</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">Usuários e Monitor</h5>
+        <p class="card-text">Administre usuários e acesse o monitoramento do sistema.</p>
+        <div class="d-flex gap-2">
+          {% if current_user.nivel == 'admin' %}
+          <a class="btn btn-outline-primary" href="{{ url_for('usuarios.users') }}">Gerenciar Usuários</a>
+          <a class="btn btn-outline-dark" href="{{ url_for('usuarios.monitor') }}">Abrir Monitor</a>
+          {% else %}
+          <span class="btn btn-outline-secondary disabled">Acesso restrito</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mt-4">
+  <div class="alert alert-info">
+    <div>Você está logado como <strong>{{ current_user.name }}</strong> ({{ current_user.nivel | upper }}).</div>
+    <div class="small text-muted">Versão: {{ git_version }}</div>
+  </div>
+</div>
+{% endblock %}

@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime, timezone
 from . import db
 from flask_login import UserMixin
 
@@ -20,7 +20,7 @@ class Produto(db.Model):
 
 class Historico(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    data = db.Column(db.DateTime, default=datetime.utcnow)
+    data = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     product_id = db.Column(db.Integer, db.ForeignKey('produto.id'))
     product_name = db.Column(db.String(100))
     action = db.Column(db.String(10))
@@ -40,7 +40,7 @@ class CleaningTask(db.Model):
 
 class CleaningHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    data_conclusao = db.Column(db.DateTime, default=datetime.utcnow)
+    data_conclusao = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     nome_limpeza = db.Column(db.String(100))
     observacao = db.Column(db.String(500))
     designados = db.Column(db.String(255))
@@ -48,7 +48,7 @@ class CleaningHistory(db.Model):
 
 class SystemLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    data = db.Column(db.DateTime, default=datetime.utcnow)
+    data = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     origem = db.Column(db.String(50))
     evento = db.Column(db.String(50))
     detalhes = db.Column(db.String(255))
@@ -59,4 +59,4 @@ class NotificationRead(db.Model):
     user_id = db.Column(db.Integer, nullable=False)
     tipo = db.Column(db.String(20), nullable=False)  # 'estoque' ou 'limpeza'
     ref_id = db.Column(db.Integer, nullable=False)   # Produto.id ou CleaningTask.id
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

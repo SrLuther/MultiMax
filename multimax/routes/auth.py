@@ -8,16 +8,15 @@ bp = Blueprint('auth', __name__)
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('estoque.index'))
+        return redirect(url_for('home.index'))
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
+        username = request.form.get('username', '')
+        password = request.form.get('password', '')
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password_hash, password):
             login_user(user)
             flash('Login realizado com sucesso!', 'success')
-            next_page = request.args.get('next')
-            return redirect(next_page or url_for('estoque.index'))
+            return redirect(url_for('home.index'))
         else:
             flash('Nome de usuário ou senha inválidos.', 'danger')
     return render_template('login.html')
@@ -28,4 +27,3 @@ def logout():
     logout_user()
     flash('Você foi desconectado.', 'info')
     return redirect(url_for('auth.login'))
-

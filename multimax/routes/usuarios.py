@@ -4,7 +4,8 @@ from werkzeug.security import generate_password_hash
 from .. import db
 from ..models import User, Produto, Historico, CleaningHistory, SystemLog, NotificationRead
 from datetime import datetime, timedelta, date
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict
+from typing import TypedDict
 import os
 import socket
 import base64
@@ -40,18 +41,26 @@ def users():
             while User.query.filter_by(username=username).first() is not None:
                 username = f"{base_username}{suffix}"
                 suffix += 1
-        new_user = User(name=name, username=username, nivel=nivel)
+        new_user = User()
+        new_user.name = name
+        new_user.username = username
+        new_user.nivel = nivel
         new_user.password_hash = generate_password_hash(password)
         try:
             db.session.add(new_user)
-            db.session.add(SystemLog(origem='Usuarios', evento='criar', detalhes=f'Criado {name} ({username}) nivel {nivel}', usuario=current_user.name))
+            log = SystemLog()
+            log.origem = 'Usuarios'
+            log.evento = 'criar'
+            log.detalhes = f'Criado {name} ({username}) nivel {nivel}'
+            log.usuario = current_user.name
+            db.session.add(log)
             db.session.commit()
             flash(f'Usuário "{name}" criado com login "{username}".', 'success')
         except Exception as e:
             db.session.rollback()
             flash(f'Erro ao criar usuário: {e}', 'danger')
         return redirect(url_for('usuarios.users'))
-    all_users = User.query.all()
+    all_users: list[User] = User.query.all()
     senha_sugestao = '123456'
     return render_template('users.html', users=all_users, active_page='users', senha_sugestao=senha_sugestao)
 
@@ -63,8 +72,8 @@ def graficos():
     data_inicio_str = request.args.get('data_inicio', '').strip()
     data_fim_str = request.args.get('data_fim', '').strip()
 
-    produto = None
-    resultados = []
+    produto: Produto | None = None
+    resultados: list[Produto] = []
     if produto_id:
         produto = Produto.query.get(produto_id)
     elif q:
@@ -74,7 +83,7 @@ def graficos():
         if len(resultados) == 1:
             produto = resultados[0]
 
-    def parse_date_safe(s):
+    def parse_date_safe(s: str):
         try:
             return datetime.strptime(s, '%Y-%m-%d').date()
         except Exception:
@@ -85,17 +94,22 @@ def graficos():
     if data_inicio and data_fim and data_inicio > data_fim:
         data_inicio, data_fim = data_fim, data_inicio
 
-    def _fetch_hist(prod_id, start_date=None):
+    def _fetch_hist(prod_id: int, start_date: date | None = None) -> list[Historico]:
         query = Historico.query.filter_by(product_id=prod_id)
         if start_date:
             query = query.filter(Historico.data >= datetime.combine(start_date, datetime.min.time()))
         return query.order_by(Historico.data.asc()).all()
 
-    def _agg_weekly(prod_id, weeks=8):
+    class Bucket(TypedDict):
+        entrada: int
+        saida: int
+        label: str
+
+    def _agg_weekly(prod_id: int, weeks: int = 8):
         end = date.today()
         start = end - timedelta(days=7*weeks)
         hist = _fetch_hist(prod_id, start)
-        buckets = OrderedDict()
+        buckets: OrderedDict[str, Bucket] = OrderedDict()
         # Fill buckets for each week starting Monday
         cursor = start - timedelta(days=start.weekday())
         while cursor <= end:
@@ -107,16 +121,19 @@ def graficos():
             monday = d - timedelta(days=d.weekday())
             key = monday.strftime('%Y-%m-%d')
             if key in buckets:
-                buckets[key][h.action] = buckets[key].get(h.action, 0) + (h.quantidade or 0)
+                if h.action == 'entrada':
+                    buckets[key]['entrada'] += h.quantidade or 0
+                elif h.action == 'saida':
+                    buckets[key]['saida'] += h.quantidade or 0
         labels = [v['label'] for v in buckets.values()]
         entradas = [v['entrada'] for v in buckets.values()]
         saidas = [v['saida'] for v in buckets.values()]
         return {'labels': labels, 'entrada': entradas, 'saida': saidas}
 
-    def _agg_monthly(prod_id, months=12):
+    def _agg_monthly(prod_id: int, months: int = 12):
         today = date.today()
         # Build month list
-        buckets = OrderedDict()
+        buckets: OrderedDict[str, Bucket] = OrderedDict()
         y, m = today.year, today.month
         for i in range(months-1, -1, -1):
             yy = y
@@ -130,15 +147,18 @@ def graficos():
         for h in hist:
             k = h.data.strftime('%Y-%m')
             if k in buckets:
-                buckets[k][h.action] = buckets[k].get(h.action, 0) + (h.quantidade or 0)
+                if h.action == 'entrada':
+                    buckets[k]['entrada'] += h.quantidade or 0
+                elif h.action == 'saida':
+                    buckets[k]['saida'] += h.quantidade or 0
         labels = [v['label'] for v in buckets.values()]
         entradas = [v['entrada'] for v in buckets.values()]
         saidas = [v['saida'] for v in buckets.values()]
         return {'labels': labels, 'entrada': entradas, 'saida': saidas}
 
-    def _agg_yearly(prod_id, years=5):
+    def _agg_yearly(prod_id: int, years: int = 5):
         this_year = date.today().year
-        buckets = OrderedDict()
+        buckets: OrderedDict[str, Bucket] = OrderedDict()
         for yy in range(this_year - (years-1), this_year + 1):
             key = str(yy)
             buckets[key] = {'entrada': 0, 'saida': 0, 'label': key}
@@ -146,21 +166,24 @@ def graficos():
         for h in hist:
             k = h.data.strftime('%Y')
             if k in buckets:
-                buckets[k][h.action] = buckets[k].get(h.action, 0) + (h.quantidade or 0)
+                if h.action == 'entrada':
+                    buckets[k]['entrada'] += h.quantidade or 0
+                elif h.action == 'saida':
+                    buckets[k]['saida'] += h.quantidade or 0
         labels = [v['label'] for v in buckets.values()]
         entradas = [v['entrada'] for v in buckets.values()]
         saidas = [v['saida'] for v in buckets.values()]
         return {'labels': labels, 'entrada': entradas, 'saida': saidas}
 
-    def _agg_custom(prod_id, di, df):
+    def _agg_custom(prod_id: int, di: date | None, df: date | None):
         if not di or not df:
             return {'labels': [], 'entrada': [], 'saida': []}
-        hist = Historico.query.filter(
+        hist: list[Historico] = Historico.query.filter(
             Historico.product_id == prod_id,
             Historico.data >= datetime.combine(di, datetime.min.time()),
             Historico.data <= datetime.combine(df, datetime.max.time())
         ).order_by(Historico.data.asc()).all()
-        buckets = OrderedDict()
+        buckets: OrderedDict[str, Bucket] = OrderedDict()
         cursor = di
         while cursor <= df:
             key = cursor.strftime('%Y-%m-%d')
@@ -169,7 +192,10 @@ def graficos():
         for h in hist:
             k = h.data.strftime('%Y-%m-%d')
             if k in buckets:
-                buckets[k][h.action] = buckets[k].get(h.action, 0) + (h.quantidade or 0)
+                if h.action == 'entrada':
+                    buckets[k]['entrada'] += h.quantidade or 0
+                elif h.action == 'saida':
+                    buckets[k]['saida'] += h.quantidade or 0
         labels = [v['label'] for v in buckets.values()]
         entradas = [v['entrada'] for v in buckets.values()]
         saidas = [v['saida'] for v in buckets.values()]
@@ -208,7 +234,12 @@ def update_level(user_id):
         return redirect(url_for('usuarios.users'))
     try:
         user.nivel = nivel
-        db.session.add(SystemLog(origem='Usuarios', evento='nivel', detalhes=f'Nivel {user.username} -> {nivel}', usuario=current_user.name))
+        log = SystemLog()
+        log.origem = 'Usuarios'
+        log.evento = 'nivel'
+        log.detalhes = f'Nivel {user.username} -> {nivel}'
+        log.usuario = current_user.name
+        db.session.add(log)
         db.session.commit()
         flash(f'Nivel do usuário "{user.name}" atualizado para "{nivel}".', 'info')
     except Exception as e:
@@ -228,7 +259,12 @@ def excluir_user(user_id):
     user = User.query.get_or_404(user_id)
     try:
         db.session.delete(user)
-        db.session.add(SystemLog(origem='Usuarios', evento='excluir', detalhes=f'Excluido {user.name} ({user.username})', usuario=current_user.name))
+        log = SystemLog()
+        log.origem = 'Usuarios'
+        log.evento = 'excluir'
+        log.detalhes = f'Excluido {user.name} ({user.username})'
+        log.usuario = current_user.name
+        db.session.add(log)
         db.session.commit()
         flash(f'Usuário "{user.name}" excluído com sucesso.', 'danger')
     except Exception as e:
@@ -254,7 +290,7 @@ def monitor():
     url = f"http://{ip}:{port}"
     img = qrcode.make(url)
     buf = BytesIO()
-    img.save(buf, format='PNG')
+    img.save(buf, 'PNG')
     b64 = base64.b64encode(buf.getvalue()).decode('ascii')
     hist_estoque = Historico.query.order_by(Historico.data.desc()).limit(50).all()
     hist_limpeza = CleaningHistory.query.order_by(CleaningHistory.data_conclusao.desc()).limit(50).all()
@@ -302,7 +338,11 @@ def notifications_read():
     if tipo in ('estoque', 'limpeza') and ref_id:
         try:
             if NotificationRead.query.filter_by(user_id=current_user.id, tipo=tipo, ref_id=ref_id).first() is None:
-                db.session.add(NotificationRead(user_id=current_user.id, tipo=tipo, ref_id=ref_id))
+                nr = NotificationRead()
+                nr.user_id = current_user.id
+                nr.tipo = tipo
+                nr.ref_id = ref_id
+                db.session.add(nr)
                 db.session.commit()
         except Exception:
             db.session.rollback()

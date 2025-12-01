@@ -2,10 +2,11 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from .. import db
 from ..models import Produto, Historico
+from typing import cast
 
 bp = Blueprint('estoque', __name__)
 
-@bp.route('/')
+@bp.route('/estoque')
 @login_required
 def index():
     search_term = request.args.get('busca', '')
@@ -16,7 +17,7 @@ def index():
         ).order_by(Produto.id.desc())
     else:
         produtos_query = Produto.query.order_by(Produto.id.desc())
-    produtos = produtos_query.all()
+    produtos: list[Produto] = produtos_query.all()
     historico = Historico.query.order_by(Historico.data.desc()).paginate(
         page=page, per_page=10, error_out=False
     )
@@ -25,7 +26,7 @@ def index():
 @bp.route('/produtos')
 @login_required
 def lista_produtos():
-    produtos = Produto.query.order_by(Produto.nome.asc()).all()
+    produtos: list[Produto] = Produto.query.order_by(Produto.nome.asc()).all()
     return render_template('produtos.html', produtos=produtos, active_page='index')
 
 @bp.route('/produtos/adicionar', methods=['POST'])
@@ -39,8 +40,8 @@ def adicionar_produto():
         'AV': 'AV',  # Avulsos/Não categorizados
     }
     prefix = prefix_map.get(categoria, 'AV')
-    def gerar_codigo(pref):
-        existentes = Produto.query.with_entities(Produto.codigo).filter(Produto.codigo.like(f"{pref}-%")).all()
+    def gerar_codigo(pref: str) -> str:
+        existentes = cast(list[tuple[str]], Produto.query.with_entities(Produto.codigo).filter(Produto.codigo.like(f"{pref}-%")).all())
         maior = 0
         for (cod,) in existentes:
             try:
@@ -53,21 +54,26 @@ def adicionar_produto():
         return f"{pref}-{maior+1:04d}"
     codigo = gerar_codigo(prefix)
     nome = request.form.get('nome')
-    quantidade = int(request.form.get('quantidade', 0))
-    estoque_minimo = int(request.form.get('estoque_minimo', 0))
-    preco_custo = float(request.form.get('preco_custo', 0))
-    preco_venda = float(request.form.get('preco_venda', 0))
-    novo = Produto(
-        codigo=codigo,
-        nome=nome,
-        quantidade=quantidade,
-        estoque_minimo=estoque_minimo,
-        preco_custo=preco_custo,
-        preco_venda=preco_venda
-    )
+    quantidade = int(request.form.get('quantidade', '0'))
+    estoque_minimo = int(request.form.get('estoque_minimo', '0'))
+    preco_custo = float(request.form.get('preco_custo', '0'))
+    preco_venda = float(request.form.get('preco_venda', '0'))
+    novo = Produto()
+    novo.codigo = codigo
+    novo.nome = nome
+    novo.quantidade = quantidade
+    novo.estoque_minimo = estoque_minimo
+    novo.preco_custo = preco_custo
+    novo.preco_venda = preco_venda
     db.session.add(novo)
     db.session.commit()
-    hist = Historico(product_id=novo.id, product_name=novo.nome, action='entrada', quantidade=quantidade, details='Cadastro inicial', usuario=current_user.username)
+    hist = Historico()
+    hist.product_id = novo.id
+    hist.product_name = novo.nome
+    hist.action = 'entrada'
+    hist.quantidade = quantidade
+    hist.details = 'Cadastro inicial'
+    hist.usuario = current_user.username
     db.session.add(hist)
     db.session.commit()
     flash('Produto cadastrado com sucesso!', 'success')
@@ -75,20 +81,20 @@ def adicionar_produto():
 
 @bp.route('/produtos/editar/<int:id>', methods=['POST'])
 @login_required
-def editar_produto(id):
+def editar_produto(id: int):
     produto = Produto.query.get_or_404(id)
     produto.codigo = request.form.get('codigo')
     produto.nome = request.form.get('nome')
-    produto.estoque_minimo = int(request.form.get('estoque_minimo'))
-    produto.preco_custo = float(request.form.get('preco_custo'))
-    produto.preco_venda = float(request.form.get('preco_venda'))
+    produto.estoque_minimo = int(request.form.get('estoque_minimo', '0'))
+    produto.preco_custo = float(request.form.get('preco_custo', '0'))
+    produto.preco_venda = float(request.form.get('preco_venda', '0'))
     db.session.commit()
     flash('Produto atualizado!', 'success')
     return redirect(url_for('estoque.lista_produtos'))
 
 @bp.route('/produtos/excluir/<int:id>')
 @login_required
-def excluir_produto(id):
+def excluir_produto(id: int):
     produto = Produto.query.get_or_404(id)
     db.session.delete(produto)
     db.session.commit()
@@ -97,12 +103,18 @@ def excluir_produto(id):
 
 @bp.route('/produtos/entrada/<int:id>', methods=['POST'])
 @login_required
-def entrada_produto(id):
+def entrada_produto(id: int):
     produto = Produto.query.get_or_404(id)
-    qtd = int(request.form.get('quantidade'))
+    qtd = int(request.form.get('quantidade', '0'))
     produto.quantidade += qtd
     db.session.commit()
-    hist = Historico(product_id=produto.id, product_name=produto.nome, action='entrada', quantidade=qtd, details=request.form.get('detalhes'), usuario=current_user.username)
+    hist = Historico()
+    hist.product_id = produto.id
+    hist.product_name = produto.nome
+    hist.action = 'entrada'
+    hist.quantidade = qtd
+    hist.details = request.form.get('detalhes')
+    hist.usuario = current_user.username
     db.session.add(hist)
     db.session.commit()
     flash('Entrada registrada!', 'success')
@@ -110,15 +122,21 @@ def entrada_produto(id):
 
 @bp.route('/produtos/saida/<int:id>', methods=['POST'])
 @login_required
-def saida_produto(id):
+def saida_produto(id: int):
     produto = Produto.query.get_or_404(id)
-    qtd = int(request.form.get('quantidade'))
+    qtd = int(request.form.get('quantidade', '0'))
     if produto.quantidade < qtd:
         flash('Quantidade insuficiente em estoque.', 'danger')
         return redirect(url_for('estoque.lista_produtos'))
     produto.quantidade -= qtd
     db.session.commit()
-    hist = Historico(product_id=produto.id, product_name=produto.nome, action='saida', quantidade=qtd, details=request.form.get('detalhes'), usuario=current_user.username)
+    hist = Historico()
+    hist.product_id = produto.id
+    hist.product_name = produto.nome
+    hist.action = 'saida'
+    hist.quantidade = qtd
+    hist.details = request.form.get('detalhes')
+    hist.usuario = current_user.username
     db.session.add(hist)
     db.session.commit()
     flash('Saída registrada!', 'warning')
@@ -142,8 +160,8 @@ def adicionar():
             'AV': 'AV',
         }
         prefix = prefix_map.get(categoria, 'AV')
-        def gerar_codigo(pref):
-            existentes = Produto.query.with_entities(Produto.codigo).filter(Produto.codigo.like(f"{pref}-%")).all()
+        def gerar_codigo(pref: str) -> str:
+            existentes = cast(list[tuple[str]], Produto.query.with_entities(Produto.codigo).filter(Produto.codigo.like(f"{pref}-%")).all())
             maior = 0
             for (cod,) in existentes:
                 try:
@@ -155,18 +173,23 @@ def adicionar():
                     continue
             return f"{pref}-{maior+1:04d}"
         proximo_codigo = gerar_codigo(prefix)
-        new_produto = Produto(
-            codigo=proximo_codigo,
-            nome=request.form['nome'],
-            quantidade=int(request.form['quantidade']),
-            estoque_minimo=int(request.form['estoque_minimo']),
-            preco_custo=float(request.form['preco_custo']),
-            preco_venda=float(request.form['preco_venda'])
-        )
+        new_produto = Produto()
+        new_produto.codigo = proximo_codigo
+        new_produto.nome = request.form['nome']
+        new_produto.quantidade = int(request.form['quantidade'])
+        new_produto.estoque_minimo = int(request.form['estoque_minimo'])
+        new_produto.preco_custo = float(request.form['preco_custo'])
+        new_produto.preco_venda = float(request.form['preco_venda'])
         db.session.add(new_produto)
         db.session.flush()
         if new_produto.quantidade > 0:
-            hist = Historico(product_id=new_produto.id, product_name=new_produto.nome, action='entrada', quantidade=new_produto.quantidade, details='Estoque inicial adicionado', usuario=current_user.name)
+            hist = Historico()
+            hist.product_id = new_produto.id
+            hist.product_name = new_produto.nome
+            hist.action = 'entrada'
+            hist.quantidade = new_produto.quantidade
+            hist.details = 'Estoque inicial adicionado'
+            hist.usuario = current_user.username
             db.session.add(hist)
         db.session.commit()
         flash(f'Produto "{new_produto.nome}" adicionado com sucesso!', 'success')
@@ -177,7 +200,7 @@ def adicionar():
 
 @bp.route('/entrada/<int:id>', methods=['POST'])
 @login_required
-def entrada(id):
+def entrada(id: int):
     if current_user.nivel not in ['operador', 'admin']:
         flash('Você não tem permissão para registrar entrada.', 'danger')
         return redirect(url_for('estoque.index'))
@@ -188,7 +211,13 @@ def entrada(id):
             flash('A quantidade deve ser positiva.', 'warning')
             return redirect(url_for('estoque.index'))
         produto.quantidade += quantidade
-        hist = Historico(product_id=produto.id, product_name=produto.nome, action='entrada', quantidade=quantidade, details='Entrada de estoque', usuario=current_user.name)
+        hist = Historico()
+        hist.product_id = produto.id
+        hist.product_name = produto.nome
+        hist.action = 'entrada'
+        hist.quantidade = quantidade
+        hist.details = 'Entrada de estoque'
+        hist.usuario = current_user.username
         db.session.add(hist)
         db.session.commit()
         flash(f'Registrada entrada de {quantidade} unidades de "{produto.nome}".', 'primary')
@@ -199,7 +228,7 @@ def entrada(id):
 
 @bp.route('/saida/<int:id>', methods=['POST'])
 @login_required
-def saida(id):
+def saida(id: int):
     if current_user.nivel not in ['operador', 'admin']:
         flash('Você não tem permissão para registrar saída.', 'danger')
         return redirect(url_for('estoque.index'))
@@ -213,7 +242,13 @@ def saida(id):
             flash(f'Saída de {quantidade} unidades excede o estoque atual ({produto.quantidade}).', 'warning')
             return redirect(url_for('estoque.index'))
         produto.quantidade -= quantidade
-        hist = Historico(product_id=produto.id, product_name=produto.nome, action='saida', quantidade=quantidade, details='Saída de estoque (Venda/Uso)', usuario=current_user.name)
+        hist = Historico()
+        hist.product_id = produto.id
+        hist.product_name = produto.nome
+        hist.action = 'saida'
+        hist.quantidade = quantidade
+        hist.details = 'Saída de estoque (Venda/Uso)'
+        hist.usuario = current_user.username
         db.session.add(hist)
         db.session.commit()
         flash(f'Registrada saída de {quantidade} unidades de "{produto.nome}".', 'warning')
@@ -226,7 +261,7 @@ def saida(id):
 
 @bp.route('/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
-def editar(id):
+def editar(id: int):
     if current_user.nivel not in ['operador', 'admin']:
         flash('Você não tem permissão para editar produtos.', 'danger')
         return redirect(url_for('estoque.index'))
@@ -247,7 +282,7 @@ def editar(id):
 
 @bp.route('/excluir/<int:id>')
 @login_required
-def excluir(id):
+def excluir(id: int):
     if current_user.nivel != 'admin':
         flash('Você não tem permissão para excluir produtos.', 'danger')
         return redirect(url_for('estoque.index'))
@@ -264,13 +299,13 @@ def excluir(id):
 
 @bp.route('/produtos/<int:id>/minimo', methods=['POST'])
 @login_required
-def atualizar_minimo(id):
+def atualizar_minimo(id: int):
     if current_user.nivel not in ['operador', 'admin']:
         flash('Você não tem permissão para atualizar estoque mínimo.', 'danger')
         return redirect(url_for('estoque.index'))
     produto = Produto.query.get_or_404(id)
     try:
-        novo_min = int(request.form.get('novo_minimo', produto.estoque_minimo))
+        novo_min = int(request.form.get('novo_minimo', str(produto.estoque_minimo)))
         if novo_min < 0:
             novo_min = 0
         produto.estoque_minimo = novo_min
