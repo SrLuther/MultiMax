@@ -5,10 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}MultiMax{% endblock %}</title>
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}?v=5">
-    <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
-    <link rel="icon" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192.png') }}" type="image/png">
-    <link rel="icon" sizes="512x512" href="{{ url_for('static', filename='icons/icon-512.png') }}" type="image/png">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/apple-touch-icon-180-v2.png') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='icons/favicon.ico') }}?v=6" type="image/x-icon">
+    <link rel="icon" href="{{ url_for('static', filename='icons/favicon.ico') }}?v=6" type="image/x-icon">
+    <link rel="icon" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192.png') }}?v=6" type="image/png">
+    <link rel="icon" sizes="512x512" href="{{ url_for('static', filename='icons/icon-512.png') }}?v=6" type="image/png">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon-180.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/apple-touch-icon-180.png') }}">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="MultiMax">
     <meta name="theme-color" content="#0d6efd">
@@ -28,6 +31,16 @@
             .logo-shadow {
                 filter: drop-shadow(0 0 3px #ffffff) drop-shadow(0 0 12px rgba(255,255,255,0.9));
             }
+            .brand-tile {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+                border-radius: 12px;
+                padding: 4px;
+                box-shadow: 0 4px 12px rgba(13,110,253,0.35);
+            }
+            .brand-logo-img { height: 56px; display: block; }
         /* Estilo para garantir que o rodapé fique sempre na parte inferior da tela */
         body {
             display: flex;
@@ -57,12 +70,16 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
     <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center" href="{{ url_for('home.index') }}">
-            <img class="logo-shadow" src="{{ url_for('static', filename='icons/logo-boxes-v2.svg') }}" alt="MultiMax" height="48">
+            <span class="brand-tile"><img class="brand-logo-img logo-shadow" src="{{ url_for('static', filename='icons/logo-user.png') }}" alt="MultiMax"></span>
             <span class="ms-2 text-white fw-bold fs-4">MultiMax</span>
             <span class="ms-2 text-white">— Gestão Amora</span>
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
+        </button>
+        <button class="btn btn-sm btn-outline-light d-md-none ms-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMobile" aria-controls="sidebarMobile">
+            <i class="fas fa-bars"></i>
+            <span class="ms-1">Menu</span>
         </button>
         <a id="themeToggleNav2" class="btn btn-sm btn-outline-light d-lg-none ms-2" href="#" aria-label="Alternar tema">
             <span id="themeIconNav2"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"/></svg></span>
@@ -70,11 +87,7 @@
         </a>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto align-items-center">
-                <li class="nav-item me-2">
-                    <a class="nav-link text-white {% if active_page == 'home' %}fw-bold{% endif %}" href="{{ url_for('home.index') }}">
-                        <i class="fas fa-house me-1"></i> Home
-                    </a>
-                </li>
+                
                 <li class="nav-item dropdown me-2">
                     <a class="nav-link text-white position-relative" href="#" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fas fa-bell"></i>
@@ -147,9 +160,30 @@
     </div>
 </nav>
 
+<div class="offcanvas offcanvas-start d-md-none" tabindex="-1" id="sidebarMobile" aria-labelledby="sidebarMobileLabel">
+  <div class="offcanvas-header bg-primary text-white">
+    <h5 id="sidebarMobileLabel" class="mb-0">Menu</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body p-0">
+    <div class="list-group">
+      <a class="list-group-item list-group-item-action {% if active_page == 'home' %}active{% endif %}" href="{{ url_for('home.index') }}"><i class="fas fa-house me-2"></i>Home</a>
+      <a class="list-group-item list-group-item-action {% if active_page == 'index' %}active{% endif %}" href="{{ url_for('estoque.index') }}"><i class="fas fa-boxes me-2"></i>Estoque</a>
+      {% if current_user.nivel in ('operador', 'admin') %}
+      <a class="list-group-item list-group-item-action {% if active_page == 'cronograma' %}active{% endif %}" href="{{ url_for('cronograma.cronograma') }}"><i class="fas fa-clipboard-check me-2"></i>Cronograma</a>
+      {% endif %}
+      <a class="list-group-item list-group-item-action {% if active_page == 'graficos' %}active{% endif %}" href="{{ url_for('usuarios.graficos') }}"><i class="fas fa-chart-bar me-2"></i>Gráficos</a>
+      {% if current_user.nivel == 'admin' %}
+      <a class="list-group-item list-group-item-action {% if active_page == 'monitor' %}active{% endif %}" href="{{ url_for('usuarios.monitor') }}"><i class="fas fa-desktop me-2"></i>Monitor</a>
+      <a class="list-group-item list-group-item-action {% if active_page == 'users' %}active{% endif %}" href="{{ url_for('usuarios.users') }}"><i class="fas fa-users-cog me-2"></i>Usuários</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
 <div class="content-wrapper container-fluid mt-4">
     <div class="row">
-        <aside class="col-12 col-md-3 col-lg-2 mb-3 mb-md-0">
+        <aside class="d-none d-md-block col-md-3 col-lg-2 mb-3 mb-md-0">
             <div class="list-group">
                 <a class="list-group-item list-group-item-action {% if active_page == 'home' %}active{% endif %}" href="{{ url_for('home.index') }}"><i class="fas fa-house me-2"></i>Home</a>
                 <a class="list-group-item list-group-item-action {% if active_page == 'index' %}active{% endif %}" href="{{ url_for('estoque.index') }}"><i class="fas fa-boxes me-2"></i>Estoque</a>
@@ -187,10 +221,7 @@
     </div>
 </footer>
 
-<!-- Botão global de tema (sempre visível) -->
-<button id="globalThemeFab" class="btn btn-outline-secondary rounded-circle theme-fab" aria-label="Alternar tema">
-    <span id="globalThemeIcon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"/></svg></span>
-}</button>
+
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -218,16 +249,15 @@
         var btn2 = document.getElementById('themeToggleNav2');
         var icon1 = document.getElementById('themeIconNav');
         var icon2 = document.getElementById('themeIconNav2');
-        var fab = document.getElementById('globalThemeFab');
-        var iconFab = document.getElementById('globalThemeIcon');
+        
         function svgMoon(){ return '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"/></svg>'; }
         function svgSun(){ return '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.76 4.84l-1.8-1.79L3.17 4.84l1.79 1.8 1.8-1.8Zm10.48 0 1.8-1.79 1.79 1.79-1.79 1.8-1.8-1.8ZM12 5a7 7 0 1 0 0 14A7 7 0 0 0 12 5Zm-9 7H1v-2h2v2Zm20 0h-2v-2h2v2ZM6.76 19.16l-1.8 1.79-1.79-1.79 1.79-1.8 1.8 1.8Zm10.48 0 1.8 1.79 1.79-1.79-1.79-1.8-1.8 1.8Z"/></svg>'; }
         function setIcon(theme){
-            [icon1, icon2, iconFab].forEach(function(ic){
+            [icon1, icon2].forEach(function(ic){
                 if(!ic) return;
                 ic.innerHTML = theme === 'dark' ? svgSun() : svgMoon();
             });
-            [btn1, btn2, fab].forEach(function(b){ if(b) b.title = theme === 'dark' ? 'Modo claro' : 'Modo escuro'; });
+            [btn1, btn2].forEach(function(b){ if(b) b.title = theme === 'dark' ? 'Modo claro' : 'Modo escuro'; });
         }
         var current = document.documentElement.getAttribute('data-bs-theme') || 'light';
         setIcon(current);
@@ -240,7 +270,7 @@
         }
         if(btn1) btn1.addEventListener('click', onClick);
         if(btn2) btn2.addEventListener('click', onClick);
-        if(fab) fab.addEventListener('click', onClick);
+        
     })();
 </script>
 <script>
