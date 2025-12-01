@@ -78,6 +78,10 @@ def create_app():
             return redirect(url_for('auth.login'))
         return redirect(url_for('home.index'))
 
+    @app.route('/health', strict_slashes=False)
+    def _health():
+        return 'ok', 200
+
     @app.context_processor
     def inject_notifications():
         try:
