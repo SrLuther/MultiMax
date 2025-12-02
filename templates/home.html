@@ -50,6 +50,20 @@
   <div class="col-md-6">
     <div class="card h-100">
       <div class="card-body">
+        <h5 class="card-title">Carnes</h5>
+        <p class="card-text">Registre recepções de carnes por animal e parte, e gere relatórios.</p>
+        {% if current_user.nivel in ('operador','admin') %}
+        <a class="btn btn-outline-primary" href="{{ url_for('carnes.index') }}">Abrir Carnes</a>
+        {% else %}
+        <span class="btn btn-outline-secondary disabled">Acesso restrito</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-body">
         <h5 class="card-title">Usuários e Monitor</h5>
         <p class="card-text">Administre usuários e acesse o monitoramento do sistema.</p>
         <div class="d-flex gap-2">
