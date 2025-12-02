@@ -62,6 +62,7 @@ def create_app():
     from .routes.cronograma import bp as cronograma_bp, setup_cleaning_tasks
     from .routes.exportacao import bp as exportacao_bp
     from .routes.usuarios import bp as usuarios_bp
+    from .routes.carnes import bp as carnes_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(home_bp)
@@ -69,6 +70,7 @@ def create_app():
     app.register_blueprint(cronograma_bp)
     app.register_blueprint(exportacao_bp)
     app.register_blueprint(usuarios_bp)
+    app.register_blueprint(carnes_bp)
 
     @app.route('/', strict_slashes=False)
     def _root_redirect():

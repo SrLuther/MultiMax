@@ -190,6 +190,9 @@
                 {% if current_user.nivel in ('operador', 'admin') %}
                 <a class="list-group-item list-group-item-action {% if active_page == 'cronograma' %}active{% endif %}" href="{{ url_for('cronograma.cronograma') }}"><i class="fas fa-clipboard-check me-2"></i>Cronograma</a>
                 {% endif %}
+                {% if current_user.nivel in ('operador', 'admin') %}
+                <a class="list-group-item list-group-item-action {% if active_page == 'carnes' %}active{% endif %}" href="{{ url_for('carnes.index') }}"><i class="fas fa-drumstick-bite me-2"></i>Carnes</a>
+                {% endif %}
                 <a class="list-group-item list-group-item-action {% if active_page == 'graficos' %}active{% endif %}" href="{{ url_for('usuarios.graficos') }}"><i class="fas fa-chart-bar me-2"></i>Gráficos</a>
                 {% if current_user.nivel == 'admin' %}
                 <a class="list-group-item list-group-item-action {% if active_page == 'monitor' %}active{% endif %}" href="{{ url_for('usuarios.monitor') }}"><i class="fas fa-desktop me-2"></i>Monitor</a>
