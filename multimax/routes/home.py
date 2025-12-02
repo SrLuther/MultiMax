@@ -70,6 +70,23 @@ def index():
             })
     except Exception:
         pass
+    try:
+        feriados = [
+            {'title': 'Feriado Nacional: Natal', 'start': '2025-12-25', 'color': '#dc3545'},
+            {'title': 'Feriado Nacional: Confraternização Universal', 'start': '2026-01-01', 'color': '#dc3545'},
+            {'title': 'Feriado Nacional: Paixão de Cristo', 'start': '2026-04-03', 'color': '#dc3545'},
+            {'title': 'Feriado Nacional: Tiradentes', 'start': '2026-04-21', 'color': '#dc3545'},
+            {'title': 'Feriado Nacional: Dia do Trabalho', 'start': '2026-05-01', 'color': '#dc3545'},
+            {'title': 'Feriado Nacional: Independência do Brasil', 'start': '2026-09-07', 'color': '#dc3545'},
+            {'title': 'Feriado Nacional: Nossa Senhora Aparecida', 'start': '2026-10-12', 'color': '#dc3545'},
+            {'title': 'Feriado Nacional: Finados', 'start': '2026-11-02', 'color': '#dc3545'},
+            {'title': 'Feriado Nacional: Proclamação da República', 'start': '2026-11-15', 'color': '#dc3545'},
+            {'title': 'Feriado Nacional: Dia da Consciência Negra', 'start': '2026-11-20', 'color': '#dc3545'},
+            {'title': 'Feriado Nacional: Natal', 'start': '2026-12-25', 'color': '#dc3545'},
+        ]
+        events.extend(feriados)
+    except Exception:
+        pass
     mural_text = ''
     try:
         s = AppSetting.query.filter_by(key='mural_text').first()

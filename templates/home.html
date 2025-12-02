@@ -4,9 +4,9 @@
 <div class="mb-3">
   <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-      <span>Mural</span>
+      <span>Quadro de Avisos</span>
       {% if current_user.nivel == 'admin' %}
-      <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalEditarMural">Editar Mural</button>
+      <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalEditarMural">Editar Quadro</button>
       {% endif %}
     </div>
     <div class="card-body">
@@ -23,7 +23,7 @@
       <form id="formEditarMural" method="post" action="{{ url_for('home.update_mural') }}">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Editar Mural</h5>
+            <h5 class="modal-title">Editar Quadro de Avisos</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
@@ -53,6 +53,7 @@
       <span class="badge" style="background:#198754">Limpeza concluída</span>
       <span class="badge" style="background:#6c757d">Carnes</span>
       <span class="badge" style="background:#6610f2">Sistema</span>
+      <span class="badge" style="background:#dc3545">Feriados</span>
     </div>
   </div>
   </div>
@@ -80,7 +81,16 @@
       headerToolbar: {
         left: 'prev,next today',
         center: 'title',
-        right: 'dayGridMonth,timeGridWeek,timeGridDay,listDay,listMonth'
+        right: 'viewsMenu'
+      },
+      customButtons: {
+        viewsMenu: {
+          text: 'Visualizações ▾',
+          click: function(){
+            var menu = el.querySelector('#fc-views-menu');
+            if(menu){ menu.classList.toggle('show'); }
+          }
+        }
       },
       buttonText: {
         today: 'Hoje',
@@ -103,6 +113,41 @@
       }
     });
     calendar.render();
+    // criar menu de visualizações como dropdown dentro do cabeçalho do calendário
+    (function(){
+      var btn = el.querySelector('.fc-viewsMenu-button');
+      if(!btn) return;
+      var parent = btn.parentElement;
+      if(parent) parent.style.position = 'relative';
+      if(el.querySelector('#fc-views-menu')) return;
+      var menu = document.createElement('div');
+      menu.id = 'fc-views-menu';
+      menu.className = 'dropdown-menu';
+      menu.style.minWidth = '180px';
+      menu.style.position = 'absolute';
+      menu.style.right = '0';
+      menu.style.top = 'calc(100% + 4px)';
+      menu.innerHTML = [
+        {label: 'Mês', view: 'dayGridMonth'},
+        {label: 'Semana', view: 'timeGridWeek'},
+        {label: 'Dia', view: 'timeGridDay'},
+        {label: 'Lista (Dia)', view: 'listDay'},
+        {label: 'Lista (Mês)', view: 'listMonth'},
+      ].map(function(it){ return '<button type="button" class="dropdown-item" data-view="'+it.view+'">'+it.label+'</button>'; }).join('');
+      parent.appendChild(menu);
+      menu.querySelectorAll('[data-view]').forEach(function(item){
+        item.addEventListener('click', function(ev){
+          var v = ev.currentTarget.getAttribute('data-view');
+          if(v){ calendar.changeView(v); }
+          menu.classList.remove('show');
+        });
+      });
+      document.addEventListener('click', function(e){
+        if(!parent.contains(e.target)){
+          menu.classList.remove('show');
+        }
+      });
+    })();
   })();
 </script>
 {% endblock %}

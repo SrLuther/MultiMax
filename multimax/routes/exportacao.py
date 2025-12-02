@@ -296,8 +296,6 @@ def exportar_graficos_produto(id):
                 e = entradas[i] if i < len(entradas) else 0
                 s = saidas[i] if i < len(saidas) else 0
                 data.append([l, str(e), str(s)])
-            story.append(Paragraph(f"<b>{title}</b>", styles['h2']))
-            story.append(Spacer(1, 0.1 * inch))
             table = Table(data, colWidths=[3.5*inch, 1.5*inch, 1.5*inch])
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#007bff')),
@@ -310,6 +308,45 @@ def exportar_graficos_produto(id):
             ]))
             story.append(table)
             story.append(Spacer(1, 0.2 * inch))
+
+        def add_bar_chart(title, labels, entradas, saidas):
+            try:
+                story.append(Paragraph(f"<b>{title}</b>", styles['h2']))
+                # configurar tamanho conforme quantidade de labels
+                count = max(len(labels or []), 1)
+                width_in = max(6.0, min(10.0, 0.45 * count))
+                fig, ax = plt.subplots(figsize=(width_in, 3.2))
+                x = list(range(len(labels or [])))
+                e_vals = [int(v or 0) for v in (entradas or [])]
+                s_vals = [int(v or 0) for v in (saidas or [])]
+                w = 0.4
+                ax.bar([i - w/2 for i in x], e_vals, width=w, label='Entradas', color='#0d6efd')
+                ax.bar([i + w/2 for i in x], s_vals, width=w, label='Saídas', color='#dc3545')
+                ax.set_xticks(x)
+                ax.set_xticklabels(labels or [], rotation=45, ha='right')
+                ax.legend()
+                ax.grid(axis='y', alpha=0.3)
+                buf = BytesIO()
+                fig.tight_layout()
+                fig.savefig(buf, format='PNG', dpi=160)
+                plt.close(fig)
+                buf.seek(0)
+                img = Image(buf)
+                max_w = doc.width
+                max_h = 3.5 * inch
+                iw = getattr(img, 'imageWidth', None)
+                ih = getattr(img, 'imageHeight', None)
+                if iw and ih and iw > 0 and ih > 0:
+                    scale = min(max_w / iw, max_h / ih)
+                    img.drawWidth = iw * scale
+                    img.drawHeight = ih * scale
+                else:
+                    img.drawWidth = max_w
+                    img.drawHeight = max_h
+                story.append(img)
+                story.append(Spacer(1, 0.15 * inch))
+            except Exception:
+                pass
 
         def agg_weekly():
             from datetime import date, timedelta
@@ -372,12 +409,15 @@ def exportar_graficos_produto(id):
             return labels, entradas, saidas
 
         labels, entradas, saidas = agg_weekly()
+        add_bar_chart('Semanal (Últimas 8 semanas)', labels, entradas, saidas)
         add_table('Semanal (Últimas 8 semanas)', labels, entradas, saidas)
 
         labels, entradas, saidas = agg_monthly()
+        add_bar_chart('Mensal (Últimos 12 meses)', labels, entradas, saidas)
         add_table('Mensal (Últimos 12 meses)', labels, entradas, saidas)
 
         labels, entradas, saidas = agg_yearly()
+        add_bar_chart('Anual (Últimos 5 anos)', labels, entradas, saidas)
         add_table('Anual (Últimos 5 anos)', labels, entradas, saidas)
 
         def parse_date_safe(s):
@@ -408,6 +448,7 @@ def exportar_graficos_produto(id):
             labels = [v['label'] for v in items]
             entradas = [v['entrada'] for v in items]
             saidas = [v['saida'] for v in items]
+            add_bar_chart('Período Personalizado', labels, entradas, saidas)
             add_table('Período Personalizado', labels, entradas, saidas)
 
         def footer_on_page(canvas, doc):
