@@ -62,6 +62,7 @@ class NotificationRead(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 class MeatReception(db.Model):
+    __tablename__ = 'meat_reception'
     id = db.Column(db.Integer, primary_key=True)
     data = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     fornecedor = db.Column(db.String(100), nullable=False)
@@ -69,16 +70,18 @@ class MeatReception(db.Model):
     observacao = db.Column(db.String(255))
 
 class MeatCarrier(db.Model):
+    __tablename__ = 'meat_carrier'
     id = db.Column(db.Integer, primary_key=True)
-    reception_id = db.Column(db.Integer, db.ForeignKey('meatreception.id'))
+    reception_id = db.Column(db.Integer, db.ForeignKey('meat_reception.id'))
     nome = db.Column(db.String(100), nullable=False)
     peso = db.Column(db.Float, nullable=False)
 
 class MeatPart(db.Model):
+    __tablename__ = 'meat_part'
     id = db.Column(db.Integer, primary_key=True)
-    reception_id = db.Column(db.Integer, db.ForeignKey('meatreception.id'))
+    reception_id = db.Column(db.Integer, db.ForeignKey('meat_reception.id'))
     animal_numero = db.Column(db.Integer)
     categoria = db.Column(db.String(20))
     lado = db.Column(db.String(20))
     peso_bruto = db.Column(db.Float, nullable=False)
-    carrier_id = db.Column(db.Integer, db.ForeignKey('meatcarrier.id'))
+    carrier_id = db.Column(db.Integer, db.ForeignKey('meat_carrier.id'))
