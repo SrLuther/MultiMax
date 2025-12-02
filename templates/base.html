@@ -62,6 +62,21 @@
             bottom: 16px;
             z-index: 2000;
         }
+        :root[data-bs-theme="light"] {
+            --bs-body-bg: #ffffff;
+            --bs-body-color: #000000;
+            --bs-heading-color: #000000;
+            --bs-secondary-color: #000000;
+            --bs-tertiary-color: #000000;
+        }
+        :root[data-bs-theme="dark"] {
+            --bs-body-bg: #2b2b2b;
+            --bs-body-color: #ffffff;
+            --bs-heading-color: #ffffff;
+            --bs-secondary-color: #ffffff;
+            --bs-tertiary-color: #ffffff;
+        }
+        [data-bs-theme="dark"] .text-muted { color: #e6e6e6 !important; }
     </style>
 </head>
 <body class="bg-body">
