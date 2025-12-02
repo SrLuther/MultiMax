@@ -87,3 +87,8 @@ class MeatPart(db.Model):
     peso_bruto = db.Column(db.Float, nullable=False)
     carrier_id = db.Column(db.Integer, db.ForeignKey('meat_carrier.id'))
     tara = db.Column(db.Float, default=0.0)
+
+class AppSetting(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(50), unique=True, nullable=False)
+    value = db.Column(db.Text)
