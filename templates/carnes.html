@@ -9,7 +9,14 @@
 </div>
 
 {% if nova %}
-<form method="post" action="{{ url_for('carnes.nova') }}" class="bg-white p-3 rounded border">
+<style>
+#carnesForm,
+#carnesForm * { color: #000000 !important; }
+#carnesForm .text-muted { color: #000000 !important; }
+#carnesForm .form-control,
+#carnesForm .form-select { color: #000000 !important; background-color: #ffffff; }
+</style>
+<form id="carnesForm" method="post" action="{{ url_for('carnes.nova') }}" class="bg-white p-3 rounded border">
   <div class="row g-3">
     <div class="col-md-4">
       <label class="form-label">Fornecedor</label>
@@ -28,9 +35,11 @@
     </div>
   </div>
   <hr>
-  <h5>Funcionários do fornecedor</h5>
-  <div id="carriers" class="mb-2"></div>
-  <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addCarrier()">Adicionar Funcionário</button>
+  <div id="carriersSection">
+    <h5>Funcionários do fornecedor</h5>
+    <div id="carriers" class="mb-2"></div>
+    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addCarrier()">Adicionar Funcionário</button>
+  </div>
   <hr>
   <h5>Animais e partes</h5>
   <div id="animals" class="mb-2"></div>
@@ -38,7 +47,7 @@
   <hr>
   <div class="d-flex justify-content-between align-items-center">
     <div><strong>Total líquido estimado:</strong> <span id="totalLiquido">0.00</span> kg</div>
-    <button type="submit" class="btn btn-primary">Salvar Recepção</button>
+    <button type="submit" id="saveAllBtn" class="btn btn-primary" disabled>Salvar Recepção</button>
   </div>
 </form>
 
@@ -62,33 +71,58 @@ function addCarrier(){
   carrierCount++;
   updateTotal();
 }
+function getTipo(){
+  const s = document.querySelector('select[name="tipo"]');
+  return s ? (s.value || 'bovina') : 'bovina';
+}
 function addAnimal(){
   const idx = document.querySelectorAll('.animal-block').length + 1;
   const wrap = document.getElementById('animals');
   const blk = document.createElement('div');
   blk.className = 'animal-block border rounded p-2 mb-3';
+  const tipo = getTipo();
+  let parts = [];
+  if (tipo === 'suina') {
+    parts = [{cat:'carcaça',lado:'direito'},{cat:'carcaça',lado:'esquerdo'}];
+  } else {
+    parts = [
+      {cat:'dianteiro',lado:'direito'},
+      {cat:'dianteiro',lado:'esquerdo'},
+      {cat:'traseiro',lado:'direito'},
+      {cat:'traseiro',lado:'esquerdo'}
+    ];
+  }
   blk.innerHTML = `
     <div class="d-flex justify-content-between align-items-center mb-2">
       <div><strong>Animal #${idx}</strong></div>
+      <div><button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteAnimalIfEmpty(this)">Excluir Animal</button></div>
     </div>
-    <input type="hidden" name="animal_numero" value="${idx}">
-    <div class="row g-2">${['dianteiro','dianteiro','traseiro','traseiro'].map((cat, i)=>{
-      const lado = i%2===0 ? 'direito' : 'esquerdo';
+    <div class="row g-2">${parts.map((p)=>{
       return `
       <div class="col-md-3">
         <div class="border rounded p-2">
-          <div class="small text-muted mb-1">${cat} — ${lado}</div>
-          <input type="hidden" name="part_categoria" value="${cat}">
-          <input type="hidden" name="part_lado" value="${lado}">
+          <div class="small text-muted mb-1">${p.cat} — ${p.lado}</div>
+          <input type="hidden" name="part_categoria" value="${p.cat}">
+          <input type="hidden" name="part_lado" value="${p.lado}">
+          <input type="hidden" name="animal_numero" value="${idx}">
           <label class="form-label">Peso bruto (kg)</label>
           <input type="number" step="0.01" name="part_peso_bruto" class="form-control" oninput="updateTotal()">
-          <label class="form-label mt-2">Funcionário</label>
-          <select name="part_carrier" class="form-select" onchange="updateTotal()">${carrierOptions()}</select>
+          ${tipo === 'suina' ? `
+            <label class=\"form-label mt-2\">Tara da caixa (kg)</label>
+            <input type=\"number\" step=\"0.01\" name=\"part_tara\" class=\"form-control\" oninput=\"updateTotal()\">
+            <input type=\"hidden\" name=\"part_carrier\" value=\"-1\">
+          ` : `
+            <label class=\"form-label mt-2\">Funcionário</label>
+            <select name=\"part_carrier\" class=\"form-select\" onchange=\"updateTotal()\">${carrierOptions()}</select>
+            <input type=\"hidden\" name=\"part_tara\" value=\"0\">
+          `}
+          <button type="button" class="btn btn-outline-success btn-sm mt-2" onclick="savePart(this)">Salvar parte</button>
         </div>
       </div>`;
     }).join('')}</div>
   `;
   wrap.appendChild(blk);
+  restorePartDraftsForBlock(blk);
 }
 function carrierOptions(){
   const names = Array.from(document.querySelectorAll('input[name="carrier_nome"]')).map(i=>i.value.trim());
@@ -105,20 +139,116 @@ function updateCarrierSelects(){
 }
 function updateTotal(){
   updateCarrierSelects();
+  const tipo = getTipo();
   const weights = Array.from(document.querySelectorAll('input[name="carrier_peso"]')).map(i=>parseFloat(i.value||'0'));
   let total = 0.0;
   const parts = document.querySelectorAll('.animal-block input[name="part_peso_bruto"]');
   const carriers = document.querySelectorAll('.animal-block select[name="part_carrier"]');
+  const taras = document.querySelectorAll('.animal-block input[name="part_tara"]');
   for(let i=0;i<parts.length;i++){
     const pb = parseFloat(parts[i].value||'0');
-    const idx = parseInt(carriers[i].value||'-1');
-    const cw = (idx>=0 && idx<weights.length) ? weights[idx] : 0;
-    total += Math.max(0, pb - cw);
+    if (tipo === 'suina') {
+      const ta = parseFloat((taras[i] && taras[i].value) || '0');
+      total += Math.max(0, pb - ta);
+    } else {
+      const idx = parseInt((carriers[i] && carriers[i].value) || '-1');
+      const cw = (idx>=0 && idx<weights.length) ? weights[idx] : 0;
+      total += Math.max(0, pb - cw);
+    }
   }
   document.getElementById('totalLiquido').textContent = total.toFixed(2);
+  updateSaveState();
+  refreshAnimalDeleteStates();
+}
+function partFields(container){
+  const animal = container.querySelector('input[name="animal_numero"]').value;
+  const cat = container.querySelector('input[name="part_categoria"]').value;
+  const lado = container.querySelector('input[name="part_lado"]').value;
+  const peso = container.querySelector('input[name="part_peso_bruto"]').value;
+  const tara = container.querySelector('input[name="part_tara"]') ? container.querySelector('input[name="part_tara"]').value : '';
+  const carrSel = container.querySelector('select[name="part_carrier"]');
+  const carrInp = container.querySelector('input[name="part_carrier"]');
+  const carrier = carrSel ? carrSel.value : (carrInp ? carrInp.value : '');
+  return {animal, cat, lado, peso, tara, carrier};
+}
+function partKey(f){
+  return `recepcao-part:${f.animal}:${f.cat}:${f.lado}`;
+}
+function savePart(btn){
+  const container = btn.closest('.border.rounded.p-2') || btn.closest('.border.p-2') || btn.closest('.border');
+  if (!container) return;
+  const f = partFields(container);
+  const key = partKey(f);
+  try { localStorage.setItem(key, JSON.stringify(f)); } catch(e) {}
+  btn.disabled = true;
+  setTimeout(function(){ btn.disabled = false; }, 600);
+}
+function restorePartDraftsForBlock(blk){
+  const cards = blk.querySelectorAll('.border.rounded.p-2, .border.p-2');
+  cards.forEach(function(card){
+    const f = partFields(card);
+    const key = partKey(f);
+    const raw = localStorage.getItem(key);
+    if (!raw) return;
+    try {
+      const d = JSON.parse(raw);
+      if (d.peso !== undefined) { const i = card.querySelector('input[name="part_peso_bruto"]'); if (i) i.value = d.peso; }
+      const t = card.querySelector('input[name="part_tara"]'); if (t && d.tara !== undefined) t.value = d.tara;
+      const sel = card.querySelector('select[name="part_carrier"]'); if (sel && d.carrier !== undefined) sel.value = d.carrier;
+    } catch(e) {}
+  });
+  updateTotal();
+}
+function updateSaveState(){
+  const btn = document.querySelector('#saveAllBtn');
+  if (!btn) return;
+  const blocks = document.querySelectorAll('.animal-block');
+  if (blocks.length === 0) { btn.disabled = true; return; }
+  let ok = true;
+  blocks.forEach(function(blk){
+    const inputs = blk.querySelectorAll('input[name="part_peso_bruto"]');
+    inputs.forEach(function(i){ if (!i.value || parseFloat(i.value) <= 0) ok = false; });
+  });
+  btn.disabled = !ok;
+}
+function isAnimalEmpty(blk){
+  const pes = blk.querySelectorAll('input[name="part_peso_bruto"]');
+  for (let i=0;i<pes.length;i++){ if ((pes[i].value||'').trim() !== '') return false; }
+  const tas = blk.querySelectorAll('input[name="part_tara"]');
+  for (let i=0;i<tas.length;i++){ if ((tas[i].value||'').trim() !== '') return false; }
+  const sels = blk.querySelectorAll('select[name="part_carrier"]');
+  for (let i=0;i<sels.length;i++){ if ((sels[i].value||'-1') !== '-1') return false; }
+  return true;
+}
+function refreshAnimalDeleteStates(){
+  const btns = document.querySelectorAll('.animal-block .btn-outline-danger.btn-sm');
+  btns.forEach(function(b){
+    const blk = b.closest('.animal-block');
+    b.disabled = !isAnimalEmpty(blk);
+  });
+}
+function deleteAnimalIfEmpty(btn){
+  const blk = btn.closest('.animal-block');
+  if (!blk) return;
+  if (isAnimalEmpty(blk)) {
+    blk.parentNode.removeChild(blk);
+    updateSaveState();
+    updateTotal();
+  }
 }
 addCarrier();
 addCarrier();
+const tipoSelect = document.querySelector('select[name="tipo"]');
+function updateTipoVisibility(){
+  const s = document.querySelector('select[name="tipo"]');
+  const isSuina = s && s.value === 'suina';
+  const sec = document.getElementById('carriersSection');
+  if (sec) { sec.style.display = isSuina ? 'none' : ''; }
+}
+if (tipoSelect) { tipoSelect.addEventListener('change', function(){ document.getElementById('animals').innerHTML = ''; updateTipoVisibility(); updateTotal(); }); }
+updateTipoVisibility();
+updateSaveState();
+refreshAnimalDeleteStates();
 </script>
 {% else %}
 <div class="table-responsive">
@@ -130,6 +260,7 @@ addCarrier();
         <th>Tipo</th>
         <th>Partes</th>
         <th>Total líquido (kg)</th>
+        <th>Ações</th>
       </tr>
     </thead>
     <tbody>
@@ -140,6 +271,14 @@ addCarrier();
         <td>{{ it.r.tipo|capitalize }}</td>
         <td>{{ it.count }}</td>
         <td>{{ '%.2f'|format(it.total) }}</td>
+        <td class="d-flex gap-2">
+          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('carnes.relatorio', id=it.r.id) }}">Relatório</a>
+          {% if current_user.nivel == 'admin' %}
+          <form method="post" action="{{ url_for('carnes.excluir', id=it.r.id) }}" onsubmit="return confirm('Excluir esta recepção? Esta ação é irreversível.')">
+            <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
+          </form>
+          {% endif %}
+        </td>
       </tr>
       {% endfor %}
       {% if items|length == 0 %}
