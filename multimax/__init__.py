@@ -211,5 +211,19 @@ def create_app():
             db.session.add(operador)
             db.session.commit()
         setup_cleaning_tasks()
+        try:
+            from sqlalchemy import text
+            res = db.session.execute(text('PRAGMA table_info(meat_part)'))
+            cols = []
+            for row in res:
+                cols.append(row[1])
+            if 'tara' not in cols:
+                db.session.execute(text('ALTER TABLE meat_part ADD COLUMN tara REAL DEFAULT 0'))
+                db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
 
     return app
