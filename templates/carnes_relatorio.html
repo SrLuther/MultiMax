@@ -5,7 +5,7 @@
   <h3 class="mb-0">Relatório de Recepção</h3>
   <div class="d-flex gap-2">
     <a class="btn btn-secondary" href="{{ url_for('carnes.index') }}">Voltar</a>
-    <button class="btn btn-primary" type="button" onclick="window.print()">Imprimir</button>
+    <a class="btn btn-primary" href="{{ url_for('exportacao.exportar_relatorio_carnes_pdf', id=r.id) }}">Exportar PDF</a>
     {% if current_user.nivel == 'admin' %}
     <form method="post" action="{{ url_for('carnes.excluir', id=r.id) }}" onsubmit="return confirm('Excluir esta recepção? Esta ação é irreversível.')">
       <button type="submit" class="btn btn-danger">Excluir</button>

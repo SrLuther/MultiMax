@@ -92,3 +92,36 @@ class AppSetting(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.String(50), unique=True, nullable=False)
     value = db.Column(db.Text)
+
+class Collaborator(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    role = db.Column(db.String(50))
+    active = db.Column(db.Boolean, default=True)
+    regular_team = db.Column(db.String(1))
+    sunday_team = db.Column(db.String(1))
+    special_team = db.Column(db.String(1))
+
+class Shift(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'))
+    date = db.Column(db.Date, nullable=False)
+    turno = db.Column(db.String(20))
+    observacao = db.Column(db.String(255))
+    start_dt = db.Column(db.DateTime(timezone=True))
+    end_dt = db.Column(db.DateTime(timezone=True))
+
+class LeaveCredit(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'))
+    date = db.Column(db.Date, nullable=False)
+    amount_days = db.Column(db.Integer, default=1)
+    origin = db.Column(db.String(20))
+    notes = db.Column(db.String(255))
+
+class HourBankEntry(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'))
+    date = db.Column(db.Date, nullable=False)
+    hours = db.Column(db.Float, nullable=False)
+    reason = db.Column(db.String(255))

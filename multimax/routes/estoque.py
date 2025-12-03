@@ -86,8 +86,8 @@ def editar_produto(id: int):
     produto.codigo = request.form.get('codigo')
     produto.nome = request.form.get('nome')
     produto.estoque_minimo = int(request.form.get('estoque_minimo', '0'))
-    produto.preco_custo = float(request.form.get('preco_custo', '0'))
-    produto.preco_venda = float(request.form.get('preco_venda', '0'))
+    produto.preco_custo = float(request.form.get('preco_custo', str(produto.preco_custo)))
+    produto.preco_venda = float(request.form.get('preco_venda', str(produto.preco_venda)))
     db.session.commit()
     flash('Produto atualizado!', 'success')
     return redirect(url_for('estoque.lista_produtos'))
@@ -178,8 +178,8 @@ def adicionar():
         new_produto.nome = request.form['nome']
         new_produto.quantidade = int(request.form['quantidade'])
         new_produto.estoque_minimo = int(request.form['estoque_minimo'])
-        new_produto.preco_custo = float(request.form['preco_custo'])
-        new_produto.preco_venda = float(request.form['preco_venda'])
+        new_produto.preco_custo = float(request.form.get('preco_custo', '0'))
+        new_produto.preco_venda = float(request.form.get('preco_venda', '0'))
         db.session.add(new_produto)
         db.session.flush()
         if new_produto.quantidade > 0:
@@ -270,8 +270,6 @@ def editar(id: int):
         try:
             produto.nome = request.form['nome']
             produto.estoque_minimo = int(request.form['estoque_minimo'])
-            produto.preco_custo = float(request.form['preco_custo'])
-            produto.preco_venda = float(request.form['preco_venda'])
             db.session.commit()
             flash(f'Produto "{produto.nome}" atualizado com sucesso!', 'info')
         except Exception as e:

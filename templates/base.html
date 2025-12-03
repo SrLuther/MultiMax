@@ -19,9 +19,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script>
         (function(){
-            var t = localStorage.getItem('theme');
-            if(!t){ t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light'; }
-            document.documentElement.setAttribute('data-bs-theme', t);
+            document.documentElement.setAttribute('data-bs-theme', 'dark');
+            try { localStorage.setItem('theme', 'dark'); } catch(e) {}
         })();
     </script>
         <style>
@@ -60,7 +59,10 @@
             position: fixed;
             right: 16px;
             bottom: 16px;
-            z-index: 2000;
+            z-index: 3000;
+        }
+        @media (max-width: 1400px) {
+            .theme-fab { top: 12px; right: 12px; bottom: auto; }
         }
         :root[data-bs-theme="light"] {
             --bs-body-bg: #ffffff;
@@ -77,6 +79,17 @@
             --bs-tertiary-color: #ffffff;
         }
         [data-bs-theme="dark"] .text-muted { color: #e6e6e6 !important; }
+        .content-wrapper .bg-white, .content-wrapper .bg-light, .content-wrapper .table-light, .content-wrapper .modal-content { color: #000 !important; }
+        .content-wrapper .bg-white .form-control::placeholder, .content-wrapper .bg-light .form-control::placeholder, .content-wrapper .modal-content .form-control::placeholder { color: #000 !important; opacity: 0.7; }
+        .content-wrapper .bg-white .form-select option, .content-wrapper .bg-light .form-select option, .content-wrapper .modal-content .form-select option { color: #000; }
+        .content-wrapper .bg-dark, .content-wrapper .text-bg-dark, .content-wrapper .table-dark, .content-wrapper .card:not(.bg-white):not(.bg-light) { color: #fff !important; }
+        .content-wrapper .bg-dark .form-control::placeholder, .content-wrapper .text-bg-dark .form-control::placeholder, .content-wrapper .card:not(.bg-white):not(.bg-light) .form-control::placeholder { color: #fff !important; opacity: 0.7; }
+        .modal-content { background-color: #f4f4f5 !important; color: #000 !important; }
+        .modal-header, .modal-body, .modal-footer { background-color: #f4f4f5 !important; color: #000 !important; }
+        .modal-header .modal-title { color: #000 !important; }
+        .modal .form-label, .modal .form-control, .modal .form-select, .modal .form-text, .modal .text-muted, .modal label, .modal .small { color: #000 !important; }
+        .modal .form-control::placeholder { color: #000 !important; opacity: 0.7; }
+        .modal .btn-close { filter: none; }
     </style>
 </head>
 <body class="bg-body">
@@ -89,17 +102,63 @@
             <span class="ms-2 text-white fw-bold fs-4">MultiMax</span>
             <span class="ms-2 text-white">— Gestão Amora</span>
         </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
         <button class="btn btn-sm btn-outline-light d-md-none ms-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMobile" aria-controls="sidebarMobile">
-            <i class="fas fa-bars"></i>
-            <span class="ms-1">Menu</span>
+            <span class="fw-bold">MENU</span>
         </button>
-        <a id="themeToggleNav2" class="btn btn-sm btn-outline-light d-lg-none ms-2" href="#" aria-label="Alternar tema">
-            <span id="themeIconNav2"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"/></svg></span>
-            <span class="ms-1">Tema</span>
-        </a>
+        <div class="d-md-none ms-2">
+            <a class="nav-link text-white position-relative" href="#" id="notifDropdownMobile" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-bell"></i>
+                {% if notif_count and notif_count > 0 %}
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ notif_count }}</span>
+                {% endif %}
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notifDropdownMobile" style="min-width: 360px;">
+                <li class="px-3 py-2 border-bottom">
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a class="badge bg-secondary text-decoration-none" href="{{ request.path }}">Todos</a>
+                        <a class="badge bg-primary text-decoration-none" href="{{ request.path }}?nf=estoque">Estoque</a>
+                        <a class="badge bg-info text-decoration-none" href="{{ request.path }}?nf=limpeza">Limpeza</a>
+                        <a class="badge bg-dark text-decoration-none" href="{{ url_for('usuarios.notifications_unread_all', next=request.path) }}">Mostrar todas</a>
+                        <div class="vr"></div>
+                        <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=CX">CX</a>
+                        <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=PC">PC</a>
+                        <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=VA">VA</a>
+                        <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=AV">AV</a>
+                    </div>
+                </li>
+                {% if notif_items and notif_items|length > 0 %}
+                    {% for n in notif_items %}
+                    <li>
+                        <div class="dropdown-item">
+                            {% if n.tipo == 'estoque' %}
+                            <i class="fas fa-box-open text-warning me-2"></i>
+                            {% elif n.tipo == 'limpeza' %}
+                            <i class="fas fa-broom text-info me-2"></i>
+                            {% endif %}
+                            <div class="d-inline-block">
+                                <div class="fw-bold">{{ n.titulo }}</div>
+                                <div class="small text-muted">{{ n.descricao }}</div>
+                            </div>
+                            <div class="mt-2 d-flex gap-2">
+                                <a class="btn btn-sm btn-outline-secondary" href="{{ n.url }}">Abrir</a>
+                                <a class="btn btn-sm btn-outline-success" href="{{ url_for('usuarios.notifications_read', tipo=n.tipo, id=n.id, next=request.path) }}">Ocultar</a>
+                                {% if n.tipo == 'estoque' %}
+                                <form method="post" action="{{ url_for('estoque.atualizar_minimo', id=n.id) }}" class="d-flex align-items-center gap-1">
+                                    <input type="number" name="novo_minimo" class="form-control form-control-sm" style="width:90px" min="0" placeholder="Min" required>
+                                    <input type="hidden" name="next" value="{{ request.path }}">
+                                    <button class="btn btn-sm btn-outline-primary" type="submit">Salvar</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                {% else %}
+                    <li><span class="dropdown-item text-muted">Sem notificações</span></li>
+                {% endif %}
+            </ul>
+        </div>
+        
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto align-items-center">
                 
@@ -156,12 +215,7 @@
                         {% endif %}
                     </ul>
                 </li>
-                <li class="nav-item me-2">
-                    <a id="themeToggleNav" class="btn btn-sm btn-outline-light d-flex align-items-center" href="#" role="button" aria-label="Alternar tema">
-                        <span id="themeIconNav"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"/></svg></span>
-                        <span class="ms-1 d-none d-md-inline">Tema</span>
-                    </a>
-                </li>
+                
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fas fa-user-circle me-1"></i> {{ current_user.name }} ({{ current_user.nivel | upper }})
@@ -175,18 +229,25 @@
     </div>
 </nav>
 
-<div class="offcanvas offcanvas-start d-md-none" tabindex="-1" id="sidebarMobile" aria-labelledby="sidebarMobileLabel">
+  <div class="offcanvas offcanvas-start d-md-none" tabindex="-1" id="sidebarMobile" aria-labelledby="sidebarMobileLabel">
   <div class="offcanvas-header bg-primary text-white">
     <h5 id="sidebarMobileLabel" class="mb-0">Menu</h5>
     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
   </div>
   <div class="offcanvas-body p-0">
     <div class="list-group">
+      {% if current_user.is_authenticated %}
+      <a class="list-group-item list-group-item-action" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Sair</a>
+      {% else %}
+      <a class="list-group-item list-group-item-action" href="{{ url_for('auth.login') }}"><i class="fas fa-sign-in-alt me-2"></i>Entrar</a>
+      {% endif %}
       <a class="list-group-item list-group-item-action {% if active_page == 'home' %}active{% endif %}" href="{{ url_for('home.index') }}"><i class="fas fa-house me-2"></i>Home</a>
       <a class="list-group-item list-group-item-action {% if active_page == 'index' %}active{% endif %}" href="{{ url_for('estoque.index') }}"><i class="fas fa-boxes me-2"></i>Estoque</a>
       {% if current_user.nivel in ('operador', 'admin') %}
       <a class="list-group-item list-group-item-action {% if active_page == 'cronograma' %}active{% endif %}" href="{{ url_for('cronograma.cronograma') }}"><i class="fas fa-clipboard-check me-2"></i>Cronograma</a>
       <a class="list-group-item list-group-item-action {% if active_page == 'carnes' %}active{% endif %}" href="{{ url_for('carnes.index') }}"><i class="fas fa-drumstick-bite me-2"></i>Carnes</a>
+      <a class="list-group-item list-group-item-action {% if active_page == 'colaboradores' %}active{% endif %}" href="{{ url_for('colaboradores.index') }}"><i class="fas fa-user-friends me-2"></i>Colaboradores</a>
+      <a class="list-group-item list-group-item-action {% if active_page == 'escala' %}active{% endif %}" href="{{ url_for('colaboradores.escala') }}"><i class="fas fa-calendar-alt me-2"></i>Escalas</a>
       {% endif %}
       <a class="list-group-item list-group-item-action {% if active_page == 'graficos' %}active{% endif %}" href="{{ url_for('usuarios.graficos') }}"><i class="fas fa-chart-bar me-2"></i>Gráficos</a>
       {% if current_user.nivel == 'admin' %}
@@ -208,6 +269,8 @@
                 {% endif %}
                 {% if current_user.nivel in ('operador', 'admin') %}
                 <a class="list-group-item list-group-item-action {% if active_page == 'carnes' %}active{% endif %}" href="{{ url_for('carnes.index') }}"><i class="fas fa-drumstick-bite me-2"></i>Carnes</a>
+                <a class="list-group-item list-group-item-action {% if active_page == 'colaboradores' %}active{% endif %}" href="{{ url_for('colaboradores.index') }}"><i class="fas fa-user-friends me-2"></i>Colaboradores</a>
+                <a class="list-group-item list-group-item-action {% if active_page == 'escala' %}active{% endif %}" href="{{ url_for('colaboradores.escala') }}"><i class="fas fa-calendar-alt me-2"></i>Escalas</a>
                 {% endif %}
                 <a class="list-group-item list-group-item-action {% if active_page == 'graficos' %}active{% endif %}" href="{{ url_for('usuarios.graficos') }}"><i class="fas fa-chart-bar me-2"></i>Gráficos</a>
                 {% if current_user.nivel == 'admin' %}
@@ -243,7 +306,7 @@
     <div class="container-fluid d-flex justify-content-between align-items-center">
         <div class="d-flex flex-column align-items-start">
             <small>© 2025 MultiMax</small>
-            <small>Gestão Amora v1.3.0</small>
+            <small>Gestão Amora v1.3.1</small>
         </div>
         <div class="d-flex flex-column align-items-end text-end">
             <small id="current-date"></small>
@@ -277,36 +340,7 @@
     updateDateTime();
     setInterval(updateDateTime, 1000);
 </script>
-<script>
-    (function(){
-        var btn1 = document.getElementById('themeToggleNav');
-        var btn2 = document.getElementById('themeToggleNav2');
-        var icon1 = document.getElementById('themeIconNav');
-        var icon2 = document.getElementById('themeIconNav2');
-        
-        function svgMoon(){ return '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"/></svg>'; }
-        function svgSun(){ return '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.76 4.84l-1.8-1.79L3.17 4.84l1.79 1.8 1.8-1.8Zm10.48 0 1.8-1.79 1.79 1.79-1.79 1.8-1.8-1.8ZM12 5a7 7 0 1 0 0 14A7 7 0 0 0 12 5Zm-9 7H1v-2h2v2Zm20 0h-2v-2h2v2ZM6.76 19.16l-1.8 1.79-1.79-1.79 1.79-1.8 1.8 1.8Zm10.48 0 1.8 1.79 1.79-1.79-1.79-1.8-1.8 1.8Z"/></svg>'; }
-        function setIcon(theme){
-            [icon1, icon2].forEach(function(ic){
-                if(!ic) return;
-                ic.innerHTML = theme === 'dark' ? svgSun() : svgMoon();
-            });
-            [btn1, btn2].forEach(function(b){ if(b) b.title = theme === 'dark' ? 'Modo claro' : 'Modo escuro'; });
-        }
-        var current = document.documentElement.getAttribute('data-bs-theme') || 'light';
-        setIcon(current);
-        function onClick(e){
-            e.preventDefault();
-            var next = document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-bs-theme', next);
-            localStorage.setItem('theme', next);
-            setIcon(next);
-        }
-        if(btn1) btn1.addEventListener('click', onClick);
-        if(btn2) btn2.addEventListener('click', onClick);
-        
-    })();
-</script>
+ 
 <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
