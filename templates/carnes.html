@@ -9,14 +9,17 @@
 </div>
 
 {% if nova %}
-<style>
-#carnesForm,
-#carnesForm * { color: #000000 !important; }
-#carnesForm .text-muted { color: #000000 !important; }
-#carnesForm .form-control,
-#carnesForm .form-select { color: #000000 !important; background-color: #ffffff; }
-</style>
-<form id="carnesForm" method="post" action="{{ url_for('carnes.nova') }}" class="bg-white p-3 rounded border">
+<form id="carnesForm" method="post" action="{{ url_for('carnes.nova') }}" class="bg-white p-3 rounded border" data-bs-theme="light">
+  <style>
+    #carnesForm,
+    #carnesForm .form-label,
+    #carnesForm .form-control,
+    #carnesForm .form-select,
+    #carnesForm .small,
+    #carnesForm .text-muted { color: #000 !important; }
+    #carnesForm .form-control::placeholder { color: #000 !important; opacity: 0.7; }
+    #carnesForm .form-select option { color: #000; }
+  </style>
   <div class="row g-3">
     <div class="col-md-4">
       <label class="form-label">Fornecedor</label>
@@ -83,13 +86,13 @@ function addAnimal(){
   const tipo = getTipo();
   let parts = [];
   if (tipo === 'suina') {
-    parts = [{cat:'carcaça',lado:'direito'},{cat:'carcaça',lado:'esquerdo'}];
+    parts = [{cat:'carcaça',lado:'peso1'}];
   } else {
     parts = [
-      {cat:'dianteiro',lado:'direito'},
-      {cat:'dianteiro',lado:'esquerdo'},
-      {cat:'traseiro',lado:'direito'},
-      {cat:'traseiro',lado:'esquerdo'}
+      {cat:'dianteiro',lado:'1'},
+      {cat:'dianteiro',lado:'2'},
+      {cat:'traseiro',lado:'1'},
+      {cat:'traseiro',lado:'2'}
     ];
   }
   blk.innerHTML = `
@@ -101,7 +104,7 @@ function addAnimal(){
       return `
       <div class="col-md-3">
         <div class="border rounded p-2">
-          <div class="small text-muted mb-1">${p.cat} — ${p.lado}</div>
+          <div class="small text-muted mb-1">${(p.cat==='carcaça' && String(p.lado).toLowerCase().indexOf('peso')===0) ? (String(p.lado).toLowerCase()==='peso1' ? 'Primeiro peso' : ('Peso '+String(p.lado).slice(-1))) : ((p.lado==='1'||p.lado==='2') ? (p.cat.charAt(0).toUpperCase()+p.cat.slice(1)+' '+p.lado) : (p.cat+' — '+p.lado))}</div>
           <input type="hidden" name="part_categoria" value="${p.cat}">
           <input type="hidden" name="part_lado" value="${p.lado}">
           <input type="hidden" name="animal_numero" value="${idx}">
@@ -120,9 +123,37 @@ function addAnimal(){
         </div>
       </div>`;
     }).join('')}</div>
+    ${tipo === 'suina' ? '<div class="mt-2"><button type="button" class="btn btn-outline-secondary btn-sm" onclick="addSuinaPeso(this)">Adicionar Peso</button></div>' : ''}
   `;
   wrap.appendChild(blk);
   restorePartDraftsForBlock(blk);
+}
+function addSuinaPeso(btn){
+  const blk = btn.closest('.animal-block');
+  if (!blk) return;
+  const existing = Array.from(blk.querySelectorAll('input[name="part_lado"]'))
+    .filter(i => (i.value||'').toLowerCase().indexOf('peso')===0).length;
+  const next = existing + 1;
+  const cont = blk.querySelector('.row.g-2');
+  const animal = blk.querySelector('input[name="animal_numero"]').value;
+  const card = `
+    <div class="col-md-3">
+      <div class="border rounded p-2">
+        <div class="small text-muted mb-1">${next === 1 ? 'Primeiro peso' : ('Peso '+next)}</div>
+        <input type="hidden" name="part_categoria" value="carcaça">
+        <input type="hidden" name="part_lado" value="peso${next}">
+        <input type="hidden" name="animal_numero" value="${animal}">
+        <label class="form-label">Peso bruto (kg)</label>
+        <input type="number" step="0.01" name="part_peso_bruto" class="form-control" oninput="updateTotal()">
+        <label class="form-label mt-2">Tara da caixa (kg)</label>
+        <input type="number" step="0.01" name="part_tara" class="form-control" oninput="updateTotal()">
+        <input type="hidden" name="part_carrier" value="-1">
+        <button type="button" class="btn btn-outline-success btn-sm mt-2" onclick="savePart(this)">Salvar parte</button>
+      </div>
+    </div>`;
+  cont.insertAdjacentHTML('beforeend', card);
+  updateTotal();
+  refreshAnimalDeleteStates();
 }
 function carrierOptions(){
   const names = Array.from(document.querySelectorAll('input[name="carrier_nome"]')).map(i=>i.value.trim());
@@ -236,7 +267,6 @@ function deleteAnimalIfEmpty(btn){
     updateTotal();
   }
 }
-addCarrier();
 addCarrier();
 const tipoSelect = document.querySelector('select[name="tipo"]');
 function updateTipoVisibility(){

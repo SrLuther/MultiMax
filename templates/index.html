@@ -45,8 +45,6 @@
         <th>Produto</th>
         <th class="text-end" style="width: 6rem">Estoque</th>
         <th class="text-end" style="width: 6rem">Mínimo</th>
-        <th class="d-none d-sm-table-cell text-end" style="width: 8rem">Custo</th>
-        <th class="d-none d-sm-table-cell text-end" style="width: 8rem">Venda</th>
         <th class="text-center" style="width: 14rem">Ações</th>
       </tr>
     </thead>
@@ -63,8 +61,6 @@
         <td>{{ p.nome }}</td>
         <td class="text-end">{{ p.quantidade }}</td>
         <td class="text-end">{{ p.estoque_minimo }}</td>
-        <td class="d-none d-sm-table-cell text-end">R$ {{ '%.2f'|format(p.preco_custo) }}</td>
-        <td class="d-none d-sm-table-cell text-end">R$ {{ '%.2f'|format(p.preco_venda) }}</td>
         <td class="text-center">
           {% if current_user.nivel in ('operador','admin') %}
           <div class="btn-group btn-group-sm" role="group">
@@ -83,7 +79,7 @@
       </tr>
       {% else %}
       <tr>
-        <td colspan="7" class="text-center text-muted">Nenhum produto encontrado</td>
+        <td colspan="5" class="text-center text-muted">Nenhum produto encontrado</td>
       </tr>
       {% endfor %}
     </tbody>

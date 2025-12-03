@@ -4,19 +4,42 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
-from reportlab.lib.units import inch
+from reportlab.lib.units import inch, cm
 from flask import Blueprint, redirect, url_for, flash, send_file, request
 from flask_login import login_required, current_user
-from ..models import Produto, CleaningTask, CleaningHistory, Historico
+from ..models import Produto, CleaningTask, CleaningHistory, Historico, MeatReception, MeatCarrier, MeatPart
 from io import BytesIO
 from typing import Any
 from reportlab.platypus import Image
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase.pdfmetrics import stringWidth
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 bp = Blueprint('exportacao', __name__)
+
+def _brand_header(canvas, doc):
+    canvas.saveState()
+    logo_h = 1.0 * cm
+    h = 1.5 * cm
+    y = doc.pagesize[1] - h
+    canvas.setFillColor(colors.HexColor('#0d6efd'))
+    canvas.rect(0, y, doc.pagesize[0], h, fill=True, stroke=False)
+    x = 0.2 * inch
+    logo_w = logo_h
+    try:
+        root = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), '..'))
+        logo_path = os.path.join(root, 'static', 'icons', 'logo-user.png')
+        if os.path.exists(logo_path):
+            canvas.drawImage(ImageReader(logo_path), x, y + (h - logo_h) / 2, width=logo_w, height=logo_h, preserveAspectRatio=True, mask='auto')
+            x += logo_w + 0.2 * inch
+    except Exception:
+        pass
+    canvas.setFillColor(colors.white)
+    canvas.setFont('Helvetica-Bold', 14)
+    canvas.drawString(x, y + h / 2 - 6, 'MultiMax - Gestão Amora')
+    canvas.restoreState()
 
 @bp.route('/exportar/cronograma/pdf')
 @login_required
@@ -84,7 +107,10 @@ def exportar_cronograma_pdf():
             footer_text = f"Página {canvas.getPageNumber()} | MultiMax Cronograma | {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
             canvas.drawString(inch, 0.5 * inch, footer_text)
             canvas.restoreState()
-        doc.build(story, onFirstPage=footer_on_page, onLaterPages=footer_on_page)
+        def on_page(canvas, doc):
+            _brand_header(canvas, doc)
+            footer_on_page(canvas, doc)
+        doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
         pdf_buffer.seek(0)
         return send_file(pdf_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
     except Exception as e:
@@ -136,7 +162,10 @@ def exportar_tarefa_pdf(id):
             footer_text = f"Página {canvas.getPageNumber()} | MultiMax Tarefa | {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
             canvas.drawString(inch, 0.5 * inch, footer_text)
             canvas.restoreState()
-        doc.build(story, onFirstPage=footer_on_page, onLaterPages=footer_on_page)
+        def on_page(canvas, doc):
+            _brand_header(canvas, doc)
+            footer_on_page(canvas, doc)
+        doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
         pdf_buffer.seek(0)
         return send_file(pdf_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
     except Exception as e:
@@ -255,7 +284,10 @@ def exportar():
             footer_text = f"Página {canvas.getPageNumber()} | MultiMax Estoque | {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
             canvas.drawString(inch, 0.5 * inch, footer_text)
             canvas.restoreState()
-        doc.build(story, onFirstPage=footer_on_page, onLaterPages=footer_on_page)
+        def on_page(canvas, doc):
+            _brand_header(canvas, doc)
+            footer_on_page(canvas, doc)
+        doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
         pdf_buffer.seek(0)
         return send_file(pdf_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
     except Exception as e:
@@ -411,10 +443,12 @@ def exportar_graficos_produto(id):
         labels, entradas, saidas = agg_weekly()
         add_bar_chart('Semanal (Últimas 8 semanas)', labels, entradas, saidas)
         add_table('Semanal (Últimas 8 semanas)', labels, entradas, saidas)
+        story.append(PageBreak())
 
         labels, entradas, saidas = agg_monthly()
         add_bar_chart('Mensal (Últimos 12 meses)', labels, entradas, saidas)
         add_table('Mensal (Últimos 12 meses)', labels, entradas, saidas)
+        story.append(PageBreak())
 
         labels, entradas, saidas = agg_yearly()
         add_bar_chart('Anual (Últimos 5 anos)', labels, entradas, saidas)
@@ -430,6 +464,7 @@ def exportar_graficos_produto(id):
         di_dt = parse_date_safe(data_inicio_str)
         df_dt = parse_date_safe(data_fim_str)
         if di_dt and df_dt:
+            story.append(PageBreak())
             if di_dt > df_dt:
                 di_dt, df_dt = df_dt, di_dt
             hist = fetch_hist(di_dt, df_dt)
@@ -457,9 +492,165 @@ def exportar_graficos_produto(id):
             footer_text = f"Página {canvas.getPageNumber()} | MultiMax Gráficos | {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
             canvas.drawString(inch, 0.5 * inch, footer_text)
             canvas.restoreState()
-        doc.build(story, onFirstPage=footer_on_page, onLaterPages=footer_on_page)
+        def on_page(canvas, doc):
+            _brand_header(canvas, doc)
+            footer_on_page(canvas, doc)
+        doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
         pdf_buffer.seek(0)
         return send_file(pdf_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
     except Exception as e:
         flash(f'Erro ao gerar PDF de Gráficos: {e}', 'danger')
         return redirect(url_for('usuarios.graficos'))
+
+@bp.route('/exportar/carnes/relatorio/<int:id>.pdf')
+@login_required
+def exportar_relatorio_carnes_pdf(id):
+    if current_user.nivel not in ['operador', 'admin']:
+        flash('Você não tem permissão para exportar relatório de carnes.', 'danger')
+        return redirect(url_for('carnes.index'))
+    try:
+        r = MeatReception.query.get_or_404(id)
+        carriers = MeatCarrier.query.filter_by(reception_id=r.id).all()
+        carriers_map = {c.id: c for c in carriers}
+        parts = MeatPart.query.filter_by(reception_id=r.id).order_by(MeatPart.id.asc()).all()
+        group_size = 4 if (r.tipo or 'bovina') == 'bovina' else 2
+        animais = {}
+        total_bruto = 0.0
+        total_liquido = 0.0
+        for idx, p in enumerate(parts):
+            c = carriers_map.get(p.carrier_id)
+            cw = c.peso if c else 0.0
+            bruto = float(p.peso_bruto or 0.0)
+            sub = cw if cw > 0 else float(p.tara or 0.0)
+            liquido = max(0.0, bruto - sub)
+            total_bruto += bruto
+            total_liquido += liquido
+            fallback_num = (idx // group_size) + 1
+            an = p.animal_numero if p.animal_numero is not None else fallback_num
+            if an not in animais:
+                animais[an] = []
+            animais[an].append({
+                'categoria': p.categoria,
+                'lado': p.lado,
+                'peso_bruto': bruto,
+                'carrier_nome': (c.nome if c else None),
+                'carrier_peso': cw if cw > 0 else None,
+                'tara': (p.tara or None),
+                'peso_liquido': liquido,
+            })
+
+        pdf_buffer = BytesIO()
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
+        styles = getSampleStyleSheet()
+        story: list[Any] = []
+        story.append(Paragraph('<b>MultiMax - Relatório de Recepção de Carnes</b>', styles['Title']))
+        story.append(Spacer(1, 0.2 * inch))
+        story.append(Paragraph(f"Gerado por: {current_user.name} ({current_user.nivel.upper()})", styles['Normal']))
+        story.append(Paragraph(f"Data de Geração: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}", styles['Normal']))
+        story.append(Spacer(1, 0.4 * inch))
+        story.append(Paragraph('<b>Dados da Recepção</b>', styles['h2']))
+        info_data: list[list[Any]] = [
+            ['Data', r.data.strftime('%d/%m/%Y %H:%M')],
+            ['Fornecedor', r.fornecedor],
+            ['Tipo', (r.tipo or '').capitalize()],
+            ['Observação', r.observacao or '-'],
+        ]
+        info_table = Table(info_data, colWidths=[1.2*inch, 4.8*inch])
+        info_table.setStyle(TableStyle([
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#6c757d')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ]))
+        story.append(info_table)
+        story.append(Spacer(1, 0.3 * inch))
+
+        story.append(Paragraph('<b>Funcionários do Fornecedor</b>', styles['h2']))
+        carriers_data: list[list[Any]] = [['Nome', 'Peso (kg)']]
+        for c in carriers:
+            carriers_data.append([c.nome, f"{(c.peso or 0.0):.2f}"])
+        if len(carriers) == 0:
+            carriers_data.append(['Nenhum registrado', '-'])
+        carriers_table = Table(carriers_data, colWidths=[3.0*inch, 1.0*inch])
+        carriers_table.setStyle(TableStyle([
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#6c757d')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('ALIGN', (1, 1), (1, -1), 'RIGHT'),
+        ]))
+        story.append(carriers_table)
+        story.append(Spacer(1, 0.3 * inch))
+
+        for num in sorted(animais.keys()):
+            story.append(Paragraph(f"<b>Animal #{num}</b>", styles['h2']))
+            data_rows: list[list[Any]] = [[
+                'Parte', 'Peso bruto (kg)', 'Funcionário', 'Tara caixa (kg)', 'Peso líquido (kg)'
+            ]]
+            subtotal_bruto = 0.0
+            subtotal_liquido = 0.0
+            subtotal_func = 0.0
+            subtotal_tara = 0.0
+            for p in animais[num]:
+                subtotal_bruto += float(p.get('peso_bruto') or 0.0)
+                subtotal_liquido += float(p.get('peso_liquido') or 0.0)
+                subtotal_func += float(p.get('carrier_peso') or 0.0)
+                subtotal_tara += float(p.get('tara') or 0.0)
+                parte_label = f"{(p.get('categoria') or '').capitalize()} — {p.get('lado') or ''}"
+                data_rows.append([
+                    parte_label,
+                    f"{float(p.get('peso_bruto') or 0.0):.2f}",
+                    p.get('carrier_nome') or '-',
+                    (p.get('tara') is not None) and f"{float(p.get('tara') or 0.0):.2f}" or '-',
+                    f"{float(p.get('peso_liquido') or 0.0):.2f}",
+                ])
+            data_rows.append([
+                'Subtotal', f"{subtotal_bruto:.2f}", f"{subtotal_func:.2f}", f"{subtotal_tara:.2f}", f"{subtotal_liquido:.2f}"
+            ])
+            table = Table(data_rows, colWidths=[2.5*inch, 1.2*inch, 1.6*inch, 1.2*inch, 1.2*inch])
+            table.setStyle(TableStyle([
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#6c757d')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#f8f9fa')),
+                ('ALIGN', (1, 1), (-1, -2), 'RIGHT'),
+                ('ALIGN', (1, -1), (-1, -1), 'RIGHT'),
+            ]))
+            story.append(table)
+            story.append(Spacer(1, 0.2 * inch))
+
+        totals_data: list[list[Any]] = [
+            ['Partes', str(sum(len(ps) for ps in animais.values()))],
+            ['Animais', str(len(animais))],
+            ['Bruto total (kg)', f"{total_bruto:.2f}"],
+            ['Desconto (peso funcionários) (kg)', f"{sum((c.peso or 0.0) for c in carriers):.2f}"],
+            ['Líquido total (kg)', f"{total_liquido:.2f}"],
+        ]
+        totals_table = Table(totals_data, colWidths=[2.2*inch, 2.2*inch])
+        totals_table.setStyle(TableStyle([
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#6c757d')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ]))
+        story.append(Paragraph('<b>Totais</b>', styles['h2']))
+        story.append(totals_table)
+
+        def footer_on_page(canvas, doc):
+            canvas.saveState()
+            canvas.setFont('Helvetica', 8)
+            footer_text = f"Página {canvas.getPageNumber()} | MultiMax Carnes | {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
+            canvas.drawString(inch, 0.5 * inch, footer_text)
+            canvas.restoreState()
+        def on_page(canvas, doc):
+            _brand_header(canvas, doc)
+            footer_on_page(canvas, doc)
+        doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
+        pdf_buffer.seek(0)
+        filename = f"relatorio_carnes_{r.id}.pdf"
+        return send_file(pdf_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+    except Exception as e:
+        flash(f'Erro ao gerar PDF de Carnes: {e}', 'danger')
+        return redirect(url_for('carnes.relatorio', id=id))

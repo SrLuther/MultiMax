@@ -63,6 +63,7 @@ def create_app():
     from .routes.exportacao import bp as exportacao_bp
     from .routes.usuarios import bp as usuarios_bp
     from .routes.carnes import bp as carnes_bp
+    from .routes.colaboradores import bp as colaboradores_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(home_bp)
@@ -71,6 +72,7 @@ def create_app():
     app.register_blueprint(exportacao_bp)
     app.register_blueprint(usuarios_bp)
     app.register_blueprint(carnes_bp)
+    app.register_blueprint(colaboradores_bp)
 
     @app.route('/', strict_slashes=False)
     def _root_redirect():
@@ -219,6 +221,41 @@ def create_app():
                 cols.append(row[1])
             if 'tara' not in cols:
                 db.session.execute(text('ALTER TABLE meat_part ADD COLUMN tara REAL DEFAULT 0'))
+                db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+
+        try:
+            from sqlalchemy import text
+            res = db.session.execute(text('PRAGMA table_info(collaborator)'))
+            cols = [row[1] for row in res]
+            if 'regular_team' not in cols:
+                db.session.execute(text('ALTER TABLE collaborator ADD COLUMN regular_team TEXT'))
+                db.session.commit()
+            if 'sunday_team' not in cols:
+                db.session.execute(text('ALTER TABLE collaborator ADD COLUMN sunday_team TEXT'))
+                db.session.commit()
+            if 'special_team' not in cols:
+                db.session.execute(text('ALTER TABLE collaborator ADD COLUMN special_team TEXT'))
+                db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+
+        try:
+            from sqlalchemy import text
+            res = db.session.execute(text('PRAGMA table_info(shift)'))
+            cols = [row[1] for row in res]
+            if 'start_dt' not in cols:
+                db.session.execute(text('ALTER TABLE shift ADD COLUMN start_dt TEXT'))
+                db.session.commit()
+            if 'end_dt' not in cols:
+                db.session.execute(text('ALTER TABLE shift ADD COLUMN end_dt TEXT'))
                 db.session.commit()
         except Exception:
             try:
