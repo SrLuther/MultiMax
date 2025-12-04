@@ -6,7 +6,8 @@
         <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalNovoUsuario">Novo Usuário</button>
     </div>
     
-    <table class="table table-hover">
+    <div class="table-responsive-sm">
+    <table class="table table-hover align-middle">
         <thead class="table-dark">
             <tr>
                 <th>Login</th>
@@ -22,7 +23,7 @@
                 <td>{{ u.name }}</td>
                 <td>{{ u.nivel }}</td>
                 <td>
-                    <div class="d-flex align-items-center">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
                         <!-- Formulário de Atualização de Nível -->
                         <form method="post" action="{{ url_for('usuarios.update_level', user_id=u.id) }}" class="d-inline-flex me-2">
                             <select name="nivel" class="form-select d-inline-block w-auto form-select-sm me-2">
@@ -31,6 +32,15 @@
                                 <option value="admin" {% if u.nivel == 'admin' %}selected{% endif %}>Gerente</option>
                             </select>
                             <button type="submit" class="btn btn-primary btn-sm">Atualizar</button>
+                        </form>
+                        <!-- Atualizar Senha -->
+                        <form method="post" action="{{ url_for('usuarios.update_password', user_id=u.id) }}" class="d-inline-flex align-items-center gap-2">
+                            <input type="password" name="new_password" class="form-control form-control-sm" placeholder="Nova senha" required>
+                            <button type="submit" class="btn btn-outline-primary btn-sm">Atualizar senha</button>
+                        </form>
+                        <!-- Redefinir Senha -->
+                        <form method="post" action="{{ url_for('usuarios.reset_password', user_id=u.id) }}" class="d-inline">
+                            <button type="submit" class="btn btn-outline-warning btn-sm">Redefinir senha</button>
                         </form>
                         
                         <!-- Exclusão direta com confirmação (não permite excluir a si mesmo) -->
@@ -50,6 +60,7 @@
             {% endif %}
         </tbody>
     </table>
+    </div>
 <!-- Modal Novo Usuário (Mantido) -->
 <div class="modal fade" id="modalNovoUsuario">
     <div class="modal-dialog">

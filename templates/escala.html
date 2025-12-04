@@ -126,4 +126,208 @@
     </tbody>
   </table>
 </div>
+
+<div class="card mt-3">
+  <div class="card-header">Calendário do Sistema</div>
+  <div class="card-body">
+    <div id="calendar" style="min-height: 600px"></div>
+    <script id="events-data" type="application/json">{{ events|tojson|safe }}</script>
+    <style>
+      .fc-daygrid-event.dot-event { background: transparent !important; border: 0 !important; padding: 2px !important; }
+      .fc-daygrid-event.dot-event .fc-event-main { padding: 0 !important; }
+      .fc-daygrid-event.dot-event .fc-event-main > * { margin: 0 !important; }
+      .fc .fc-toolbar-title { font-weight: 700; font-size: 1.25rem; }
+      .fc .fc-button { border-radius: 16px; background: #f4f4f5; color: #111; border: 0; }
+      .fc .fc-button:hover { background: #e9e9ea; }
+      .fc .fc-button:focus { box-shadow: none; }
+      .fc-daygrid-day.fc-day-today .fc-daygrid-day-number { background: #ff3b30; color: #fff; border-radius: 12px; padding: 2px 6px; }
+      .fc .fc-timegrid-now-indicator-line { border-color: #ff3b30; }
+      .fc .fc-timegrid-now-indicator-arrow { border-top-color: #ff3b30; }
+      .fc-list-day { background: transparent !important; }
+      .fc-list-day-cushion { padding: 8px 12px; }
+      .fc-list-day .fc-list-day-text { font-size: 1rem; font-weight: 600; color: #111; }
+      .fc-list-day .fc-list-day-side-text { color: #6c757d; }
+      .fc-list-event-time { width: 80px; font-weight: 600; color: #111; }
+      .fc-list-event-title a { color: #111; }
+      .fc-list-event:hover { background: #f7f7f8; }
+      .fc .fc-col-header-cell-cushion { font-weight: 600; }
+    </style>
+  </div>
+  <div class="card-footer">
+    <div class="d-flex flex-wrap gap-3 align-items-center">
+      <span style="display:inline-flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;border-radius:50%;background:#0d6efd;display:inline-block"></span>Equipe Abertura</span>
+      <span style="display:inline-flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;border-radius:50%;background:#0b5ed7;display:inline-block"></span>Equipe Fechamento</span>
+      <span style="display:inline-flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;border-radius:50%;background:#fd7e14;display:inline-block"></span>Domingo (5h–13h)</span>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+<script>
+  (function(){
+    var l = {
+      code: 'pt-br',
+      week: { dow: 0, doy: 4 },
+      buttonText: { prev: 'Anterior', next: 'Próximo', today: 'Hoje', year: 'Ano', month: 'Mês', week: 'Semana', day: 'Dia', list: 'Lista' },
+      weekText: 'Sm',
+      allDayText: 'dia inteiro',
+      moreLinkText: 'mais',
+      noEventsText: 'Sem eventos para mostrar'
+    };
+    try {
+      if (window.FullCalendar && Array.isArray(FullCalendar.globalLocales)) {
+        FullCalendar.globalLocales.push(l);
+      } else {
+        window.FullCalendar = window.FullCalendar || {};
+        FullCalendar.globalLocales = FullCalendar.globalLocales || [];
+        FullCalendar.globalLocales.push(l);
+      }
+    } catch(e) {}
+  })();
+</script>
+<script>
+  (function(){
+    var el = document.getElementById('calendar');
+    var events = JSON.parse((document.getElementById('events-data')?.textContent) || '[]');
+    events = (events || []).map(function(e){ return {
+      title: e.title,
+      start: e.start,
+      end: e.end || null,
+      color: e.color || '#0d6efd',
+      url: e.url || null,
+      kind: e.kind || null,
+      team: e.team || null,
+      classNames: (e.kind === 'rodizio-open' || e.kind === 'rodizio-close' || e.kind === 'rodizio-sunday') ? ['dot-event'] : [],
+    }; });
+    var hasPtBr = (window.FullCalendar && Array.isArray(FullCalendar.globalLocales) && FullCalendar.globalLocales.some(function(l){ return l.code === 'pt-br'; }));
+    var calendar = new FullCalendar.Calendar(el, {
+      initialView: 'dayGridMonth',
+      locale: hasPtBr ? 'pt-br' : 'en',
+      height: 'auto',
+      firstDay: 0,
+      nowIndicator: true,
+      slotMinTime: '05:00:00',
+      slotMaxTime: '20:00:00',
+      scrollTime: '06:00:00',
+      dayHeaders: true,
+      dayHeaderFormat: { weekday: 'short' },
+      views: {
+        dayGridMonth: { dayHeaderFormat: { weekday: 'short' } },
+        timeGridWeek: { dayHeaderFormat: { weekday: 'short' } },
+        timeGridDay: { dayHeaderFormat: { weekday: 'short' } }
+      },
+      dayMaxEvents: 2,
+      moreLinkClick: 'popover',
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'viewsMenu'
+      },
+      customButtons: {
+        viewsMenu: {
+          text: 'Visualizações ▾',
+          click: function(){
+            var menu = el.querySelector('#fc-views-menu');
+            if(menu){ menu.classList.toggle('show'); }
+          }
+        }
+      },
+      buttonText: {
+        today: 'Hoje',
+        month: 'Mês',
+        week: 'Semana',
+        day: 'Dia',
+        list: 'Lista',
+        listDay: 'Dia (lista)',
+        listMonth: 'Mês (lista)'
+      },
+      events: events,
+      eventContent: function(arg){
+        var kind = arg.event && arg.event.extendedProps && arg.event.extendedProps.kind;
+        if (kind === 'rodizio-open' || kind === 'rodizio-close' || kind === 'rodizio-sunday') {
+          var bg = arg.event.backgroundColor || arg.event.borderColor || (arg.backgroundColor || null) || '#0d6efd';
+          var num = (arg.event && arg.event.extendedProps && arg.event.extendedProps.team) || null;
+          if (!num) {
+            try {
+              var m = (arg.event.title || '').match(/'(\d)'/);
+              if (m) num = m[1];
+            } catch (e) {}
+          }
+          var dot = document.createElement('span');
+          dot.style.display = 'inline-flex';
+          dot.style.width = '24px';
+          dot.style.height = '24px';
+          dot.style.borderRadius = '50%';
+          dot.style.backgroundColor = bg;
+          dot.style.justifyContent = 'center';
+          dot.style.alignItems = 'center';
+          dot.style.color = '#fff';
+          dot.style.fontSize = '13px';
+          dot.style.fontWeight = '600';
+          dot.style.border = '2px solid #fff';
+          dot.style.boxShadow = '0 0 0 1px rgba(0,0,0,0.1)';
+          dot.textContent = num ? String(num) : '';
+          return { domNodes: [dot] };
+        }
+        return null;
+      },
+      eventDidMount: function(info){
+        var kind = info.event && info.event.extendedProps && info.event.extendedProps.kind;
+        if (kind === 'rodizio-open' || kind === 'rodizio-close' || kind === 'rodizio-sunday') {
+          info.el.style.background = 'transparent';
+          info.el.style.border = '0';
+          info.el.style.padding = '2px';
+          info.el.style.display = 'inline-flex';
+          info.el.style.justifyContent = 'center';
+          info.el.style.alignItems = 'center';
+          info.el.style.width = 'auto';
+        }
+      },
+      dateClick: function(info){
+        calendar.changeView('timeGridDay', info.dateStr);
+      },
+      eventClick: function(info){
+        if(info.event && info.event.url){
+          info.jsEvent.preventDefault();
+          window.location.href = info.event.url;
+        }
+      }
+    });
+    calendar.render();
+    (function(){
+      var btn = el.querySelector('.fc-viewsMenu-button');
+      if(!btn) return;
+      var parent = btn.parentElement;
+      if(parent) parent.style.position = 'relative';
+      if(el.querySelector('#fc-views-menu')) return;
+      var menu = document.createElement('div');
+      menu.id = 'fc-views-menu';
+      menu.className = 'dropdown-menu';
+      menu.style.minWidth = '180px';
+      menu.style.position = 'absolute';
+      menu.style.right = '0';
+      menu.style.top = 'calc(100% + 4px)';
+      menu.innerHTML = [
+        {label: 'Mês', view: 'dayGridMonth'},
+        {label: 'Semana', view: 'timeGridWeek'},
+        {label: 'Dia', view: 'timeGridDay'},
+        {label: 'Lista (Dia)', view: 'listDay'},
+        {label: 'Lista (Mês)', view: 'listMonth'},
+      ].map(function(it){ return '<button type="button" class="dropdown-item" data-view="'+it.view+'">'+it.label+'</button>'; }).join('');
+      parent.appendChild(menu);
+      menu.querySelectorAll('[data-view]').forEach(function(item){
+        item.addEventListener('click', function(ev){
+          var v = ev.currentTarget.getAttribute('data-view');
+          if(v){ calendar.changeView(v); }
+          menu.classList.remove('show');
+        });
+      });
+      document.addEventListener('click', function(e){
+        if(!parent.contains(e.target)){
+          menu.classList.remove('show');
+        }
+      });
+    })();
+  })();
+</script>
 {% endblock %}

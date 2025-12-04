@@ -208,7 +208,45 @@ def escala():
     except Exception:
         domingo_team = '1'
         domingo_ref_date = ''
-    return render_template('escala.html', colaboradores=cols, weeks=weeks, ref_open=open_ref, domingo_team=domingo_team, domingo_ref_date=domingo_ref_date, active_page='escala')
+    events = []
+    try:
+        from datetime import timedelta
+        for i in range(5):
+            ws = current_monday + timedelta(days=7*i)
+            we = ws + timedelta(days=5)
+            open_team = open_ref if (i % 2 == 0) else ('2' if open_ref == '1' else '1')
+            close_team = '2' if open_team == '1' else '1'
+            d = ws
+            while d <= we:
+                events.append({
+                    'title': f"EQUIPE ABERTURA '{open_team}'",
+                    'start': d.strftime('%Y-%m-%d'),
+                    'color': '#0d6efd',
+                    'url': url_for('colaboradores.escala'),
+                    'kind': 'rodizio-open',
+                    'team': open_team,
+                })
+                events.append({
+                    'title': f"EQUIPE FECHAMENTO '{close_team}'",
+                    'start': d.strftime('%Y-%m-%d'),
+                    'color': '#0b5ed7',
+                    'url': url_for('colaboradores.escala'),
+                    'kind': 'rodizio-close',
+                    'team': close_team,
+                })
+                d = d + timedelta(days=1)
+            sunday = ws + timedelta(days=6)
+            events.append({
+                'title': f"DOMINGO EQUIPE '{domingo_team}' (5h–13h)",
+                'start': sunday.strftime('%Y-%m-%d'),
+                'color': '#fd7e14',
+                'url': url_for('colaboradores.escala'),
+                'kind': 'rodizio-sunday',
+                'team': domingo_team,
+            })
+    except Exception:
+        pass
+    return render_template('escala.html', colaboradores=cols, weeks=weeks, ref_open=open_ref, domingo_team=domingo_team, domingo_ref_date=domingo_ref_date, events=events, active_page='escala')
 
 @bp.route('/escala/novo', methods=['POST'], strict_slashes=False)
 @login_required

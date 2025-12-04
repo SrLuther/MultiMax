@@ -19,8 +19,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
     <script>
         (function(){
-            document.documentElement.setAttribute('data-bs-theme', 'dark');
-            try { localStorage.setItem('theme', 'dark'); } catch(e) {}
+            document.documentElement.setAttribute('data-bs-theme', 'light');
+            try { localStorage.setItem('theme', 'light'); } catch(e) {}
         })();
     </script>
         <style>
@@ -82,15 +82,31 @@
         .content-wrapper .bg-white, .content-wrapper .bg-light, .content-wrapper .table-light, .content-wrapper .modal-content { color: #000 !important; }
         .content-wrapper .bg-white .form-control::placeholder, .content-wrapper .bg-light .form-control::placeholder, .content-wrapper .modal-content .form-control::placeholder { color: #000 !important; opacity: 0.7; }
         .content-wrapper .bg-white .form-select option, .content-wrapper .bg-light .form-select option, .content-wrapper .modal-content .form-select option { color: #000; }
-        .content-wrapper .bg-dark, .content-wrapper .text-bg-dark, .content-wrapper .table-dark, .content-wrapper .card:not(.bg-white):not(.bg-light) { color: #fff !important; }
-        .content-wrapper .bg-dark .form-control::placeholder, .content-wrapper .text-bg-dark .form-control::placeholder, .content-wrapper .card:not(.bg-white):not(.bg-light) .form-control::placeholder { color: #fff !important; opacity: 0.7; }
+        [data-bs-theme="dark"] .content-wrapper .bg-dark,
+        [data-bs-theme="dark"] .content-wrapper .text-bg-dark,
+        [data-bs-theme="dark"] .content-wrapper .table-dark,
+        [data-bs-theme="dark"] .content-wrapper .card:not(.bg-white):not(.bg-light) { color: #fff !important; }
+        [data-bs-theme="dark"] .content-wrapper .bg-dark .form-control::placeholder,
+        [data-bs-theme="dark"] .content-wrapper .text-bg-dark .form-control::placeholder,
+        [data-bs-theme="dark"] .content-wrapper .card:not(.bg-white):not(.bg-light) .form-control::placeholder { color: #fff !important; opacity: 0.7; }
         .modal-content { background-color: #f4f4f5 !important; color: #000 !important; }
         .modal-header, .modal-body, .modal-footer { background-color: #f4f4f5 !important; color: #000 !important; }
         .modal-header .modal-title { color: #000 !important; }
         .modal .form-label, .modal .form-control, .modal .form-select, .modal .form-text, .modal .text-muted, .modal label, .modal .small { color: #000 !important; }
         .modal .form-control::placeholder { color: #000 !important; opacity: 0.7; }
         .modal .btn-close { filter: none; }
+        form[data-bs-theme="light"] { background-color: #ffffff !important; color: #000000 !important; }
+        form[data-bs-theme="light"] .form-label,
+        form[data-bs-theme="light"] .form-control,
+        form[data-bs-theme="light"] .form-select,
+        form[data-bs-theme="light"] .form-text,
+        form[data-bs-theme="light"] .text-muted,
+        form[data-bs-theme="light"] label,
+        form[data-bs-theme="light"] .small { color: #000000 !important; }
+        form[data-bs-theme="light"] .form-control::placeholder { color: #000000 !important; opacity: 0.7; }
+        form[data-bs-theme="light"] .form-select option { color: #000000 !important; }
     </style>
+    
 </head>
 <body class="bg-body">
 
@@ -280,7 +296,6 @@
             </div>
             {% if active_page == 'home' %}
             <div class="mt-3 small text-muted">
-                Versão: {{ git_version }}<br>
                 Logado como <strong>{{ current_user.name }}</strong> ({{ current_user.nivel | upper }})
             </div>
             {% endif %}
@@ -306,7 +321,7 @@
     <div class="container-fluid d-flex justify-content-between align-items-center">
         <div class="d-flex flex-column align-items-start">
             <small>© 2025 MultiMax</small>
-            <small>Gestão Amora v1.3.1</small>
+            <small>Gestão Amora v1.3.2</small>
         </div>
         <div class="d-flex flex-column align-items-end text-end">
             <small id="current-date"></small>

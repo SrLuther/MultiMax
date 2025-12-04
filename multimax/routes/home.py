@@ -11,6 +11,33 @@ bp = Blueprint('home', __name__, url_prefix='/home')
 def index():
     if not current_user.is_authenticated:
         return redirect(url_for('auth.login'))
+    db_diag = None
+    try:
+        from flask import current_app
+        from sqlalchemy import text
+        uri = current_app.config.get('SQLALCHEMY_DATABASE_URI', '')
+        host = None
+        try:
+            if '://' in uri:
+                after = uri.split('://', 1)[1]
+                hostpart = after.split('@', 1)[1] if '@' in after else after
+                host = hostpart.split('/', 1)[0]
+        except Exception:
+            host = None
+        ok = True
+        err = ''
+        try:
+            db.session.execute(text('select 1'))
+        except Exception as e:
+            ok = False
+            err = str(e)
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+        db_diag = {'ok': ok, 'uri': uri, 'host': host, 'err': err}
+    except Exception:
+        db_diag = {'ok': False, 'uri': '', 'host': None, 'err': ''}
     events = []
     # Estoque (Histórico)
     try:
@@ -249,7 +276,7 @@ def index():
         esc = esc.replace("\n", "<br>")
         return esc
     mural_html = _to_html(mural_text)
-    return render_template('home.html', active_page='home', events=events, mural_html=mural_html, mural_text=mural_text)
+    return render_template('home.html', active_page='home', events=events, mural_html=mural_html, mural_text=mural_text, db_diag=db_diag)
 
 @bp.route('/mural', methods=['POST'], strict_slashes=False)
 def update_mural():

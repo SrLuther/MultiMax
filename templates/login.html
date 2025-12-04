@@ -8,13 +8,13 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
     <script>
         (function(){
-            document.documentElement.setAttribute('data-bs-theme', 'dark');
-            try { localStorage.setItem('theme', 'dark'); } catch(e) {}
+            document.documentElement.setAttribute('data-bs-theme', 'light');
+            try { localStorage.setItem('theme', 'light'); } catch(e) {}
         })();
     </script>
     <style>
         body {
-            background: linear-gradient(135deg, #2b2b2b, #1f1f1f);
+            background: linear-gradient(135deg, #f4f4f5, #e9ecef);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -57,6 +57,17 @@
             box-shadow: 0 6px 18px rgba(13,110,253,0.35);
         }
         .brand-logo-img-lg { height: 96px; display: block; }
+        form[data-bs-theme="light"] { background-color: #ffffff !important; color: #000000 !important; }
+        form[data-bs-theme="light"] .form-label,
+        form[data-bs-theme="light"] .form-control,
+        form[data-bs-theme="light"] .form-select,
+        form[data-bs-theme="light"] .form-text,
+        form[data-bs-theme="light"] .text-muted,
+        form[data-bs-theme="light"] label,
+        form[data-bs-theme="light"] .small,
+        form[data-bs-theme="light"] .btn { color: #000000 !important; }
+        form[data-bs-theme="light"] .form-control::placeholder { color: #000000 !important; opacity: 0.7; }
+        form[data-bs-theme="light"] .form-select option { color: #000000 !important; }
         
     </style>
 </head>
@@ -79,7 +90,7 @@
                           {% endif %}
                         {% endwith %}
 
-                        <form method="post">
+                        <form method="post" data-bs-theme="light">
                             <div class="mb-4">
                                 <input type="text" name="username" class="form-control form-control-lg text-center" 
                                        placeholder="Login" required autofocus autocomplete="username">

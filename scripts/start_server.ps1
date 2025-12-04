@@ -145,4 +145,11 @@ if (Wait-ServerReady $env:PORT 30) {
 } else {
   Write-Host "Aguardando servidor iniciar..." -ForegroundColor Yellow
 }
-Wait-Process -Id $proc.Id
+if ($proc -and -not $proc.HasExited) {
+  try { Wait-Process -Id $proc.Id -ErrorAction SilentlyContinue } catch {}
+} else {
+  try {
+    if ($proc) { Write-Host ("Servidor finalizado (ExitCode {0})" -f $proc.ExitCode) -ForegroundColor Yellow }
+    else { Write-Host "Servidor finalizado" -ForegroundColor Yellow }
+  } catch { Write-Host "Servidor finalizado" -ForegroundColor Yellow }
+}
