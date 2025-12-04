@@ -29,6 +29,7 @@ pip-wheel-metadata/
 # OS-specific
 Thumbs.db
 Desktop.ini
+*.exe
 
 # Trae workspace
 .trae/
