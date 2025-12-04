@@ -325,6 +325,8 @@
     </div>
 </div>
 
+<div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 6000"></div>
+
 <!-- Rodapé Persistente com Data/Hora Instantânea -->
 <footer class="bg-dark text-white text-center p-2 mt-auto footer-fixed">
     <div class="container-fluid d-flex justify-content-between align-items-center">
@@ -376,6 +378,19 @@
     (function(){
         var overlay = document.getElementById('globalLoading');
         function show(){ if(overlay) overlay.classList.add('show'); }
+        function hide(){ if(overlay) overlay.classList.remove('show'); }
+        function showPdfToast(msg){
+            var cont = document.getElementById('toastContainer');
+            if(!cont) return;
+            var el = document.createElement('div');
+            el.className = 'toast align-items-center text-bg-dark border-0';
+            el.setAttribute('role','alert');
+            el.setAttribute('aria-live','assertive');
+            el.setAttribute('aria-atomic','true');
+            el.innerHTML = '<div class="d-flex"><div class="toast-body">'+(msg||'PDF será gerado em instantes')+'</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>';
+            cont.appendChild(el);
+            try { var t = new bootstrap.Toast(el, { delay: 3000, autohide: true }); t.show(); setTimeout(function(){ try{ el.remove(); }catch(_){ } }, 3500); } catch(_){ }
+        }
         document.addEventListener('click', function(e){
             var a = e.target && e.target.closest && e.target.closest('a[href]');
             if(!a) return;
@@ -384,15 +399,20 @@
             if(a.hasAttribute('data-no-loading')) return;
             var target = a.getAttribute('target');
             if(target && target !== '_self') return;
+            if(a.hasAttribute('data-pdf-export')){ showPdfToast('PDF será gerado em instantes'); return; }
+            if(a.hasAttribute('data-download')){ show(); setTimeout(hide, 1200); return; }
             show();
         });
         document.addEventListener('submit', function(e){
+            var form = e.target;
+            if(form && form.hasAttribute('data-no-loading')) return;
             show();
             try {
-                var btns = e.target.querySelectorAll('button[type="submit"], input[type="submit"]');
+                var btns = form.querySelectorAll('button[type="submit"], input[type="submit"]');
                 for (var i=0;i<btns.length;i++){ btns[i].disabled = true; }
             } catch(_){ }
         });
+        window.addEventListener('pageshow', function(){ hide(); });
         window.addEventListener('beforeunload', function(){ show(); });
     })();
 </script>
