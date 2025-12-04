@@ -57,6 +57,7 @@ def create_app():
     except Exception:
         pass
     app.config['SQLALCHEMY_DATABASE_URI'] = uri_env if uri_env else ('sqlite:///' + db_path)
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'uma_chave_secreta_muito_forte_e_aleatoria')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['PER_PAGE'] = 10
@@ -232,6 +233,8 @@ def create_app():
                     if '://' in uri_s:
                         creds = uri_s.split('://', 1)[1].split('@', 1)[0]
                         role = creds.split(':', 1)[0]
+                        if role.startswith('postgres.'):
+                            role = 'postgres'
                 except Exception:
                     pass
                 tables = [
@@ -246,10 +249,27 @@ def create_app():
                         pass
                     if role:
                         try:
+                            db.session.execute(text(f'drop policy if exists allow_server_all on public."{t}"'))
+                        except Exception:
+                            pass
+                        try:
                             db.session.execute(text(f'create policy allow_server_all on public."{t}" for all to "{role}" using (true) with check (true)'))
                         except Exception:
                             pass
                 db.session.commit()
+                try:
+                    from sqlalchemy import text
+                    db.session.execute(text('create index if not exists idx_produto_nome on produto (nome)'))
+                    db.session.execute(text('create index if not exists idx_hist_product_date on historico (product_id, data)'))
+                    db.session.execute(text('create index if not exists idx_notif_user_ref on notification_read (user_id, ref_id)'))
+                    db.session.execute(text('create index if not exists idx_cleaningtask_proxima on cleaning_task (proxima_data)'))
+                    db.session.execute(text('create index if not exists idx_shift_collab_date on shift (collaborator_id, date)'))
+                    db.session.commit()
+                except Exception:
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
             except Exception:
                 try:
                     db.session.rollback()
