@@ -83,7 +83,28 @@
   </div>
 
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/locales-all.global.min.js"></script>
+<script>
+  (function(){
+    var l = {
+      code: 'pt-br',
+      week: { dow: 0, doy: 4 },
+      buttonText: { prev: 'Anterior', next: 'Próximo', today: 'Hoje', year: 'Ano', month: 'Mês', week: 'Semana', day: 'Dia', list: 'Lista' },
+      weekText: 'Sm',
+      allDayText: 'dia inteiro',
+      moreLinkText: 'mais',
+      noEventsText: 'Sem eventos para mostrar'
+    };
+    try {
+      if (window.FullCalendar && Array.isArray(FullCalendar.globalLocales)) {
+        FullCalendar.globalLocales.push(l);
+      } else {
+        window.FullCalendar = window.FullCalendar || {};
+        FullCalendar.globalLocales = FullCalendar.globalLocales || [];
+        FullCalendar.globalLocales.push(l);
+      }
+    } catch(e) {}
+  })();
+</script>
 <script>
   (function(){
     // nenhuma lógica adicional para formatação; texto simples
