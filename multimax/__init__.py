@@ -44,6 +44,18 @@ def create_app():
         uri_env = 'postgresql+psycopg://' + uri_env.split('://', 1)[1]
     if uri_env and uri_env.startswith('postgres://'):
         uri_env = 'postgresql+psycopg://' + uri_env.split('://', 1)[1]
+    try:
+        s = uri_env or ''
+        if s and ('.supabase.co' in s) and ('@' in s):
+            pre, post = s.split('@', 1)
+            rest = post.split('/', 1)[1] if '/' in post else ''
+            hostport = 'aws-1-sa-east-1.pooler.supabase.com:5432'
+            s = pre + '@' + hostport + ('/' + rest if rest else '')
+        if s and ('sslmode=' not in s):
+            s = s + ('&sslmode=require' if '?' in s else '?sslmode=require')
+        uri_env = s or uri_env
+    except Exception:
+        pass
     app.config['SQLALCHEMY_DATABASE_URI'] = uri_env if uri_env else ('sqlite:///' + db_path)
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'uma_chave_secreta_muito_forte_e_aleatoria')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
