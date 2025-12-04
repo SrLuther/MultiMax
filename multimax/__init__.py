@@ -155,8 +155,20 @@ def create_app():
             nf = request.args.get('nf', '').strip()  # filtro: '', 'estoque', 'limpeza'
             cat = request.args.get('cat', '').strip().upper()  # categoria estoque: CX/PC/VA/AV
             today = date.today()
-            low_stock = Produto.query.filter(Produto.quantidade <= Produto.estoque_minimo).order_by(Produto.nome.asc()).all()
-            overdue = CleaningTask.query.filter(CleaningTask.proxima_data < today).order_by(CleaningTask.proxima_data.asc()).all()
+            low_stock = (
+                Produto.query
+                .filter(Produto.quantidade <= Produto.estoque_minimo)
+                .order_by(Produto.quantidade.asc(), Produto.nome.asc())
+                .limit(10)
+                .all()
+            )
+            overdue = (
+                CleaningTask.query
+                .filter(CleaningTask.proxima_data < today)
+                .order_by(CleaningTask.proxima_data.asc())
+                .limit(10)
+                .all()
+            )
             reads = NotificationRead.query.filter_by(user_id=current_user.id).all()
             read_set = {(r.tipo, r.ref_id) for r in reads}
             items = []
@@ -200,54 +212,28 @@ def create_app():
             return {'notif_items': [], 'notif_count': 0}
 
     def _get_version():
-        try:
-            import json
-            from urllib.request import Request, urlopen
-            owner = os.getenv('GITHUB_OWNER', 'SrLuther')
-            repo = os.getenv('GITHUB_REPO', 'MultiMax')
-            req = Request(f'https://api.github.com/repos/{owner}/{repo}/releases/latest', headers={'User-Agent': 'MultiMax-App'})
-            with urlopen(req, timeout=3) as resp:
-                data = json.loads(resp.read().decode('utf-8'))
-                tag = data.get('tag_name')
-                if tag:
-                    return tag
-        except Exception:
-            pass
-        try:
-            import json
-            from urllib.request import Request, urlopen
-            owner = os.getenv('GITHUB_OWNER', 'SrLuther')
-            repo = os.getenv('GITHUB_REPO', 'MultiMax')
-            req = Request(f'https://api.github.com/repos/{owner}/{repo}/tags', headers={'User-Agent': 'MultiMax-App'})
-            with urlopen(req, timeout=3) as resp:
-                data = json.loads(resp.read().decode('utf-8'))
-                if isinstance(data, list) and data:
-                    name = data[0].get('name')
-                    if name:
-                        return name
-        except Exception:
-            pass
-        try:
-            import subprocess
-            base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.dirname(__file__)))
-            r = subprocess.run(['git', 'describe', '--tags', '--abbrev=0'], cwd=base_dir, capture_output=True, text=True)
-            if r.returncode == 0:
-                return r.stdout.strip()
-            r2 = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], cwd=base_dir, capture_output=True, text=True)
-            if r2.returncode == 0:
-                return r2.stdout.strip()
-        except Exception:
-            pass
         v = os.getenv('APP_VERSION')
         if v:
             return v
+        try:
+            import subprocess
+            base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.dirname(__file__)))
+            r = subprocess.run(['git', 'describe', '--tags', '--abbrev=0'], cwd=base_dir, capture_output=True, text=True, timeout=2)
+            if r.returncode == 0 and r.stdout.strip():
+                return r.stdout.strip()
+            r2 = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], cwd=base_dir, capture_output=True, text=True, timeout=2)
+            if r2.returncode == 0 and r2.stdout.strip():
+                return r2.stdout.strip()
+        except Exception:
+            pass
         return 'dev'
+
+    resolved_version = _get_version()
+    app.config['APP_VERSION_RESOLVED'] = resolved_version.lstrip('vV') if isinstance(resolved_version, str) else resolved_version
 
     @app.context_processor
     def inject_version():
-        raw = _get_version()
-        v = raw.lstrip('vV') if isinstance(raw, str) else raw
-        return {'git_version': v}
+        return {'git_version': app.config.get('APP_VERSION_RESOLVED', 'dev')}
 
     with app.app_context():
         uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')

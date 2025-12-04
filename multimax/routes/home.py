@@ -41,7 +41,7 @@ def index():
     events = []
     # Estoque (Histórico)
     try:
-        hist = Historico.query.order_by(Historico.data.desc()).limit(200).all()
+        hist = Historico.query.order_by(Historico.data.desc()).limit(100).all()
         for h in hist:
             t = 'Entrada' if (h.action or '').lower() == 'entrada' else 'Saída'
             qty = h.quantidade or 0
@@ -169,7 +169,7 @@ def index():
         pass
     # Limpeza concluída
     try:
-        ch = CleaningHistory.query.order_by(CleaningHistory.data_conclusao.desc()).limit(100).all()
+        ch = CleaningHistory.query.order_by(CleaningHistory.data_conclusao.desc()).limit(50).all()
         for c in ch:
             events.append({
                 'title': f"✅ Limpeza concluída: {c.nome_limpeza}",
@@ -181,7 +181,7 @@ def index():
         pass
     # Carnes
     try:
-        recs = MeatReception.query.order_by(MeatReception.data.desc()).limit(100).all()
+        recs = MeatReception.query.order_by(MeatReception.data.desc()).limit(50).all()
         for r in recs:
             events.append({
                 'title': f"🥩 Recepção de carnes: {r.fornecedor} ({r.tipo})",
@@ -193,7 +193,7 @@ def index():
         pass
     # Sistema
     try:
-        logs = SystemLog.query.order_by(SystemLog.data.desc()).limit(100).all()
+        logs = SystemLog.query.order_by(SystemLog.data.desc()).limit(50).all()
         for lg in logs:
             events.append({
                 'title': f"⚙️ {lg.origem}: {lg.evento}",
@@ -253,7 +253,7 @@ def index():
     except Exception:
         pass
     try:
-        credits = LeaveCredit.query.order_by(LeaveCredit.date.desc()).limit(200).all()
+        credits = LeaveCredit.query.order_by(LeaveCredit.date.desc()).limit(100).all()
         for lc in credits:
             events.append({
                 'title': f"🏖️ Crédito de Folga: +{lc.amount_days}",
