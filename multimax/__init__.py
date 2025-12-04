@@ -39,7 +39,12 @@ def create_app():
         data_dir = os.path.join(home, '.multimax')
     os.makedirs(data_dir, exist_ok=True)
     db_path = os.path.join(data_dir, 'estoque.db').replace('\\', '/')
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
+    uri_env = os.getenv('SQLALCHEMY_DATABASE_URI') or os.getenv('DATABASE_URL')
+    if uri_env and uri_env.startswith('postgresql://'):
+        uri_env = 'postgresql+psycopg://' + uri_env.split('://', 1)[1]
+    if uri_env and uri_env.startswith('postgres://'):
+        uri_env = 'postgresql+psycopg://' + uri_env.split('://', 1)[1]
+    app.config['SQLALCHEMY_DATABASE_URI'] = uri_env if uri_env else ('sqlite:///' + db_path)
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'uma_chave_secreta_muito_forte_e_aleatoria')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['PER_PAGE'] = 10
@@ -193,7 +198,51 @@ def create_app():
         return {'git_version': v}
 
     with app.app_context():
+        uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+        is_sqlite = isinstance(uri, str) and uri.startswith('sqlite:')
         db.create_all()
+        if not is_sqlite:
+            try:
+                from sqlalchemy import text
+                db.session.execute(text('ALTER TABLE "user" ALTER COLUMN password_hash TYPE TEXT'))
+                db.session.commit()
+            except Exception:
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+        if not is_sqlite:
+            try:
+                from sqlalchemy import text
+                role = None
+                try:
+                    uri_s = str(uri)
+                    if '://' in uri_s:
+                        creds = uri_s.split('://', 1)[1].split('@', 1)[0]
+                        role = creds.split(':', 1)[0]
+                except Exception:
+                    pass
+                tables = [
+                    'cleaning_task','cleaning_history','system_log','notification_read','app_setting',
+                    'produto','historico','meat_reception','meat_carrier','meat_part','collaborator',
+                    'shift','leave_credit','hour_bank_entry','user'
+                ]
+                for t in tables:
+                    try:
+                        db.session.execute(text(f'alter table public."{t}" enable row level security'))
+                    except Exception:
+                        pass
+                    if role:
+                        try:
+                            db.session.execute(text(f'create policy allow_server_all on public."{t}" for all to "{role}" using (true) with check (true)'))
+                        except Exception:
+                            pass
+                db.session.commit()
+            except Exception:
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
         if User.query.filter_by(username='admin').first() is None:
             admin = User()
             admin.name = 'Administrador'
@@ -213,54 +262,57 @@ def create_app():
             db.session.add(operador)
             db.session.commit()
         setup_cleaning_tasks()
-        try:
-            from sqlalchemy import text
-            res = db.session.execute(text('PRAGMA table_info(meat_part)'))
-            cols = []
-            for row in res:
-                cols.append(row[1])
-            if 'tara' not in cols:
-                db.session.execute(text('ALTER TABLE meat_part ADD COLUMN tara REAL DEFAULT 0'))
-                db.session.commit()
-        except Exception:
+        if is_sqlite:
             try:
-                db.session.rollback()
+                from sqlalchemy import text
+                res = db.session.execute(text('PRAGMA table_info(meat_part)'))
+                cols = []
+                for row in res:
+                    cols.append(row[1])
+                if 'tara' not in cols:
+                    db.session.execute(text('ALTER TABLE meat_part ADD COLUMN tara REAL DEFAULT 0'))
+                    db.session.commit()
             except Exception:
-                pass
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
 
-        try:
-            from sqlalchemy import text
-            res = db.session.execute(text('PRAGMA table_info(collaborator)'))
-            cols = [row[1] for row in res]
-            if 'regular_team' not in cols:
-                db.session.execute(text('ALTER TABLE collaborator ADD COLUMN regular_team TEXT'))
-                db.session.commit()
-            if 'sunday_team' not in cols:
-                db.session.execute(text('ALTER TABLE collaborator ADD COLUMN sunday_team TEXT'))
-                db.session.commit()
-            if 'special_team' not in cols:
-                db.session.execute(text('ALTER TABLE collaborator ADD COLUMN special_team TEXT'))
-                db.session.commit()
-        except Exception:
+        if is_sqlite:
             try:
-                db.session.rollback()
+                from sqlalchemy import text
+                res = db.session.execute(text('PRAGMA table_info(collaborator)'))
+                cols = [row[1] for row in res]
+                if 'regular_team' not in cols:
+                    db.session.execute(text('ALTER TABLE collaborator ADD COLUMN regular_team TEXT'))
+                    db.session.commit()
+                if 'sunday_team' not in cols:
+                    db.session.execute(text('ALTER TABLE collaborator ADD COLUMN sunday_team TEXT'))
+                    db.session.commit()
+                if 'special_team' not in cols:
+                    db.session.execute(text('ALTER TABLE collaborator ADD COLUMN special_team TEXT'))
+                    db.session.commit()
             except Exception:
-                pass
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
 
-        try:
-            from sqlalchemy import text
-            res = db.session.execute(text('PRAGMA table_info(shift)'))
-            cols = [row[1] for row in res]
-            if 'start_dt' not in cols:
-                db.session.execute(text('ALTER TABLE shift ADD COLUMN start_dt TEXT'))
-                db.session.commit()
-            if 'end_dt' not in cols:
-                db.session.execute(text('ALTER TABLE shift ADD COLUMN end_dt TEXT'))
-                db.session.commit()
-        except Exception:
+        if is_sqlite:
             try:
-                db.session.rollback()
+                from sqlalchemy import text
+                res = db.session.execute(text('PRAGMA table_info(shift)'))
+                cols = [row[1] for row in res]
+                if 'start_dt' not in cols:
+                    db.session.execute(text('ALTER TABLE shift ADD COLUMN start_dt TEXT'))
+                    db.session.commit()
+                if 'end_dt' not in cols:
+                    db.session.execute(text('ALTER TABLE shift ADD COLUMN end_dt TEXT'))
+                    db.session.commit()
             except Exception:
-                pass
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
 
     return app
