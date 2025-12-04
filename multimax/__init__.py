@@ -148,29 +148,35 @@ def create_app():
         try:
             from .models import Produto, CleaningTask, NotificationRead
             from datetime import date
-            from flask import url_for, request
+            from flask import url_for, request, current_app
             from flask_login import current_user
+            if not current_app.config.get('DB_OK', True):
+                return {'notif_items': [], 'notif_count': 0}
             if not current_user.is_authenticated:
                 return {'notif_items': [], 'notif_count': 0}
-            nf = request.args.get('nf', '').strip()  # filtro: '', 'estoque', 'limpeza'
+            nf = request.args.get('nf', '').strip()
             cat = request.args.get('cat', '').strip().upper()  # categoria estoque: CX/PC/VA/AV
             today = date.today()
-            low_stock = (
-                Produto.query
-                .filter(Produto.quantidade <= Produto.estoque_minimo)
-                .order_by(Produto.quantidade.asc(), Produto.nome.asc())
-                .limit(10)
-                .all()
-            )
-            overdue = (
-                CleaningTask.query
-                .filter(CleaningTask.proxima_data < today)
-                .order_by(CleaningTask.proxima_data.asc())
-                .limit(10)
-                .all()
-            )
-            reads = NotificationRead.query.filter_by(user_id=current_user.id).all()
-            read_set = {(r.tipo, r.ref_id) for r in reads}
+            low_stock = []
+            overdue = []
+            if nf != 'limpeza':
+                low_stock = (
+                    Produto.query
+                    .filter(Produto.quantidade <= Produto.estoque_minimo)
+                    .order_by(Produto.quantidade.asc(), Produto.nome.asc())
+                    .limit(10)
+                    .all()
+                )
+            if nf != 'estoque':
+                overdue = (
+                    CleaningTask.query
+                    .filter(CleaningTask.proxima_data < today)
+                    .order_by(CleaningTask.proxima_data.asc())
+                    .limit(10)
+                    .all()
+                )
+            reads = NotificationRead.query.with_entities(NotificationRead.tipo, NotificationRead.ref_id).filter_by(user_id=current_user.id).all()
+            read_set = {(r[0], r[1]) for r in reads}
             items = []
             for p in low_stock:
                 categoria = (p.codigo or '').split('-', 1)[0]
@@ -247,6 +253,8 @@ def create_app():
                 db.session.execute(text('select 1'))
             except Exception:
                 db_ok = False
+        app.config['DB_OK'] = db_ok
+        app.config['DB_IS_SQLITE'] = is_sqlite
         if not is_sqlite and db_ok:
             try:
                 from sqlalchemy import text
@@ -308,65 +316,66 @@ def create_app():
                     db.session.rollback()
                 except Exception:
                     pass
-        try:
-            from .models import Produto
-            rows = Produto.query.filter(Produto.nome == 'ciano').all()
-            for r in rows:
-                db.session.delete(r)
-            if rows:
+        if db_ok:
+            try:
+                from .models import Produto
+                rows = Produto.query.filter(Produto.nome == 'ciano').all()
+                for r in rows:
+                    db.session.delete(r)
+                if rows:
+                    db.session.commit()
+            except Exception:
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+            if User.query.filter_by(username='admin').first() is None:
+                admin = User()
+                admin.name = 'Administrador'
+                admin.username = 'admin'
+                admin.nivel = 'admin'
+                from werkzeug.security import generate_password_hash
+                admin.password_hash = generate_password_hash(os.getenv('SENHA_ADMIN', 'admin123'))
+                db.session.add(admin)
                 db.session.commit()
-        except Exception:
-            try:
-                db.session.rollback()
-            except Exception:
-                pass
-        if User.query.filter_by(username='admin').first() is None:
-            admin = User()
-            admin.name = 'Administrador'
-            admin.username = 'admin'
-            admin.nivel = 'admin'
-            from werkzeug.security import generate_password_hash
-            admin.password_hash = generate_password_hash(os.getenv('SENHA_ADMIN', 'admin123'))
-            db.session.add(admin)
-            db.session.commit()
-        else:
-            try:
-                from werkzeug.security import generate_password_hash
-                env_pwd = os.getenv('SENHA_ADMIN')
-                if env_pwd:
-                    admin = User.query.filter_by(username='admin').first()
-                    if admin:
-                        admin.password_hash = generate_password_hash(env_pwd)
-                        db.session.commit()
-            except Exception:
+            else:
                 try:
-                    db.session.rollback()
+                    from werkzeug.security import generate_password_hash
+                    env_pwd = os.getenv('SENHA_ADMIN')
+                    if env_pwd:
+                        admin = User.query.filter_by(username='admin').first()
+                        if admin:
+                            admin.password_hash = generate_password_hash(env_pwd)
+                            db.session.commit()
                 except Exception:
-                    pass
-        if User.query.filter_by(username='operador').first() is None:
-            operador = User()
-            operador.name = 'Operador Padrão'
-            operador.username = 'operador'
-            operador.nivel = 'operador'
-            from werkzeug.security import generate_password_hash
-            operador.password_hash = generate_password_hash(os.getenv('SENHA_OPERADOR', 'op123'))
-            db.session.add(operador)
-            db.session.commit()
-        else:
-            try:
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
+            if User.query.filter_by(username='operador').first() is None:
+                operador = User()
+                operador.name = 'Operador Padrão'
+                operador.username = 'operador'
+                operador.nivel = 'operador'
                 from werkzeug.security import generate_password_hash
-                env_pwd = os.getenv('SENHA_OPERADOR')
-                if env_pwd:
-                    operador = User.query.filter_by(username='operador').first()
-                    if operador:
-                        operador.password_hash = generate_password_hash(env_pwd)
-                        db.session.commit()
-            except Exception:
+                operador.password_hash = generate_password_hash(os.getenv('SENHA_OPERADOR', 'op123'))
+                db.session.add(operador)
+                db.session.commit()
+            else:
                 try:
-                    db.session.rollback()
+                    from werkzeug.security import generate_password_hash
+                    env_pwd = os.getenv('SENHA_OPERADOR')
+                    if env_pwd:
+                        operador = User.query.filter_by(username='operador').first()
+                        if operador:
+                            operador.password_hash = generate_password_hash(env_pwd)
+                            db.session.commit()
                 except Exception:
-                    pass
-        setup_cleaning_tasks()
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
+            setup_cleaning_tasks()
         if is_sqlite:
             try:
                 from sqlalchemy import text

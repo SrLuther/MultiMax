@@ -39,6 +39,12 @@ def index():
     except Exception:
         db_diag = {'ok': False, 'uri': '', 'host': None, 'err': ''}
     events = []
+    try:
+        from flask import current_app
+        if not db_diag.get('ok', True) or not current_app.config.get('DB_OK', True):
+            return render_template('home.html', active_page='home', events=[], mural_html='', mural_text='', db_diag=db_diag)
+    except Exception:
+        pass
     # Estoque (Histórico)
     try:
         hist = Historico.query.order_by(Historico.data.desc()).limit(100).all()
@@ -154,9 +160,17 @@ def index():
                 pass
     except Exception:
         pass
-    # Limpeza prevista
     try:
-        tasks = CleaningTask.query.all()
+        from datetime import date, timedelta
+        today = date.today()
+        horizon = today + timedelta(days=45)
+        tasks = (
+            CleaningTask.query
+            .filter(CleaningTask.proxima_data != None, CleaningTask.proxima_data <= horizon)
+            .order_by(CleaningTask.proxima_data.asc())
+            .limit(60)
+            .all()
+        )
         for t in tasks:
             if t.proxima_data:
                 events.append({
