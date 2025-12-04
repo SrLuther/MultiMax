@@ -7,7 +7,7 @@
     {% if current_user.nivel in ('operador','admin') %}
     <a class="btn btn-outline-success" href="{{ url_for('estoque.lista_produtos') }}">Gerenciar Produtos</a>
     {% endif %}
-    <a class="btn btn-outline-danger" href="{{ url_for('exportacao.exportar') }}">Exportar Estoque (PDF)</a>
+    <a class="btn btn-outline-danger" href="{{ url_for('exportacao.exportar') }}" data-pdf-export>Exportar Estoque (PDF)</a>
     <span class="ms-auto text-muted">{{ current_user.username }}</span>
   </div>
   <div class="mt-2 small text-muted">
