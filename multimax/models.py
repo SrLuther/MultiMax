@@ -71,6 +71,7 @@ class MeatReception(db.Model):
     observacao = db.Column(db.String(255))
     peso_nota = db.Column(db.Float)
     peso_frango = db.Column(db.Float)
+    recebedor_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
 class MeatCarrier(db.Model):
     __tablename__ = 'meat_carrier'

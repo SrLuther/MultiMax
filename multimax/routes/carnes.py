@@ -13,10 +13,8 @@ def _check_schema_once():
     if _schema_checked:
         return
     try:
-        uri = str(db.engine.url)
-        if uri.startswith('sqlite:'):
-            _ensure_tara_column()
-            _ensure_reception_columns()
+        _ensure_tara_column()
+        _ensure_reception_columns()
     except Exception:
         try:
             db.session.rollback()
@@ -56,6 +54,9 @@ def _ensure_reception_columns():
             changed = True
         if 'peso_frango' not in cols:
             db.session.execute(text('ALTER TABLE meat_reception ADD COLUMN peso_frango REAL'))
+            changed = True
+        if 'recebedor_id' not in cols:
+            db.session.execute(text('ALTER TABLE meat_reception ADD COLUMN recebedor_id INTEGER'))
             changed = True
         if changed:
             db.session.commit()
@@ -115,6 +116,10 @@ def nova():
         r.fornecedor = fornecedor
         r.tipo = tipo
         r.observacao = observacao
+        try:
+            r.recebedor_id = int(current_user.id)
+        except Exception:
+            r.recebedor_id = None
         if tipo == 'bovina':
             r.peso_nota = _num(request.form.get('peso_nota'))
         if tipo == 'frango':

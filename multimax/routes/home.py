@@ -74,7 +74,9 @@ def index():
                 ref_monday = None
         if not ref_monday:
             if not ref_monday_setting:
-                ref_monday_setting = AppSetting(); ref_monday_setting.key = 'rodizio_ref_monday'; db.session.add(ref_monday_setting)
+                ref_monday_setting = AppSetting()
+                ref_monday_setting.key = 'rodizio_ref_monday'
+                db.session.add(ref_monday_setting)
             ref_monday_setting.value = current_monday.strftime('%Y-%m-%d')
             db.session.commit()
             ref_monday = current_monday
@@ -87,10 +89,14 @@ def index():
                 open_ref = '2' if open_ref == '1' else '1'
             ref_monday = current_monday
             if not ref_monday_setting:
-                ref_monday_setting = AppSetting(); ref_monday_setting.key = 'rodizio_ref_monday'; db.session.add(ref_monday_setting)
+                ref_monday_setting = AppSetting()
+                ref_monday_setting.key = 'rodizio_ref_monday'
+                db.session.add(ref_monday_setting)
             ref_monday_setting.value = current_monday.strftime('%Y-%m-%d')
             if not ref_open_setting:
-                ref_open_setting = AppSetting(); ref_open_setting.key = 'rodizio_open_team_ref'; db.session.add(ref_open_setting)
+                ref_open_setting = AppSetting()
+                ref_open_setting.key = 'rodizio_open_team_ref'
+                db.session.add(ref_open_setting)
             ref_open_setting.value = open_ref
             db.session.commit()
         for i in range(5):
@@ -129,7 +135,9 @@ def index():
                     if base_team not in ('1','2'):
                         base_team = '1'
                     if not sun_team_setting:
-                        sun_team_setting = AppSetting(); sun_team_setting.key = 'domingo_team_ref'; db.session.add(sun_team_setting)
+                        sun_team_setting = AppSetting()
+                        sun_team_setting.key = 'domingo_team_ref'
+                        db.session.add(sun_team_setting)
                     sun_team_setting.value = base_team
                 # definir domingo de referência se não existir
                 ref_sunday = None
@@ -141,7 +149,9 @@ def index():
                 if not ref_sunday:
                     last_sunday = (current_monday - timedelta(days=1))
                     if not sun_ref_setting:
-                        sun_ref_setting = AppSetting(); sun_ref_setting.key = 'domingo_ref_sunday'; db.session.add(sun_ref_setting)
+                        sun_ref_setting = AppSetting()
+                        sun_ref_setting.key = 'domingo_ref_sunday'
+                        db.session.add(sun_ref_setting)
                     sun_ref_setting.value = last_sunday.strftime('%Y-%m-%d')
                     db.session.commit()
                     ref_sunday = last_sunday
@@ -166,7 +176,7 @@ def index():
         horizon = today + timedelta(days=45)
         tasks = (
             CleaningTask.query
-            .filter(CleaningTask.proxima_data != None, CleaningTask.proxima_data <= horizon)
+            .filter(CleaningTask.proxima_data.isnot(None), CleaningTask.proxima_data <= horizon)
             .order_by(CleaningTask.proxima_data.asc())
             .limit(60)
             .all()
