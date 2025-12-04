@@ -53,10 +53,13 @@ def create_app():
             s = pre + '@' + hostport + ('/' + rest if rest else '')
         if s and ('sslmode=' not in s):
             s = s + ('&sslmode=require' if '?' in s else '?sslmode=require')
+        if s and ('connect_timeout=' not in s):
+            s = s + ('&connect_timeout=3' if '?' in s else '?connect_timeout=3')
         uri_env = s or uri_env
     except Exception:
         pass
-    app.config['SQLALCHEMY_DATABASE_URI'] = uri_env if uri_env else ('sqlite:///' + db_path)
+    selected_uri = uri_env if uri_env else ('sqlite:///' + db_path)
+    app.config['SQLALCHEMY_DATABASE_URI'] = selected_uri
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'uma_chave_secreta_muito_forte_e_aleatoria')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -72,7 +75,14 @@ def create_app():
 
     @login_manager.user_loader
     def load_user(user_id):
-        return User.query.get(int(user_id))
+        try:
+            return User.query.get(int(user_id))
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+            return None
 
     from .routes.auth import bp as auth_bp
     from .routes.home import bp as home_bp
@@ -103,6 +113,35 @@ def create_app():
     @app.route('/health', strict_slashes=False)
     def _health():
         return 'ok', 200
+
+    @app.route('/dbstatus', strict_slashes=False)
+    def _dbstatus():
+        try:
+            from sqlalchemy import text
+            uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+            ok = False
+            err = ''
+            try:
+                db.session.execute(text('select 1'))
+                ok = True
+            except Exception as e:
+                err = str(e)
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+            host = None
+            try:
+                if '://' in uri:
+                    after = uri.split('://', 1)[1]
+                    hostpart = after.split('@', 1)[1] if '@' in after else after
+                    host = hostpart.split('/', 1)[0]
+            except Exception:
+                host = None
+            txt = f"uri={uri}\nok={ok}\nhost={host}\nerr={err}"
+            return txt, (200 if ok else 503)
+        except Exception as e:
+            return f"erro={e}", 500
 
     @app.context_processor
     def inject_notifications():
@@ -213,8 +252,16 @@ def create_app():
     with app.app_context():
         uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
         is_sqlite = isinstance(uri, str) and uri.startswith('sqlite:')
-        db.create_all()
+        if is_sqlite:
+            db.create_all()
+        db_ok = True
         if not is_sqlite:
+            try:
+                from sqlalchemy import text
+                db.session.execute(text('select 1'))
+            except Exception:
+                db_ok = False
+        if not is_sqlite and db_ok:
             try:
                 from sqlalchemy import text
                 db.session.execute(text('ALTER TABLE "user" ALTER COLUMN password_hash TYPE TEXT'))
@@ -224,7 +271,7 @@ def create_app():
                     db.session.rollback()
                 except Exception:
                     pass
-        if not is_sqlite:
+        if not is_sqlite and db_ok:
             try:
                 from sqlalchemy import text
                 role = None
@@ -275,6 +322,18 @@ def create_app():
                     db.session.rollback()
                 except Exception:
                     pass
+        try:
+            from .models import Produto
+            rows = Produto.query.filter(Produto.nome == 'ciano').all()
+            for r in rows:
+                db.session.delete(r)
+            if rows:
+                db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
         if User.query.filter_by(username='admin').first() is None:
             admin = User()
             admin.name = 'Administrador'
@@ -284,6 +343,20 @@ def create_app():
             admin.password_hash = generate_password_hash(os.getenv('SENHA_ADMIN', 'admin123'))
             db.session.add(admin)
             db.session.commit()
+        else:
+            try:
+                from werkzeug.security import generate_password_hash
+                env_pwd = os.getenv('SENHA_ADMIN')
+                if env_pwd:
+                    admin = User.query.filter_by(username='admin').first()
+                    if admin:
+                        admin.password_hash = generate_password_hash(env_pwd)
+                        db.session.commit()
+            except Exception:
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
         if User.query.filter_by(username='operador').first() is None:
             operador = User()
             operador.name = 'Operador Padrão'
@@ -293,6 +366,20 @@ def create_app():
             operador.password_hash = generate_password_hash(os.getenv('SENHA_OPERADOR', 'op123'))
             db.session.add(operador)
             db.session.commit()
+        else:
+            try:
+                from werkzeug.security import generate_password_hash
+                env_pwd = os.getenv('SENHA_OPERADOR')
+                if env_pwd:
+                    operador = User.query.filter_by(username='operador').first()
+                    if operador:
+                        operador.password_hash = generate_password_hash(env_pwd)
+                        db.session.commit()
+            except Exception:
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
         setup_cleaning_tasks()
         if is_sqlite:
             try:

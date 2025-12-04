@@ -27,7 +27,7 @@
 </div>
 
 <div class="card mb-3">
-  <div class="card-header">Funcionários do fornecedor</div>
+  <div class="card-header">Entregador</div>
   <div class="card-body p-0">
     <div class="table-responsive">
       <table class="table table-sm mb-0">
@@ -55,7 +55,7 @@
 
 {% for num, parts in animais.items() %}
 <div class="card mb-3">
-  <div class="card-header">Animal #{{ num }}</div>
+  <div class="card-header">Romaneio #{{ num }}</div>
   <div class="card-body p-0">
     <div class="table-responsive">
       <table class="table table-sm mb-0">
@@ -63,7 +63,7 @@
           <tr>
             <th>Parte</th>
             <th>Peso bruto (kg)</th>
-            <th>Funcionário</th>
+            <th>Entregador</th>
             <th>Tara caixa (kg)</th>
             <th>Peso líquido (kg)</th>
           </tr>
@@ -102,14 +102,33 @@
   <div class="card-body">
     <div class="row g-3">
       <div class="col-md-3"><strong>Partes:</strong> {{ totals.qtd_partes }}</div>
-      <div class="col-md-3"><strong>Animais:</strong> {{ totals.qtd_animais }}</div>
+      <div class="col-md-3"><strong>Romaneios:</strong> {{ totals.qtd_animais }}</div>
       <div class="col-md-3"><strong>Bruto total:</strong> {{ '%.2f'|format(totals.bruto) }} kg</div>
-      <div class="col-md-3"><strong>Desconto (peso funcionários):</strong> {{ '%.2f'|format(totals.funcionarios_peso_total) }} kg</div>
+      <div class="col-md-3"><strong>Desconto aplicado (funcionários):</strong> {{ '%.2f'|format(totals.funcionarios_peso_total) }} kg</div>
       <div class="col-md-3"><strong>Líquido total:</strong> <span class="text-success">{{ '%.2f'|format(totals.liquido) }} kg</span></div>
+      {% if r.tipo == 'bovina' %}
+      <div class="col-md-3"><strong>Peso na Nota:</strong> {{ '%.2f'|format(totals.peso_nota or 0.0) }} kg</div>
+      <div class="col-md-3"><strong>Perda no transporte:</strong> {{ '%.2f'|format(totals.perda_transporte or 0.0) }} kg</div>
+      {% endif %}
     </div>
   </div>
 </div>
 
+{% if r.tipo == 'frango' %}
+<div class="card">
+  <div class="card-header">Frango Recebido</div>
+  <div class="card-body">
+    <div><strong>Peso do frango:</strong> {{ '%.2f'|format(totals.frango_peso or 0.0) }} kg</div>
+  </div>
+</div>
+{% endif %}
+
+<style>
+  .relatorio-wrap, .relatorio-wrap *, table, thead, tbody, tr, th, td, .card, .card-header, .card-body {
+    color: #000000 !important;
+  }
+  .text-muted, .text-secondary { color: #000000 !important; }
+</style>
 <style>
 @media print {
   .navbar, .offcanvas, .footer-fixed, .theme-fab, .btn, a.btn { display: none !important; }

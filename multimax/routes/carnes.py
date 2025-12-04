@@ -6,6 +6,25 @@ from sqlalchemy import inspect, text
 
 bp = Blueprint('carnes', __name__, url_prefix='/carnes')
 
+_schema_checked = False
+
+def _check_schema_once():
+    global _schema_checked
+    if _schema_checked:
+        return
+    try:
+        uri = str(db.engine.url)
+        if uri.startswith('sqlite:'):
+            _ensure_tara_column()
+            _ensure_reception_columns()
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+    finally:
+        _schema_checked = True
+
 def _num(val):
     try:
         s = (val or '').strip()
@@ -27,44 +46,89 @@ def _ensure_tara_column():
         except Exception:
             pass
 
+def _ensure_reception_columns():
+    try:
+        insp = inspect(db.engine)
+        cols = [c['name'] for c in insp.get_columns('meat_reception')]
+        changed = False
+        if 'peso_nota' not in cols:
+            db.session.execute(text('ALTER TABLE meat_reception ADD COLUMN peso_nota REAL'))
+            changed = True
+        if 'peso_frango' not in cols:
+            db.session.execute(text('ALTER TABLE meat_reception ADD COLUMN peso_frango REAL'))
+            changed = True
+        if changed:
+            db.session.commit()
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+
 @bp.route('/', strict_slashes=False)
 @login_required
 def index():
     if current_user.nivel not in ['operador', 'admin']:
         return redirect(url_for('estoque.index'))
-    recs = MeatReception.query.order_by(MeatReception.data.desc()).limit(20).all()
-    items = []
-    for r in recs:
-        carriers = {c.id: c for c in MeatCarrier.query.filter_by(reception_id=r.id).all()}
-        parts = MeatPart.query.filter_by(reception_id=r.id).all()
-        total = 0.0
-        for p in parts:
-            c = carriers.get(p.carrier_id)
-            cw = c.peso if c else 0.0
-            sub = cw if cw > 0 else (p.tara or 0.0)
-            total += max(0.0, (p.peso_bruto or 0.0) - sub)
-        items.append({'r': r, 'total': total, 'count': len(parts)})
-    return render_template('carnes.html', items=items, active_page='carnes')
+    _check_schema_once()
+    try:
+        recs = MeatReception.query.order_by(MeatReception.data.desc()).limit(20).all()
+        items = []
+        for r in recs:
+            carriers = {c.id: c for c in MeatCarrier.query.filter_by(reception_id=r.id).all()}
+            parts = MeatPart.query.filter_by(reception_id=r.id).all()
+            tipo = (r.tipo or '').lower()
+            if tipo == 'frango':
+                total = float(r.peso_frango or 0.0)
+                items.append({'r': r, 'total': total, 'count': 0})
+            else:
+                total = 0.0
+                for p in parts:
+                    c = carriers.get(p.carrier_id)
+                    cw = c.peso if c else 0.0
+                    sub = cw if cw > 0 else (p.tara or 0.0)
+                    total += max(0.0, (p.peso_bruto or 0.0) - sub)
+                items.append({'r': r, 'total': total, 'count': len(parts)})
+        return render_template('carnes.html', items=items, active_page='carnes')
+    except Exception as e:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        flash(f'Erro ao carregar Carnes: {e}', 'danger')
+        return render_template('carnes.html', items=[], active_page='carnes')
 
 @bp.route('/nova', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
 def nova():
     if current_user.nivel not in ['operador', 'admin']:
         return redirect(url_for('estoque.index'))
-    _ensure_tara_column()
+    _check_schema_once()
     if request.method == 'POST':
         fornecedor = request.form.get('fornecedor', '').strip()
         tipo = request.form.get('tipo', 'bovina').strip().lower()
         observacao = request.form.get('observacao', '').strip()
-        if not fornecedor or tipo not in ('bovina', 'suina'):
+        if not fornecedor or tipo not in ('bovina', 'suina', 'frango'):
             flash('Fornecedor e tipo são obrigatórios.', 'danger')
             return redirect(url_for('carnes.nova'))
         r = MeatReception()
         r.fornecedor = fornecedor
         r.tipo = tipo
         r.observacao = observacao
+        if tipo == 'bovina':
+            r.peso_nota = _num(request.form.get('peso_nota'))
+        if tipo == 'frango':
+            r.peso_frango = _num(request.form.get('peso_frango'))
         db.session.add(r)
         db.session.flush()
+        if tipo == 'frango':
+            try:
+                db.session.commit()
+                flash(f'Recepção registrada. Peso frango: {(r.peso_frango or 0.0):.2f} kg.', 'success')
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Erro ao registrar recepção: {e}', 'danger')
+            return redirect(url_for('carnes.index'))
         nomes = request.form.getlist('carrier_nome')
         pesos = request.form.getlist('carrier_peso')
         carrier_ids = []
@@ -131,6 +195,7 @@ def nova():
 def relatorio(id: int):
     if current_user.nivel not in ['operador', 'admin']:
         return redirect(url_for('estoque.index'))
+    _check_schema_once()
     r = MeatReception.query.get_or_404(id)
     carriers = MeatCarrier.query.filter_by(reception_id=r.id).all()
     carriers_map = {c.id: c for c in carriers}
@@ -163,6 +228,7 @@ def relatorio(id: int):
     filtered_animais = {an: ps for an, ps in animais.items() if (sum((p.get('peso_bruto') or 0.0) for p in ps) > 0.0) or (sum((p.get('peso_liquido') or 0.0) for p in ps) > 0.0)}
     included_bruto = sum((p.get('peso_bruto') or 0.0) for ps in filtered_animais.values() for p in ps)
     included_liquido = sum((p.get('peso_liquido') or 0.0) for ps in filtered_animais.values() for p in ps)
+    funcionarios_aplicado_total = sum((p.get('carrier_peso') or 0.0) for ps in filtered_animais.values() for p in ps)
     included_partes = sum(len(ps) for ps in filtered_animais.values())
     totals = {
         'bruto': included_bruto,
@@ -170,8 +236,15 @@ def relatorio(id: int):
         'desconto': max(0.0, included_bruto - included_liquido),
         'qtd_partes': included_partes,
         'qtd_animais': len(filtered_animais),
-        'funcionarios_peso_total': sum((c.peso or 0.0) for c in carriers),
+        'funcionarios_peso_total': funcionarios_aplicado_total,
     }
+    tipo = (r.tipo or '').lower()
+    if tipo == 'bovina':
+        peso_nota = float(r.peso_nota or 0.0)
+        totals['peso_nota'] = peso_nota
+        totals['perda_transporte'] = max(0.0, (peso_nota - funcionarios_aplicado_total) - totals['liquido'])
+    if tipo == 'frango':
+        totals['frango_peso'] = float(r.peso_frango or 0.0)
     return render_template('carnes_relatorio.html', r=r, carriers=carriers, animais=filtered_animais, totals=totals, active_page='carnes')
 
 @bp.route('/excluir/<int:id>', methods=['POST'], strict_slashes=False)

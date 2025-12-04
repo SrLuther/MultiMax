@@ -221,6 +221,47 @@ def graficos():
         data_fim=data_fim_str,
     )
 
+@bp.route('/users/<int:user_id>/senha', methods=['POST'])
+@login_required
+def update_password(user_id):
+    if current_user.nivel != 'admin':
+        flash('Você não tem permissão para atualizar senhas.', 'danger')
+        return redirect(url_for('estoque.index'))
+    user = User.query.get_or_404(user_id)
+    new_password = request.form.get('new_password', '').strip()
+    if not new_password:
+        flash('Informe a nova senha.', 'warning')
+        return redirect(url_for('usuarios.users'))
+    try:
+        user.password_hash = generate_password_hash(new_password)
+        log = SystemLog(); log.origem = 'Usuarios'; log.evento = 'senha'; log.detalhes = f'Senha atualizada para {user.username}'; log.usuario = current_user.name
+        db.session.add(log)
+        db.session.commit()
+        flash(f'Senha de "{user.name}" atualizada.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao atualizar senha: {e}', 'danger')
+    return redirect(url_for('usuarios.users'))
+
+@bp.route('/users/<int:user_id>/reset_senha', methods=['POST'])
+@login_required
+def reset_password(user_id):
+    if current_user.nivel != 'admin':
+        flash('Você não tem permissão para redefinir senhas.', 'danger')
+        return redirect(url_for('estoque.index'))
+    user = User.query.get_or_404(user_id)
+    default_password = '123456'
+    try:
+        user.password_hash = generate_password_hash(default_password)
+        log = SystemLog(); log.origem = 'Usuarios'; log.evento = 'senha'; log.detalhes = f'Senha redefinida para {user.username}'; log.usuario = current_user.name
+        db.session.add(log)
+        db.session.commit()
+        flash(f'Senha de "{user.name}" redefinida.', 'info')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao redefinir senha: {e}', 'danger')
+    return redirect(url_for('usuarios.users'))
+
 @bp.route('/users/<int:user_id>/nivel', methods=['POST'])
 @login_required
 def update_level(user_id):
