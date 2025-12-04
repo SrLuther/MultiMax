@@ -105,6 +105,8 @@
         form[data-bs-theme="light"] .small { color: #000000 !important; }
         form[data-bs-theme="light"] .form-control::placeholder { color: #000000 !important; opacity: 0.7; }
         form[data-bs-theme="light"] .form-select option { color: #000000 !important; }
+        .loading-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.25); z-index: 5000; }
+        .loading-overlay.show { display: flex; }
     </style>
     
 </head>
@@ -316,6 +318,13 @@
     </div>
 </div>
 
+<div id="globalLoading" class="loading-overlay">
+    <div class="text-center">
+        <div class="spinner-border text-light" style="width:3rem;height:3rem;" role="status"><span class="visually-hidden">Carregando...</span></div>
+        <div class="mt-2 text-white fw-semibold">Carregando...</div>
+    </div>
+</div>
+
 <!-- Rodapé Persistente com Data/Hora Instantânea -->
 <footer class="bg-dark text-white text-center p-2 mt-auto footer-fixed">
     <div class="container-fluid d-flex justify-content-between align-items-center">
@@ -362,6 +371,30 @@
             navigator.serviceWorker.register("{{ url_for('static', filename='service-worker.js') }}");
         });
     }
+</script>
+<script>
+    (function(){
+        var overlay = document.getElementById('globalLoading');
+        function show(){ if(overlay) overlay.classList.add('show'); }
+        document.addEventListener('click', function(e){
+            var a = e.target && e.target.closest && e.target.closest('a[href]');
+            if(!a) return;
+            var href = a.getAttribute('href') || '';
+            if(!href || href.indexOf('#') === 0) return;
+            if(a.hasAttribute('data-no-loading')) return;
+            var target = a.getAttribute('target');
+            if(target && target !== '_self') return;
+            show();
+        });
+        document.addEventListener('submit', function(e){
+            show();
+            try {
+                var btns = e.target.querySelectorAll('button[type="submit"], input[type="submit"]');
+                for (var i=0;i<btns.length;i++){ btns[i].disabled = true; }
+            } catch(_){ }
+        });
+        window.addEventListener('beforeunload', function(){ show(); });
+    })();
 </script>
 </body>
 </html>
