@@ -5,6 +5,7 @@ from ..models import Collaborator, Shift, AppSetting
 from ..models import HourBankEntry
 from ..models import LeaveCredit
 from datetime import datetime, date, time
+from zoneinfo import ZoneInfo
 
 bp = Blueprint('colaboradores', __name__)
 
@@ -112,7 +113,11 @@ def horas_adicionar():
         flash('Dados inválidos para banco de horas.', 'warning')
         return redirect(url_for('colaboradores.index'))
     try:
-        e = HourBankEntry(); e.collaborator_id = cid; e.date = d; e.hours = h; e.reason = reason
+        e = HourBankEntry()
+        e.collaborator_id = cid
+        e.date = d
+        e.hours = h
+        e.reason = reason
         db.session.add(e)
         db.session.commit()
         flash('Horas registradas.', 'success')
@@ -161,7 +166,9 @@ def escala():
                 ref_monday = None
         if not ref_monday:
             if not ref_monday_setting:
-                ref_monday_setting = AppSetting(); ref_monday_setting.key = 'rodizio_ref_monday'; db.session.add(ref_monday_setting)
+                ref_monday_setting = AppSetting()
+                ref_monday_setting.key = 'rodizio_ref_monday'
+                db.session.add(ref_monday_setting)
             ref_monday_setting.value = current_monday.strftime('%Y-%m-%d')
             db.session.commit()
             ref_monday = current_monday
@@ -175,10 +182,14 @@ def escala():
                 open_ref = '2' if open_ref == '1' else '1'
             ref_monday = current_monday
             if not ref_monday_setting:
-                ref_monday_setting = AppSetting(); ref_monday_setting.key = 'rodizio_ref_monday'; db.session.add(ref_monday_setting)
+                ref_monday_setting = AppSetting()
+                ref_monday_setting.key = 'rodizio_ref_monday'
+                db.session.add(ref_monday_setting)
             ref_monday_setting.value = current_monday.strftime('%Y-%m-%d')
             if not ref_open_setting:
-                ref_open_setting = AppSetting(); ref_open_setting.key = 'rodizio_open_team_ref'; db.session.add(ref_open_setting)
+                ref_open_setting = AppSetting()
+                ref_open_setting.key = 'rodizio_open_team_ref'
+                db.session.add(ref_open_setting)
             ref_open_setting.value = open_ref
             db.session.commit()
         weeks = []
@@ -339,27 +350,87 @@ def gerar_semana():
                 domingo_team_val = domingo_team_val if domingo_team_val in ('1','2') else '1'
                 domingo_team = sun1 if domingo_team_val == '1' else sun2
                 for c in domingo_team:
-                    s = Shift(); s.collaborator_id = c.id; s.date = cur; s.turno = 'Domingo'; s.start_dt = datetime.combine(cur, time(5,0)); s.end_dt = datetime.combine(cur, time(13,0)); db.session.add(s)
+                    s = Shift()
+                    s.collaborator_id = c.id
+                    s.date = cur
+                    s.turno = 'Domingo'
+                    s.start_dt = datetime.combine(cur, time(5, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                    s.end_dt = datetime.combine(cur, time(13, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                    db.session.add(s)
                     exists = LeaveCredit.query.filter_by(collaborator_id=c.id, date=cur, origin='domingo').first()
                     if not exists:
-                        lc = LeaveCredit(); lc.collaborator_id = c.id; lc.date = cur; lc.amount_days = 1; lc.origin = 'domingo'; lc.notes = 'Domingo trabalhado'; db.session.add(lc)
+                        lc = LeaveCredit()
+                        lc.collaborator_id = c.id
+                        lc.date = cur
+                        lc.amount_days = 1
+                        lc.origin = 'domingo'
+                        lc.notes = 'Domingo trabalhado'
+                        db.session.add(lc)
             if cur.weekday() in (0,1,2,3,4,5):
                 if tipo in ('regular', 'todos'):
                     open_team = reg1 if abertura_sel == '1' else reg2
                     close_team = reg1 if fechamento_sel == '1' else reg2
                     for c in open_team:
-                        s1 = Shift(); s1.collaborator_id = c.id; s1.date = cur; s1.turno = 'Abertura (Manhã)'; s1.start_dt = datetime.combine(cur, time(5,0)); s1.end_dt = datetime.combine(cur, time(11,0)); db.session.add(s1)
-                        s2 = Shift(); s2.collaborator_id = c.id; s2.date = cur; s2.turno = 'Abertura (Tarde)'; s2.start_dt = datetime.combine(cur, time(13,0)); s2.end_dt = datetime.combine(cur, time(15,0)); db.session.add(s2)
+                        s1 = Shift()
+                        s1.collaborator_id = c.id
+                        s1.date = cur
+                        s1.turno = 'Abertura (Manhã)'
+                        s1.start_dt = datetime.combine(cur, time(5, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        s1.end_dt = datetime.combine(cur, time(11, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        db.session.add(s1)
+                        s2 = Shift()
+                        s2.collaborator_id = c.id
+                        s2.date = cur
+                        s2.turno = 'Abertura (Tarde)'
+                        s2.start_dt = datetime.combine(cur, time(13, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        s2.end_dt = datetime.combine(cur, time(15, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        db.session.add(s2)
                     for c in close_team:
-                        s1 = Shift(); s1.collaborator_id = c.id; s1.date = cur; s1.turno = 'Fechamento (Manhã)'; s1.start_dt = datetime.combine(cur, time(9,30)); s1.end_dt = datetime.combine(cur, time(13,0)); db.session.add(s1)
-                        s2 = Shift(); s2.collaborator_id = c.id; s2.date = cur; s2.turno = 'Fechamento (Tarde)'; s2.start_dt = datetime.combine(cur, time(15,0)); s2.end_dt = datetime.combine(cur, time(19,30)); db.session.add(s2)
+                        s1 = Shift()
+                        s1.collaborator_id = c.id
+                        s1.date = cur
+                        s1.turno = 'Fechamento (Manhã)'
+                        s1.start_dt = datetime.combine(cur, time(9, 30)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        s1.end_dt = datetime.combine(cur, time(13, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        db.session.add(s1)
+                        s2 = Shift()
+                        s2.collaborator_id = c.id
+                        s2.date = cur
+                        s2.turno = 'Fechamento (Tarde)'
+                        s2.start_dt = datetime.combine(cur, time(15, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        s2.end_dt = datetime.combine(cur, time(19, 30)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        db.session.add(s2)
                 if tipo in ('especial', 'todos'):
                     for c in sp1:
-                        s1 = Shift(); s1.collaborator_id = c.id; s1.date = cur; s1.turno = 'Abertura (Especial-Manhã)'; s1.start_dt = datetime.combine(cur, time(5,0)); s1.end_dt = datetime.combine(cur, time(11,0)); db.session.add(s1)
-                        s2 = Shift(); s2.collaborator_id = c.id; s2.date = cur; s2.turno = 'Abertura (Especial-Tarde)'; s2.start_dt = datetime.combine(cur, time(13,0)); s2.end_dt = datetime.combine(cur, time(15,0)); db.session.add(s2)
+                        s1 = Shift()
+                        s1.collaborator_id = c.id
+                        s1.date = cur
+                        s1.turno = 'Abertura (Especial-Manhã)'
+                        s1.start_dt = datetime.combine(cur, time(5, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        s1.end_dt = datetime.combine(cur, time(11, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        db.session.add(s1)
+                        s2 = Shift()
+                        s2.collaborator_id = c.id
+                        s2.date = cur
+                        s2.turno = 'Abertura (Especial-Tarde)'
+                        s2.start_dt = datetime.combine(cur, time(13, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        s2.end_dt = datetime.combine(cur, time(15, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        db.session.add(s2)
                     for c in sp2:
-                        s1 = Shift(); s1.collaborator_id = c.id; s1.date = cur; s1.turno = 'Fechamento (Especial-Manhã)'; s1.start_dt = datetime.combine(cur, time(9,30)); s1.end_dt = datetime.combine(cur, time(13,0)); db.session.add(s1)
-                        s2 = Shift(); s2.collaborator_id = c.id; s2.date = cur; s2.turno = 'Fechamento (Especial-Tarde)'; s2.start_dt = datetime.combine(cur, time(15,0)); s2.end_dt = datetime.combine(cur, time(19,30)); db.session.add(s2)
+                        s1 = Shift()
+                        s1.collaborator_id = c.id
+                        s1.date = cur
+                        s1.turno = 'Fechamento (Especial-Manhã)'
+                        s1.start_dt = datetime.combine(cur, time(9, 30)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        s1.end_dt = datetime.combine(cur, time(13, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        db.session.add(s1)
+                        s2 = Shift()
+                        s2.collaborator_id = c.id
+                        s2.date = cur
+                        s2.turno = 'Fechamento (Especial-Tarde)'
+                        s2.start_dt = datetime.combine(cur, time(15, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        s2.end_dt = datetime.combine(cur, time(19, 30)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        db.session.add(s2)
             cur += timedelta(days=1)
         db.session.commit()
         flash('Escalas geradas para o período.', 'success')
@@ -386,9 +457,13 @@ def rodizio_atualizar():
         rms = AppSetting.query.filter_by(key='rodizio_ref_monday').first()
         ros = AppSetting.query.filter_by(key='rodizio_open_team_ref').first()
         if not rms:
-            rms = AppSetting(); rms.key = 'rodizio_ref_monday'; db.session.add(rms)
+            rms = AppSetting()
+            rms.key = 'rodizio_ref_monday'
+            db.session.add(rms)
         if not ros:
-            ros = AppSetting(); ros.key = 'rodizio_open_team_ref'; db.session.add(ros)
+            ros = AppSetting()
+            ros.key = 'rodizio_open_team_ref'
+            db.session.add(ros)
         rms.value = current_monday.strftime('%Y-%m-%d')
         ros.value = open_sel
         db.session.commit()
@@ -430,11 +505,35 @@ def rodizio_gerar():
             d = ws
             while d <= we:
                 for c in open_team:
-                    s1 = Shift(); s1.collaborator_id = c.id; s1.date = d; s1.turno = 'Abertura (Manhã)'; s1.start_dt = datetime.combine(d, time(5,0)); s1.end_dt = datetime.combine(d, time(11,0)); db.session.add(s1)
-                    s2 = Shift(); s2.collaborator_id = c.id; s2.date = d; s2.turno = 'Abertura (Tarde)'; s2.start_dt = datetime.combine(d, time(13,0)); s2.end_dt = datetime.combine(d, time(15,0)); db.session.add(s2)
+                    s1 = Shift()
+                    s1.collaborator_id = c.id
+                    s1.date = d
+                    s1.turno = 'Abertura (Manhã)'
+                    s1.start_dt = datetime.combine(d, time(5, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                    s1.end_dt = datetime.combine(d, time(11, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                    db.session.add(s1)
+                    s2 = Shift()
+                    s2.collaborator_id = c.id
+                    s2.date = d
+                    s2.turno = 'Abertura (Tarde)'
+                    s2.start_dt = datetime.combine(d, time(13, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                    s2.end_dt = datetime.combine(d, time(15, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                    db.session.add(s2)
                 for c in close_team:
-                    c1 = Shift(); c1.collaborator_id = c.id; c1.date = d; c1.turno = 'Fechamento (Manhã)'; c1.start_dt = datetime.combine(d, time(9,30)); c1.end_dt = datetime.combine(d, time(13,0)); db.session.add(c1)
-                    c2 = Shift(); c2.collaborator_id = c.id; c2.date = d; c2.turno = 'Fechamento (Tarde)'; c2.start_dt = datetime.combine(d, time(15,0)); c2.end_dt = datetime.combine(d, time(19,30)); db.session.add(c2)
+                    c1 = Shift()
+                    c1.collaborator_id = c.id
+                    c1.date = d
+                    c1.turno = 'Fechamento (Manhã)'
+                    c1.start_dt = datetime.combine(d, time(9, 30)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                    c1.end_dt = datetime.combine(d, time(13, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                    db.session.add(c1)
+                    c2 = Shift()
+                    c2.collaborator_id = c.id
+                    c2.date = d
+                    c2.turno = 'Fechamento (Tarde)'
+                    c2.start_dt = datetime.combine(d, time(15, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                    c2.end_dt = datetime.combine(d, time(19, 30)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                    db.session.add(c2)
                 d += timedelta(days=1)
         db.session.commit()
         flash('Rodízio gerado para as próximas 5 semanas.', 'success')
@@ -457,17 +556,23 @@ def domingo_configurar():
     try:
         sm = AppSetting.query.filter_by(key='domingo_manha_team').first()
         if not sm:
-            sm = AppSetting(); sm.key = 'domingo_manha_team'; db.session.add(sm)
+            sm = AppSetting()
+            sm.key = 'domingo_manha_team'
+            db.session.add(sm)
         sm.value = team
         stm = AppSetting.query.filter_by(key='domingo_team_ref').first()
         rs = AppSetting.query.filter_by(key='domingo_ref_sunday').first()
         if not stm:
-            stm = AppSetting(); stm.key = 'domingo_team_ref'; db.session.add(stm)
+            stm = AppSetting()
+            stm.key = 'domingo_team_ref'
+            db.session.add(stm)
         if date_str:
             try:
                 d = datetime.strptime(date_str, '%Y-%m-%d').date()
                 if not rs:
-                    rs = AppSetting(); rs.key = 'domingo_ref_sunday'; db.session.add(rs)
+                    rs = AppSetting()
+                    rs.key = 'domingo_ref_sunday'
+                    db.session.add(rs)
                 rs.value = d.strftime('%Y-%m-%d')
             except Exception:
                 pass
@@ -500,7 +605,12 @@ def folga_credito_registrar():
         flash('Dados inválidos para crédito de folga.', 'warning')
         return redirect(url_for('colaboradores.escala'))
     try:
-        lc = LeaveCredit(); lc.collaborator_id = cid; lc.date = d; lc.amount_days = amount; lc.origin = 'manual'; lc.notes = notes
+        lc = LeaveCredit()
+        lc.collaborator_id = cid
+        lc.date = d
+        lc.amount_days = amount
+        lc.origin = 'manual'
+        lc.notes = notes
         db.session.add(lc)
         db.session.commit()
         flash('Crédito de folga registrado.', 'success')

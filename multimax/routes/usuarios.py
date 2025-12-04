@@ -234,7 +234,11 @@ def update_password(user_id):
         return redirect(url_for('usuarios.users'))
     try:
         user.password_hash = generate_password_hash(new_password)
-        log = SystemLog(); log.origem = 'Usuarios'; log.evento = 'senha'; log.detalhes = f'Senha atualizada para {user.username}'; log.usuario = current_user.name
+        log = SystemLog()
+        log.origem = 'Usuarios'
+        log.evento = 'senha'
+        log.detalhes = f'Senha atualizada para {user.username}'
+        log.usuario = current_user.name
         db.session.add(log)
         db.session.commit()
         flash(f'Senha de "{user.name}" atualizada.', 'success')
@@ -253,7 +257,11 @@ def reset_password(user_id):
     default_password = '123456'
     try:
         user.password_hash = generate_password_hash(default_password)
-        log = SystemLog(); log.origem = 'Usuarios'; log.evento = 'senha'; log.detalhes = f'Senha redefinida para {user.username}'; log.usuario = current_user.name
+        log = SystemLog()
+        log.origem = 'Usuarios'
+        log.evento = 'senha'
+        log.detalhes = f'Senha redefinida para {user.username}'
+        log.usuario = current_user.name
         db.session.add(log)
         db.session.commit()
         flash(f'Senha de "{user.name}" redefinida.', 'info')

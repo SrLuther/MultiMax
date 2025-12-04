@@ -8,7 +8,7 @@ from reportlab.lib import colors
 from reportlab.lib.units import inch, cm
 from flask import Blueprint, redirect, url_for, flash, send_file, request
 from flask_login import login_required, current_user
-from ..models import Produto, CleaningTask, CleaningHistory, Historico, MeatReception, MeatCarrier, MeatPart
+from ..models import Produto, CleaningTask, CleaningHistory, Historico, MeatReception, MeatCarrier, MeatPart, User
 from io import BytesIO
 from typing import Any
 from reportlab.platypus import Image
@@ -566,6 +566,11 @@ def exportar_relatorio_carnes_pdf(id):
         story.append(Paragraph(f"Fornecedor: {r.fornecedor}", styles['Cell']))
         story.append(Paragraph(f"Tipo: {(r.tipo or '').capitalize()}", styles['Normal']))
         story.append(Paragraph(f"Observação: {r.observacao or '-'}", styles['Cell']))
+        try:
+            recebedor = User.query.get(getattr(r, 'recebedor_id', None))
+        except Exception:
+            recebedor = None
+        story.append(Paragraph(f"Recebido por: {recebedor.name} ({recebedor.username})" if recebedor else "Recebido por: -", styles['Normal']))
 
         story.append(Spacer(1, 0.2 * inch))
         story.append(Paragraph('<b>Entregadores</b>', styles['h2']))
@@ -591,17 +596,25 @@ def exportar_relatorio_carnes_pdf(id):
         story.append(Spacer(1, 0.3 * inch))
         peso_nota = float(r.peso_nota or 0.0)
         perda_transporte = max(0.0, peso_nota - float(total_liquido or 0.0))
-        totals_data: list[list[Any]] = [
-            ['Partes', str(sum(len(ps) for ps in animais.values()))],
-            ['Romaneios', str(len(animais))],
-            ['Bruto total (kg)', f"{total_bruto:.2f}"],
-            ['Tara Entregadores (kg)', f"{funcionarios_aplicado_total:.2f}"],
-            ['Líquido total (kg)', f"{total_liquido:.2f}"],
-        ]
+        totals_data: list[list[Any]] = [['Item', 'Valor']]
         if (r.tipo or 'bovina') == 'bovina':
-            totals_data.append(['Peso na Nota (kg)', f"{peso_nota:.2f}"])
-            perda_transporte = max(0.0, (peso_nota - funcionarios_aplicado_total) - float(total_liquido or 0.0))
-            totals_data.append(['Perda no transporte (kg)', f"{perda_transporte:.2f}"])
+            totals_data.extend([
+                ['Partes', str(sum(len(ps) for ps in animais.values()))],
+                ['Romaneios', str(len(animais))],
+                ['Peso na Nota (kg)', f"{peso_nota:.2f}"],
+                ['Bruto Total (kg)', f"{total_bruto:.2f}"],
+                ['Tara/Entregadores (kg)', f"{funcionarios_aplicado_total:.2f}"],
+                ['Percas (kg)', f"{max(0.0, (peso_nota - funcionarios_aplicado_total) - float(total_liquido or 0.0)):.2f}"],
+                ['Líquido Total (kg)', f"{total_liquido:.2f}"],
+            ])
+        else:
+            totals_data.extend([
+                ['Partes', str(sum(len(ps) for ps in animais.values()))],
+                ['Romaneios', str(len(animais))],
+                ['Bruto Total (kg)', f"{total_bruto:.2f}"],
+                ['Tara/Entregadores (kg)', f"{funcionarios_aplicado_total:.2f}"],
+                ['Líquido Total (kg)', f"{total_liquido:.2f}"],
+            ])
         cols_t = len(totals_data[0])
         max_w_t = [0.0] * cols_t
         for row in totals_data:
@@ -616,7 +629,9 @@ def exportar_relatorio_carnes_pdf(id):
         widths_t = [w * scale_t for w in widths_t]
         liquido_row_idx = None
         for idx, row in enumerate(totals_data):
-            if (row[0] or '').lower().startswith('líquido total'):
+            if idx == 0:
+                continue
+            if (str(row[0]) or '').lower().startswith('líquido total'):
                 liquido_row_idx = idx
                 break
         totals_table = Table(totals_data, colWidths=widths_t)
@@ -639,7 +654,7 @@ def exportar_relatorio_carnes_pdf(id):
         for num in sorted(animais.keys()):
             header = Paragraph(f"<b>Romaneio #{num}</b>", styles['h2'])
             data_rows_strings: list[list[str]] = [[
-                'Parte', 'Peso bruto (kg)', 'Funcionário', 'Tara caixa (kg)', 'Peso líquido (kg)'
+                'Parte', 'Peso bruto (kg)', 'Entregador', 'Tara caixa (kg)', 'Peso líquido (kg)'
             ]]
             subtotal_bruto = 0.0
             subtotal_liquido = 0.0
@@ -679,7 +694,7 @@ def exportar_relatorio_carnes_pdf(id):
             for i, row in enumerate(data_rows_strings):
                 table_row: list[Any] = []
                 for j, cell in enumerate(row):
-                    if j in (0, 2) and i != 0:  # Parte e Funcionário
+                    if j in (0, 2) and i != 0:  # Parte e Entregador
                         table_row.append(Paragraph(str(cell), styles['Cell']))
                     else:
                         table_row.append(str(cell))
