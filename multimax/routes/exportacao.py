@@ -335,10 +335,10 @@ def exportar_graficos_produto(id):
         def add_table(title, labels, entradas, saidas):
             data = [["Período", "Entradas", "Saídas"]]
             for i in range(max(len(labels), len(entradas), len(saidas))):
-                l = labels[i] if i < len(labels) else "-"
+                label = labels[i] if i < len(labels) else "-"
                 e = entradas[i] if i < len(entradas) else 0
                 s = saidas[i] if i < len(saidas) else 0
-                data.append([l, str(e), str(s)])
+                data.append([label, str(e), str(s)])
             table = Table(data, colWidths=[3.5*inch, 1.5*inch, 1.5*inch])
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#007bff')),
@@ -595,7 +595,7 @@ def exportar_relatorio_carnes_pdf(id):
         story.append(carriers_table)
         story.append(Spacer(1, 0.3 * inch))
         peso_nota = float(r.peso_nota or 0.0)
-        perda_transporte = max(0.0, peso_nota - float(total_liquido or 0.0))
+        # removido cálculo não utilizado (perda_transporte)
         totals_data: list[list[Any]] = [['Item', 'Valor']]
         if (r.tipo or 'bovina') == 'bovina':
             totals_data.extend([

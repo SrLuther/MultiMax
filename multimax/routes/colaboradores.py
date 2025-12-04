@@ -343,7 +343,6 @@ def gerar_semana():
         cur = di
         from datetime import timedelta
         while cur <= df:
-            wk = cur.isocalendar()[1]
             if tipo in ('domingo', 'todos') and cur.weekday() == 6:
                 sun_m = AppSetting.query.filter_by(key='domingo_manha_team').first()
                 domingo_team_val = (sun_m.value.strip() if sun_m and sun_m.value else '1')
@@ -483,7 +482,6 @@ def rodizio_gerar():
     from datetime import timedelta
     today = date.today()
     current_monday = today - timedelta(days=today.weekday())
-    rms = AppSetting.query.filter_by(key='rodizio_ref_monday').first()
     ros = AppSetting.query.filter_by(key='rodizio_open_team_ref').first()
     open_ref = (ros.value.strip() if ros and ros.value else '1')
     if open_ref not in ('1','2'):
