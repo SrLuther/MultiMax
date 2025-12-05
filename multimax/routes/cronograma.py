@@ -7,8 +7,20 @@ from ..models import CleaningTask, CleaningHistory
 
 bp = Blueprint('cronograma', __name__)
 
-def calcular_proxima_prevista(ultima_data, frequencia, tipo):
+def calcular_proxima_prevista(ultima_data, frequencia, tipo, nome=None):
     hoje = datetime.now(ZoneInfo('America/Sao_Paulo')).date()
+    if (nome or '').strip().lower() == 'limpeza da caixa de gordura':
+        base = hoje
+        wd = base.weekday()
+        if wd <= 3:
+            escolhido = base + timedelta(days=(3 - wd))
+        elif wd == 4:
+            escolhido = base
+        else:
+            escolhido = base + timedelta(days=(7 - wd + 3))
+        if escolhido <= ultima_data:
+            escolhido = escolhido + timedelta(days=7)
+        return escolhido
     if frequencia == '15 dias':
         deadline = ultima_data + timedelta(days=15)
         dia = ultima_data + timedelta(days=1)
@@ -50,10 +62,11 @@ def setup_cleaning_tasks():
             ("Limpeza Parcial da Câmara Fria", "15 dias", "Parcial", "Agendar em Terça/Quinta, evitando dias 1–4 do mês."),
             ("Limpeza Geral da Câmara Fria", "40 dias", "Geral", "Higienização completa: chão, paredes, paletes, prateleiras, barras."),
             ("Limpeza de Expositores do Açougue", "Mensal", "Mensal", "Realizar após o expediente uma vez por mês."),
+            ("Limpeza da Caixa de Gordura", "Semanal", "Semanal", "Agendar entre quinta e sexta-feira."),
         ]
         for nome, freq, tipo, obs in tarefas:
             ultima_data = hoje - timedelta(days=1)
-            proxima_data = calcular_proxima_prevista(ultima_data, freq, tipo)
+            proxima_data = calcular_proxima_prevista(ultima_data, freq, tipo, nome)
             new_task = CleaningTask()
             new_task.nome_limpeza = nome
             new_task.frequencia = freq
@@ -93,12 +106,13 @@ def cronograma():
             tarefa.frequencia = novo[1]
             tarefa.tipo = novo[2]
             tarefa.observacao = novo[3]
-            tarefa.proxima_data = calcular_proxima_prevista(tarefa.ultima_data, tarefa.frequencia, tarefa.tipo)
+            tarefa.proxima_data = calcular_proxima_prevista(tarefa.ultima_data, tarefa.frequencia, tarefa.tipo, tarefa.nome_limpeza)
             atualizados = True
     padroes = {
         'Limpeza Parcial da Câmara Fria': ('15 dias', 'Parcial', 'Agendar em Terça/Quinta, evitando dias 1–4 do mês.'),
         'Limpeza Geral da Câmara Fria': ('40 dias', 'Geral', 'Higienização completa: chão, paredes, paletes, prateleiras, barras.'),
         'Limpeza de Expositores do Açougue': ('Mensal', 'Mensal', 'Realizar após o expediente uma vez por mês.'),
+        'Limpeza da Caixa de Gordura': ('Semanal', 'Semanal', 'Agendar entre quinta e sexta-feira.'),
     }
     for nome, defs in padroes.items():
         tarefa = CleaningTask.query.filter_by(nome_limpeza=nome).first()
@@ -106,7 +120,7 @@ def cronograma():
             tarefa.frequencia = defs[0]
             tarefa.tipo = defs[1]
             tarefa.observacao = tarefa.observacao or defs[2]
-            tarefa.proxima_data = calcular_proxima_prevista(tarefa.ultima_data, tarefa.frequencia, tarefa.tipo)
+            tarefa.proxima_data = calcular_proxima_prevista(tarefa.ultima_data, tarefa.frequencia, tarefa.tipo, tarefa.nome_limpeza)
             atualizados = True
     if atualizados:
         db.session.commit()
@@ -134,7 +148,7 @@ def salvar_cronograma():
             hist.usuario_conclusao = current_user.name
             db.session.add(hist)
             tarefa.ultima_data = datetime.now(ZoneInfo('America/Sao_Paulo')).date()
-            tarefa.proxima_data = calcular_proxima_prevista(tarefa.ultima_data, tarefa.frequencia, tarefa.tipo)
+            tarefa.proxima_data = calcular_proxima_prevista(tarefa.ultima_data, tarefa.frequencia, tarefa.tipo, tarefa.nome_limpeza)
             tarefa.observacao = observacao if observacao else tarefa.observacao
             tarefa.designados = designados if designados else tarefa.designados
             db.session.commit()

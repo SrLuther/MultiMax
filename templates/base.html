@@ -123,8 +123,8 @@
         <button class="btn btn-sm btn-outline-light d-md-none ms-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMobile" aria-controls="sidebarMobile">
             <span class="fw-bold">MENU</span>
         </button>
-        <span class="d-inline-block d-md-none ms-2 small text-white">{{ current_user.is_authenticated and ('Logado como ' ~ current_user.name) }}</span>
-        <div class="d-none d-md-block text-white fw-semibold mx-auto">{{ current_user.is_authenticated and ('Logado como ' ~ current_user.name) }}</div>
+        <span class="d-inline-block d-md-none ms-2 small text-white">{{ current_user.is_authenticated and current_user.name }}</span>
+        <div class="d-none d-md-block text-white fw-semibold mx-auto"></div>
         <div class="d-md-none ms-2">
             <a class="nav-link text-white position-relative" href="#" id="notifDropdownMobile" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="fas fa-bell"></i>

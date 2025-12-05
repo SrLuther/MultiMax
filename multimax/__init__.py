@@ -20,6 +20,38 @@ def _load_env(path):
     except Exception:
         pass
 
+def _normalize_db_uri(uri: str | None) -> str | None:
+    try:
+        s = uri or ''
+        if s and s.startswith('postgresql://'):
+            s = 'postgresql+psycopg://' + s.split('://', 1)[1]
+        if s and s.startswith('postgres://'):
+            s = 'postgresql+psycopg://' + s.split('://', 1)[1]
+        if s and ('.supabase.co' in s) and ('@' in s):
+            pre, post = s.split('@', 1)
+            rest = post.split('/', 1)[1] if '/' in post else ''
+            hostport = 'aws-1-sa-east-1.pooler.supabase.com:5432'
+            s = pre + '@' + hostport + ('/' + rest if rest else '')
+        if s and ('sslmode=' not in s):
+            s = s + ('&sslmode=require' if '?' in s else '?sslmode=require')
+        if s and ('connect_timeout=' not in s):
+            s = s + ('&connect_timeout=3' if '?' in s else '?connect_timeout=3')
+        return s or uri
+    except Exception:
+        return uri
+
+def _extract_driver_host(uri: str) -> tuple[str | None, str | None]:
+    try:
+        if '://' not in uri:
+            return None, None
+        driver = uri.split('://', 1)[0]
+        after = uri.split('://', 1)[1]
+        hostpart = after.split('@', 1)[1] if '@' in after else after
+        host = hostpart.split('/', 1)[0]
+        return driver, host
+    except Exception:
+        return None, None
+
 def create_app():
     base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.dirname(__file__)))
     _load_env(os.path.join(base_dir, '.env.txt'))
@@ -40,24 +72,7 @@ def create_app():
     os.makedirs(data_dir, exist_ok=True)
     db_path = os.path.join(data_dir, 'estoque.db').replace('\\', '/')
     uri_env = os.getenv('SQLALCHEMY_DATABASE_URI') or os.getenv('DATABASE_URL')
-    if uri_env and uri_env.startswith('postgresql://'):
-        uri_env = 'postgresql+psycopg://' + uri_env.split('://', 1)[1]
-    if uri_env and uri_env.startswith('postgres://'):
-        uri_env = 'postgresql+psycopg://' + uri_env.split('://', 1)[1]
-    try:
-        s = uri_env or ''
-        if s and ('.supabase.co' in s) and ('@' in s):
-            pre, post = s.split('@', 1)
-            rest = post.split('/', 1)[1] if '/' in post else ''
-            hostport = 'aws-1-sa-east-1.pooler.supabase.com:5432'
-            s = pre + '@' + hostport + ('/' + rest if rest else '')
-        if s and ('sslmode=' not in s):
-            s = s + ('&sslmode=require' if '?' in s else '?sslmode=require')
-        if s and ('connect_timeout=' not in s):
-            s = s + ('&connect_timeout=3' if '?' in s else '?connect_timeout=3')
-        uri_env = s or uri_env
-    except Exception:
-        pass
+    uri_env = _normalize_db_uri(uri_env)
     selected_uri = uri_env if uri_env else ('sqlite:///' + db_path)
     app.config['SQLALCHEMY_DATABASE_URI'] = selected_uri
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
@@ -71,7 +86,7 @@ def create_app():
     login_manager.login_message = "Por favor, faça login para acessar esta página."
     login_manager.login_message_category = "warning"
 
-    from .models import User
+    from .models import User, Produto, CleaningTask, NotificationRead
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -118,6 +133,7 @@ def create_app():
     def _dbstatus():
         try:
             from sqlalchemy import text
+            from flask import url_for
             uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
             ok = False
             err = ''
@@ -130,23 +146,58 @@ def create_app():
                     db.session.rollback()
                 except Exception:
                     pass
-            host = None
-            try:
-                if '://' in uri:
-                    after = uri.split('://', 1)[1]
-                    hostpart = after.split('@', 1)[1] if '@' in after else after
-                    host = hostpart.split('/', 1)[0]
-            except Exception:
-                host = None
-            txt = f"uri={uri}\nok={ok}\nhost={host}\nerr={err}"
-            return txt, (200 if ok else 503)
+            driver, host = _extract_driver_host(uri)
+            status_code = 200 if ok else 503
+            title = 'Conexão ao Banco de Dados'
+            msg = 'Conexão funcionando normalmente.' if ok else 'Falha na conexão com o banco de dados.'
+            badge = 'OK' if ok else 'Erro'
+            color = '#198754' if ok else '#dc3545'
+            html = f"""<!DOCTYPE html>
+            <html lang=\"pt-br\">
+            <head>
+              <meta charset=\"UTF-8\">
+              <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
+              <title>{title}</title>
+              <style>
+                body {{ font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#f8f9fa; margin:0; padding:0; }}
+                .card {{ max-width: 720px; margin: 40px auto; background:#fff; border-radius:12px; box-shadow: 0 6px 18px rgba(0,0,0,.08); overflow:hidden; }}
+                .header {{ background:#0d6efd; color:#fff; padding:16px 24px; font-weight:600; }}
+                .body {{ padding:20px 24px; color:#212529; }}
+                .badge {{ display:inline-block; padding:6px 10px; border-radius:999px; background:{color}; color:#fff; font-size:12px; margin-left:8px; vertical-align:middle; }}
+                .kv {{ margin:12px 0; }}
+                .kv span {{ display:inline-block; min-width:120px; color:#6c757d; }}
+                .footer {{ padding:16px 24px; background:#f1f3f5; display:flex; justify-content:flex-end; gap:12px; }}
+                .btn {{ display:inline-block; padding:10px 14px; border-radius:8px; text-decoration:none; }}
+                .btn-primary {{ background:#0d6efd; color:#fff; }}
+                .btn-secondary {{ background:#6c757d; color:#fff; }}
+              </style>
+            </head>
+            <body>
+              <div class=\"card\">
+                <div class=\"header\">{title}<span class=\"badge\">{badge}</span></div>
+                <div class=\"body\">
+                  <div style=\"font-size:16px; margin-bottom:12px;\">{msg}</div>
+                  <div class=\"kv\"><span>Servidor</span>{host or '-'}
+                  </div>
+                  <div class=\"kv\"><span>Driver</span>{driver or '-'}
+                  </div>
+                  <div class=\"kv\"><span>Detalhes</span>{err or '-'}
+                  </div>
+                </div>
+                <div class=\"footer\">
+                  <a class=\"btn btn-secondary\" href=\"{url_for('home.index')}\">Voltar</a>
+                  <a class=\"btn btn-primary\" href=\"{url_for('home.index')}\">Ir para Home</a>
+                </div>
+              </div>
+            </body>
+            </html>"""
+            return html, status_code
         except Exception as e:
             return f"erro={e}", 500
 
     @app.context_processor
     def inject_notifications():
         try:
-            from .models import Produto, CleaningTask, NotificationRead
             from datetime import date
             from flask import url_for, request, current_app
             from flask_login import current_user
@@ -161,7 +212,7 @@ def create_app():
             overdue = []
             if nf != 'limpeza':
                 low_stock = (
-                    Produto.query
+                    Produto.query.with_entities(Produto.id, Produto.nome, Produto.quantidade, Produto.estoque_minimo, Produto.codigo)
                     .filter(Produto.quantidade <= Produto.estoque_minimo)
                     .order_by(Produto.quantidade.asc(), Produto.nome.asc())
                     .limit(10)
@@ -169,7 +220,7 @@ def create_app():
                 )
             if nf != 'estoque':
                 overdue = (
-                    CleaningTask.query
+                    CleaningTask.query.with_entities(CleaningTask.id, CleaningTask.nome_limpeza, CleaningTask.proxima_data)
                     .filter(CleaningTask.proxima_data < today)
                     .order_by(CleaningTask.proxima_data.asc())
                     .limit(10)
