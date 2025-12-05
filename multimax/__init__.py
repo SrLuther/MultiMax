@@ -1,11 +1,43 @@
 import os
 import sys
 from flask import Flask
+import threading
+import time
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 
 db = SQLAlchemy()
 login_manager = LoginManager()
+
+_keepalive_started = False
+_keepalive_url_holder: dict[str, str | None] = {'url': None}
+
+def _start_keepalive_thread():
+    global _keepalive_started
+    if _keepalive_started:
+        return
+    _keepalive_started = True
+    def _runner():
+        while True:
+            try:
+                url = _keepalive_url_holder.get('url')
+                if url:
+                    try:
+                        import urllib.request
+                        urllib.request.urlopen(url, timeout=5).read()
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+            try:
+                time.sleep(600)
+            except Exception:
+                pass
+    try:
+        t = threading.Thread(target=_runner, name='keepalive', daemon=True)
+        t.start()
+    except Exception:
+        pass
 
 def _load_env(path):
     try:
@@ -72,19 +104,65 @@ def create_app():
     os.makedirs(data_dir, exist_ok=True)
     db_path = os.path.join(data_dir, 'estoque.db').replace('\\', '/')
     uri_env = os.getenv('SQLALCHEMY_DATABASE_URI') or os.getenv('DATABASE_URL')
+    if not uri_env:
+        try:
+            env_path = os.path.join(base_dir, '.env.txt')
+            if os.path.exists(env_path):
+                with open(env_path, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line.startswith('SQLALCHEMY_DATABASE_URI='):
+                            uri_env = line.split('=', 1)[1].strip()
+                            break
+        except Exception:
+            pass
     uri_env = _normalize_db_uri(uri_env)
     selected_uri = uri_env if uri_env else ('sqlite:///' + db_path)
-    app.config['SQLALCHEMY_DATABASE_URI'] = selected_uri
+    final_uri = selected_uri
+    if str(os.getenv('OFFLINE_FORCE_SQLITE', '')).lower() == 'true':
+        final_uri = 'sqlite:///' + db_path
+    try:
+        if isinstance(final_uri, str) and final_uri.startswith('sqlite'):
+            env_path = os.path.join(base_dir, '.env.txt')
+            if os.path.exists(env_path):
+                with open(env_path, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line.startswith('SQLALCHEMY_DATABASE_URI='):
+                            val = line.split('=', 1)[1].strip()
+                            if val:
+                                final_uri = _normalize_db_uri(val)
+                            break
+    except Exception:
+        pass
+    app.config['SQLALCHEMY_DATABASE_URI'] = final_uri
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'uma_chave_secreta_muito_forte_e_aleatoria')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['PER_PAGE'] = 10
+    try:
+        from datetime import timedelta
+        app.config['SEND_FILE_MAX_AGE_DEFAULT'] = timedelta(days=30)
+        app.config['TEMPLATES_AUTO_RELOAD'] = False
+    except Exception:
+        pass
 
     db.init_app(app)
     login_manager.init_app(app)
     setattr(login_manager, 'login_view', 'auth.login')
     login_manager.login_message = "Por favor, faça login para acessar esta página."
     login_manager.login_message_category = "warning"
+
+    try:
+        with app.app_context():
+            db.create_all()
+            app.config['DB_OK'] = True
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        app.config['DB_OK'] = False
 
     from .models import User, Produto, CleaningTask, NotificationRead
 
@@ -128,6 +206,16 @@ def create_app():
     @app.route('/health', strict_slashes=False)
     def _health():
         return 'ok', 200
+
+    @app.before_request
+    def _capture_keepalive_url():
+        try:
+            from flask import request
+            root = (request.url_root or '').rstrip('/').strip()
+            if root:
+                _keepalive_url_holder['url'] = root + '/health'
+        except Exception:
+            pass
 
     @app.route('/dbstatus', strict_slashes=False)
     def _dbstatus():
@@ -352,6 +440,7 @@ def create_app():
                 try:
                     from sqlalchemy import text
                     db.session.execute(text('create index if not exists idx_produto_nome on produto (nome)'))
+                    db.session.execute(text('create index if not exists idx_produto_codigo on produto (codigo)'))
                     db.session.execute(text('create index if not exists idx_hist_product_date on historico (product_id, data)'))
                     db.session.execute(text('create index if not exists idx_notif_user_ref on notification_read (user_id, ref_id)'))
                     db.session.execute(text('create index if not exists idx_cleaningtask_proxima on cleaning_task (proxima_data)'))
@@ -480,4 +569,8 @@ def create_app():
                 except Exception:
                     pass
 
+    try:
+        _start_keepalive_thread()
+    except Exception:
+        pass
     return app
