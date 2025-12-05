@@ -11,6 +11,7 @@
     <link rel="icon" sizes="512x512" href="{{ url_for('static', filename='icons/icon-512.png') }}?v=6" type="image/png">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon-180.png') }}?v=6">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/apple-touch-icon-180.png') }}?v=6">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="MultiMax">
@@ -330,7 +331,7 @@
     <div class="container-fluid d-flex justify-content-between align-items-center">
         <div class="d-flex flex-column align-items-start">
             <small>© 2025 MultiMax</small>
-            <small>Gestão Amora v1.3.2</small>
+            <small>Gestão Amora v1.3.2.1</small>
         </div>
         <div class="d-flex flex-column align-items-end text-end">
             <small id="current-date"></small>
@@ -412,6 +413,26 @@
         });
         window.addEventListener('pageshow', function(){ hide(); });
         window.addEventListener('beforeunload', function(){ show(); });
+    })();
+</script>
+<script>
+    (function(){
+        function prefetch(url){ try { fetch(url, { credentials: 'same-origin', cache: 'no-cache' }); } catch(_){} }
+        function bindPrefetch(selector){
+            var links = document.querySelectorAll(selector);
+            for(var i=0;i<links.length;i++){
+                var a = links[i];
+                var href = a.getAttribute('href');
+                if(!href || href.indexOf('#')===0) continue;
+                a.addEventListener('mouseover', function(e){ var u=e.currentTarget.getAttribute('href'); prefetch(u); });
+                a.addEventListener('touchstart', function(e){ var u=e.currentTarget.getAttribute('href'); prefetch(u); }, {passive:true});
+                a.addEventListener('focus', function(e){ var u=e.currentTarget.getAttribute('href'); prefetch(u); });
+            }
+        }
+        window.addEventListener('load', function(){
+            bindPrefetch('.list-group a.list-group-item');
+            bindPrefetch('.navbar-nav a.nav-link');
+        });
     })();
 </script>
 </body>

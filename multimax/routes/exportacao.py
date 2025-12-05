@@ -550,6 +550,7 @@ def exportar_relatorio_carnes_pdf(id):
                 'peso_liquido': liquido,
             })
         funcionarios_aplicado_total = sum((pp.get('carrier_peso') or 0.0) for plist in animais.values() for pp in plist)
+        taras_total = sum((pp.get('tara') or 0.0) for plist in animais.values() for pp in plist)
 
         pdf_buffer = BytesIO()
         doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
@@ -563,6 +564,7 @@ def exportar_relatorio_carnes_pdf(id):
         story.append(Spacer(1, 0.4 * inch))
         story.append(Paragraph('<b>Recepção</b>', styles['h2']))
         story.append(Paragraph(f"Data: {r.data.strftime('%d/%m/%Y %H:%M')}", styles['Normal']))
+        story.append(Paragraph(f"Número de referência: {r.reference_code or '-'}", styles['Normal']))
         story.append(Paragraph(f"Fornecedor: {r.fornecedor}", styles['Cell']))
         story.append(Paragraph(f"Tipo: {(r.tipo or '').capitalize()}", styles['Normal']))
         story.append(Paragraph(f"Observação: {r.observacao or '-'}", styles['Cell']))
@@ -597,23 +599,23 @@ def exportar_relatorio_carnes_pdf(id):
         peso_nota = float(r.peso_nota or 0.0)
         # removido cálculo não utilizado (perda_transporte)
         totals_data: list[list[Any]] = [['Item', 'Valor']]
-        if (r.tipo or 'bovina') == 'bovina':
+        if (r.tipo or 'bovina').lower() == 'bovina':
             totals_data.extend([
                 ['Partes', str(sum(len(ps) for ps in animais.values()))],
                 ['Romaneios', str(len(animais))],
                 ['Peso na Nota (kg)', f"{peso_nota:.2f}"],
                 ['Bruto Total (kg)', f"{total_bruto:.2f}"],
-                ['Tara/Entregadores (kg)', f"{funcionarios_aplicado_total:.2f}"],
-                ['Percas (kg)', f"{max(0.0, (peso_nota - funcionarios_aplicado_total) - float(total_liquido or 0.0)):.2f}"],
-                ['Líquido Total (kg)', f"{total_liquido:.2f}"],
+                ['Tara/Entregadores (kg)', f"{(funcionarios_aplicado_total + taras_total):.2f}"],
+                ['Percas (kg)', f"{(peso_nota - float(total_liquido or 0.0)):.2f}"],
+                ['Líquido (kg)', f"{total_liquido:.2f}"],
             ])
         else:
             totals_data.extend([
                 ['Partes', str(sum(len(ps) for ps in animais.values()))],
                 ['Romaneios', str(len(animais))],
                 ['Bruto Total (kg)', f"{total_bruto:.2f}"],
-                ['Tara/Entregadores (kg)', f"{funcionarios_aplicado_total:.2f}"],
-                ['Líquido Total (kg)', f"{total_liquido:.2f}"],
+                ['Tara/Entregadores (kg)', f"{(funcionarios_aplicado_total + taras_total):.2f}"],
+                ['Líquido (kg)', f"{total_liquido:.2f}"],
             ])
         cols_t = len(totals_data[0])
         max_w_t = [0.0] * cols_t
@@ -627,13 +629,6 @@ def exportar_relatorio_carnes_pdf(id):
         total_t = sum(widths_t)
         scale_t = doc.width / (total_t if total_t > 0 else 1)
         widths_t = [w * scale_t for w in widths_t]
-        liquido_row_idx = None
-        for idx, row in enumerate(totals_data):
-            if idx == 0:
-                continue
-            if (str(row[0]) or '').lower().startswith('líquido total'):
-                liquido_row_idx = idx
-                break
         totals_table = Table(totals_data, colWidths=widths_t)
         totals_table.setStyle(TableStyle([
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
@@ -645,9 +640,6 @@ def exportar_relatorio_carnes_pdf(id):
             ('RIGHTPADDING', (0, 0), (-1, -1), 6),
             ('TOPPADDING', (0, 0), (-1, -1), 4),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('FONTNAME', (0, liquido_row_idx if liquido_row_idx is not None else 0), (-1, liquido_row_idx if liquido_row_idx is not None else 0), 'Helvetica-Bold'),
-            ('BACKGROUND', (0, liquido_row_idx if liquido_row_idx is not None else 0), (-1, liquido_row_idx if liquido_row_idx is not None else 0), colors.HexColor('#e8f5e9')),
-            ('TEXTCOLOR', (0, liquido_row_idx if liquido_row_idx is not None else 0), (-1, liquido_row_idx if liquido_row_idx is not None else 0), colors.HexColor('#198754')),
         ]))
         story.append(KeepTogether([Paragraph('<b>Resumo</b>', styles['h2']), totals_table]))
 
@@ -719,8 +711,24 @@ def exportar_relatorio_carnes_pdf(id):
             ]))
             story.append(KeepTogether([header, table, Spacer(1, 0.2 * inch)]))
 
-        
+        styles.add(ParagraphStyle(name='Explain10', parent=styles['Normal'], fontSize=10, leading=12))
+        explain_html = (
+            '<b>COMO OS CÁLCULOS SÃO FEITOS:</b><br/>'
+            '• Peso líquido por parte = Peso bruto − desconto aplicado.<br/>'
+            '• Desconto aplicado:<br/>'
+            '  - bovina usa o peso do entregador selecionado;<br/>'
+            '  - suína usa a tara informada;<br/>'
+            '  - frango não possui desconto por parte.<br/>'
+            '• Subtotais por romaneio somam pesos bruto, líquido e descontos.<br/>'
+            '• Totais gerais são a soma dos subtotais.<br/>'
+            '• Bovina: Percas = Peso na Nota − Líquido.<br/>'
+            '• Frango: o peso informado é considerado diretamente como líquido total.'
+        )
+        story.append(Spacer(1, 0.25 * inch))
+        story.append(KeepTogether([Paragraph(explain_html, styles['Explain10'])]))
 
+        
+        
         def footer_on_page(canvas, doc):
             canvas.saveState()
             canvas.setFillColor(colors.black)
@@ -733,7 +741,8 @@ def exportar_relatorio_carnes_pdf(id):
             footer_on_page(canvas, doc)
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
         pdf_buffer.seek(0)
-        filename = f"relatorio_carnes_{r.id}.pdf"
+        ref = r.reference_code or f"R{r.id:04d}"
+        filename = f"{ref}_CARNE.pdf"
         return send_file(pdf_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
     except Exception as e:
         flash(f'Erro ao gerar PDF de Carnes: {e}', 'danger')

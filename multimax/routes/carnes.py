@@ -58,6 +58,13 @@ def _ensure_reception_columns():
         if 'recebedor_id' not in cols:
             db.session.execute(text('ALTER TABLE meat_reception ADD COLUMN recebedor_id INTEGER'))
             changed = True
+        if 'reference_code' not in cols:
+            db.session.execute(text('ALTER TABLE meat_reception ADD COLUMN reference_code TEXT'))
+            try:
+                db.session.execute(text('CREATE UNIQUE INDEX IF NOT EXISTS ux_meat_reception_reference_code ON meat_reception (reference_code)'))
+            except Exception:
+                pass
+            changed = True
         if changed:
             db.session.commit()
     except Exception:
@@ -126,6 +133,21 @@ def nova():
             r.peso_frango = _num(request.form.get('peso_frango'))
         db.session.add(r)
         db.session.flush()
+        try:
+            pref = {'bovina': 'B', 'suina': 'S', 'frango': 'F'}.get(tipo, 'B')
+            existentes = MeatReception.query.with_entities(MeatReception.reference_code).filter(MeatReception.reference_code.like(f"{pref}%")).all()
+            maior = 0
+            for (code,) in existentes:
+                try:
+                    if code and code.startswith(pref) and len(code) >= 2:
+                        num = int(code[1:])
+                        if num > maior:
+                            maior = num
+                except Exception:
+                    continue
+            r.reference_code = f"{pref}{maior+1:04d}"
+        except Exception:
+            r.reference_code = None
         if tipo == 'frango':
             try:
                 db.session.commit()
@@ -234,6 +256,7 @@ def relatorio(id: int):
     included_bruto = sum((p.get('peso_bruto') or 0.0) for ps in filtered_animais.values() for p in ps)
     included_liquido = sum((p.get('peso_liquido') or 0.0) for ps in filtered_animais.values() for p in ps)
     funcionarios_aplicado_total = sum((p.get('carrier_peso') or 0.0) for ps in filtered_animais.values() for p in ps)
+    taras_total = sum((p.get('tara') or 0.0) for ps in filtered_animais.values() for p in ps)
     included_partes = sum(len(ps) for ps in filtered_animais.values())
     totals = {
         'bruto': included_bruto,
@@ -242,12 +265,14 @@ def relatorio(id: int):
         'qtd_partes': included_partes,
         'qtd_animais': len(filtered_animais),
         'funcionarios_peso_total': funcionarios_aplicado_total,
+        'tara_entregadores_total': funcionarios_aplicado_total + taras_total,
     }
     tipo = (r.tipo or '').lower()
     if tipo == 'bovina':
         peso_nota = float(r.peso_nota or 0.0)
         totals['peso_nota'] = peso_nota
-        totals['perda_transporte'] = max(0.0, (peso_nota - funcionarios_aplicado_total) - totals['liquido'])
+        totals['perda_transporte'] = peso_nota - totals['liquido']
+        totals['liquido_final'] = peso_nota - totals['liquido']
     if tipo == 'frango':
         totals['frango_peso'] = float(r.peso_frango or 0.0)
     return render_template('carnes_relatorio.html', r=r, carriers=carriers, animais=filtered_animais, totals=totals, active_page='carnes')
