@@ -26,7 +26,7 @@
     {% set card_class = 'card-noprazo' %}
     {% set header_class = 'card-header-noprazo' %}
 
-    <div class="col-md-4 mb-4">
+    <div class="col-md-3 mb-4">
         <div class="card shadow-sm {{ card_class }}">
             <div class="card-header {{ header_class }} fw-bold">
                 {{ tarefa.nome_limpeza }}
@@ -38,6 +38,8 @@
                 <div class="alert alert-info py-1 small">Higienização completa em até 40 dias desde a última geral.</div>
                 {% elif tarefa.nome_limpeza == 'Limpeza de Expositores do Açougue' %}
                 <div class="alert alert-secondary py-1 small">Realizar mensalmente após o expediente.</div>
+                {% elif tarefa.nome_limpeza == 'Limpeza da Caixa de Gordura' %}
+                <div class="alert alert-primary py-1 small">Agendar semanalmente entre quinta e sexta-feira.</div>
                 {% endif %}
                 {% if tarefa.observacao %}
                 <p class="card-text mb-2">{{ tarefa.observacao }}</p>
