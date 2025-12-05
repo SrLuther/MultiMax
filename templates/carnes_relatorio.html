@@ -19,7 +19,8 @@
   <div class="card-body">
     <div class="row g-3">
       <div class="col-md-3"><strong>Data:</strong> {{ r.data.strftime('%d/%m/%Y %H:%M') }}</div>
-      <div class="col-md-5"><strong>Fornecedor:</strong> {{ r.fornecedor }}</div>
+      <div class="col-md-3"><strong>Referência:</strong> {{ r.reference_code or '-' }}</div>
+      <div class="col-md-4"><strong>Fornecedor:</strong> {{ r.fornecedor }}</div>
       <div class="col-md-2"><strong>Tipo:</strong> {{ r.tipo|capitalize }}</div>
       <div class="col-md-12"><strong>Observação:</strong> {{ r.observacao or '-' }}</div>
     </div>
@@ -104,11 +105,11 @@
       <div class="col-md-3"><strong>Partes:</strong> {{ totals.qtd_partes }}</div>
       <div class="col-md-3"><strong>Romaneios:</strong> {{ totals.qtd_animais }}</div>
       <div class="col-md-3"><strong>Bruto total:</strong> {{ '%.2f'|format(totals.bruto) }} kg</div>
-      <div class="col-md-3"><strong>Desconto aplicado (funcionários):</strong> {{ '%.2f'|format(totals.funcionarios_peso_total) }} kg</div>
-      <div class="col-md-3"><strong>Líquido total:</strong> <span class="text-success">{{ '%.2f'|format(totals.liquido) }} kg</span></div>
-      {% if r.tipo == 'bovina' %}
+      <div class="col-md-3"><strong>Tara/Entregadores:</strong> {{ '%.2f'|format(totals.tara_entregadores_total) }} kg</div>
+      <div class="col-md-3"><strong>Líquido:</strong> <span class="text-success">{{ '%.2f'|format(totals.liquido) }} kg</span></div>
+      {% if r.tipo|lower == 'bovina' %}
       <div class="col-md-3"><strong>Peso na Nota:</strong> {{ '%.2f'|format(totals.peso_nota or 0.0) }} kg</div>
-      <div class="col-md-3"><strong>Perda no transporte:</strong> {{ '%.2f'|format(totals.perda_transporte or 0.0) }} kg</div>
+      <div class="col-md-3"><strong>Percas:</strong> {{ '%.2f'|format(totals.perda_transporte or 0.0) }} kg</div>
       {% endif %}
     </div>
   </div>
