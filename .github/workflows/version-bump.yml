@@ -1,0 +1,40 @@
+name: Version Bump
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Compute next version
+        id: ver
+        run: |
+          set -e
+          latest=$(git tag --list 'v*' | sort -V | tail -n 1)
+          if [ -z "$latest" ]; then
+            latest=v1.3.2.1
+          fi
+          base=${latest#v}
+          IFS='.' read -r a b c d <<< "$base"
+          a=${a:-1}; b=${b:-3}; c=${c:-2}; d=${d:-1}
+          d=$((d+1))
+          next="v${a}.${b}.${c}.${d}"
+          echo "latest=$latest" >> $GITHUB_OUTPUT
+          echo "next=$next" >> $GITHUB_OUTPUT
+      - name: Create and push tag
+        run: |
+          next="${{ steps.ver.outputs.next }}"
+          git tag -a "$next" -m "Release $next"
+          git push origin "$next"
