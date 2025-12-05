@@ -116,12 +116,25 @@ def cronograma():
     }
     for nome, defs in padroes.items():
         tarefa = CleaningTask.query.filter_by(nome_limpeza=nome).first()
-        if tarefa and tarefa.frequencia != defs[0]:
-            tarefa.frequencia = defs[0]
-            tarefa.tipo = defs[1]
-            tarefa.observacao = tarefa.observacao or defs[2]
-            tarefa.proxima_data = calcular_proxima_prevista(tarefa.ultima_data, tarefa.frequencia, tarefa.tipo, tarefa.nome_limpeza)
+        if not tarefa:
+            hoje = date.today()
+            nova = CleaningTask()
+            nova.nome_limpeza = nome
+            nova.frequencia = defs[0]
+            nova.tipo = defs[1]
+            nova.ultima_data = hoje - timedelta(days=1)
+            nova.proxima_data = calcular_proxima_prevista(nova.ultima_data, nova.frequencia, nova.tipo, nome)
+            nova.observacao = defs[2]
+            nova.designados = 'Equipe de Limpeza'
+            db.session.add(nova)
             atualizados = True
+        else:
+            if tarefa.frequencia != defs[0] or tarefa.tipo != defs[1]:
+                tarefa.frequencia = defs[0]
+                tarefa.tipo = defs[1]
+                tarefa.observacao = tarefa.observacao or defs[2]
+                tarefa.proxima_data = calcular_proxima_prevista(tarefa.ultima_data, tarefa.frequencia, tarefa.tipo, tarefa.nome_limpeza)
+                atualizados = True
     if atualizados:
         db.session.commit()
     tarefas = CleaningTask.query.order_by(CleaningTask.proxima_data.asc()).all()
