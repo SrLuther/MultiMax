@@ -293,6 +293,53 @@ def create_app():
         return {'git_version': app.config.get('APP_VERSION_RESOLVED', 'dev')}
 
     with app.app_context():
+        try:
+            from .models import AppSetting
+            import subprocess, json, urllib.request
+            ver = app.config.get('APP_VERSION_RESOLVED', 'dev')
+            base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.dirname(__file__)))
+            commits = []
+            last_tag = None
+            try:
+                r = subprocess.run(['git', 'describe', '--tags', '--abbrev=0'], cwd=base_dir, capture_output=True, text=True, timeout=2)
+                if r.returncode == 0 and r.stdout.strip():
+                    last_tag = r.stdout.strip()
+                if last_tag:
+                    rlog = subprocess.run(['git', 'log', '--pretty=%h %s', f'{last_tag}..HEAD'], cwd=base_dir, capture_output=True, text=True, timeout=3)
+                    if rlog.returncode == 0:
+                        commits = [line.strip() for line in rlog.stdout.splitlines() if line.strip()]
+                else:
+                    rlog2 = subprocess.run(['git', 'log', '-n', '20', '--pretty=%h %s'], cwd=base_dir, capture_output=True, text=True, timeout=3)
+                    if rlog2.returncode == 0:
+                        commits = [line.strip() for line in rlog2.stdout.splitlines() if line.strip()]
+            except Exception:
+                try:
+                    with urllib.request.urlopen('https://api.github.com/repos/SrLuther/MultiMax/commits?sha=main') as resp:
+                        raw = resp.read().decode('utf-8')
+                        arr = json.loads(raw)
+                        for it in arr[:20]:
+                            h = (it.get('sha') or '')[:7]
+                            msg = ((it.get('commit') or {}).get('message') or '').split('\n',1)[0]
+                            if msg:
+                                commits.append(f'{h} {msg}')
+                except Exception:
+                    commits = []
+            head = f'v{ver}' if isinstance(ver, str) else str(ver)
+            lines = [f'{head}'] + [f'- {c}' for c in commits]
+            txt = '\n'.join(lines)
+            try:
+                s = AppSetting.query.filter_by(key='changelog_text').first()
+                if not s:
+                    s = AppSetting(); s.key = 'changelog_text'; db.session.add(s)
+                s.value = txt
+                db.session.commit()
+            except Exception:
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+        except Exception:
+            pass
         uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
         is_sqlite = isinstance(uri, str) and uri.startswith('sqlite:')
         if is_sqlite:

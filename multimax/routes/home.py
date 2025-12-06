@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import current_user
 from datetime import datetime
 from .. import db
-from ..models import Historico, CleaningTask, CleaningHistory, MeatReception, SystemLog, AppSetting
+from ..models import Historico as HistoricoModel, CleaningTask, CleaningHistory, MeatReception, SystemLog, AppSetting
 from ..models import LeaveCredit
 
 bp = Blueprint('home', __name__, url_prefix='/home')
@@ -42,12 +42,12 @@ def index():
     try:
         from flask import current_app
         if not db_diag.get('ok', True) or not current_app.config.get('DB_OK', True):
-            return render_template('home.html', active_page='home', events=[], mural_html='', mural_text='', db_diag=db_diag)
+            return render_template('home.html', active_page='home', events=[], mural_html='', mural_text='', changelog_html='', changelog_text='', db_diag=db_diag)
     except Exception:
         pass
     # Estoque (Histórico)
     try:
-        hist = Historico.query.order_by(Historico.data.desc()).limit(100).all()
+        hist = HistoricoModel.query.order_by(HistoricoModel.data.desc()).limit(100).all()
         for h in hist:
             t = 'Entrada' if (h.action or '').lower() == 'entrada' else 'Saída'
             qty = h.quantidade or 0
@@ -300,7 +300,14 @@ def index():
         esc = esc.replace("\n", "<br>")
         return esc
     mural_html = _to_html(mural_text)
-    return render_template('home.html', active_page='home', events=events, mural_html=mural_html, mural_text=mural_text, db_diag=db_diag)
+    changelog_text = ''
+    try:
+        c = AppSetting.query.filter_by(key='changelog_text').first()
+        changelog_text = (c.value or '') if c else ''
+    except Exception:
+        changelog_text = ''
+    changelog_html = _to_html(changelog_text)
+    return render_template('home.html', active_page='home', events=events, mural_html=mural_html, mural_text=mural_text, changelog_html=changelog_html, changelog_text=changelog_text, db_diag=db_diag)
 
 @bp.route('/mural', methods=['POST'], strict_slashes=False)
 def update_mural():
