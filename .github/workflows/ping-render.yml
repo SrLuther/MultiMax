@@ -1,0 +1,17 @@
+name: Ping Render
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Curl health
+        env:
+          PING_URL: ${{ secrets.RENDER_PING_URL }}
+        run: |
+          if [ -z "$PING_URL" ]; then echo "Missing RENDER_PING_URL secret"; exit 1; fi
+          curl -sS -o /dev/null -w "%{http_code}\n" --max-time 15 "$PING_URL"

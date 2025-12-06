@@ -1,12 +1,13 @@
 {% extends 'base.html' %}
-{% block title %}Usuários — MultiMax{% endblock %}
+{% block title %}MultiMax{% endblock %}
 {% block content %}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3 class="mb-0">Gerenciar Usuários</h3>
         <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalNovoUsuario">Novo Usuário</button>
     </div>
     
-    <table class="table table-hover">
+    <div class="table-responsive-sm">
+    <table class="table table-hover align-middle">
         <thead class="table-dark">
             <tr>
                 <th>Login</th>
@@ -22,7 +23,7 @@
                 <td>{{ u.name }}</td>
                 <td>{{ u.nivel }}</td>
                 <td>
-                    <div class="d-flex align-items-center">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
                         <!-- Formulário de Atualização de Nível -->
                         <form method="post" action="{{ url_for('usuarios.update_level', user_id=u.id) }}" class="d-inline-flex me-2">
                             <select name="nivel" class="form-select d-inline-block w-auto form-select-sm me-2">
@@ -32,12 +33,21 @@
                             </select>
                             <button type="submit" class="btn btn-primary btn-sm">Atualizar</button>
                         </form>
+                        <!-- Atualizar Senha -->
+                        <form method="post" action="{{ url_for('usuarios.update_password', user_id=u.id) }}" class="d-inline-flex align-items-center gap-2">
+                            <input type="password" name="new_password" class="form-control form-control-sm" placeholder="Nova senha" required>
+                            <button type="submit" class="btn btn-outline-primary btn-sm">Atualizar senha</button>
+                        </form>
+                        <!-- Redefinir Senha -->
+                        <form method="post" action="{{ url_for('usuarios.reset_password', user_id=u.id) }}" class="d-inline">
+                            <button type="submit" class="btn btn-outline-warning btn-sm">Redefinir senha</button>
+                        </form>
                         
-                        <!-- Botão de Excluir (Só aparece se NÃO for o usuário logado) -->
+                        <!-- Exclusão direta com confirmação (não permite excluir a si mesmo) -->
                         {% if u.id != current_user.id %}
-                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalExcluirUser{{ u.id }}">
-                            Excluir
-                        </button>
+                        <form method="post" action="{{ url_for('usuarios.excluir_user', user_id=u.id) }}" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir o usuário {{ u.name }} ({{ u.username }})? Esta ação é irreversível.')">
+                            <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
+                        </form>
                         {% else %}
                         <span class="badge text-bg-warning">Você</span>
                         {% endif %}
@@ -50,6 +60,7 @@
             {% endif %}
         </tbody>
     </table>
+    </div>
 <!-- Modal Novo Usuário (Mantido) -->
 <div class="modal fade" id="modalNovoUsuario">
     <div class="modal-dialog">
@@ -65,9 +76,14 @@
                         <input type="text" name="name" class="form-control" required autofocus>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Senha (edite se quiser)</label>
+                        <label class="form-label fw-bold">Login</label>
+                        <input type="text" name="username" class="form-control" placeholder="ex.: joaosilva">
+                        <div class="form-text">Se deixar vazio, um login será gerado automaticamente.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Senha</label>
                         <input type="text" name="password" class="form-control" value="{{ senha_sugestao }}" required>
-                        <div class="form-text">Login será gerado automaticamente.</div>
+                        <div class="form-text">Defina a senha inicial do usuário.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Nível inicial</label>
@@ -85,30 +101,5 @@
             </div>
         </form>
     </div>
-<!-- Modais de Confirmação de Exclusão (Gerados dentro do loop para cada usuário) -->
-{% for u in users %}
-{% if u.id != current_user.id %}
-<div class="modal fade" id="modalExcluirUser{{ u.id }}" tabindex="-1" aria-labelledby="modalExcluirUserLabel{{ u.id }}" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="modalExcluirUserLabel{{ u.id }}">Confirmar Exclusão</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Tem certeza que deseja excluir o usuário <strong>{{ u.name }}</strong> (Login: {{ u.username }})?</p>
-                <p class="text-danger fw-bold">Esta ação é irreversível.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <!-- Formulário POST para exclusão -->
-                <form method="post" action="{{ url_for('usuarios.excluir_user', user_id=u.id) }}" class="d-inline">
-                    <button type="submit" class="btn btn-danger">Sim, Excluir Usuário</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-{% endfor %}
+<!-- Removido modal: confirmação feita diretamente no envio do formulário -->
 {% endblock %}

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, date
+from zoneinfo import ZoneInfo
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from .. import db
@@ -6,8 +7,20 @@ from ..models import CleaningTask, CleaningHistory
 
 bp = Blueprint('cronograma', __name__)
 
-def calcular_proxima_prevista(ultima_data, frequencia, tipo):
-    hoje = datetime.utcnow().date()
+def calcular_proxima_prevista(ultima_data, frequencia, tipo, nome=None):
+    hoje = datetime.now(ZoneInfo('America/Sao_Paulo')).date()
+    if (nome or '').strip().lower() == 'limpeza da caixa de gordura':
+        base = hoje
+        wd = base.weekday()
+        if wd <= 3:
+            escolhido = base + timedelta(days=(3 - wd))
+        elif wd == 4:
+            escolhido = base
+        else:
+            escolhido = base + timedelta(days=(7 - wd + 3))
+        if escolhido <= ultima_data:
+            escolhido = escolhido + timedelta(days=7)
+        return escolhido
     if frequencia == '15 dias':
         deadline = ultima_data + timedelta(days=15)
         dia = ultima_data + timedelta(days=1)
@@ -49,19 +62,19 @@ def setup_cleaning_tasks():
             ("Limpeza Parcial da Câmara Fria", "15 dias", "Parcial", "Agendar em Terça/Quinta, evitando dias 1–4 do mês."),
             ("Limpeza Geral da Câmara Fria", "40 dias", "Geral", "Higienização completa: chão, paredes, paletes, prateleiras, barras."),
             ("Limpeza de Expositores do Açougue", "Mensal", "Mensal", "Realizar após o expediente uma vez por mês."),
+            ("Limpeza da Caixa de Gordura", "Semanal", "Semanal", "Agendar entre quinta e sexta-feira."),
         ]
         for nome, freq, tipo, obs in tarefas:
             ultima_data = hoje - timedelta(days=1)
-            proxima_data = calcular_proxima_prevista(ultima_data, freq, tipo)
-            new_task = CleaningTask(
-                nome_limpeza=nome,
-                frequencia=freq,
-                tipo=tipo,
-                ultima_data=ultima_data,
-                proxima_data=proxima_data,
-                observacao=obs,
-                designados="Equipe de Limpeza"
-            )
+            proxima_data = calcular_proxima_prevista(ultima_data, freq, tipo, nome)
+            new_task = CleaningTask()
+            new_task.nome_limpeza = nome
+            new_task.frequencia = freq
+            new_task.tipo = tipo
+            new_task.ultima_data = ultima_data
+            new_task.proxima_data = proxima_data
+            new_task.observacao = obs
+            new_task.designados = "Equipe de Limpeza"
             db.session.add(new_task)
         db.session.commit()
 
@@ -93,21 +106,35 @@ def cronograma():
             tarefa.frequencia = novo[1]
             tarefa.tipo = novo[2]
             tarefa.observacao = novo[3]
-            tarefa.proxima_data = calcular_proxima_prevista(tarefa.ultima_data, tarefa.frequencia, tarefa.tipo)
+            tarefa.proxima_data = calcular_proxima_prevista(tarefa.ultima_data, tarefa.frequencia, tarefa.tipo, tarefa.nome_limpeza)
             atualizados = True
     padroes = {
         'Limpeza Parcial da Câmara Fria': ('15 dias', 'Parcial', 'Agendar em Terça/Quinta, evitando dias 1–4 do mês.'),
         'Limpeza Geral da Câmara Fria': ('40 dias', 'Geral', 'Higienização completa: chão, paredes, paletes, prateleiras, barras.'),
         'Limpeza de Expositores do Açougue': ('Mensal', 'Mensal', 'Realizar após o expediente uma vez por mês.'),
+        'Limpeza da Caixa de Gordura': ('Semanal', 'Semanal', 'Agendar entre quinta e sexta-feira.'),
     }
     for nome, defs in padroes.items():
         tarefa = CleaningTask.query.filter_by(nome_limpeza=nome).first()
-        if tarefa and tarefa.frequencia != defs[0]:
-            tarefa.frequencia = defs[0]
-            tarefa.tipo = defs[1]
-            tarefa.observacao = tarefa.observacao or defs[2]
-            tarefa.proxima_data = calcular_proxima_prevista(tarefa.ultima_data, tarefa.frequencia, tarefa.tipo)
+        if not tarefa:
+            hoje = date.today()
+            nova = CleaningTask()
+            nova.nome_limpeza = nome
+            nova.frequencia = defs[0]
+            nova.tipo = defs[1]
+            nova.ultima_data = hoje - timedelta(days=1)
+            nova.proxima_data = calcular_proxima_prevista(nova.ultima_data, nova.frequencia, nova.tipo, nome)
+            nova.observacao = defs[2]
+            nova.designados = 'Equipe de Limpeza'
+            db.session.add(nova)
             atualizados = True
+        else:
+            if tarefa.frequencia != defs[0] or tarefa.tipo != defs[1]:
+                tarefa.frequencia = defs[0]
+                tarefa.tipo = defs[1]
+                tarefa.observacao = tarefa.observacao or defs[2]
+                tarefa.proxima_data = calcular_proxima_prevista(tarefa.ultima_data, tarefa.frequencia, tarefa.tipo, tarefa.nome_limpeza)
+                atualizados = True
     if atualizados:
         db.session.commit()
     tarefas = CleaningTask.query.order_by(CleaningTask.proxima_data.asc()).all()
@@ -117,30 +144,47 @@ def cronograma():
 @bp.route('/cronograma/salvar', methods=['POST'])
 @login_required
 def salvar_cronograma():
-    if current_user.nivel not in ['operador', 'admin']:
-        flash('Você não tem permissão para atualizar o cronograma.', 'danger')
+    if current_user.nivel != 'admin':
+        flash('Apenas Gerente (Admin) pode concluir e atualizar o cronograma.', 'danger')
         return redirect(url_for('cronograma.cronograma'))
     concluir_id = request.form.get('concluir_id')
     if concluir_id:
         try:
             task_id = int(concluir_id)
             tarefa = CleaningTask.query.get_or_404(task_id)
-            observacao = request.form.get(f'obs_{task_id}', '').strip()
-            designados = request.form.get(f'participantes_{task_id}', current_user.name).strip()
-            hist = CleaningHistory(
-                nome_limpeza=tarefa.nome_limpeza,
-                observacao=observacao if observacao else "Sem observações.",
-                designados=designados if designados else current_user.name,
-                usuario_conclusao=current_user.name
-            )
+            observacao = (request.form.get(f'obs_{task_id}', '') or '').strip()
+            designados = (request.form.get(f'participantes_{task_id}', None) or current_user.name or '').strip()
+            hist = CleaningHistory()
+            hist.nome_limpeza = tarefa.nome_limpeza
+            hist.observacao = observacao if observacao else "Sem observações."
+            hist.designados = designados if designados else (current_user.name or '')
+            hist.usuario_conclusao = current_user.name
             db.session.add(hist)
-            tarefa.ultima_data = datetime.utcnow().date()
-            tarefa.proxima_data = calcular_proxima_prevista(tarefa.ultima_data, tarefa.frequencia, tarefa.tipo)
-            tarefa.observacao = None
-            tarefa.designados = None
+            tarefa.ultima_data = datetime.now(ZoneInfo('America/Sao_Paulo')).date()
+            tarefa.proxima_data = calcular_proxima_prevista(tarefa.ultima_data, tarefa.frequencia, tarefa.tipo, tarefa.nome_limpeza)
+            tarefa.observacao = observacao if observacao else tarefa.observacao
+            tarefa.designados = designados if designados else tarefa.designados
             db.session.commit()
             flash(f'Limpeza "{tarefa.nome_limpeza}" marcada como concluída e reagendada para {tarefa.proxima_data.strftime("%d/%m/%Y")}.', 'success')
         except Exception as e:
             db.session.rollback()
             flash(f'Erro ao concluir a tarefa de limpeza: {e}', 'danger')
     return redirect(url_for('cronograma.cronograma'))
+
+@bp.route('/cronograma/changelog')
+@login_required
+def changelog():
+    if current_user.nivel not in ['operador', 'admin']:
+        flash('Acesso negado. Apenas Operadores e Administradores podem visualizar o changelog.', 'danger')
+        return redirect(url_for('estoque.index'))
+    page = request.args.get('page', 1, type=int)
+    hist = CleaningHistory.query.order_by(CleaningHistory.data_conclusao.desc()).paginate(page=page, per_page=10, error_out=False)
+    items = []
+    for h in hist.items:
+        items.append({
+            'data': h.data_conclusao,
+            'tipo': h.nome_limpeza,
+            'observacao': h.observacao,
+            'designados': h.designados,
+        })
+    return render_template('changelog.html', active_page='cronograma', history=hist, items=items)
