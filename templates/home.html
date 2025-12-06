@@ -43,6 +43,22 @@
 <div class="mb-3">
   <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
+      <span>Changelog</span>
+    </div>
+    <div class="card-body">
+      {% if changelog_html and changelog_html|length > 0 %}
+      <div class="changelog-content">{{ changelog_html|safe }}</div>
+      {% else %}
+      <div class="text-muted">Sem alterações registradas</div>
+      {% endif %}
+    </div>
+  </div>
+  
+  </div>
+
+<div class="mb-3">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
       <span><i class="fas fa-database me-2"></i>Status do Banco</span>
       <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('home.index') }}">Atualizar</a>
     </div>
@@ -66,5 +82,6 @@
 
 <style>
   .mural-content { background: #fff3cd; border: 1px solid #ffe69c; border-radius: .5rem; padding: .75rem; box-shadow: 0 0 0 2px rgba(255,193,7,.25) inset; }
+  .changelog-content { background: #e7f5ff; border: 1px solid #a5d8ff; border-radius: .5rem; padding: .75rem; box-shadow: 0 0 0 2px rgba(33,150,243,.25) inset; }
 </style>
 {% endblock %}

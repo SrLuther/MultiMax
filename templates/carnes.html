@@ -291,12 +291,12 @@ function updateSaveState(){
   if (!btn) return;
   const blocks = document.querySelectorAll('.animal-block');
   if (blocks.length === 0) { btn.disabled = true; return; }
-  let ok = true;
+  let anyHasWeight = false;
   blocks.forEach(function(blk){
     const inputs = blk.querySelectorAll('input[name="part_peso_bruto"]');
-    inputs.forEach(function(i){ if (!i.value || parseFloat(i.value) <= 0) ok = false; });
+    inputs.forEach(function(i){ if (i.value && parseFloat(i.value) > 0) anyHasWeight = true; });
   });
-  btn.disabled = !ok;
+  btn.disabled = !anyHasWeight;
 }
 function isAnimalEmpty(blk){
   const pes = blk.querySelectorAll('input[name="part_peso_bruto"]');
