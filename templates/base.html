@@ -450,12 +450,20 @@
 <script>
     (function(){
         if (!('serviceWorker' in navigator)) return;
-        window.addEventListener('load', function(){
+        function canRegister(){
             try {
-                var isTop = (window.top === window.self);
-                var isSecure = (window.isSecureContext === true) || (location.hostname === 'localhost') || (location.hostname === '127.0.0.1');
-                if (!isTop || !isSecure) return;
-                navigator.serviceWorker.register("{{ url_for('static', filename='service-worker.js') }}");
+                if (window.top !== window.self) return false;
+                var protoOk = (location.protocol === 'https:') || (location.hostname === 'localhost') || (location.hostname === '127.0.0.1');
+                if (!protoOk) return false;
+                if (document.visibilityState === 'prerender') return false;
+                return true;
+            } catch(_) { return false; }
+        }
+        window.addEventListener('load', function(){
+            if (!canRegister()) return;
+            try {
+                var swUrl = new URL("{{ url_for('static', filename='service-worker.js') }}", location.href).toString();
+                navigator.serviceWorker.register(swUrl);
             } catch(_) {}
         });
     })();
