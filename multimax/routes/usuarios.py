@@ -27,13 +27,13 @@ def users():
         nivel = request.form.get('nivel', 'visualizador').strip()
         if not name or not password:
             flash('Nome e senha são obrigatórios.', 'warning')
-            return redirect(url_for('usuarios.users'))
+            return redirect(url_for('usuarios.gestao'))
         if username_input:
             base_username = ''.join(ch for ch in username_input.lower() if ch.isalnum()) or 'user'
             username = base_username
             if User.query.filter_by(username=username).first() is not None:
                 flash('Login já existe. Escolha outro.', 'danger')
-                return redirect(url_for('usuarios.users'))
+                return redirect(url_for('usuarios.gestao'))
         else:
             base_username = ''.join(ch for ch in name.lower() if ch.isalnum()) or 'user'
             username = base_username
@@ -59,10 +59,8 @@ def users():
         except Exception as e:
             db.session.rollback()
             flash(f'Erro ao criar usuário: {e}', 'danger')
-        return redirect(url_for('usuarios.users'))
-    all_users: list[User] = User.query.all()
-    senha_sugestao = '123456'
-    return render_template('users.html', users=all_users, active_page='users', senha_sugestao=senha_sugestao)
+        return redirect(url_for('usuarios.gestao'))
+    return redirect(url_for('usuarios.gestao'))
 
 
 @bp.route('/users/<int:user_id>/senha', methods=['POST'])
@@ -89,7 +87,7 @@ def update_password(user_id):
     except Exception as e:
         db.session.rollback()
         flash(f'Erro ao atualizar senha: {e}', 'danger')
-    return redirect(url_for('usuarios.users'))
+    return redirect(url_for('usuarios.gestao'))
 
 @bp.route('/users/<int:user_id>/reset_senha', methods=['POST'])
 @login_required
@@ -124,7 +122,7 @@ def update_level(user_id):
     nivel = request.form.get('nivel', 'visualizador').strip()
     if nivel not in ('visualizador', 'operador', 'admin'):
         flash('Nível inválido.', 'warning')
-        return redirect(url_for('usuarios.users'))
+        return redirect(url_for('usuarios.gestao'))
     try:
         user.nivel = nivel
         log = SystemLog()
@@ -138,7 +136,7 @@ def update_level(user_id):
     except Exception as e:
         db.session.rollback()
         flash(f'Erro ao atualizar nível: {e}', 'danger')
-    return redirect(url_for('usuarios.users'))
+    return redirect(url_for('usuarios.gestao'))
 
 @bp.route('/users/<int:user_id>/excluir', methods=['POST'])
 @login_required
@@ -169,58 +167,9 @@ def excluir_user(user_id):
 @login_required
 def monitor():
     if current_user.nivel != 'admin':
-        flash('Acesso negado. Apenas Administradores podem acessar o Monitor.', 'danger')
+        flash('Acesso negado. Apenas Administradores.', 'danger')
         return redirect(url_for('estoque.index'))
-    port = int(os.getenv('PORT', '5000'))
-    ip = None
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('8.8.8.8', 80))
-        ip = s.getsockname()[0]
-        s.close()
-    except Exception:
-        ip = request.host.split(':')[0]
-    url = f"http://{ip}:{port}"
-    img = qrcode.make(url)
-    buf = BytesIO()
-    img.save(buf, 'PNG')
-    b64 = base64.b64encode(buf.getvalue()).decode('ascii')
-    hist_estoque = Historico.query.order_by(Historico.data.desc()).limit(50).all()
-    hist_limpeza = CleaningHistory.query.order_by(CleaningHistory.data_conclusao.desc()).limit(50).all()
-    hist_sistema = SystemLog.query.order_by(SystemLog.data.desc()).limit(50).all()
-    logs = []
-    for h in hist_estoque:
-        logs.append({
-            'data': h.data,
-            'origem': 'Estoque',
-            'evento': h.action,
-            'detalhes': h.details,
-            'usuario': h.usuario,
-            'produto': h.product_name,
-            'quantidade': h.quantidade,
-        })
-    for h in hist_limpeza:
-        logs.append({
-            'data': h.data_conclusao,
-            'origem': 'Limpeza',
-            'evento': 'conclusao',
-            'detalhes': h.observacao,
-            'usuario': h.usuario_conclusao,
-            'produto': h.nome_limpeza,
-            'quantidade': None,
-        })
-    for s in hist_sistema:
-        logs.append({
-            'data': s.data,
-            'origem': s.origem,
-            'evento': s.evento,
-            'detalhes': s.detalhes,
-            'usuario': s.usuario,
-            'produto': None,
-            'quantidade': None,
-        })
-    logs.sort(key=lambda x: x['data'], reverse=True)
-    return render_template('monitor.html', active_page='monitor', url=url, qr_base64=b64, logs=logs)
+    return redirect(url_for('usuarios.gestao'))
 
 @bp.route('/notifications/read')
 @login_required
@@ -356,6 +305,8 @@ def gestao():
     if current_user.nivel != 'admin':
         flash('Acesso negado. Apenas Administradores.', 'danger')
         return redirect(url_for('estoque.index'))
+    q = (request.args.get('q') or '').strip()
+    # Gerar QR do endereço de acesso (não exibimos o texto, apenas o QR)
     port = int(os.getenv('PORT', '5000'))
     ip = None
     try:
@@ -369,7 +320,17 @@ def gestao():
     img = qrcode.make(url)
     buf = BytesIO()
     img.save(buf, 'PNG')
-    b64 = base64.b64encode(buf.getvalue()).decode('ascii')
+    qr_base64 = base64.b64encode(buf.getvalue()).decode('ascii')
+    try:
+        u_page = int(request.args.get('u_page', '1'))
+    except Exception:
+        u_page = 1
+    try:
+        l_page = int(request.args.get('l_page', '1'))
+    except Exception:
+        l_page = 1
+    if u_page < 1: u_page = 1
+    if l_page < 1: l_page = 1
     hist_estoque = Historico.query.order_by(Historico.data.desc()).limit(50).all()
     hist_limpeza = CleaningHistory.query.order_by(CleaningHistory.data_conclusao.desc()).limit(50).all()
     hist_sistema = SystemLog.query.order_by(SystemLog.data.desc()).limit(50).all()
@@ -381,10 +342,47 @@ def gestao():
     for s in hist_sistema:
         logs.append({'data': s.data, 'origem': s.origem, 'evento': s.evento, 'detalhes': s.detalhes, 'usuario': s.usuario, 'produto': None, 'quantidade': None})
     logs.sort(key=lambda x: x['data'], reverse=True)
-    all_users: list[User] = User.query.all()
+    # Busca e paginação de usuários
+    uq = User.query
+    if q:
+        uq = uq.filter(User.name.ilike(f"%{q}%"))
+    all_users: list[User] = uq.order_by(User.username.asc()).all()
+    per_users = 5
+    total_users = len(all_users)
+    u_total_pages = max(1, (total_users + per_users - 1) // per_users)
+    if u_page > u_total_pages:
+        u_page = u_total_pages
+    u_start = (u_page - 1) * per_users
+    u_end = u_start + per_users
+    users_page = all_users[u_start:u_end]
+
+    # Paginação de logs
+    per_logs = 10
+    total_logs = len(logs)
+    l_total_pages = max(1, (total_logs + per_logs - 1) // per_logs)
+    if l_page > l_total_pages:
+        l_page = l_total_pages
+    l_start = (l_page - 1) * per_logs
+    l_end = l_start + per_logs
+    logs_page = logs[l_start:l_end]
+
     senha_sugestao = '123456'
     roles = JobRole.query.order_by(JobRole.name.asc()).all()
-    return render_template('gestao.html', active_page='gestao', url=url, qr_base64=b64, logs=logs, users=all_users, senha_sugestao=senha_sugestao, roles=roles)
+    # Removido endereço de acesso (url/qr), mantendo somente dados necessários
+    return render_template(
+        'gestao.html',
+        active_page='gestao',
+        logs_page=logs_page,
+        l_page=l_page,
+        l_total_pages=l_total_pages,
+        users_page=users_page,
+        u_page=u_page,
+        u_total_pages=u_total_pages,
+        q=q,
+        senha_sugestao=senha_sugestao,
+        roles=roles,
+        qr_base64=qr_base64
+    )
 
 @bp.route('/gestao/roles', methods=['POST'])
 @login_required

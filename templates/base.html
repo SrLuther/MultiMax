@@ -16,6 +16,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="MultiMax">
     <meta name="theme-color" content="#198754">
+    <meta name="description" content="MultiMax - Gestão Amora">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
     <script>
@@ -278,6 +279,11 @@
                         {% endif %}
                     </ul>
                 </li>
+                {% if current_user.is_authenticated and current_user.nivel == 'admin' %}
+                <li class="nav-item me-2">
+                    <a class="nav-link {% if active_page == 'gestao' %}active{% endif %} text-white" href="{{ url_for('usuarios.gestao') }}">Gestão</a>
+                </li>
+                {% endif %}
                 
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -318,8 +324,7 @@
       {% endif %}
       
       {% if current_user.nivel == 'admin' %}
-      <a class="list-group-item list-group-item-action {% if active_page == 'monitor' %}active{% endif %}" href="{{ url_for('usuarios.monitor') }}"><i class="fas fa-desktop me-2"></i>Monitor</a>
-      <a class="list-group-item list-group-item-action {% if active_page == 'users' %}active{% endif %}" href="{{ url_for('usuarios.users') }}"><i class="fas fa-users-cog me-2"></i>Usuários</a>
+      <a class="list-group-item list-group-item-action {% if active_page == 'gestao' %}active{% endif %}" href="{{ url_for('usuarios.gestao') }}"><i class="fas fa-gears me-2"></i>Gestão</a>
       {% endif %}
     </div>
   </div>
@@ -344,8 +349,7 @@
                 {% endif %}
                 
                 {% if current_user.nivel == 'admin' %}
-                <a class="list-group-item list-group-item-action {% if active_page == 'monitor' %}active{% endif %}" href="{{ url_for('usuarios.monitor') }}"><i class="fas fa-desktop me-2"></i>Monitor</a>
-                <a class="list-group-item list-group-item-action {% if active_page == 'users' %}active{% endif %}" href="{{ url_for('usuarios.users') }}"><i class="fas fa-users-cog me-2"></i>Usuários</a>
+                <a class="list-group-item list-group-item-action {% if active_page == 'gestao' %}active{% endif %}" href="{{ url_for('usuarios.gestao') }}"><i class="fas fa-gears me-2"></i>Gestão</a>
                 {% endif %}
             </div>
             
@@ -392,6 +396,13 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=YOUR_TRACKING_ID"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'YOUR_TRACKING_ID');
+</script>
 <script>
     // Função para manter a data e hora atualizadas
     function updateDateTime() {
