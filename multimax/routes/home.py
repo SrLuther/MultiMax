@@ -55,7 +55,7 @@ def index():
             events.append({
                 'title': f"📦 {t}: {h.product_name} {sign}{qty}",
                 'start': (h.data or datetime.utcnow()).isoformat(),
-                'color': '#0d6efd',
+                'color': '#198754',
                 'url': url_for('estoque.editar', id=h.product_id) if h.product_id else None,
             })
     except Exception:
@@ -109,7 +109,7 @@ def index():
                 events.append({
                     'title': f"EQUIPE ABERTURA '{open_team}'",
                     'start': d.strftime('%Y-%m-%d'),
-                    'color': '#0d6efd',
+                    'color': '#198754',
                     'url': url_for('colaboradores.escala'),
                     'kind': 'rodizio-open',
                     'team': open_team,
@@ -117,7 +117,7 @@ def index():
                 events.append({
                     'title': f"EQUIPE FECHAMENTO '{close_team}'",
                     'start': d.strftime('%Y-%m-%d'),
-                    'color': '#0b5ed7',
+                    'color': '#157347',
                     'url': url_for('colaboradores.escala'),
                     'kind': 'rodizio-close',
                     'team': close_team,

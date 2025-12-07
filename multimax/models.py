@@ -69,6 +69,7 @@ class MeatReception(db.Model):
     fornecedor = db.Column(db.String(100), nullable=False)
     tipo = db.Column(db.String(10), nullable=False)
     observacao = db.Column(db.String(255))
+    reference_code = db.Column(db.String(32), unique=True)
     peso_nota = db.Column(db.Float)
     peso_frango = db.Column(db.Float)
     recebedor_id = db.Column(db.Integer, db.ForeignKey('user.id'))

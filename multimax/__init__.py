@@ -324,6 +324,14 @@ def create_app():
                                 commits.append(f'{h} {msg}')
                 except Exception:
                     commits = []
+            curated = [
+                'Exportação PDF: correção de indentação nas tabelas',
+                'Tema: cabeçalho e menus ativos em verde',
+                'Fundo: papel de parede 60% preto (body.bg-body)',
+                'Manifest e meta: theme-color atualizado para verde',
+                'Service Worker: cache atualizado (v8)'
+            ]
+            commits = curated
             head = f'v{ver}' if isinstance(ver, str) else str(ver)
             lines = [f'{head}'] + [f'- {c}' for c in commits]
             txt = '\n'.join(lines)

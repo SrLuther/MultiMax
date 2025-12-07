@@ -83,7 +83,7 @@ def exportar_cronograma_pdf():
             ])
         table = Table(data, colWidths=[2*inch, 0.8*inch, 1*inch, 1*inch, 1.5*inch, 2.5*inch])
         table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#007bff')),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#198754')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -131,6 +131,42 @@ def exportar_cronograma_pdf():
 def exportar_tarefa_pdf(id):
     if current_user.nivel not in ['operador', 'admin']:
         flash('Você não tem permissão para exportar tarefas.', 'danger')
+        return redirect(url_for('cronograma.cronograma'))
+
+@bp.route('/exportar/limpeza/historico/<int:id>.pdf')
+@login_required
+def exportar_historico_limpeza_pdf(id):
+    if current_user.nivel not in ['operador', 'admin']:
+        flash('Você não tem permissão para exportar histórico de limpezas.', 'danger')
+        return redirect(url_for('cronograma.cronograma'))
+    try:
+        h = CleaningHistory.query.get_or_404(id)
+        pdf_buffer = BytesIO()
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
+        styles = getSampleStyleSheet()
+        story: list[Any] = []
+        story.append(Paragraph('<b>MultiMax - Histórico de Limpeza</b>', styles['Title']))
+        story.append(Spacer(1, 0.2 * inch))
+        story.append(Paragraph(f"Data: {h.data_conclusao.strftime('%d/%m/%Y %H:%M')}", styles['Normal']))
+        story.append(Paragraph(f"Tipo: {h.nome_limpeza}", styles['Normal']))
+        story.append(Paragraph(f"Realizado por: {h.designados or h.usuario_conclusao or '-'}", styles['Normal']))
+        if h.observacao:
+            story.append(Paragraph(f"Observação: {h.observacao}", styles['Normal']))
+        def footer_on_page(canvas, doc):
+            canvas.saveState()
+            canvas.setFont('Helvetica', 8)
+            footer_text = f"Página {canvas.getPageNumber()} | MultiMax Histórico | {_now_br().strftime('%d/%m/%Y %H:%M:%S')}"
+            canvas.drawString(inch, 0.5 * inch, footer_text)
+            canvas.restoreState()
+        def on_page(canvas, doc):
+            _brand_header(canvas, doc)
+            footer_on_page(canvas, doc)
+        doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
+        pdf_buffer.seek(0)
+        filename = f"historico_{id}.pdf"
+        return send_file(pdf_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+    except Exception as e:
+        flash(f'Erro ao gerar PDF do histórico: {e}', 'danger')
         return redirect(url_for('cronograma.cronograma'))
     try:
         tarefa = CleaningTask.query.get_or_404(id)
@@ -267,7 +303,7 @@ def exportar():
             colWidths=[code_col_width, product_col_width, estoque_in*inch, minimo_in*inch, custo_in*inch, venda_in*inch, status_in*inch]
         )
         table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#007bff')),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#198754')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('ALIGN', (1, 0), (1, -1), 'LEFT'),
@@ -363,7 +399,7 @@ def exportar_graficos_produto(id):
                 e_vals = [int(v or 0) for v in (entradas or [])]
                 s_vals = [int(v or 0) for v in (saidas or [])]
                 w = 0.4
-                ax.bar([i - w/2 for i in x], e_vals, width=w, label='Entradas', color='#0d6efd')
+                ax.bar([i - w/2 for i in x], e_vals, width=w, label='Entradas', color='#198754')
                 ax.bar([i + w/2 for i in x], s_vals, width=w, label='Saídas', color='#dc3545')
                 ax.set_xticks(x)
                 ax.set_xticklabels(labels or [], rotation=45, ha='right')
