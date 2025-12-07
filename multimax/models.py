@@ -105,6 +105,7 @@ class Collaborator(db.Model):
     regular_team = db.Column(db.String(1))
     sunday_team = db.Column(db.String(1))
     special_team = db.Column(db.String(1))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
 class Shift(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -129,3 +130,9 @@ class HourBankEntry(db.Model):
     date = db.Column(db.Date, nullable=False)
     hours = db.Column(db.Float, nullable=False)
     reason = db.Column(db.String(255))
+
+class JobRole(db.Model):
+    __tablename__ = 'job_role'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    nivel = db.Column(db.String(20), nullable=False)

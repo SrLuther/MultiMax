@@ -51,10 +51,12 @@
             flex-grow: 1;
         }
         .footer-fixed {
-            position: sticky;
+            position: fixed;
             bottom: 0;
+            left: 0;
+            right: 0;
             width: 100%;
-            z-index: 1000;
+            z-index: 1100;
         }
         .theme-fab {
             position: fixed;
@@ -123,6 +125,27 @@
         body.bg-body { background: #666666; }
         .loading-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.25); z-index: 5000; }
         .loading-overlay.show { display: flex; }
+        .version-green { color: var(--bs-success) !important; }
+        nav.navbar { position: fixed; top: 0; left: 0; right: 0; z-index: 1100; }
+        .offcanvas, .offcanvas-start, .offcanvas-end, .offcanvas-top, .offcanvas-bottom { z-index: 1300 !important; height: 100vh; }
+        .offcanvas-backdrop { z-index: 1250 !important; }
+        .offcanvas-body { overflow-y: auto; }
+        .footer-fixed { padding: 4px 8px !important; }
+        .footer-fixed .container-fluid small { font-size: 7px; line-height: 1.1; }
+        @media (max-width: 768px) {
+            .navbar .mobile-user-menu { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; height: 56px; }
+            .navbar .mobile-user-menu .btn { padding: 2px 8px; font-size: 0.75rem; }
+            .navbar .mobile-right { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 56px; flex: 1; }
+            .navbar .mobile-user-stack { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; line-height: 1; }
+            .navbar .mobile-user-stack .btn { padding: 2px 8px; font-size: 0.75rem; margin-top: 2px; }
+            .navbar .mobile-bell { margin-left: auto; }
+        }
+        @media (max-width: 768px) {
+            .navbar .brand-text { display: flex; flex-direction: column; justify-content: center; height: 56px; }
+            .navbar .brand-line { flex: 1; display: flex; align-items: center; line-height: 1; }
+            .navbar .brand-title { font-weight: 700; font-size: 1.05rem; color: #fff; }
+            .navbar .brand-subtitle { font-size: 0.85rem; color: #fff; }
+        }
     </style>
     
 </head>
@@ -133,16 +156,20 @@
     <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center" href="{{ url_for('home.index') }}">
             <span class="brand-tile"><img class="brand-logo-img logo-shadow" src="{{ url_for('static', filename='icons/logo-user.png') }}?v=6" alt="MultiMax"></span>
-            <span class="ms-2 text-white fw-bold fs-4">MultiMax</span>
-            <span class="ms-2 text-white">— Gestão Amora</span>
+            <span class="ms-2 brand-text">
+                <span class="brand-line brand-title">MultiMax</span>
+                <span class="brand-line brand-subtitle">Gestão Amora</span>
+            </span>
         </a>
-        <button class="btn btn-sm btn-outline-light d-md-none ms-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMobile" aria-controls="sidebarMobile">
-            <span class="fw-bold">MENU</span>
-        </button>
-        <span class="d-inline-block d-md-none ms-2 small text-white">{{ current_user.is_authenticated and current_user.name }}</span>
         <div class="d-none d-md-block text-white fw-semibold mx-auto"></div>
-        <div class="d-md-none ms-2">
-            <a class="nav-link text-white position-relative" href="#" id="notifDropdownMobile" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <div class="d-md-none ms-2 mobile-right">
+            <div class="mobile-user-stack">
+                <span class="small text-white">{{ current_user.is_authenticated and current_user.name }}</span>
+                <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMobile" aria-controls="sidebarMobile">
+                    <span class="fw-bold">MENU</span>
+                </button>
+            </div>
+            <a class="nav-link text-white position-relative mobile-bell" href="#" id="notifDropdownMobile" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="fas fa-bell"></i>
                 {% if notif_count and notif_count > 0 %}
                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ notif_count }}</span>
@@ -257,6 +284,7 @@
                         <i class="fas fa-user-circle me-1"></i> {{ current_user.name }} ({{ current_user.nivel | upper }})
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                        <li><a class="dropdown-item" href="{{ url_for('usuarios.perfil') }}"><i class="fas fa-id-badge me-1"></i> Perfil</a></li>
                         <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-1"></i> Sair</a></li>
                     </ul>
                 </li>
@@ -276,6 +304,9 @@
       <a class="list-group-item list-group-item-action" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Sair</a>
       {% else %}
       <a class="list-group-item list-group-item-action" href="{{ url_for('auth.login') }}"><i class="fas fa-sign-in-alt me-2"></i>Entrar</a>
+      {% endif %}
+      {% if current_user.is_authenticated %}
+      <a class="list-group-item list-group-item-action {% if active_page == 'perfil' %}active{% endif %}" href="{{ url_for('usuarios.perfil') }}"><i class="fas fa-id-badge me-2"></i>Perfil</a>
       {% endif %}
       <a class="list-group-item list-group-item-action {% if active_page == 'home' %}active{% endif %}" href="{{ url_for('home.index') }}"><i class="fas fa-house me-2"></i>Home</a>
       <a class="list-group-item list-group-item-action {% if active_page == 'index' %}active{% endif %}" href="{{ url_for('estoque.index') }}"><i class="fas fa-boxes me-2"></i>Estoque</a>
@@ -298,6 +329,9 @@
     <div class="row">
         <aside class="d-none d-md-block col-md-3 col-lg-2 mb-3 mb-md-0">
             <div class="list-group">
+                {% if current_user.is_authenticated %}
+                <a class="list-group-item list-group-item-action {% if active_page == 'perfil' %}active{% endif %}" href="{{ url_for('usuarios.perfil') }}"><i class="fas fa-id-badge me-2"></i>Perfil</a>
+                {% endif %}
                 <a class="list-group-item list-group-item-action {% if active_page == 'home' %}active{% endif %}" href="{{ url_for('home.index') }}"><i class="fas fa-house me-2"></i>Home</a>
                 <a class="list-group-item list-group-item-action {% if active_page == 'index' %}active{% endif %}" href="{{ url_for('estoque.index') }}"><i class="fas fa-boxes me-2"></i>Estoque</a>
                 {% if current_user.nivel in ('operador', 'admin') %}
@@ -346,7 +380,7 @@
     <div class="container-fluid d-flex justify-content-between align-items-center">
         <div class="d-flex flex-column align-items-start">
             <small>© 2025 MultiMax</small>
-            <small>Gestão Amora v{{ git_version }}</small>
+            <small>Gestão Amora <span class="version-green">v{{ git_version }}</span></small>
         </div>
         <div class="d-flex flex-column align-items-end text-end">
             <small id="current-date"></small>
@@ -380,13 +414,40 @@
     updateDateTime();
     setInterval(updateDateTime, 1000);
 </script>
+<script>
+    (function(){
+        function adjustPadding(){
+            var header = document.querySelector('nav.navbar');
+            var footer = document.querySelector('footer.footer-fixed');
+            var content = document.querySelector('.content-wrapper');
+            if(!header || !footer || !content) return;
+            var hh = header.offsetHeight || 0;
+            var fh = footer.offsetHeight || 0;
+            content.style.paddingTop = hh + 'px';
+            content.style.paddingBottom = fh + 'px';
+            var offbodies = document.querySelectorAll('.offcanvas .offcanvas-body');
+            for(var i=0;i<offbodies.length;i++){
+                offbodies[i].style.paddingTop = hh + 'px';
+                offbodies[i].style.paddingBottom = fh + 'px';
+            }
+        }
+        window.addEventListener('load', adjustPadding);
+        window.addEventListener('resize', adjustPadding);
+    })();
+</script>
  
 <script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-            navigator.serviceWorker.register("{{ url_for('static', filename='service-worker.js') }}");
+    (function(){
+        if (!('serviceWorker' in navigator)) return;
+        window.addEventListener('load', function(){
+            try {
+                var isTop = (window.top === window.self);
+                var isSecure = (window.isSecureContext === true) || (location.hostname === 'localhost') || (location.hostname === '127.0.0.1');
+                if (!isTop || !isSecure) return;
+                navigator.serviceWorker.register("{{ url_for('static', filename='service-worker.js') }}");
+            } catch(_) {}
         });
-    }
+    })();
 </script>
 <script>
     (function(){
