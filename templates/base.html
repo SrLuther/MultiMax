@@ -15,7 +15,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="MultiMax">
-    <meta name="theme-color" content="#0d6efd">
+    <meta name="theme-color" content="#198754">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
     <script>
@@ -35,10 +35,10 @@
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+                background: linear-gradient(135deg, #198754, #157347);
                 border-radius: 12px;
                 padding: 4px;
-                box-shadow: 0 4px 12px rgba(13,110,253,0.35);
+                box-shadow: 0 4px 12px rgba(25,135,84,0.35);
             }
             .brand-logo-img { height: 56px; display: block; }
         /* Estilo para garantir que o rodapé fique sempre na parte inferior da tela */
@@ -66,11 +66,19 @@
             .theme-fab { top: 12px; right: 12px; bottom: auto; }
         }
         :root[data-bs-theme="light"] {
-            --bs-body-bg: #ffffff;
-            --bs-body-color: #000000;
+            --mm-bg: #e9ecef;
+            --mm-surface: #eef1ef;
+            --mm-card-bg: #ffffff;
+            --bs-body-bg: var(--mm-bg);
+            --bs-body-color: #111111;
             --bs-heading-color: #000000;
-            --bs-secondary-color: #000000;
-            --bs-tertiary-color: #000000;
+            --bs-secondary-color: #4a4a4a;
+            --bs-tertiary-color: #6e6e6e;
+            --bs-primary: #198754;
+            --bs-primary-rgb: 25,135,84;
+            --bs-success: #198754;
+            --bs-danger: #cc1f1a;
+            --bs-warning: #d97706;
         }
         :root[data-bs-theme="dark"] {
             --bs-body-bg: #2b2b2b;
@@ -80,9 +88,9 @@
             --bs-tertiary-color: #ffffff;
         }
         [data-bs-theme="dark"] .text-muted { color: #e6e6e6 !important; }
-        .content-wrapper .bg-white, .content-wrapper .bg-light, .content-wrapper .table-light, .content-wrapper .modal-content { color: #000 !important; }
-        .content-wrapper .bg-white .form-control::placeholder, .content-wrapper .bg-light .form-control::placeholder, .content-wrapper .modal-content .form-control::placeholder { color: #000 !important; opacity: 0.7; }
-        .content-wrapper .bg-white .form-select option, .content-wrapper .bg-light .form-select option, .content-wrapper .modal-content .form-select option { color: #000; }
+        .content-wrapper .bg-white, .content-wrapper .bg-light, .content-wrapper .table-light, .content-wrapper .modal-content { color: #1f2937 !important; }
+        .content-wrapper .bg-white .form-control::placeholder, .content-wrapper .bg-light .form-control::placeholder, .content-wrapper .modal-content .form-control::placeholder { color: #6b7280 !important; opacity: 0.8; }
+        .content-wrapper .bg-white .form-select option, .content-wrapper .bg-light .form-select option, .content-wrapper .modal-content .form-select option { color: #1f2937; }
         [data-bs-theme="dark"] .content-wrapper .bg-dark,
         [data-bs-theme="dark"] .content-wrapper .text-bg-dark,
         [data-bs-theme="dark"] .content-wrapper .table-dark,
@@ -90,22 +98,29 @@
         [data-bs-theme="dark"] .content-wrapper .bg-dark .form-control::placeholder,
         [data-bs-theme="dark"] .content-wrapper .text-bg-dark .form-control::placeholder,
         [data-bs-theme="dark"] .content-wrapper .card:not(.bg-white):not(.bg-light) .form-control::placeholder { color: #fff !important; opacity: 0.7; }
-        .modal-content { background-color: #f4f4f5 !important; color: #000 !important; }
-        .modal-header, .modal-body, .modal-footer { background-color: #f4f4f5 !important; color: #000 !important; }
-        .modal-header .modal-title { color: #000 !important; }
-        .modal .form-label, .modal .form-control, .modal .form-select, .modal .form-text, .modal .text-muted, .modal label, .modal .small { color: #000 !important; }
-        .modal .form-control::placeholder { color: #000 !important; opacity: 0.7; }
+        .modal-content { background-color: var(--mm-surface) !important; color: #1f2937 !important; }
+        .modal-header, .modal-body, .modal-footer { background-color: var(--mm-surface) !important; color: #1f2937 !important; }
+        .modal-header .modal-title { color: #111827 !important; }
+        .modal .form-label, .modal .form-control, .modal .form-select, .modal .form-text, .modal .text-muted, .modal label, .modal .small { color: #1f2937 !important; }
+        .modal .form-control::placeholder { color: #6b7280 !important; opacity: 0.8; }
         .modal .btn-close { filter: none; }
-        form[data-bs-theme="light"] { background-color: #ffffff !important; color: #000000 !important; }
+        form[data-bs-theme="light"] { background-color: var(--mm-card-bg) !important; color: #1f2937 !important; }
         form[data-bs-theme="light"] .form-label,
         form[data-bs-theme="light"] .form-control,
         form[data-bs-theme="light"] .form-select,
         form[data-bs-theme="light"] .form-text,
         form[data-bs-theme="light"] .text-muted,
         form[data-bs-theme="light"] label,
-        form[data-bs-theme="light"] .small { color: #000000 !important; }
-        form[data-bs-theme="light"] .form-control::placeholder { color: #000000 !important; opacity: 0.7; }
-        form[data-bs-theme="light"] .form-select option { color: #000000 !important; }
+        form[data-bs-theme="light"] .small { color: #1f2937 !important; }
+        form[data-bs-theme="light"] .form-control::placeholder { color: #6b7280 !important; opacity: 0.8; }
+        form[data-bs-theme="light"] .form-select option { color: #1f2937 !important; }
+        .card { background-color: var(--mm-card-bg); border: 1px solid #e5e7eb; box-shadow: 0 6px 18px rgba(17,24,39,.06); }
+        .table-dark { background-color: #111111; }
+        .table-striped tbody tr:nth-of-type(odd) { background-color: #f3f3f3; }
+        .alert { border: 1px solid #e5e7eb; }
+        .list-group-item.active { background-color: #198754; border-color: #157347; color: #fff; }
+        .navbar .nav-link.active { color: #fff; border-bottom: 2px solid #198754; }
+        body.bg-body { background: #666666; }
         .loading-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.25); z-index: 5000; }
         .loading-overlay.show { display: flex; }
     </style>
@@ -270,7 +285,7 @@
       <a class="list-group-item list-group-item-action {% if active_page == 'colaboradores' %}active{% endif %}" href="{{ url_for('colaboradores.index') }}"><i class="fas fa-user-friends me-2"></i>Colaboradores</a>
       <a class="list-group-item list-group-item-action {% if active_page == 'escala' %}active{% endif %}" href="{{ url_for('colaboradores.escala') }}"><i class="fas fa-calendar-alt me-2"></i>Escalas</a>
       {% endif %}
-      <a class="list-group-item list-group-item-action {% if active_page == 'graficos' %}active{% endif %}" href="{{ url_for('usuarios.graficos') }}"><i class="fas fa-chart-bar me-2"></i>Gráficos</a>
+      
       {% if current_user.nivel == 'admin' %}
       <a class="list-group-item list-group-item-action {% if active_page == 'monitor' %}active{% endif %}" href="{{ url_for('usuarios.monitor') }}"><i class="fas fa-desktop me-2"></i>Monitor</a>
       <a class="list-group-item list-group-item-action {% if active_page == 'users' %}active{% endif %}" href="{{ url_for('usuarios.users') }}"><i class="fas fa-users-cog me-2"></i>Usuários</a>
@@ -293,7 +308,7 @@
                 <a class="list-group-item list-group-item-action {% if active_page == 'colaboradores' %}active{% endif %}" href="{{ url_for('colaboradores.index') }}"><i class="fas fa-user-friends me-2"></i>Colaboradores</a>
                 <a class="list-group-item list-group-item-action {% if active_page == 'escala' %}active{% endif %}" href="{{ url_for('colaboradores.escala') }}"><i class="fas fa-calendar-alt me-2"></i>Escalas</a>
                 {% endif %}
-                <a class="list-group-item list-group-item-action {% if active_page == 'graficos' %}active{% endif %}" href="{{ url_for('usuarios.graficos') }}"><i class="fas fa-chart-bar me-2"></i>Gráficos</a>
+                
                 {% if current_user.nivel == 'admin' %}
                 <a class="list-group-item list-group-item-action {% if active_page == 'monitor' %}active{% endif %}" href="{{ url_for('usuarios.monitor') }}"><i class="fas fa-desktop me-2"></i>Monitor</a>
                 <a class="list-group-item list-group-item-action {% if active_page == 'users' %}active{% endif %}" href="{{ url_for('usuarios.users') }}"><i class="fas fa-users-cog me-2"></i>Usuários</a>

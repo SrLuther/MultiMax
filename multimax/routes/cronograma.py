@@ -9,35 +9,88 @@ bp = Blueprint('cronograma', __name__)
 
 def calcular_proxima_prevista(ultima_data, frequencia, tipo, nome=None):
     hoje = datetime.now(ZoneInfo('America/Sao_Paulo')).date()
+    def aplicar_regras(d):
+        motivos = []
+        cur = d
+        if cur.day in (1,2,3,4):
+            motivos.append('Ajuste: início do mês (1–4)')
+            while cur.day in (1,2,3,4):
+                cur = cur + timedelta(days=1)
+        if cur.weekday() not in (1,2,3,4):
+            motivos.append('Ajuste: fora de terça–sexta')
+            while cur.weekday() not in (1,2,3,4):
+                cur = cur + timedelta(days=1)
+        return cur, ', '.join(motivos)
+    base = None
     if (nome or '').strip().lower() == 'limpeza da caixa de gordura':
-        base = hoje
-        wd = base.weekday()
+        b = hoje
+        wd = b.weekday()
         if wd <= 3:
-            escolhido = base + timedelta(days=(3 - wd))
+            base = b + timedelta(days=(3 - wd))
         elif wd == 4:
-            escolhido = base
+            base = b
         else:
-            escolhido = base + timedelta(days=(7 - wd + 3))
-        if escolhido <= ultima_data:
-            escolhido = escolhido + timedelta(days=7)
-        return escolhido
+            base = b + timedelta(days=(7 - wd + 3))
+        if base <= ultima_data:
+            base = base + timedelta(days=7)
+        ajustada, _mot = aplicar_regras(base)
+        return ajustada
+    if isinstance(frequencia, str) and frequencia.lower().startswith('personalizada'):
+        try:
+            num = int(''.join([c for c in frequencia if c.isdigit()]))
+        except Exception:
+            num = 1
+        base = ultima_data + timedelta(days=max(1, num))
+        ajustada, _mot = aplicar_regras(base)
+        return ajustada
     if frequencia == '15 dias':
-        deadline = ultima_data + timedelta(days=15)
-        dia = ultima_data + timedelta(days=1)
-        escolhido = None
-        while dia <= deadline:
-            if dia.weekday() in (1, 3) and dia.day not in (1, 2, 3, 4):
-                escolhido = dia
-                break
-            dia += timedelta(days=1)
-        if escolhido:
-            return escolhido
-        retro = deadline
-        while retro >= ultima_data:
-            if retro.weekday() in (1, 3) and retro.day not in (1, 2, 3, 4):
-                return retro
-            retro -= timedelta(days=1)
-        return deadline
+        base = ultima_data + timedelta(days=15)
+        ajustada, _mot = aplicar_regras(base)
+        return ajustada if ajustada > hoje else aplicar_regras(hoje + timedelta(days=1))[0]
+    if frequencia == '40 dias':
+        base = ultima_data + timedelta(days=40)
+        ajustada, _mot = aplicar_regras(base)
+        return ajustada
+    proxima_base = datetime.combine(ultima_data, datetime.min.time())
+    while True:
+        if frequencia == 'Semanal':
+            proxima_base += timedelta(weeks=1)
+        elif frequencia == 'Mensal':
+            proxima_base += timedelta(days=30)
+        elif frequencia == 'Trimestral':
+            proxima_base += timedelta(days=90)
+        else:
+            proxima_base += timedelta(days=1)
+        cand = proxima_base.date()
+        if cand > hoje:
+            ajustada, _mot = aplicar_regras(cand)
+            return ajustada
+        if cand > hoje + timedelta(days=365*5):
+            ajustada, _ = aplicar_regras(ultima_data + timedelta(days=1))
+            return ajustada
+
+def proxima_base_sem_regra(ultima_data, frequencia, tipo, nome=None):
+    hoje = datetime.now(ZoneInfo('America/Sao_Paulo')).date()
+    if (nome or '').strip().lower() == 'limpeza da caixa de gordura':
+        b = hoje
+        wd = b.weekday()
+        if wd <= 3:
+            base = b + timedelta(days=(3 - wd))
+        elif wd == 4:
+            base = b
+        else:
+            base = b + timedelta(days=(7 - wd + 3))
+        if base <= ultima_data:
+            base = base + timedelta(days=7)
+        return base
+    if isinstance(frequencia, str) and frequencia.lower().startswith('personalizada'):
+        try:
+            num = int(''.join([c for c in frequencia if c.isdigit()]))
+        except Exception:
+            num = 1
+        return ultima_data + timedelta(days=max(1, num))
+    if frequencia == '15 dias':
+        return ultima_data + timedelta(days=15)
     if frequencia == '40 dias':
         return ultima_data + timedelta(days=40)
     proxima_base = datetime.combine(ultima_data, datetime.min.time())
@@ -49,11 +102,10 @@ def calcular_proxima_prevista(ultima_data, frequencia, tipo, nome=None):
         elif frequencia == 'Trimestral':
             proxima_base += timedelta(days=90)
         else:
-            return ultima_data + timedelta(days=1)
-        if proxima_base.date() > hoje:
-            return proxima_base.date()
-        if proxima_base.date() > hoje + timedelta(days=365*5):
-            return ultima_data + timedelta(days=1)
+            proxima_base += timedelta(days=1)
+        cand = proxima_base.date()
+        if cand > hoje:
+            return cand
 
 def setup_cleaning_tasks():
     if CleaningTask.query.count() == 0:
@@ -129,17 +181,32 @@ def cronograma():
             db.session.add(nova)
             atualizados = True
         else:
-            if tarefa.frequencia != defs[0] or tarefa.tipo != defs[1]:
-                tarefa.frequencia = defs[0]
-                tarefa.tipo = defs[1]
-                tarefa.observacao = tarefa.observacao or defs[2]
-                tarefa.proxima_data = calcular_proxima_prevista(tarefa.ultima_data, tarefa.frequencia, tarefa.tipo, tarefa.nome_limpeza)
-                atualizados = True
+            # não sobrescrever frequência escolhida manualmente; apenas preencher observação se faltando
+            if not tarefa.observacao:
+                tarefa.observacao = defs[2]
     if atualizados:
         db.session.commit()
     tarefas = CleaningTask.query.order_by(CleaningTask.proxima_data.asc()).all()
-    historico_limpezas = CleaningHistory.query.order_by(CleaningHistory.data_conclusao.desc()).limit(10).all()
-    return render_template('cronograma.html', cronograma_tarefas=tarefas, historico_limpezas=historico_limpezas, active_page='cronograma')
+    ajustes = {}
+    for t in tarefas:
+        base = proxima_base_sem_regra(t.ultima_data, t.frequencia, t.tipo, t.nome_limpeza)
+        parts = []
+        if base.day in (1,2,3,4):
+            parts.append('ajuste: início do mês (1–4)')
+        if base.weekday() not in (1,2,3,4):
+            parts.append('ajuste: fora de terça–sexta')
+        if parts:
+            ajustes[t.id] = ' • '.join(parts)
+    page_hist = request.args.get('hpage', 1, type=int)
+    htipo = request.args.get('htipo', '').strip()
+    allowed_types = {'Parcial','Geral','Mensal','Semanal'}
+    q = CleaningHistory.query
+    if htipo in allowed_types:
+        nomes_por_tipo = [n for n, defs in padroes.items() if defs[1] == htipo]
+        if nomes_por_tipo:
+            q = q.filter(CleaningHistory.nome_limpeza.in_(nomes_por_tipo))
+    hist_pag = q.order_by(CleaningHistory.data_conclusao.desc()).paginate(page=page_hist, per_page=3, error_out=False)
+    return render_template('cronograma.html', cronograma_tarefas=tarefas, historico_limpezas=hist_pag.items, historico_pagination=hist_pag, active_page='cronograma', htipo=htipo, ajustes=ajustes)
 
 @bp.route('/cronograma/salvar', methods=['POST'])
 @login_required
@@ -148,6 +215,35 @@ def salvar_cronograma():
         flash('Apenas Gerente (Admin) pode concluir e atualizar o cronograma.', 'danger')
         return redirect(url_for('cronograma.cronograma'))
     concluir_id = request.form.get('concluir_id')
+    alterar_id = request.form.get('alterar_id')
+    nova_freq = request.form.get('nova_frequencia', '').strip()
+    nova_dias = request.form.get('nova_dias', '').strip()
+    if alterar_id and nova_freq:
+        try:
+            task_id = int(alterar_id)
+            tarefa = CleaningTask.query.get_or_404(task_id)
+            allowed = {'Semanal','15 dias','Mensal','40 dias','Trimestral','Personalizada'}
+            if nova_freq not in allowed:
+                flash('Frequência inválida.', 'danger')
+                return redirect(url_for('cronograma.cronograma'))
+            if nova_freq == 'Personalizada':
+                try:
+                    nd = int(nova_dias)
+                except Exception:
+                    nd = 0
+                if nd <= 0:
+                    flash('Dias personalizados inválidos.', 'danger')
+                    return redirect(url_for('cronograma.cronograma'))
+                tarefa.frequencia = f'Personalizada {nd} dias'
+            else:
+                tarefa.frequencia = nova_freq
+            tarefa.proxima_data = calcular_proxima_prevista(tarefa.ultima_data, tarefa.frequencia, tarefa.tipo, tarefa.nome_limpeza)
+            db.session.commit()
+            flash('Frequência atualizada.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao atualizar frequência: {e}', 'danger')
+        return redirect(url_for('cronograma.cronograma'))
     if concluir_id:
         try:
             task_id = int(concluir_id)
@@ -171,20 +267,19 @@ def salvar_cronograma():
             flash(f'Erro ao concluir a tarefa de limpeza: {e}', 'danger')
     return redirect(url_for('cronograma.cronograma'))
 
-@bp.route('/cronograma/changelog')
+
+@bp.route('/cronograma/historico/excluir/<int:id>', methods=['POST'])
 @login_required
-def changelog():
-    if current_user.nivel not in ['operador', 'admin']:
-        flash('Acesso negado. Apenas Operadores e Administradores podem visualizar o changelog.', 'danger')
-        return redirect(url_for('estoque.index'))
-    page = request.args.get('page', 1, type=int)
-    hist = CleaningHistory.query.order_by(CleaningHistory.data_conclusao.desc()).paginate(page=page, per_page=10, error_out=False)
-    items = []
-    for h in hist.items:
-        items.append({
-            'data': h.data_conclusao,
-            'tipo': h.nome_limpeza,
-            'observacao': h.observacao,
-            'designados': h.designados,
-        })
-    return render_template('changelog.html', active_page='cronograma', history=hist, items=items)
+def excluir_historico(id: int):
+    if current_user.nivel != 'admin':
+        flash('Apenas Gerente pode excluir histórico.', 'danger')
+        return redirect(url_for('cronograma.cronograma'))
+    h = CleaningHistory.query.get_or_404(id)
+    try:
+        db.session.delete(h)
+        db.session.commit()
+        flash('Histórico excluído.', 'danger')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir histórico: {e}', 'danger')
+    return redirect(url_for('cronograma.cronograma'))

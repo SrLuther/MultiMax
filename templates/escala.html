@@ -116,8 +116,8 @@
       <tr>
         <td>{{ loop.index }}</td>
         <td>{{ w.start.strftime('%d/%m') }} - {{ w.end.strftime('%d/%m') }}</td>
-        <td><span class="badge text-bg-primary">{{ w.open }}</span></td>
-        <td><span class="badge text-bg-info">{{ w.close }}</span></td>
+        <td><span class="badge text-bg-success">{{ w.open }}</span></td>
+        <td><span class="badge text-bg-success" style="background-color:#157347">{{ w.close }}</span></td>
       </tr>
       {% endfor %}
       {% if weeks|length == 0 %}
@@ -155,8 +155,8 @@
   </div>
   <div class="card-footer">
     <div class="d-flex flex-wrap gap-3 align-items-center">
-      <span style="display:inline-flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;border-radius:50%;background:#0d6efd;display:inline-block"></span>Equipe Abertura</span>
-      <span style="display:inline-flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;border-radius:50%;background:#0b5ed7;display:inline-block"></span>Equipe Fechamento</span>
+      <span style="display:inline-flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;border-radius:50%;background:#198754;display:inline-block"></span>Equipe Abertura</span>
+      <span style="display:inline-flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;border-radius:50%;background:#157347;display:inline-block"></span>Equipe Fechamento</span>
       <span style="display:inline-flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;border-radius:50%;background:#fd7e14;display:inline-block"></span>Domingo (5h–13h)</span>
     </div>
   </div>
