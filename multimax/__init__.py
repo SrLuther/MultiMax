@@ -325,11 +325,15 @@ def create_app():
                 except Exception:
                     commits = []
             curated = [
-                'Exportação PDF: correção de indentação nas tabelas',
-                'Tema: cabeçalho e menus ativos em verde',
-                'Fundo: papel de parede 60% preto (body.bg-body)',
-                'Manifest e meta: theme-color atualizado para verde',
-                'Service Worker: cache atualizado (v8)'
+                'Gestão: unifica Usuários e Monitor com Cargos',
+                'Cargos: criar/editar/excluir e níveis de permissão',
+                'Perfil: exibe cargo do colaborador e edição de dados',
+                'Layout: cabeçalho/rodapé fixos; MENU sob usuário; sino à direita',
+                'Menu móvel: offcanvas com z-index ajustado',
+                'Versão: somente o texto da versão em verde no rodapé',
+                'Rodapé: fonte ajustada para 7px',
+                'Service Worker: registro seguro e cache v9',
+                'QR Code e URL integrados na página Gestão'
             ]
             commits = curated
             head = f'v{ver}' if isinstance(ver, str) else str(ver)
@@ -365,7 +369,7 @@ def create_app():
             from sqlalchemy import inspect
             insp = inspect(db.engine)
             tables = set(insp.get_table_names())
-            if 'app_setting' not in tables:
+            if 'app_setting' not in tables or 'job_role' not in tables:
                 db.create_all()
         except Exception:
             try:

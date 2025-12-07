@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from .. import db
-from ..models import Collaborator, Shift, AppSetting
+from ..models import Collaborator, Shift, AppSetting, User
 from ..models import HourBankEntry
 from ..models import LeaveCredit
 from datetime import datetime, date, time
@@ -12,6 +12,18 @@ bp = Blueprint('colaboradores', __name__)
 @bp.route('/colaboradores', strict_slashes=False)
 @login_required
 def index():
+    try:
+        from sqlalchemy import inspect, text
+        insp = inspect(db.engine)
+        cols_meta = [c['name'] for c in insp.get_columns('collaborator')]
+        if 'user_id' not in cols_meta:
+            db.session.execute(text('ALTER TABLE collaborator ADD COLUMN user_id INTEGER'))
+            db.session.commit()
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
     cols = Collaborator.query.order_by(Collaborator.name.asc()).all()
     bank_balances = {}
     try:
@@ -26,7 +38,12 @@ def index():
         recent_entries = HourBankEntry.query.order_by(HourBankEntry.date.desc()).limit(50).all()
     except Exception:
         recent_entries = []
-    return render_template('colaboradores.html', colaboradores=cols, bank_balances=bank_balances, recent_entries=recent_entries, active_page='colaboradores')
+    users = []
+    try:
+        users = User.query.order_by(User.name.asc()).all()
+    except Exception:
+        users = []
+    return render_template('colaboradores.html', colaboradores=cols, users=users, bank_balances=bank_balances, recent_entries=recent_entries, active_page='colaboradores')
 
 @bp.route('/colaboradores/criar', methods=['POST'], strict_slashes=False)
 @login_required
@@ -44,6 +61,11 @@ def criar_colaborador():
         c.regular_team = (request.form.get('regular_team', '').strip() or None)
         c.sunday_team = (request.form.get('sunday_team', '').strip() or None)
         c.special_team = (request.form.get('special_team', '').strip() or None)
+        uid_str = (request.form.get('user_id') or '').strip()
+        try:
+            c.user_id = int(uid_str) if uid_str else None
+        except Exception:
+            c.user_id = None
         db.session.add(c)
         db.session.commit()
         flash(f'Colaborador "{c.name}" criado.', 'success')
@@ -71,6 +93,11 @@ def editar_colaborador(id: int):
         c.regular_team = (rt_in.strip() or None) if (rt_in.strip() in ('1','2')) else None
         c.sunday_team = (st_in.strip() or None) if (st_in.strip() in ('1','2')) else None
         c.special_team = (xt_in.strip() or None) if (xt_in.strip() in ('1','2')) else None
+        uid_str = (request.form.get('user_id') or '').strip()
+        try:
+            c.user_id = int(uid_str) if uid_str else None
+        except Exception:
+            c.user_id = None
         db.session.commit()
         flash('Colaborador atualizado.', 'info')
     except Exception as e:
