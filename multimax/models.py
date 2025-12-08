@@ -136,3 +136,25 @@ class JobRole(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
     nivel = db.Column(db.String(20), nullable=False)
+
+class LeaveAssignment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'))
+    date = db.Column(db.Date, nullable=False)
+    days_used = db.Column(db.Integer, default=1)
+    notes = db.Column(db.String(255))
+
+class LeaveConversion(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'))
+    date = db.Column(db.Date, nullable=False)
+    amount_days = db.Column(db.Integer, nullable=False)
+    amount_paid = db.Column(db.Float, nullable=False)
+    rate_per_day = db.Column(db.Float, default=65.0)
+    notes = db.Column(db.String(255))
+
+class Holiday(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date, unique=True, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    kind = db.Column(db.String(20))

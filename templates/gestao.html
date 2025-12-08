@@ -5,40 +5,37 @@
   <h3 class="mb-0">Gestão</h3>
 </div>
 
-        <div class="row g-3 mb-3">
-          <div class="col-md-6">
-            <div class="p-3 border rounded bg-body text-center">
-              <div class="mb-2">QR Code</div>
-              <img alt="QR Code" class="img-fluid" style="max-width: 280px" src="data:image/png;base64,{{ qr_base64 }}">
-              <div class="mt-2"><small class="text-muted">Escaneie em celulares e tablets</small></div>
-            </div>
-          </div>
-        </div>
+<div class="mb-3">
+  <ul class="nav nav-pills">
+    <li class="nav-item"><a class="nav-link active" href="{{ url_for('usuarios.gestao') }}">Visão Geral</a></li>
+  </ul>
+</div>
+
 
 <div class="row g-3">
   <div class="col-12 col-lg-6">
     <div class="card">
-              <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <span>Gerenciar Usuários</span>
-                <form method="get" action="{{ url_for('usuarios.gestao') }}" class="d-flex align-items-center gap-2">
-                  <input type="hidden" name="u_page" value="1">
-                  <input type="hidden" name="l_page" value="{{ l_page }}">
-                  <input type="text" name="q" class="form-control form-control-sm" placeholder="Buscar por nome" value="{{ q }}" style="max-width: 220px;">
-                  <button type="submit" class="btn btn-outline-primary btn-sm">Buscar</button>
-                </form>
-                <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalNovoUsuario">Novo Usuário</button>
-              </div>
-              <div class="card-body">
-                <div class="table-responsive-sm">
-                  <table class="table table-hover align-middle">
-                    <thead class="table-light"><tr><th>Login</th><th>Nome</th><th>Nível</th><th>Ações</th></tr></thead>
-                    <tbody>
-                      {% for u in users_page %}
-                      <tr>
-                        <td>{{ u.username }}</td>
-                        <td>{{ u.name }}</td>
-                        <td>{{ u.nivel }}</td>
-                        <td>
+      <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <span>Gerenciar Usuários</span>
+        <form method="get" action="{{ url_for('usuarios.gestao') }}" class="d-flex align-items-center gap-2">
+          <input type="hidden" name="u_page" value="1">
+          <input type="hidden" name="l_page" value="{{ l_page }}">
+          <input type="text" name="q" class="form-control form-control-sm" placeholder="Buscar por nome" value="{{ q }}" style="max-width: 220px;">
+          <button type="submit" class="btn btn-outline-primary btn-sm">Buscar</button>
+        </form>
+        <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalNovoUsuario">Novo Usuário</button>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive-sm">
+          <table class="table table-hover align-middle">
+            <thead class="table-light"><tr><th>Login</th><th>Nome</th><th>Nível</th><th>Ações</th></tr></thead>
+            <tbody>
+              {% for u in users_page %}
+              <tr>
+                <td>{{ u.username }}</td>
+                <td>{{ u.name }}</td>
+                <td>{{ u.nivel }}</td>
+                <td>
                   <div class="d-flex flex-wrap align-items-center gap-2">
                     <form method="post" action="{{ url_for('usuarios.update_level', user_id=u.id) }}" class="d-inline-flex me-2">
                       <select name="nivel" class="form-select d-inline-block w-auto form-select-sm me-2">
@@ -64,24 +61,193 @@
                     {% endif %}
                   </div>
                 </td>
-                      </tr>
-                      {% else %}
-                      <tr><td colspan="4" class="text-center">Nenhum usuário</td></tr>
-                      {% endfor %}
-                    </tbody>
-                  </table>
-                </div>
-                <nav class="mt-2 d-flex justify-content-between align-items-center">
-                  <div class="small text-muted">Página {{ u_page }} de {{ u_total_pages }}</div>
-                  <div class="btn-group">
-                    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page-1 if u_page>1 else 1 }}&l_page={{ l_page }}&q={{ q }}">Anterior</a>
-                    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page+1 if u_page<u_total_pages else u_total_pages }}&l_page={{ l_page }}&q={{ q }}">Próximo</a>
-                  </div>
-                </nav>
-              </div>
+              </tr>
+              {% else %}
+              <tr><td colspan="4" class="text-center">Nenhum usuário</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <nav class="mt-2 d-flex justify-content-between align-items-center">
+          <div class="small text-muted">Página {{ u_page }} de {{ u_total_pages }}</div>
+          <div class="btn-group">
+            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page-1 if u_page>1 else 1 }}&l_page={{ l_page }}&q={{ q }}">Anterior</a>
+            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page+1 if u_page<u_total_pages else u_total_pages }}&l_page={{ l_page }}&q={{ q }}">Próximo</a>
+          </div>
+        </nav>
+  </div>
+</div>
+</div>
+
+{% for c in colaboradores %}
+<div class="modal fade" id="modalEditColab{{ c.id }}" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="post" action="{{ url_for('usuarios.gestao_colabs_editar', id=c.id) }}">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title">Editar Colaborador</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-2"><label class="form-label">Nome</label><input type="text" name="name" class="form-control" value="{{ c.name }}" required></div>
+          <div class="mb-2"><label class="form-label">Cargo</label><input type="text" name="role" class="form-control" value="{{ c.role or '' }}"></div>
+          <div class="mb-2"><label class="form-label">Usuário</label>
+            <select name="user_id" class="form-select">
+              <option value="">—</option>
+              {% for u in users %}
+              <option value="{{ u.id }}" {% if c.user_id == u.id %}selected{% endif %}>{{ u.username }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="ativo{{ c.id }}" name="active" {% if c.active %}checked{% endif %}>
+            <label class="form-check-label" for="ativo{{ c.id }}">Ativo</label>
+          </div>
+          <div class="row g-2">
+            <div class="col-md-4"><label class="form-label">Equipe 1/2</label>
+              <select name="regular_team" class="form-select">
+                <option value="" {% if not c.regular_team %}selected{% endif %}>—</option>
+                <option value="1" {% if c.regular_team=='1' %}selected{% endif %}>1</option>
+                <option value="2" {% if c.regular_team=='2' %}selected{% endif %}>2</option>
+              </select>
+            </div>
+            <div class="col-md-4"><label class="form-label">Domingo 1/2</label>
+              <select name="sunday_team" class="form-select">
+                <option value="" {% if not c.sunday_team %}selected{% endif %}>—</option>
+                <option value="1" {% if c.sunday_team=='1' %}selected{% endif %}>1</option>
+                <option value="2" {% if c.sunday_team=='2' %}selected{% endif %}>2</option>
+              </select>
+            </div>
+            <div class="col-md-4"><label class="form-label">Especial 1/2</label>
+              <select name="special_team" class="form-select">
+                <option value="" {% if not c.special_team %}selected{% endif %}>—</option>
+                <option value="1" {% if c.special_team=='1' %}selected{% endif %}>1</option>
+                <option value="2" {% if c.special_team=='2' %}selected{% endif %}>2</option>
+              </select>
             </div>
           </div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary" type="submit">Salvar</button></div>
+      </div>
+    </form>
+  </div>
+  </div>
+{% endfor %}
+  <div class="col-12 col-lg-6">
+    <div class="card">
+      <div class="card-header">Banco de Horas</div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('usuarios.gestao_colabs_horas_adicionar') }}" class="row g-2 mb-3">
+          <div class="col-md-3">
+            <label class="form-label">Colaborador</label>
+            <select name="collaborator_id" class="form-select" required>
+              {% for c in colaboradores %}
+              <option value="{{ c.id }}">{{ c.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Data</label>
+            <input type="date" name="date" class="form-control" required>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Horas (+/-)</label>
+            <input type="number" name="hours" step="0.25" class="form-control" placeholder="ex: 2 ou -1" required>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label">Motivo</label>
+            <input type="text" name="reason" class="form-control" placeholder="Motivo do lançamento">
+          </div>
+          <div class="col-12 d-flex justify-content-end">
+            <button class="btn btn-primary" type="submit">Registrar</button>
+          </div>
+        </form>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Data</th>
+                <th>Colaborador</th>
+                <th class="text-end">Horas</th>
+                <th>Motivo</th>
+                <th class="text-end">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for e in recent_entries %}
+              {% set col = colaboradores|selectattr('id', 'equalto', e.collaborator_id)|list|first %}
+              <tr>
+                <td>{{ e.date.strftime('%d/%m/%Y') }}</td>
+                <td>{{ col and col.name or ('ID ' ~ e.collaborator_id) }}</td>
+                <td class="text-end">{{ '%.2f'|format(e.hours) }}h</td>
+                <td>{{ e.reason or '-' }}</td>
+                <td class="text-end">
+                  <form method="post" action="{{ url_for('usuarios.gestao_colabs_horas_excluir', id=e.id) }}" class="d-inline" onsubmit="return confirm('Excluir lançamento?')">
+                    <button class="btn btn-sm btn-danger" type="submit">Excluir</button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="text-center text-muted">Sem lançamentos</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+</div>
+</div>
 
+<div class="row g-3 mt-3">
+  <div class="col-12 col-lg-6">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span>Colaboradores</span>
+        <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalNovoColab">Novo</button>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive-sm">
+          <table class="table table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Nome</th>
+                <th>Cargo</th>
+                <th>Banco</th>
+                <th>Usuário</th>
+                <th>Status</th>
+                <th class="text-end" style="width: 12rem">Ações</th>
+              </tr>
+            </thead>
+        <tbody>
+          {% for c in colaboradores %}
+          <tr>
+            <td>{{ c.name }}</td>
+            <td>{{ c.role or '-' }}</td>
+                {% set saldo = (bank_balances.get(c.id) or 0.0) %}
+                {% set cls = 'text-bg-secondary' %}
+                {% if saldo > 0 %}{% set cls = 'text-bg-success' %}{% elif saldo < 0 %}{% set cls = 'text-bg-danger' %}{% endif %}
+                <td><span class="badge {{ cls }}">{{ '%.2f'|format(saldo) }}h</span></td>
+                <td>
+                  {% set u = users|selectattr('id','equalto', c.user_id)|list|first %}
+                  {{ u and u.username or '-' }}
+                </td>
+                <td>{% if c.active %}<span class="badge text-bg-success">Ativo</span>{% else %}<span class="badge text-bg-secondary">Inativo</span>{% endif %}</td>
+            <td class="text-end">
+              <button class="btn btn-primary btn-sm me-2" data-bs-toggle="modal" data-bs-target="#modalEditColab{{ c.id }}">Editar</button>
+              <form method="post" action="{{ url_for('usuarios.gestao_colabs_excluir', id=c.id) }}" class="d-inline" onsubmit="return confirm('Excluir {{ c.name }}?')">
+                <button class="btn btn-danger btn-sm" type="submit">Excluir</button>
+              </form>
+            </td>
+          </tr>
+              {% else %}
+              <tr><td colspan="6" class="text-center text-muted">Nenhum colaborador</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="col-12 col-lg-6">
     <div class="card">
       <div class="card-header">Cargos e Permissões</div>
@@ -131,40 +297,45 @@
   </div>
 </div>
 
-        <div class="card mt-3">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Registro de Eventos</span>
-            <div class="small text-muted">Página {{ l_page }} de {{ l_total_pages }}</div>
+<div class="modal fade" id="modalNovoColab" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="post" action="{{ url_for('usuarios.gestao_colabs_criar') }}">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title">Novo Colaborador</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-2"><label class="form-label">Nome</label><input type="text" name="name" class="form-control" required></div>
+          <div class="mb-2"><label class="form-label">Cargo</label><input type="text" name="role" class="form-control"></div>
+          <div class="mb-2"><label class="form-label">Usuário</label>
+            <select name="user_id" class="form-select">
+              <option value="">—</option>
+              {% for u in users %}
+              <option value="{{ u.id }}">{{ u.username }}</option>
+              {% endfor %}
+            </select>
           </div>
-          <div class="card-body">
-            <div class="table-responsive-sm">
-              <table class="table table-striped table-hover align-middle">
-                <thead class="table-light"><tr><th style="width:12rem">Data</th><th style="width:8rem">Origem</th><th style="width:10rem">Evento</th><th>Item</th><th>Detalhes</th><th style="width:8rem" class="text-end">Qtd</th><th style="width:12rem">Usuário</th></tr></thead>
-                <tbody>
-                  {% for l in logs_page %}
-                  <tr>
-                    <td>{{ l.data.strftime('%d/%m/%Y %H:%M') }}</td>
-                    <td>{{ l.origem }}</td>
-                    <td>{{ l.evento }}</td>
-                    <td>{{ l.produto }}</td>
-                    <td>{{ l.detalhes or '-' }}</td>
-                    <td class="text-end">{{ l.quantidade if l.quantidade is not none else '-' }}</td>
-                    <td>{{ l.usuario or '-' }}</td>
-                  </tr>
-                  {% else %}
-                  <tr><td colspan="7" class="text-center text-muted">Sem eventos</td></tr>
-                  {% endfor %}
-                </tbody>
-              </table>
+          <div class="row g-2">
+            <div class="col-md-4"><label class="form-label">Equipe 1/2</label>
+              <select name="regular_team" class="form-select"><option value="">—</option><option value="1">1</option><option value="2">2</option></select>
             </div>
-            <nav class="mt-2 d-flex justify-content-end">
-              <div class="btn-group">
-                <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('usuarios.gestao') }}?l_page={{ l_page-1 if l_page>1 else 1 }}&u_page={{ u_page }}&q={{ q }}">Anterior</a>
-                <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('usuarios.gestao') }}?l_page={{ l_page+1 if l_page<l_total_pages else l_total_pages }}&u_page={{ u_page }}&q={{ q }}">Próximo</a>
-              </div>
-            </nav>
+            <div class="col-md-4"><label class="form-label">Domingo 1/2</label>
+              <select name="sunday_team" class="form-select"><option value="">—</option><option value="1">1</option><option value="2">2</option></select>
+            </div>
+            <div class="col-md-4"><label class="form-label">Especial 1/2</label>
+              <select name="special_team" class="form-select"><option value="">—</option><option value="1">1</option><option value="2">2</option></select>
+            </div>
           </div>
         </div>
+        <div class="modal-footer"><button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-success" type="submit">Criar</button></div>
+      </div>
+    </form>
+</div>
+</div>
+</div>
+
+<!-- Eventos movidos para o final -->
 
 <div class="modal fade" id="modalNovoUsuario">
   <div class="modal-dialog">
@@ -204,6 +375,212 @@
         </div>
       </div>
     </form>
+</div>
+</div>
+
+<div class="card mt-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Gestão de Folgas</span>
+    <small class="text-muted">Automático: a cada 8h no banco vira +1 dia</small>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-12 col-lg-6">
+        <div class="border rounded p-3">
+          <div class="fw-bold mb-2">Créditos de Folga</div>
+          <div class="fw-semibold mb-1">Domingo trabalhado</div>
+          <div class="small text-muted mb-2">Informe uma data que seja domingo; gera +1 dia por domingo.</div>
+          <form class="row g-2" method="post" action="{{ url_for('colaboradores.folga_credito_domingo') }}">
+            <div class="col-md-6">
+              <label class="form-label">Colaborador</label>
+              <select name="collaborator_id" class="form-select" required>
+                {% for c in colaboradores %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Data (domingo)</label>
+              <input type="date" name="date" class="form-control" required>
+              <div class="form-text">Use um domingo; evita duplicidade por data.</div>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              <button class="btn btn-warning w-100" type="submit">Domingo</button>
+            </div>
+          </form>
+          <hr class="my-3">
+          <div class="fw-semibold mb-1">Crédito personalizado</div>
+          <div class="small text-muted mb-2">Informe data, quantidade de dias e motivo do crédito.</div>
+          <form class="row g-2 mt-2" method="post" action="{{ url_for('colaboradores.folga_credito_registrar_gestao') }}">
+            <div class="col-md-6">
+              <label class="form-label">Colaborador</label>
+              <select name="collaborator_id" class="form-select" required>
+                {% for c in colaboradores %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Data</label>
+              <input type="date" name="date" class="form-control" required>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Dias (inteiro)</label>
+              <input type="number" min="1" step="1" name="amount" class="form-control" value="1">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Motivo</label>
+              <input type="text" name="notes" class="form-control" placeholder="Ex.: compensação, acordo, extra">
+            </div>
+            <div class="col-12 d-flex justify-content-end">
+              <button class="btn btn-success" type="submit">Adicionar (Personalizado)</button>
+            </div>
+          </form>
+          <hr class="my-3">
+          <div class="fw-semibold mb-1">Redução de crédito</div>
+          <div class="small text-muted mb-2">Diminui dias disponíveis do colaborador; informe quantidade inteira e opcionalmente uma observação.</div>
+          <form class="row g-2 mt-2" method="post" action="{{ url_for('colaboradores.folga_credito_reduzir') }}">
+            <div class="col-md-6">
+              <label class="form-label">Colaborador</label>
+              <select name="collaborator_id" class="form-select" required>
+                {% for c in colaboradores %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Reduzir (dias inteiros)</label>
+              <input type="number" min="1" step="1" name="amount" class="form-control" value="1">
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+              <button class="btn btn-outline-danger w-100" type="submit">Reduzir</button>
+            </div>
+            <div class="col-12">
+              <input type="text" name="notes" class="form-control" placeholder="Observação do ajuste">
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="col-12 col-lg-6">
+        <div class="border rounded p-3">
+          <div class="fw-bold mb-2">Agendar e Converter</div>
+          <div class="fw-semibold mb-1">Agendar folga</div>
+          <div class="small text-muted mb-2">Registra uso de dias de folga; informe data e dias inteiros.</div>
+          <form class="row g-2" method="post" action="{{ url_for('colaboradores.folga_agendar') }}">
+            <div class="col-md-5">
+              <label class="form-label">Colaborador</label>
+              <select name="collaborator_id" class="form-select" required>
+                {% for c in colaboradores %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Data da folga</label>
+              <input type="date" name="date" class="form-control" required>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Dias (inteiro)</label>
+              <input type="number" min="1" step="1" name="days" class="form-control" value="1">
+            </div>
+            <div class="col-12">
+              <input type="text" name="notes" class="form-control" placeholder="Observação">
+            </div>
+            <div class="col-12 d-flex justify-content-end">
+              <button class="btn btn-primary" type="submit">Agendar Folga</button>
+            </div>
+          </form>
+          <hr class="my-3">
+          <div class="fw-semibold mb-1">Converter em pagamento (R$)</div>
+          <div class="small text-muted mb-2">Converte dias em valor; se não informar o total pago, será calculado automaticamente por R$/dia × dias.</div>
+          <form class="row g-2 mt-2" method="post" action="{{ url_for('colaboradores.folga_converter') }}">
+            <div class="col-md-5">
+              <label class="form-label">Colaborador</label>
+              <select name="collaborator_id" class="form-select" required>
+                {% for c in colaboradores %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Data</label>
+              <input type="date" name="date" class="form-control" required>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Dias (inteiro)</label>
+              <input type="number" min="1" step="1" name="days" class="form-control" value="1">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">R$/dia</label>
+              <input type="number" step="0.01" name="rate_per_day" class="form-control" value="65.00">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Valor pago</label>
+              <input type="number" step="0.01" name="amount_paid" class="form-control" placeholder="Opcional: calcula automático">
+            </div>
+            <div class="col-12">
+              <input type="text" name="notes" class="form-control" placeholder="Observação">
+            </div>
+            <div class="col-12 d-flex justify-content-end">
+              <button class="btn btn-outline-success" type="submit">Converter em R$</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <hr>
+    <div class="table-responsive-sm">
+      <table class="table table-hover align-middle">
+        <thead class="table-light"><tr><th>Colaborador</th><th class="text-end">Dias disponíveis</th></tr></thead>
+        <tbody>
+          {% for it in folgas %}
+          <tr>
+            <td>{{ it.collab.name }}</td>
+            <td class="text-end">{{ it.balance }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="2" class="text-center text-muted">Sem dados</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
+
+<div class="card mt-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Registro de Eventos</span>
+    <div class="small text-muted">Últimos registros do sistema, estoque e limpeza</div>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive-sm">
+      <table class="table table-hover align-middle">
+        <thead class="table-light"><tr><th>Data</th><th>Origem</th><th>Evento</th><th>Detalhes</th><th>Usuário</th><th>Produto</th><th class="text-end">Quantidade</th></tr></thead>
+        <tbody>
+          {% for it in logs_page %}
+          <tr>
+            <td>{{ it.data.strftime('%d/%m/%Y %H:%M') }}</td>
+            <td>{{ it.origem }}</td>
+            <td>{{ it.evento }}</td>
+            <td>{{ it.detalhes }}</td>
+            <td>{{ it.usuario or '-' }}</td>
+            <td>{{ it.produto or '-' }}</td>
+            <td class="text-end">{{ it.quantidade if it.quantidade is not none else '-' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="text-center text-muted">Sem eventos</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <nav class="mt-2 d-flex justify-content-between align-items-center">
+      <div class="small text-muted">Página {{ l_page }} de {{ l_total_pages }}</div>
+      <div class="btn-group">
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page }}&l_page={{ l_page-1 if l_page>1 else 1 }}&q={{ q }}">Anterior</a>
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page }}&l_page={{ l_page+1 if l_page<l_total_pages else l_total_pages }}&q={{ q }}">Próximo</a>
+      </div>
+    </nav>
+  </div>
+ </div>
+
 {% endblock %}
