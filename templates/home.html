@@ -44,12 +44,32 @@
   <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
       <span>Changelog</span>
+      {% if current_user.nivel == 'admin' %}
+      <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalEditarChangelog">Editar Changelog</button>
+      {% endif %}
     </div>
     <div class="card-body">
       {% if changelog_html and changelog_html|length > 0 %}
       <div class="changelog-content">{{ changelog_html|safe }}</div>
       {% else %}
-      <div class="text-muted">Sem alterações registradas</div>
+      <div class="changelog-content">
+        Release 1.3.3 — 2025-12-07<br>
+        - Migração de Colaboradores para Gestão (CRUD, Banco de Horas, Folgas)<br>
+        - Remoção de QR Code<br>
+        - Controle de acesso restrito a Gerente (admin)<br>
+        - Remoção de duplicidades e rotas antigas<br>
+        - Reorganização da página Gestão (ordem solicitada)<br>
+        - Escala focada em Domingos e Feriados; remoção de semana/rodízio<br>
+        - Equipes de domingo alternando semanalmente<br>
+        - Feriados nacionais, móveis, estaduais e municipais (Umbaúba-SE)<br>
+        - Datas fixas municipais: 02/02 Padroeiro e 06/02 Aniversário<br>
+        - Exibição de folgas usadas no calendário<br>
+        - Legenda e cores distintas (feriado, móvel, estadual, municipal, facultativo)<br>
+        - Formulário unificado de feriados com seleção de tipo<br>
+        - Rodapé com tamanho 10 e versão do release<br>
+        - Sincronização de feriados nacionais de 2026<br>
+        - Títulos de feriados mostrados no calendário
+      </div>
       {% endif %}
     </div>
   </div>
@@ -80,6 +100,28 @@
     </div>
   </div>
 </div>
+
+{% if current_user.nivel == 'admin' %}
+<div class="modal fade" id="modalEditarChangelog">
+  <div class="modal-dialog modal-lg">
+    <form id="formEditarChangelog" method="post" action="{{ url_for('home.update_changelog') }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Editar Changelog</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <textarea class="form-control" name="changelog_text" id="changelog_text" rows="8" placeholder="Escreva as alterações. Texto simples.">{{ changelog_text }}</textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+  </div>
+{% endif %}
 
 <style>
   .mural-content { background: #fff3cd; border: 1px solid #ffe69c; border-radius: .5rem; padding: .75rem; box-shadow: 0 0 0 2px rgba(255,193,7,.25) inset; }

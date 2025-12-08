@@ -132,7 +132,7 @@
         .offcanvas-backdrop { z-index: 1250 !important; }
         .offcanvas-body { overflow-y: auto; }
         .footer-fixed { padding: 4px 8px !important; }
-        .footer-fixed .container-fluid small { font-size: 7px; line-height: 1.1; }
+        .footer-fixed .container-fluid small { font-size: 10px; line-height: 1.1; }
         @media (max-width: 768px) {
             .navbar .mobile-user-menu { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; height: 56px; }
             .navbar .mobile-user-menu .btn { padding: 2px 8px; font-size: 0.75rem; }
@@ -319,7 +319,6 @@
       {% if current_user.nivel in ('operador', 'admin') %}
       <a class="list-group-item list-group-item-action {% if active_page == 'cronograma' %}active{% endif %}" href="{{ url_for('cronograma.cronograma') }}"><i class="fas fa-clipboard-check me-2"></i>Cronograma</a>
       <a class="list-group-item list-group-item-action {% if active_page == 'carnes' %}active{% endif %}" href="{{ url_for('carnes.index') }}"><i class="fas fa-drumstick-bite me-2"></i>Carnes</a>
-      <a class="list-group-item list-group-item-action {% if active_page == 'colaboradores' %}active{% endif %}" href="{{ url_for('colaboradores.index') }}"><i class="fas fa-user-friends me-2"></i>Colaboradores</a>
       <a class="list-group-item list-group-item-action {% if active_page == 'escala' %}active{% endif %}" href="{{ url_for('colaboradores.escala') }}"><i class="fas fa-calendar-alt me-2"></i>Escalas</a>
       {% endif %}
       
@@ -344,7 +343,6 @@
                 {% endif %}
                 {% if current_user.nivel in ('operador', 'admin') %}
                 <a class="list-group-item list-group-item-action {% if active_page == 'carnes' %}active{% endif %}" href="{{ url_for('carnes.index') }}"><i class="fas fa-drumstick-bite me-2"></i>Carnes</a>
-                <a class="list-group-item list-group-item-action {% if active_page == 'colaboradores' %}active{% endif %}" href="{{ url_for('colaboradores.index') }}"><i class="fas fa-user-friends me-2"></i>Colaboradores</a>
                 <a class="list-group-item list-group-item-action {% if active_page == 'escala' %}active{% endif %}" href="{{ url_for('colaboradores.escala') }}"><i class="fas fa-calendar-alt me-2"></i>Escalas</a>
                 {% endif %}
                 
