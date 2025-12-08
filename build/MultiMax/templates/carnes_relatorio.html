@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block title %}Relatório — Carnes{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0">Relatório de Recepção</h3>
+  <div class="d-flex gap-2">
+    <a class="btn btn-secondary" href="{{ url_for('carnes.index') }}">Voltar</a>
+    <a class="btn btn-primary" href="{{ url_for('exportacao.exportar_relatorio_carnes_pdf', id=r.id) }}">Exportar PDF</a>
+    {% if current_user.nivel == 'admin' %}
+    <form method="post" action="{{ url_for('carnes.excluir', id=r.id) }}" onsubmit="return confirm('Excluir esta recepção? Esta ação é irreversível.')">
+      <button type="submit" class="btn btn-danger">Excluir</button>
+    </form>
+    {% endif %}
+  </div>
+  </div>
+
+<div class="relatorio-wrap">
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-3"><strong>Data:</strong> {{ r.data.strftime('%d/%m/%Y %H:%M') }}</div>
+      <div class="col-md-3"><strong>Referência:</strong> {{ r.reference_code or '-' }}</div>
+      <div class="col-md-4"><strong>Fornecedor:</strong> {{ r.fornecedor }}</div>
+      <div class="col-md-2"><strong>Tipo:</strong> {{ r.tipo|capitalize }}</div>
+      <div class="col-md-12"><strong>Observação:</strong> {{ r.observacao or '-' }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Entregador</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Peso (kg)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in carriers %}
+          <tr>
+            <td>{{ c.nome }}</td>
+            <td>{{ '%.2f'|format(c.peso) }}</td>
+          </tr>
+          {% endfor %}
+          {% if carriers|length == 0 %}
+          <tr><td colspan="2" class="text-muted">Nenhum registrado</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% for num, parts in animais.items() %}
+<div class="card mb-3">
+  <div class="card-header">Romaneio #{{ num }}</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead>
+          <tr>
+            <th>Parte</th>
+            <th>Peso bruto (kg)</th>
+            <th>Entregador</th>
+            <th>Tara caixa (kg)</th>
+            <th>Peso líquido (kg)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set ns = namespace(subtotal_bruto=0.0, subtotal_liquido=0.0, subtotal_func=0.0, subtotal_tara=0.0) %}
+          {% for p in parts %}
+          {% set ns.subtotal_bruto = ns.subtotal_bruto + (p.peso_bruto or 0.0) %}
+          {% set ns.subtotal_liquido = ns.subtotal_liquido + (p.peso_liquido or 0.0) %}
+          {% set ns.subtotal_func = ns.subtotal_func + (p.carrier_peso or 0.0) %}
+          {% set ns.subtotal_tara = ns.subtotal_tara + (p.tara or 0.0) %}
+          <tr>
+            <td>{{ p.categoria|capitalize }} — {{ p.lado }}</td>
+            <td>{{ '%.2f'|format(p.peso_bruto or 0.0) }}</td>
+            <td>{{ p.carrier_nome or '-' }}</td>
+            <td>{{ p.tara is not none and ('%.2f'|format(p.tara)) or '-' }}</td>
+            <td><strong>{{ '%.2f'|format(p.peso_liquido or 0.0) }}</strong></td>
+          </tr>
+          {% endfor %}
+          <tr class="table-light">
+            <td class="text-end"><strong>Subtotal</strong></td>
+            <td><strong>{{ '%.2f'|format(ns.subtotal_bruto) }}</strong></td>
+            <td><strong>{{ '%.2f'|format(ns.subtotal_func) }}</strong></td>
+            <td><strong>{{ '%.2f'|format(ns.subtotal_tara) }}</strong></td>
+            <td><strong>{{ '%.2f'|format(ns.subtotal_liquido) }}</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<div class="card">
+  <div class="card-header">Totais</div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-3"><strong>Partes:</strong> {{ totals.qtd_partes }}</div>
+      <div class="col-md-3"><strong>Romaneios:</strong> {{ totals.qtd_animais }}</div>
+      <div class="col-md-3"><strong>Bruto total:</strong> {{ '%.2f'|format(totals.bruto) }} kg</div>
+      <div class="col-md-3"><strong>Tara/Entregadores:</strong> {{ '%.2f'|format(totals.tara_entregadores_total) }} kg</div>
+      <div class="col-md-3"><strong>Líquido:</strong> <span class="text-success">{{ '%.2f'|format(totals.liquido) }} kg</span></div>
+      {% if r.tipo|lower == 'bovina' %}
+      <div class="col-md-3"><strong>Peso na Nota:</strong> {{ '%.2f'|format(totals.peso_nota or 0.0) }} kg</div>
+      <div class="col-md-3"><strong>Percas:</strong> {{ '%.2f'|format(totals.perda_transporte or 0.0) }} kg</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% if r.tipo == 'frango' %}
+<div class="card">
+  <div class="card-header">Frango Recebido</div>
+  <div class="card-body">
+    <div><strong>Peso do frango:</strong> {{ '%.2f'|format(totals.frango_peso or 0.0) }} kg</div>
+  </div>
+</div>
+{% endif %}
+
+<style>
+  .relatorio-wrap, .relatorio-wrap *, table, thead, tbody, tr, th, td, .card, .card-header, .card-body {
+    color: #000000 !important;
+  }
+  .text-muted, .text-secondary { color: #000000 !important; }
+</style>
+<style>
+@media print {
+  .navbar, .offcanvas, .footer-fixed, .theme-fab, .btn, a.btn { display: none !important; }
+  html, body { color: #000000 !important; background: #ffffff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; filter: none !important; }
+  html { color-scheme: light !important; }
+  .bg-body { background: #ffffff !important; }
+  :root { --bs-body-bg: #ffffff !important; --bs-body-color: #000000 !important; --bs-heading-color: #000000 !important; --bs-secondary-color: #000000 !important; }
+  .relatorio-wrap, .relatorio-wrap *, table, thead, tbody, tr, th, td, .card, .card-header, .card-body, .badge, .table, .table-light, .table-dark { color: #000000 !important; opacity: 1 !important; background: transparent !important; box-shadow: none !important; }
+  .bg-light, .bg-dark, .bg-secondary, .bg-primary, .bg-success, .bg-danger, .bg-warning, .bg-info { background: transparent !important; }
+  thead tr, thead th, .card-header, .table thead { background: transparent !important; }
+  .text-muted, .text-secondary, .text-light, .text-white, .text-primary, .text-success, .text-danger, .text-warning, .text-info { color: #000000 !important; opacity: 1 !important; }
+  a { color: #000000 !important; text-decoration: none !important; }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% block title %}MultiMax{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0">Cronograma de Limpeza</h3>
+    <div class="d-flex align-items-center gap-2">
+        <span class="text-muted">Planejamento e histórico</span>
+    </div>
+</div>
+
+<div class="mb-3">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span>Histórico de Limpezas</span>
+      <form method="get" action="{{ url_for('cronograma.cronograma') }}" class="d-flex align-items-center gap-2">
+        <input type="hidden" name="hpage" value="1">
+        <select name="htipo" class="form-select form-select-sm">
+          <option value="">Todos</option>
+          {% for t in ['Parcial','Geral','Mensal','Semanal'] %}
+          <option value="{{ t }}" {% if htipo == t %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-outline-primary btn-sm">Filtrar</button>
+      </form>
+    </div>
+    <div class="card-body">
+      {% if historico_limpezas and historico_limpezas|length > 0 %}
+      <ul class="list-group list-group-flush">
+        {% for h in historico_limpezas %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-semibold">{{ h.nome_limpeza }}</div>
+            <small class="text-muted">{{ h.data_conclusao.strftime('%d/%m/%Y %H:%M') }}</small>
+            {% if h.observacao %}
+            <div class="small mt-1">Observação: {{ h.observacao }}</div>
+            {% endif %}
+          </div>
+          <div class="d-flex gap-2 align-items-center">
+            <small class="text-muted">{{ h.designados or h.usuario_conclusao or '-' }}</small>
+            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('exportacao.exportar_historico_limpeza_pdf', id=h.id) }}">Exportar PDF</a>
+            {% if current_user.nivel == 'admin' %}
+            <form method="post" action="{{ url_for('cronograma.excluir_historico', id=h.id) }}" onsubmit="return confirm('Excluir este histórico?')">
+              <button type="submit" class="btn btn-outline-danger btn-sm">Excluir</button>
+            </form>
+            {% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% if historico_pagination %}
+      <nav class="mt-2">
+        <ul class="pagination pagination-sm justify-content-end mb-0">
+          <li class="page-item {{ 'disabled' if not historico_pagination.has_prev else '' }}">
+            <a class="page-link" href="{{ url_for('cronograma.cronograma', hpage=historico_pagination.prev_num, htipo=htipo) }}">Anterior</a>
+          </li>
+          <li class="page-item disabled"><span class="page-link">Página {{ historico_pagination.page }} de {{ historico_pagination.pages }}</span></li>
+          <li class="page-item {{ 'disabled' if not historico_pagination.has_next else '' }}">
+            <a class="page-link" href="{{ url_for('cronograma.cronograma', hpage=historico_pagination.next_num, htipo=htipo) }}">Próxima</a>
+          </li>
+        </ul>
+      </nav>
+      {% endif %}
+      {% else %}
+      <div class="text-muted">Sem histórico recente</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="cronograma-grid">
+    {% if current_user.nivel != 'admin' %}
+    <div class="col-12">
+        <div class="alert alert-danger d-flex align-items-center" role="alert">
+            <i class="fas fa-lock me-2"></i>
+            <div>
+                <div class="fw-bold">Acesso restrito</div>
+                <small>Somente Gerente pode concluir tarefas e editar Observações/Designados. Solicite autorização ao responsável.</small>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% for tarefa in cronograma_tarefas %}
+    {% set atrasado = false %}
+    {% set card_class = 'card-noprazo' %}
+    {% set header_class = 'card-header-noprazo' %}
+
+    <div class="cronograma-item">
+        <div class="card shadow-sm {{ card_class }} flex-fill d-flex flex-column">
+            <div class="card-header {{ header_class }} fw-bold">
+                {{ tarefa.nome_limpeza }}
+            </div>
+            <div class="card-body flex-grow-1">
+                {% if tarefa.nome_limpeza == 'Limpeza Parcial da Câmara Fria' %}
+                <div class="alert alert-warning py-1 small">Agendar em Terça ou Quinta, evitando dias 1–4 do mês. Prazo máximo: 15 dias desde a última limpeza.</div>
+                {% elif tarefa.nome_limpeza == 'Limpeza Geral da Câmara Fria' %}
+                <div class="alert alert-info py-1 small">Higienização completa em até 40 dias desde a última geral.</div>
+                {% elif tarefa.nome_limpeza == 'Limpeza de Expositores do Açougue' %}
+                <div class="alert alert-secondary py-1 small">Realizar mensalmente após o expediente.</div>
+                {% elif tarefa.nome_limpeza == 'Limpeza da Caixa de Gordura' %}
+                <div class="alert alert-primary py-1 small">Agendar semanalmente entre quinta e sexta-feira.</div>
+                {% endif %}
+                {% if tarefa.observacao %}
+                <p class="card-text mb-2">{{ tarefa.observacao }}</p>
+                {% endif %}
+
+                <p class="mb-1">
+                    <span class="fw-bold">Próxima Prevista:</span> 
+                    <span class="text-success">{{ tarefa.proxima_data.strftime('%d/%m/%Y') }}</span>
+                </p>
+                {% if ajustes and ajustes.get(tarefa.id) %}
+                <p class="small text-muted mb-1">{{ ajustes.get(tarefa.id) }}</p>
+                {% endif %}
+                <p class="mb-1">
+                    <span class="fw-bold">Última Realização:</span> 
+                    {{ tarefa.ultima_data.strftime('%d/%m/%Y') if tarefa.ultima_data else 'N/A' }}
+                </p>
+
+                {% if tarefa.designados %}
+                <p class="mb-3"><span class="fw-bold">Designado(s):</span> {{ tarefa.designados }}</p>
+                {% endif %}
+
+                <hr>
+                {% if tarefa.frequencia %}
+                <div class="mb-2 d-flex align-items-center justify-content-between">
+                  <p class="small text-muted mb-0">Frequência: {{ tarefa.frequencia }}</p>
+                  {% if current_user.nivel == 'admin' %}
+                  <form method="post" action="{{ url_for('cronograma.salvar_cronograma') }}" class="d-flex align-items-center gap-2">
+                    <input type="hidden" name="alterar_id" value="{{ tarefa.id }}">
+                    <select name="nova_frequencia" class="form-select form-select-sm">
+                      {% set opts = ['Semanal','15 dias','Mensal','40 dias','Trimestral','Personalizada'] %}
+                      {% for o in opts %}
+                      <option value="{{ o }}" {% if o == tarefa.frequencia %}selected{% endif %}>{{ o }}</option>
+                      {% endfor %}
+                    </select>
+                    <input type="number" name="nova_dias" class="form-control form-control-sm" min="1" placeholder="Dias" style="max-width:100px">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">Salvar</button>
+                  </form>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                {% if current_user.nivel == 'admin' %}
+                <form method="post" action="{{ url_for('cronograma.salvar_cronograma') }}" class="mt-3">
+                    <input type="hidden" name="concluir_id" value="{{ tarefa.id }}">
+                    <div class="d-flex gap-2 mb-2">
+                        <input type="text" name="obs_{{ tarefa.id }}" class="form-control form-control-sm" placeholder="Observações">
+                        <input type="text" name="participantes_{{ tarefa.id }}" class="form-control form-control-sm" placeholder="Designado(s)">
+                    </div>
+                    <button type="submit" class="btn btn-success btn-sm btn-sm-wide">Concluir Agora</button>
+                </form>
+                {% else %}
+                
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+<style>
+  .cronograma-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; align-items: stretch; }
+  @media (min-width: 768px) { .cronograma-grid { grid-template-columns: repeat(2, 1fr); } }
+  .cronograma-item { display: flex; }
+  .cronograma-item .card { display: flex; flex-direction: column; width: 100%; height: 100%; }
+  .cronograma-item .card-body { flex-grow: 1; }
+</style>
+{% endblock %}
