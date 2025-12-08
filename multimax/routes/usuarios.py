@@ -2,15 +2,12 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from .. import db
-from ..models import User, Produto, Historico, CleaningHistory, SystemLog, NotificationRead, HourBankEntry, Collaborator, JobRole
+from ..models import User, Produto, Historico, CleaningHistory, SystemLog, NotificationRead, HourBankEntry, Collaborator, JobRole, LeaveCredit, LeaveAssignment, LeaveConversion, Shift
 from datetime import datetime, timedelta, date
 from collections import OrderedDict
 from typing import TypedDict
 import os
-import socket
-import base64
-from io import BytesIO
-import qrcode
+ 
 
 bp = Blueprint('usuarios', __name__)
 
@@ -259,6 +256,10 @@ def perfil():
     collab = None
     entries = []
     total = 0.0
+    folga_balance = 0
+    folga_credits = []
+    folga_assigned = []
+    folga_conversions = []
     try:
         collab = Collaborator.query.filter_by(user_id=current_user.id).first()
         if collab:
@@ -269,11 +270,31 @@ def perfil():
                 total = float(total)
             except Exception:
                 total = 0.0
+            try:
+                from sqlalchemy import func
+                credits_sum = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == collab.id).scalar() or 0
+                assigned_sum = db.session.query(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).filter(LeaveAssignment.collaborator_id == collab.id).scalar() or 0
+                converted_sum = db.session.query(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).filter(LeaveConversion.collaborator_id == collab.id).scalar() or 0
+                folga_balance = int(credits_sum) - int(assigned_sum) - int(converted_sum)
+            except Exception:
+                folga_balance = 0
+            try:
+                folga_credits = LeaveCredit.query.filter_by(collaborator_id=collab.id).order_by(LeaveCredit.date.desc()).limit(50).all()
+            except Exception:
+                folga_credits = []
+            try:
+                folga_assigned = LeaveAssignment.query.filter_by(collaborator_id=collab.id).order_by(LeaveAssignment.date.desc()).limit(50).all()
+            except Exception:
+                folga_assigned = []
+            try:
+                folga_conversions = LeaveConversion.query.filter_by(collaborator_id=collab.id).order_by(LeaveConversion.date.desc()).limit(50).all()
+            except Exception:
+                folga_conversions = []
     except Exception:
         collab = None
         entries = []
         total = 0.0
-    return render_template('perfil.html', active_page='perfil', collab=collab, entries=entries, total=total)
+    return render_template('perfil.html', active_page='perfil', collab=collab, entries=entries, total=total, folga_balance=folga_balance, folga_credits=folga_credits, folga_assigned=folga_assigned, folga_conversions=folga_conversions)
 
 @bp.route('/perfil/senha', methods=['POST'])
 @login_required
@@ -306,21 +327,7 @@ def gestao():
         flash('Acesso negado. Apenas Administradores.', 'danger')
         return redirect(url_for('estoque.index'))
     q = (request.args.get('q') or '').strip()
-    # Gerar QR do endereço de acesso (não exibimos o texto, apenas o QR)
-    port = int(os.getenv('PORT', '5000'))
-    ip = None
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('8.8.8.8', 80))
-        ip = s.getsockname()[0]
-        s.close()
-    except Exception:
-        ip = request.host.split(':')[0]
-    url = f"http://{ip}:{port}"
-    img = qrcode.make(url)
-    buf = BytesIO()
-    img.save(buf, 'PNG')
-    qr_base64 = base64.b64encode(buf.getvalue()).decode('ascii')
+    # QR removido
     try:
         u_page = int(request.args.get('u_page', '1'))
     except Exception:
@@ -368,6 +375,30 @@ def gestao():
 
     senha_sugestao = '123456'
     roles = JobRole.query.order_by(JobRole.name.asc()).all()
+    colaboradores = Collaborator.query.order_by(Collaborator.name.asc()).all()
+    bank_balances = {}
+    try:
+        from sqlalchemy import func
+        sums = db.session.query(HourBankEntry.collaborator_id, func.coalesce(func.sum(HourBankEntry.hours), 0.0)).group_by(HourBankEntry.collaborator_id).all()
+        for cid, total in sums:
+            bank_balances[int(cid)] = float(total or 0.0)
+    except Exception:
+        bank_balances = {}
+    recent_entries = []
+    try:
+        recent_entries = HourBankEntry.query.order_by(HourBankEntry.date.desc()).limit(50).all()
+    except Exception:
+        recent_entries = []
+    folgas = []
+    try:
+        from sqlalchemy import func
+        for c in colaboradores:
+            credits_sum = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == c.id).scalar() or 0
+            assigned_sum = db.session.query(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).filter(LeaveAssignment.collaborator_id == c.id).scalar() or 0
+            converted_sum = db.session.query(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).filter(LeaveConversion.collaborator_id == c.id).scalar() or 0
+            folgas.append({'collab': c, 'balance': int(credits_sum) - int(assigned_sum) - int(converted_sum)})
+    except Exception:
+        folgas = []
     # Removido endereço de acesso (url/qr), mantendo somente dados necessários
     return render_template(
         'gestao.html',
@@ -381,8 +412,166 @@ def gestao():
         q=q,
         senha_sugestao=senha_sugestao,
         roles=roles,
-        qr_base64=qr_base64
+        colaboradores=colaboradores,
+        folgas=folgas,
+        users=all_users,
+        bank_balances=bank_balances,
+        recent_entries=recent_entries
     )
+
+
+@bp.route('/gestao/colaboradores/criar', methods=['POST'])
+@login_required
+def gestao_colabs_criar():
+    if current_user.nivel != 'admin':
+        flash('Você não tem permissão para criar colaboradores.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    nome = request.form.get('name', '').strip()
+    cargo = request.form.get('role', '').strip()
+    try:
+        c = Collaborator()
+        c.name = nome
+        c.role = cargo
+        c.active = True
+        c.regular_team = (request.form.get('regular_team', '').strip() or None)
+        c.sunday_team = (request.form.get('sunday_team', '').strip() or None)
+        c.special_team = (request.form.get('special_team', '').strip() or None)
+        uid_str = (request.form.get('user_id') or '').strip()
+        try:
+            c.user_id = int(uid_str) if uid_str else None
+        except Exception:
+            c.user_id = None
+        db.session.add(c)
+        db.session.commit()
+        flash(f'Colaborador "{c.name}" criado.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao criar colaborador: {e}', 'danger')
+    return redirect(url_for('usuarios.gestao'))
+
+@bp.route('/gestao/colaboradores/<int:id>/editar', methods=['POST'])
+@login_required
+def gestao_colabs_editar(id: int):
+    if current_user.nivel != 'admin':
+        flash('Você não tem permissão para editar colaboradores.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    c = Collaborator.query.get_or_404(id)
+    try:
+        c.name = ((request.form.get('name') or c.name or '').strip()) or c.name
+        role_in = request.form.get('role')
+        c.role = ((role_in or c.role or '').strip()) or None
+        active_str = request.form.get('active', 'on') or 'on'
+        c.active = True if active_str.lower() in ('on', 'true', '1') else False
+        rt_in = request.form.get('regular_team') or (c.regular_team or '')
+        st_in = request.form.get('sunday_team') or (c.sunday_team or '')
+        xt_in = request.form.get('special_team') or (c.special_team or '')
+        c.regular_team = (rt_in.strip() or None) if (rt_in.strip() in ('1','2')) else None
+        c.sunday_team = (st_in.strip() or None) if (st_in.strip() in ('1','2')) else None
+        c.special_team = (xt_in.strip() or None) if (xt_in.strip() in ('1','2')) else None
+        uid_str = (request.form.get('user_id') or '').strip()
+        try:
+            c.user_id = int(uid_str) if uid_str else None
+        except Exception:
+            c.user_id = None
+        db.session.commit()
+        flash('Colaborador atualizado.', 'info')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao atualizar colaborador: {e}', 'danger')
+    return redirect(url_for('usuarios.gestao'))
+
+@bp.route('/gestao/colaboradores/<int:id>/excluir', methods=['POST'])
+@login_required
+def gestao_colabs_excluir(id: int):
+    if current_user.nivel != 'admin':
+        flash('Apenas Gerente pode excluir colaboradores.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    c = Collaborator.query.get_or_404(id)
+    try:
+        Shift.query.filter_by(collaborator_id=c.id).delete()
+        db.session.delete(c)
+        db.session.commit()
+        flash('Colaborador excluído.', 'danger')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir colaborador: {e}', 'danger')
+    return redirect(url_for('usuarios.gestao'))
+
+@bp.route('/gestao/colaboradores/horas/adicionar', methods=['POST'])
+@login_required
+def gestao_colabs_horas_adicionar():
+    if current_user.nivel != 'admin':
+        flash('Você não tem permissão para registrar horas.', 'danger')
+        return redirect(url_for('usuarios.gestao_colaboradores'))
+    cid_str = (request.form.get('collaborator_id', '').strip() or '')
+    date_str = (request.form.get('date', '').strip() or '')
+    hours_str = (request.form.get('hours', '0').strip() or '0')
+    reason = (request.form.get('reason', '').strip() or '')
+    try:
+        cid = int(cid_str)
+        d = datetime.strptime(date_str, '%Y-%m-%d').date()
+        h = float(hours_str)
+    except Exception:
+        flash('Dados inválidos para banco de horas.', 'warning')
+        return redirect(url_for('usuarios.gestao_colaboradores'))
+    try:
+        e = HourBankEntry()
+        e.collaborator_id = cid
+        e.date = d
+        e.hours = h
+        e.reason = reason
+        db.session.add(e)
+        db.session.commit()
+        try:
+            from sqlalchemy import func
+            total_hours = db.session.query(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).filter(HourBankEntry.collaborator_id == cid).scalar() or 0.0
+            total_hours = float(total_hours)
+            auto_credits = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == cid, LeaveCredit.origin == 'horas').scalar() or 0
+            auto_credits = int(auto_credits)
+            desired_credits = int(total_hours // 8.0)
+            missing = max(0, desired_credits - auto_credits)
+            if missing > 0:
+                from datetime import date as _date
+                for _ in range(missing):
+                    lc = LeaveCredit()
+                    lc.collaborator_id = cid
+                    lc.date = _date.today()
+                    lc.amount_days = 1
+                    lc.origin = 'horas'
+                    lc.notes = 'Crédito automático por 8h no banco de horas'
+                    db.session.add(lc)
+                db.session.commit()
+                flash(f'Horas registradas. Créditos de folga automáticos adicionados: {missing}.', 'success')
+            else:
+                flash('Horas registradas.', 'success')
+        except Exception:
+            flash('Horas registradas.', 'success')
+    except Exception as ex:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        flash(f'Erro ao registrar horas: {ex}', 'danger')
+    return redirect(url_for('usuarios.gestao_colaboradores'))
+
+@bp.route('/gestao/colaboradores/horas/excluir/<int:id>', methods=['POST'])
+@login_required
+def gestao_colabs_horas_excluir(id: int):
+    if current_user.nivel != 'admin':
+        flash('Apenas Gerente pode excluir lançamentos.', 'danger')
+        return redirect(url_for('usuarios.gestao_colaboradores'))
+    e = HourBankEntry.query.get_or_404(id)
+    try:
+        db.session.delete(e)
+        db.session.commit()
+        flash('Lançamento excluído.', 'danger')
+    except Exception as ex:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        flash(f'Erro ao excluir lançamento: {ex}', 'danger')
+    return redirect(url_for('usuarios.gestao_colaboradores'))
 
 @bp.route('/gestao/roles', methods=['POST'])
 @login_required

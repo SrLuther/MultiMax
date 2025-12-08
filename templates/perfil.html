@@ -79,12 +79,79 @@
         </tbody>
       </table>
     </div>
+ </div>
+ <div class="card-footer text-muted">Para registrar horas, use a página Colaboradores.</div>
+ </div>
+
+ <div class="card mt-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <div>Folgas — {{ collab.name }}</div>
+    <span class="badge text-bg-primary">Saldo: {{ folga_balance }} dia(s)</span>
   </div>
-  <div class="card-footer text-muted">Para registrar horas, use a página Colaboradores.</div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-12 col-lg-6">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle">
+            <thead class="table-light"><tr><th>Data</th><th>Dias</th><th>Origem</th><th>Obs</th></tr></thead>
+            <tbody>
+              {% for c in folga_credits %}
+              <tr>
+                <td>{{ c.date.strftime('%d/%m/%Y') }}</td>
+                <td>{{ c.amount_days }}</td>
+                <td>{{ c.origin }}</td>
+                <td>{{ c.notes or '-' }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="4" class="text-center text-muted">Sem créditos</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="col-12 col-lg-6">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle">
+            <thead class="table-light"><tr><th>Data Folga</th><th>Dias</th><th>Obs</th></tr></thead>
+            <tbody>
+              {% for a in folga_assigned %}
+              <tr>
+                <td>{{ a.date.strftime('%d/%m/%Y') }}</td>
+                <td>{{ a.days_used }}</td>
+                <td>{{ a.notes or '-' }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="3" class="text-center text-muted">Sem folgas agendadas</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-responsive mt-3">
+      <table class="table table-sm table-hover align-middle">
+        <thead class="table-light"><tr><th>Data</th><th>Dias</th><th>R$/dia</th><th>Valor pago</th><th>Obs</th></tr></thead>
+        <tbody>
+          {% for v in folga_conversions %}
+          <tr>
+            <td>{{ v.date.strftime('%d/%m/%Y') }}</td>
+            <td>{{ v.amount_days }}</td>
+            <td>R$ {{ '%.2f'|format(v.rate_per_day) }}</td>
+            <td>R$ {{ '%.2f'|format(v.amount_paid) }}</td>
+            <td>{{ v.notes or '-' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="text-center text-muted">Sem conversões</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
  </div>
 {% else %}
 <div class="alert alert-info mt-4">
-  Vincule seu usuário a um colaborador na página <a class="alert-link" href="{{ url_for('colaboradores.index') }}">Colaboradores</a> para ver seu banco de horas.
+  Vincule seu usuário a um colaborador na página <a class="alert-link" href="{{ url_for('usuarios.gestao') }}">Gestão &rsaquo; Colaboradores</a> para ver seu banco de horas.
  </div>
 {% endif %}
 {% endblock %}
