@@ -333,3 +333,26 @@ def update_mural():
             pass
         flash(f'Erro ao atualizar mural: {e}', 'danger')
     return redirect(url_for('home.index'))
+
+@bp.route('/changelog', methods=['POST'], strict_slashes=False)
+def update_changelog():
+    if not current_user.is_authenticated:
+        return redirect(url_for('auth.login'))
+    if current_user.nivel != 'admin':
+        flash('Apenas Gerente pode editar o changelog.', 'danger')
+        return redirect(url_for('home.index'))
+    txt = request.form.get('changelog_text', '').strip()
+    try:
+        s = AppSetting.query.filter_by(key='changelog_text').first()
+        if not s:
+            s = AppSetting(); s.key = 'changelog_text'; db.session.add(s)
+        s.value = txt
+        db.session.commit()
+        flash('Changelog atualizado.', 'success')
+    except Exception as e:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        flash(f'Erro ao atualizar changelog: {e}', 'danger')
+    return redirect(url_for('home.index'))

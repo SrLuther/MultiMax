@@ -2,52 +2,10 @@
 {% block title %}MultiMax{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h3 class="mb-0">Rodízio de Equipes</h3>
+  <h3 class="mb-0">Domingos e Feriados</h3>
   <div></div>
 </div>
 
-{% if current_user.nivel in ('operador','admin') %}
-<div class="card mb-3">
-  <div class="card-header">Configurar semana atual</div>
-  <div class="card-body">
-    <form method="post" action="{{ url_for('colaboradores.rodizio_atualizar') }}" class="row g-2">
-      <div class="col-md-3">
-        <label class="form-label">Equipe Abertura (esta semana)</label>
-        <select name="abertura_equipe" class="form-select">
-          <option value="1" {% if ref_open == '1' %}selected{% endif %}>Equipe 1</option>
-          <option value="2" {% if ref_open == '2' %}selected{% endif %}>Equipe 2</option>
-        </select>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Equipe Fechamento (esta semana)</label>
-        <select name="fechamento_equipe" class="form-select">
-          {% set other = '2' if ref_open == '1' else '1' %}
-          <option value="1" {% if other == '1' %}selected{% endif %}>Equipe 1</option>
-          <option value="2" {% if other == '2' %}selected{% endif %}>Equipe 2</option>
-        </select>
-      </div>
-      <div class="col-md-6 d-flex align-items-end justify-content-end">
-        <button class="btn btn-primary" type="submit">Atualizar Semana</button>
-      </div>
-    </form>
-  </div>
-</div>
-<div class="card mb-3">
-  <div class="card-header">Gerar Rodízio (5 semanas)</div>
-  <div class="card-body">
-    <form method="post" action="{{ url_for('colaboradores.rodizio_gerar') }}" class="row g-2">
-      <div class="col-md-6">
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="limparCheck" name="limpar">
-          <label class="form-check-label" for="limparCheck">Limpar escalas existentes no período</label>
-        </div>
-      </div>
-      <div class="col-md-6 d-flex align-items-end justify-content-end">
-        <button class="btn btn-success" type="submit">Gerar Rodízio</button>
-      </div>
-    </form>
-  </div>
-</div>
 <div class="card mb-3">
   <div class="card-header">Configurar Domingos</div>
   <div class="card-body">
@@ -70,62 +28,60 @@
   </div>
 </div>
 <div class="card mb-3">
-  <div class="card-header">Registrar Crédito de Folga</div>
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Configurar Feriados</span>
+    <span class="small text-muted">Adicionar/remover datas especiais</span>
+  </div>
   <div class="card-body">
-    <form method="post" action="{{ url_for('colaboradores.folga_credito_registrar') }}" class="row g-2">
-      <div class="col-md-4">
-        <label class="form-label">Colaborador</label>
-        <select name="collaborator_id" class="form-select" required>
-          {% for c in colaboradores %}
-            <option value="{{ c.id }}">{{ c.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
+    <form class="row g-2 mb-3" method="post" action="{{ url_for('colaboradores.feriado_criar') }}">
       <div class="col-md-3">
         <label class="form-label">Data</label>
-        <input type="date" class="form-control" name="date" required>
+        <input type="date" name="date" class="form-control" required>
+      </div>
+      <div class="col-md-5">
+        <label class="form-label">Nome</label>
+        <input type="text" name="name" class="form-control" placeholder="ex.: Natal" required>
       </div>
       <div class="col-md-2">
-        <label class="form-label">Dias (+)</label>
-        <input type="number" class="form-control" name="amount" min="1" value="1" required>
+        <label class="form-label">Tipo</label>
+        <select name="kind" class="form-select">
+          <option value="facultativo" selected>Ponto Facultativo</option>
+          <option value="nacional">Feriado Nacional</option>
+          <option value="municipal">Feriado Municipal</option>
+          <option value="estadual">Feriado Estadual</option>
+        </select>
       </div>
-      <div class="col-md-3">
-        <label class="form-label">Observação</label>
-        <input type="text" class="form-control" name="notes" placeholder="Motivo">
-      </div>
-      <div class="col-12 d-flex align-items-end justify-content-end">
-        <button class="btn btn-success" type="submit">Registrar Crédito</button>
+      <div class="col-md-2 d-flex align-items-end">
+        <button class="btn btn-success w-100" type="submit">Adicionar feriado</button>
       </div>
     </form>
+    <div class="table-responsive-sm">
+      <table class="table table-hover align-middle">
+        <thead class="table-light"><tr><th>Data</th><th>Nome</th><th>Tipo</th><th class="text-end">Ações</th></tr></thead>
+        <tbody>
+          {% for h in feriados %}
+          <tr>
+            <td>{{ h.date.strftime('%d/%m/%Y') }}</td>
+            <td>{{ h.name }}</td>
+            <td>{{ h.kind or '-' }}</td>
+            <td class="text-end">
+              {% if current_user.nivel == 'admin' %}
+              <form method="post" action="{{ url_for('colaboradores.feriado_excluir', id=h.id) }}" class="d-inline" onsubmit="return confirm('Excluir feriado {{ h.name }}?')">
+                <button class="btn btn-danger btn-sm" type="submit">Excluir</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" class="text-center text-muted">Sem feriados cadastrados</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
-{% endif %}
+{% if current_user.nivel in ('operador','admin') %}{% endif %}
 
-<div class="table-responsive-sm">
-  <table class="table table-striped table-hover align-middle">
-    <thead class="table-dark">
-      <tr>
-        <th>Semana</th>
-        <th>Período</th>
-        <th>Abertura</th>
-        <th>Fechamento</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for w in weeks %}
-      <tr>
-        <td>{{ loop.index }}</td>
-        <td>{{ w.start.strftime('%d/%m') }} - {{ w.end.strftime('%d/%m') }}</td>
-        <td><span class="badge text-bg-success">{{ w.open }}</span></td>
-        <td><span class="badge text-bg-success" style="background-color:#157347">{{ w.close }}</span></td>
-      </tr>
-      {% endfor %}
-      {% if weeks|length == 0 %}
-      <tr><td colspan="4" class="text-center text-muted">Sem dados de rodízio</td></tr>
-      {% endif %}
-    </tbody>
-  </table>
-</div>
 
 <div class="card mt-3">
   <div class="card-header">Calendário do Sistema</div>
@@ -133,9 +89,7 @@
     <div id="calendar" style="min-height: 600px"></div>
     <script id="events-data" type="application/json">{{ events|tojson|safe }}</script>
     <style>
-      .fc-daygrid-event.dot-event { background: transparent !important; border: 0 !important; padding: 2px !important; }
-      .fc-daygrid-event.dot-event .fc-event-main { padding: 0 !important; }
-      .fc-daygrid-event.dot-event .fc-event-main > * { margin: 0 !important; }
+      
       .fc .fc-toolbar-title { font-weight: 700; font-size: 1.25rem; }
       .fc .fc-button { border-radius: 16px; background: #f4f4f5; color: #111; border: 0; }
       .fc .fc-button:hover { background: #e9e9ea; }
@@ -155,9 +109,13 @@
   </div>
   <div class="card-footer">
     <div class="d-flex flex-wrap gap-3 align-items-center">
-      <span style="display:inline-flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;border-radius:50%;background:#198754;display:inline-block"></span>Equipe Abertura</span>
-      <span style="display:inline-flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;border-radius:50%;background:#157347;display:inline-block"></span>Equipe Fechamento</span>
       <span style="display:inline-flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;border-radius:50%;background:#fd7e14;display:inline-block"></span>Domingo (5h–13h)</span>
+      <span style="display:inline-flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;border-radius:50%;background:#20c997;display:inline-block"></span>Feriado</span>
+      <span style="display:inline-flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;border-radius:50%;background:#198754;display:inline-block"></span>Feriado móvel</span>
+      <span style="display:inline-flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;border-radius:50%;background:#0dcaf0;display:inline-block"></span>Feriado estadual</span>
+      <span style="display:inline-flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;border-radius:50%;background:#0d6efd;display:inline-block"></span>Feriado municipal</span>
+      <span style="display:inline-flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;border-radius:50%;background:#adb5bd;display:inline-block"></span>Ponto Facultativo</span>
+      <span style="display:inline-flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;border-radius:50%;background:#6f42c1;display:inline-block"></span>Folga utilizada</span>
     </div>
   </div>
 </div>
@@ -197,7 +155,7 @@
       url: e.url || null,
       kind: e.kind || null,
       team: e.team || null,
-      classNames: (e.kind === 'rodizio-open' || e.kind === 'rodizio-close' || e.kind === 'rodizio-sunday') ? ['dot-event'] : [],
+      classNames: [],
     }; });
     var hasPtBr = (window.FullCalendar && Array.isArray(FullCalendar.globalLocales) && FullCalendar.globalLocales.some(function(l){ return l.code === 'pt-br'; }));
     var calendar = new FullCalendar.Calendar(el, {
@@ -218,6 +176,7 @@
       },
       dayMaxEvents: 2,
       moreLinkClick: 'popover',
+      displayEventTime: false,
       headerToolbar: {
         left: 'prev,next today',
         center: 'title',
@@ -242,47 +201,6 @@
         listMonth: 'Mês (lista)'
       },
       events: events,
-      eventContent: function(arg){
-        var kind = arg.event && arg.event.extendedProps && arg.event.extendedProps.kind;
-        if (kind === 'rodizio-open' || kind === 'rodizio-close' || kind === 'rodizio-sunday') {
-          var bg = arg.event.backgroundColor || arg.event.borderColor || (arg.backgroundColor || null) || '#0d6efd';
-          var num = (arg.event && arg.event.extendedProps && arg.event.extendedProps.team) || null;
-          if (!num) {
-            try {
-              var m = (arg.event.title || '').match(/'(\d)'/);
-              if (m) num = m[1];
-            } catch (e) {}
-          }
-          var dot = document.createElement('span');
-          dot.style.display = 'inline-flex';
-          dot.style.width = '24px';
-          dot.style.height = '24px';
-          dot.style.borderRadius = '50%';
-          dot.style.backgroundColor = bg;
-          dot.style.justifyContent = 'center';
-          dot.style.alignItems = 'center';
-          dot.style.color = '#fff';
-          dot.style.fontSize = '13px';
-          dot.style.fontWeight = '600';
-          dot.style.border = '2px solid #fff';
-          dot.style.boxShadow = '0 0 0 1px rgba(0,0,0,0.1)';
-          dot.textContent = num ? String(num) : '';
-          return { domNodes: [dot] };
-        }
-        return null;
-      },
-      eventDidMount: function(info){
-        var kind = info.event && info.event.extendedProps && info.event.extendedProps.kind;
-        if (kind === 'rodizio-open' || kind === 'rodizio-close' || kind === 'rodizio-sunday') {
-          info.el.style.background = 'transparent';
-          info.el.style.border = '0';
-          info.el.style.padding = '2px';
-          info.el.style.display = 'inline-flex';
-          info.el.style.justifyContent = 'center';
-          info.el.style.alignItems = 'center';
-          info.el.style.width = 'auto';
-        }
-      },
       dateClick: function(info){
         calendar.changeView('timeGridDay', info.dateStr);
       },

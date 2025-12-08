@@ -117,6 +117,21 @@ def create_app():
     app.register_blueprint(carnes_bp)
     app.register_blueprint(colaboradores_bp)
 
+    @app.context_processor
+    def _inject_version():
+        ver = (os.getenv('APP_VERSION') or '').strip()
+        if not ver:
+            try:
+                import subprocess
+                ver = subprocess.check_output(['git','describe','--tags','--abbrev=0'], cwd=os.path.dirname(os.path.dirname(__file__)), text=True).strip()
+            except Exception:
+                try:
+                    s = AppSetting.query.filter_by(key='app_version').first()
+                    ver = (s.value or '').strip() if s else ''
+                except Exception:
+                    ver = ''
+        return {'git_version': ver or 'dev'}
+
     @app.route('/', strict_slashes=False)
     def _root_redirect():
         from flask_login import current_user
@@ -283,7 +298,7 @@ def create_app():
                 return r2.stdout.strip()
         except Exception:
             pass
-        return 'dev'
+        return '1.3.2.6'
 
     resolved_version = _get_version()
     app.config['APP_VERSION_RESOLVED'] = resolved_version.lstrip('vV') if isinstance(resolved_version, str) else resolved_version
@@ -369,7 +384,7 @@ def create_app():
             from sqlalchemy import inspect
             insp = inspect(db.engine)
             tables = set(insp.get_table_names())
-            if 'app_setting' not in tables or 'job_role' not in tables:
+            if ('app_setting' not in tables) or ('job_role' not in tables) or ('leave_assignment' not in tables) or ('leave_conversion' not in tables):
                 db.create_all()
         except Exception:
             try:
@@ -403,7 +418,7 @@ def create_app():
                 tables = [
                     'cleaning_task','cleaning_history','system_log','notification_read','app_setting',
                     'produto','historico','meat_reception','meat_carrier','meat_part','collaborator',
-                    'shift','leave_credit','hour_bank_entry','user'
+                    'shift','leave_credit','hour_bank_entry','leave_assignment','leave_conversion','user','holiday'
                 ]
                 for t in tables:
                     try:
@@ -446,6 +461,45 @@ def create_app():
                     db.session.delete(r)
                 if rows:
                     db.session.commit()
+            except Exception:
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+            try:
+                s_ver = AppSetting.query.filter_by(key='app_version').first()
+                if not s_ver:
+                    s_ver = AppSetting(); s_ver.key = 'app_version'; db.session.add(s_ver)
+                cur_ver = (os.getenv('APP_VERSION') or '').strip()
+                if not cur_ver:
+                    try:
+                        import subprocess
+                        cur_ver = subprocess.check_output(['git','describe','--tags','--abbrev=0'], cwd=os.path.dirname(os.path.dirname(__file__)), text=True).strip()
+                    except Exception:
+                        cur_ver = (s_ver.value or '').strip()
+                s_ver.value = cur_ver
+                s_ch = AppSetting.query.filter_by(key='changelog_text').first()
+                if not s_ch:
+                    s_ch = AppSetting(); s_ch.key = 'changelog_text'; db.session.add(s_ch)
+                s_ch.value = (
+                    'Release 1.3.3 — 2025-12-07\n'
+                    '- Migração de Colaboradores para Gestão (CRUD, Banco de Horas, Folgas)\n'
+                    '- Remoção de QR Code\n'
+                    '- Controle de acesso restrito a Gerente (admin)\n'
+                    '- Remoção de duplicidades e rotas antigas\n'
+                    '- Reorganização da página Gestão (ordem solicitada)\n'
+                    '- Escala focada em Domingos e Feriados; remoção de semana/rodízio\n'
+                    '- Equipes de domingo alternando semanalmente\n'
+                    '- Feriados nacionais, móveis, estaduais e municipais (Umbaúba-SE)\n'
+                    '- Datas fixas municipais: 02/02 Padroeiro e 06/02 Aniversário\n'
+                    '- Exibição de folgas usadas no calendário\n'
+                    '- Legenda e cores distintas (feriado, móvel, estadual, municipal, facultativo)\n'
+                    '- Formulário unificado de feriados com seleção de tipo\n'
+                    '- Rodapé com tamanho 10 e versão do release\n'
+                    '- Sincronização de feriados nacionais de 2026\n'
+                    '- Títulos de feriados mostrados no calendário\n'
+                )
+                db.session.commit()
             except Exception:
                 try:
                     db.session.rollback()
