@@ -348,7 +348,6 @@
                 
                 {% if current_user.nivel == 'admin' %}
                 <a class="list-group-item list-group-item-action {% if active_page == 'gestao' %}active{% endif %}" href="{{ url_for('usuarios.gestao') }}"><i class="fas fa-gears me-2"></i>Gestão</a>
-                <a class="list-group-item list-group-item-action {% if active_page == 'dbadmin' %}active{% endif %}" href="{{ url_for('dbadmin.index') }}"><i class="fas fa-database me-2"></i>Banco de Dados</a>
                 {% endif %}
             </div>
             

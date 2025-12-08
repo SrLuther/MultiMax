@@ -1,8 +1,5 @@
 import os
 import sys
-import threading
-import time
-import shutil
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
@@ -82,15 +79,6 @@ def create_app():
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'uma_chave_secreta_muito_forte_e_aleatoria')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['PER_PAGE'] = 10
-    app.config['DATA_DIR'] = data_dir
-    backup_dir = os.path.join(data_dir, 'backups')
-    os.makedirs(backup_dir, exist_ok=True)
-    app.config['BACKUP_DIR'] = backup_dir
-    if isinstance(selected_uri, str) and selected_uri.startswith('sqlite:'):
-        try:
-            app.config['DB_FILE_PATH'] = selected_uri.split('sqlite:///')[1]
-        except Exception:
-            app.config['DB_FILE_PATH'] = db_path
 
     db.init_app(app)
     login_manager.init_app(app)
@@ -119,10 +107,6 @@ def create_app():
     from .routes.usuarios import bp as usuarios_bp
     from .routes.carnes import bp as carnes_bp
     from .routes.colaboradores import bp as colaboradores_bp
-    try:
-        from .routes.dbadmin import bp as dbadmin_bp
-    except Exception:
-        dbadmin_bp = None
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(home_bp)
@@ -132,8 +116,6 @@ def create_app():
     app.register_blueprint(usuarios_bp)
     app.register_blueprint(carnes_bp)
     app.register_blueprint(colaboradores_bp)
-    if dbadmin_bp:
-        app.register_blueprint(dbadmin_bp)
 
     @app.context_processor
     def _inject_version():
@@ -499,15 +481,23 @@ def create_app():
                 s_ch = AppSetting.query.filter_by(key='changelog_text').first()
                 if not s_ch:
                     s_ch = AppSetting(); s_ch.key = 'changelog_text'; db.session.add(s_ch)
-                from datetime import date as _date
                 s_ch.value = (
-                    f"Release 1.3.3.1 — {_date.today().strftime('%Y-%m-%d')}\n"
-                    "- Banco de Dados: painel com backups e diagnóstico embutido\n"
-                    "- Backup automático por hora com retenção dos 10 mais recentes\n"
-                    "- Carnes: Frango com múltiplos pesos antes de salvar\n"
-                    "- Carnes: Suína com 'Pesos' e tara por item\n"
-                    "- PDF de Carnes: seção de cálculos mostra o tipo (Bovina/Suína/Frango)\n"
-                    "- Menu: link Banco de Dados visível apenas para gerente\n"
+                    'Release 1.3.3 — 2025-12-07\n'
+                    '- Migração de Colaboradores para Gestão (CRUD, Banco de Horas, Folgas)\n'
+                    '- Remoção de QR Code\n'
+                    '- Controle de acesso restrito a Gerente (admin)\n'
+                    '- Remoção de duplicidades e rotas antigas\n'
+                    '- Reorganização da página Gestão (ordem solicitada)\n'
+                    '- Escala focada em Domingos e Feriados; remoção de semana/rodízio\n'
+                    '- Equipes de domingo alternando semanalmente\n'
+                    '- Feriados nacionais, móveis, estaduais e municipais (Umbaúba-SE)\n'
+                    '- Datas fixas municipais: 02/02 Padroeiro e 06/02 Aniversário\n'
+                    '- Exibição de folgas usadas no calendário\n'
+                    '- Legenda e cores distintas (feriado, móvel, estadual, municipal, facultativo)\n'
+                    '- Formulário unificado de feriados com seleção de tipo\n'
+                    '- Rodapé com tamanho 10 e versão do release\n'
+                    '- Sincronização de feriados nacionais de 2026\n'
+                    '- Títulos de feriados mostrados no calendário\n'
                 )
                 db.session.commit()
             except Exception:
@@ -628,50 +618,5 @@ def create_app():
                     db.session.rollback()
                 except Exception:
                     pass
-
-        def _make_backup(retain_count: int = 10):
-            try:
-                bdir = str(app.config.get('BACKUP_DIR') or '').strip()
-                if not bdir:
-                    return False
-                os.makedirs(bdir, exist_ok=True)
-                uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
-                if isinstance(uri, str) and uri.startswith('sqlite:'):
-                    src = str(app.config.get('DB_FILE_PATH') or '').strip()
-                    if src and os.path.exists(src):
-                        ts = time.strftime('%Y%m%d-%H%M%S')
-                        dst = os.path.join(bdir, f'backup-{ts}.sqlite')
-                        shutil.copy2(src, dst)
-                        files = sorted([
-                            os.path.join(bdir, f) for f in os.listdir(bdir)
-                            if isinstance(f, str) and f.lower().endswith('.sqlite')
-                        ], key=lambda p: os.path.getmtime(p), reverse=True)
-                        for old in files[retain_count:]:
-                            try:
-                                os.remove(old)
-                            except Exception:
-                                pass
-                        return True
-                return False
-            except Exception:
-                return False
-
-        def _start_backup_scheduler():
-            enabled = os.getenv('DB_BACKUP_ENABLED', 'true').lower() == 'true'
-            if not enabled:
-                return
-            def _loop():
-                while True:
-                    try:
-                        with app.app_context():
-                            _make_backup(retain_count=10)
-                    except Exception:
-                        pass
-                    time.sleep(3600)
-            t = threading.Thread(target=_loop, daemon=True)
-            t.start()
-
-        setattr(app, 'perform_backup', _make_backup)
-        _start_backup_scheduler()
 
     return app

@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Banco de Dados — MultiMax{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0">Banco de Dados</h3>
+  <div class="d-flex align-items-center gap-2">
+    <form method="post" action="{{ url_for('dbadmin.backup_now') }}">
+      <button class="btn btn-primary">Criar backup agora</button>
+    </form>
+  </div>
+  </div>
+
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Diagnóstico Completo</span>
+    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="reloadDiag()">Recarregar</button>
+  </div>
+  <div class="card-body">
+    <iframe id="dbStatusFrame" src="{{ url_for('_dbstatus') }}" style="width:100%;height:380px;border:1px solid #dee2e6;border-radius:.5rem;"></iframe>
+  </div>
+  </div>
+
+<div class="alert alert-info">Backups automáticos a cada hora. Mantém no máximo 10 mais recentes.</div>
+{% if not is_sqlite %}
+<div class="alert alert-warning">Backup automático está disponível apenas quando o banco é SQLite.</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Backups recentes</span>
+    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('dbadmin.index') }}">Atualizar</a>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive-sm">
+      <table class="table table-hover align-middle">
+        <thead class="table-light"><tr><th>Arquivo</th><th class="text-end">Tamanho</th><th>Modificado</th><th class="text-end">Ações</th></tr></thead>
+        <tbody>
+          {% for it in backups %}
+          <tr>
+            <td>{{ it.name }}</td>
+            <td class="text-end">{{ '%.2f'|format((it.size or 0)/1024/1024) }} MB</td>
+            <td>{{ it.mtime_str }}</td>
+            <td class="text-end d-flex gap-2 justify-content-end">
+              <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('dbadmin.download', name=it.name) }}">Baixar</a>
+              <form method="post" action="{{ url_for('dbadmin.excluir', name=it.name) }}" onsubmit="return confirm('Excluir backup {{ it.name }}?')">
+                <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" class="text-center text-muted">Nenhum backup</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script>
+function reloadDiag(){
+  const f = document.getElementById('dbStatusFrame');
+  if (!f) return;
+  f.src = "{{ url_for('_dbstatus') }}?ts=" + Date.now();
+}
+</script>
+{% endblock %}
