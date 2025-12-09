@@ -1,0 +1,214 @@
+/* =========================================================
+   MULTIMAX — DARK PREMIUM ANIMATED LOGIN
+   Desenvolvido para Ciano ✦ Lumo 2025
+   ========================================================= */
+
+/* ====== FONTE UBUNTU ====== */
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap');
+
+* {
+    font-family: "Ubuntu", sans-serif !important;
+    box-sizing: border-box;
+}
+
+/* ====== FUNDO ANIMADO SUTIL ====== */
+body {
+    background: linear-gradient(135deg, #0d0f10, #141719, #0f1112);
+    background-size: 300% 300%;
+    animation: backgroundFlow 12s ease-in-out infinite;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+}
+
+@keyframes backgroundFlow {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* ====== CARD ====== */
+.card {
+    background: #101214;
+    border: none;
+    border-radius: 26px;
+    overflow: hidden;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.6);
+    transform: translateY(10px);
+    animation: cardFloat 1.8s ease-in-out infinite;
+}
+
+@keyframes cardFloat {
+    0%, 100% { transform: translateY(10px); }
+    50%      { transform: translateY(4px); }
+}
+
+.login-card {
+    width: 420px;
+    max-width: 100%;
+}
+
+/* ====== CABEÇALHO ANIMADO ====== */
+.card-header {
+    background: linear-gradient(135deg, #00ff80, #00c76b, #00e673);
+    background-size: 200% 200%;
+    animation: headerGlow 4s ease-in-out infinite;
+    text-align: center;
+    color: #0f0f0f;
+    padding: 2rem;
+    border-bottom: none;
+}
+
+@keyframes headerGlow {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* ====== LOGO ====== */
+.logo-shadow {
+    filter: drop-shadow(0 0 3px #ffffffaa) drop-shadow(0 0 16px #00ff80bb);
+}
+
+.brand-tile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #00ff80, #00c76b);
+    padding: 10px;
+    border-radius: 18px;
+    animation: tileGlow 3s ease-in-out infinite;
+}
+
+@keyframes tileGlow {
+    0%, 100% { box-shadow: 0 0 12px #00ff8060; }
+    50%      { box-shadow: 0 0 22px #00ff80cc; }
+}
+
+.brand-logo-img-lg {
+    height: 96px;
+}
+
+.brand-logo-anim {
+    animation: logoFloat 3s ease-in-out infinite;
+}
+
+@keyframes logoFloat {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50%      { transform: translateY(-4px) scale(1.03); }
+}
+
+/* ====== CORPO DO CARD ====== */
+.card-body {
+    color: #eaeaea;
+    position: relative;
+}
+
+/* ====== INPUTS ANIMADOS ====== */
+.form-control-lg {
+    background: #1b1d20;
+    border: 1px solid #2b2e31;
+    border-radius: 14px;
+    color: #ffffff !important;
+    font-size: 1.1rem;
+    height: 52px;
+    transition: all .25s ease;
+}
+
+.form-control-lg:focus {
+    border-color: #00ff80;
+    box-shadow: 0 0 12px #00ff8040;
+    background: #202326;
+}
+
+/* Placeholder */
+.form-control-lg::placeholder {
+    color: #b4b4b4 !important;
+}
+
+/* ====== BOTÃO ANIMADO ====== */
+.btn-primary {
+    background: linear-gradient(135deg, #00ff80, #00c76b);
+    background-size: 200% 200%;
+    border: none;
+    border-radius: 14px;
+    padding: 14px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #0f0f0f !important;
+    transition: .25s ease-in-out;
+    animation: pulseGlow 3.5s ease-in-out infinite;
+}
+
+.btn-primary:hover {
+    background-position: 100% 0%;
+    transform: translateY(-3px);
+}
+
+@keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 10px #00ff8040; }
+    50%      { box-shadow: 0 0 18px #00ff80a0; }
+}
+
+/* ====== LOADER ====== */
+.logo-loader {
+    display: none;
+    justify-content: center;
+    margin-top: 12px;
+}
+
+.logo-loader.show {
+    display: flex;
+}
+
+.brand-logo-img-sm {
+    height: 58px;
+}
+
+/* ====== TELA BLOQUEADA NA SUBMISSÃO ====== */
+.login-blocker {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(3px);
+    display: none;
+    z-index: 3;
+}
+
+.login-blocker.show {
+    display: block;
+}
+
+/* ====== FOOTER ====== */
+.card-footer {
+    background: #0e1011;
+    color: #bbbbbb;
+    border-top: none;
+    text-align: center;
+}
+
+/* ====== ALERTA DE BOAS-VINDAS ====== */
+.alert-info {
+    background: #0f1f17;
+    border: 1px solid #00ff8040;
+    color: #00ff80;
+    border-radius: 12px;
+    box-shadow: 0 4px 14px #00ff8020;
+}
+
+/* ====== RESPONSIVIDADE COMPLETA ====== */
+@media (max-width: 480px) {
+    .login-card {
+        width: 100%;
+        margin: 0 16px;
+    }
+
+    .alert-info {
+        min-width: 100% !important;
+        font-size: 0.9rem;
+    }
+
+    .brand-logo-img-lg {
+        height: 72px;
+    }
+}

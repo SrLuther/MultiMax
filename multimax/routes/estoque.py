@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from .. import db
 from ..models import Produto, Historico
+from ..services.notificacao_service import registrar_evento
 from typing import cast
 from datetime import datetime, timedelta, date
 from collections import OrderedDict
@@ -219,6 +220,7 @@ def adicionar_produto():
         hist.usuario = current_user.username
         db.session.add(hist)
         db.session.commit()
+        registrar_evento('entrada de estoque', produto=novo.nome, quantidade=quantidade, descricao='Cadastro inicial')
     flash('Produto cadastrado com sucesso!', 'success')
     return redirect(url_for('estoque.lista_produtos'))
 
@@ -266,6 +268,7 @@ def entrada_produto(id: int):
     hist.usuario = current_user.username
     db.session.add(hist)
     db.session.commit()
+    registrar_evento('entrada de estoque', produto=produto.nome, quantidade=qtd, descricao=(request.form.get('detalhes') or '').strip())
     flash('Entrada registrada!', 'success')
     return redirect(url_for('estoque.lista_produtos'))
 
@@ -288,6 +291,9 @@ def saida_produto(id: int):
     hist.usuario = current_user.username
     db.session.add(hist)
     db.session.commit()
+    registrar_evento('saída de estoque', produto=produto.nome, quantidade=qtd, descricao=(request.form.get('detalhes') or '').strip())
+    if produto.quantidade == 0:
+        registrar_evento('produto zerado', produto=produto.nome, quantidade=0)
     flash('Saída registrada!', 'warning')
     return redirect(url_for('estoque.lista_produtos'))
 
@@ -504,6 +510,11 @@ def gerenciar():
         flash(f"{('Entrada' if op=='entrada' else 'Saída')} registrada para \"{produto.nome}\".", 'success' if op=='entrada' else 'warning')
         if op == 'saida' and produto.quantidade <= produto.estoque_minimo:
             flash(f'ALERTA: O estoque de "{produto.nome}" está abaixo do nível mínimo!', 'danger')
+            registrar_evento('estoque abaixo do mínimo', produto=produto.nome, quantidade=produto.quantidade, limite=produto.estoque_minimo)
+        if op == 'entrada':
+            registrar_evento('entrada de estoque', produto=produto.nome, quantidade=quantidade, descricao=hist.details)
+        else:
+            registrar_evento('saída de estoque', produto=produto.nome, quantidade=quantidade, descricao=hist.details)
         return redirect(url_for('estoque.index'))
     if op == 'excluir':
         if current_user.nivel != 'admin':

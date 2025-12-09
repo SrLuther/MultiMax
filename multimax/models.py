@@ -158,3 +158,40 @@ class Holiday(db.Model):
     date = db.Column(db.Date, unique=True, nullable=False)
     name = db.Column(db.String(100), nullable=False)
     kind = db.Column(db.String(20))
+class NotificacaoDiaria(db.Model):
+    __tablename__ = 'notificacao_diaria'
+    id = db.Column(db.Integer, primary_key=True)
+    data = db.Column(db.Date, nullable=False)
+    hora = db.Column(db.String(5))
+    tipo = db.Column(db.String(20))
+    conteudo = db.Column(db.Text)
+    enviado = db.Column(db.Boolean, default=False)
+class NotificacaoPersonalizada(db.Model):
+    __tablename__ = 'notificacao_personalizada'
+    id = db.Column(db.Integer, primary_key=True)
+    mensagem = db.Column(db.Text, nullable=False)
+    data_criacao = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+    enviar_novamente = db.Column(db.Boolean, default=True)
+    enviada = db.Column(db.Boolean, default=False)
+class EventoDoDia(db.Model):
+    __tablename__ = 'evento_dia'
+    id = db.Column(db.Integer, primary_key=True)
+    tipo = db.Column(db.String(50), nullable=False)
+    produto = db.Column(db.String(100))
+    quantidade = db.Column(db.Integer)
+    limite = db.Column(db.Integer)
+    descricao = db.Column(db.String(255))
+    data = db.Column(db.Date, nullable=False)
+class Recipe(db.Model):
+    __tablename__ = 'recipe'
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False)
+    preparo = db.Column(db.Text)
+    embalagem = db.Column(db.String(10))
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+class RecipeIngredient(db.Model):
+    __tablename__ = 'recipe_ingredient'
+    id = db.Column(db.Integer, primary_key=True)
+    recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'))
+    nome = db.Column(db.String(100), nullable=False)
+    quantidade = db.Column(db.String(50))

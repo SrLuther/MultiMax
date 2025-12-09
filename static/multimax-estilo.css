@@ -1,0 +1,165 @@
+/* Fonte Ubuntu */
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap');
+
+/* Forçar fonte no login */
+body, input, button, .card, .alert, .form-control {
+    font-family: "Ubuntu", sans-serif !important;
+}
+
+/* Fundo elegante */
+body {
+    background: linear-gradient(135deg, #e8f5f0, #d6ece4);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Card de login */
+.login-card {
+    background: #ffffff;
+    border: none;
+    border-radius: 20px;
+    padding-top: 0;
+    width: 420px;
+    box-shadow: 0 10px 35px rgba(0,0,0,0.15);
+}
+
+/* Cabeçalho */
+.login-card .card-header {
+    text-align: center;
+    background: #ffffff;
+    border-bottom: none;
+    padding: 35px 20px 10px;
+}
+
+.brand-logo-img-lg {
+    height: 80px;
+}
+
+.brand-tile {
+    background: linear-gradient(135deg, #198754, #0f5e3d);
+    padding: 6px;
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-card h2 {
+    color: #198754;
+}
+
+/* Inputs */
+.form-control-lg {
+    border-radius: 12px;
+    border: 1px solid #c6c6c6;
+    background: #fdfdfd;
+    font-size: 1.1rem;
+    height: 50px;
+}
+
+.form-control-lg:focus {
+    border-color: #198754;
+    box-shadow: 0 0 0 0.2rem rgba(25,135,84,0.15);
+}
+
+/* Botão */
+.btn-primary {
+    background: linear-gradient(135deg, #198754, #146c47);
+    border: none;
+    border-radius: 12px;
+    font-size: 1.15rem;
+    font-weight: 600;
+    padding: 12px 0;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #157347, #0e583a);
+}
+
+/* Loader */
+.logo-loader {
+    position: absolute;
+    inset: 0;
+    display: none;
+    background: rgba(255,255,255,0.75);
+    align-items: center;
+    justify-content: center;
+    border-radius: 20px;
+}
+
+.logo-loader .brand-tile {
+    transform: scale(1.1);
+}
+
+/* Footer */
+.login-card .card-footer {
+    background: #f3f3f3 !important;
+    border-top: none;
+    border-radius: 0 0 20px 20px;
+}
+
+/* Alert */
+.alert-info {
+    border-radius: 12px;
+    background: #e7f8f0;
+    border: 1px solid #19875433;
+    color: #146c47;
+}
+
+/* Responsividade */
+@media (max-width: 480px) {
+    .login-card {
+        width: 100%;
+        margin: 0 15px;
+    }
+    .alert-info {
+        min-width: 100% !important;
+    }
+}
+/* ====== CARDS PREMIUM COM EFEITO PROFUNDO ====== */
+.card {
+    background: #ffffff;
+    border-radius: 18px;
+    border: 1px solid rgba(0,0,0,0.05);
+    padding: 1rem;
+    
+    /* sombra dupla profissional */
+    box-shadow:
+        0 2px 6px rgba(0,0,0,0.07),
+        0 6px 18px rgba(0,0,0,0.10);
+
+    /* efeito vidro suave */
+    backdrop-filter: blur(4px);
+
+    /* animação de hover */
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* hover leve e elegante */
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow:
+        0 4px 10px rgba(0,0,0,0.09),
+        0 10px 24px rgba(0,0,0,0.13);
+}
+
+/* ====== TÍTULOS E TEXTOS ====== */
+.card h1, .card h2, .card h3, .card h4, .card h5, .card h6 {
+    color: #222 !important;
+}
+
+.card p, .card span, .card small, .card label {
+    color: #333 !important;
+}
+
+/* ====== RESPONSIVIDADE EXTRA ====== */
+@media (max-width: 576px) {
+    .card { padding: 0.75rem; }
+    .btn { font-size: 0.95rem; }
+    table.table { font-size: 0.95rem; }
+}
+@media (max-width: 360px) {
+    .brand-logo-img-lg { height: 64px; }
+}

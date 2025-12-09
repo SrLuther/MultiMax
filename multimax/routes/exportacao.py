@@ -45,7 +45,11 @@ def _brand_header(canvas, doc):
         pass
     canvas.setFillColor(colors.white)
     canvas.setFont('Helvetica-Bold', 14)
-    canvas.drawString(x, y + h / 2 - 6, 'MultiMax - Gestão Amora')
+    base_text = 'MultiMax - '
+    canvas.drawString(x, y + h / 2 - 6, base_text)
+    next_x = x + stringWidth(base_text, 'Helvetica-Bold', 14)
+    canvas.setFont('Helvetica-Oblique', 14)
+    canvas.drawString(next_x, y + h / 2 - 6, 'Gestão Amora')
     canvas.restoreState()
 
 @bp.route('/exportar/cronograma/pdf')

@@ -5,6 +5,7 @@ from ..models import Collaborator, Shift, AppSetting, User, Holiday
 from ..models import LeaveAssignment
 from ..models import HourBankEntry
 from ..models import LeaveCredit, LeaveAssignment, LeaveConversion
+from ..services.notificacao_service import registrar_evento
 from datetime import datetime, date, time
 from zoneinfo import ZoneInfo
 
@@ -454,6 +455,11 @@ def folga_agendar():
         la.notes = notes
         db.session.add(la)
         db.session.commit()
+        try:
+            nome = (Collaborator.query.get(cid).name if Collaborator.query.get(cid) else f'ID {cid}')
+        except Exception:
+            nome = f'ID {cid}'
+        registrar_evento('folga cadastrada', produto=nome, quantidade=days, descricao=notes)
         flash('Folga agendada.', 'success')
     except Exception as e:
         try:

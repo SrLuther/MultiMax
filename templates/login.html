@@ -4,96 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MultiMax</title>
+
+    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Ícones -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
+
+    <!-- Fonte Ubuntu -->
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Tema Animado MultiMax -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='login-animated.css') }}">
+
+    <!-- Forçar tema claro no login -->
     <script>
         (function(){
             document.documentElement.setAttribute('data-bs-theme', 'light');
             try { localStorage.setItem('theme', 'light'); } catch(e) {}
         })();
     </script>
-    <style>
-        body {
-            background: linear-gradient(135deg, #f4f4f5, #e9ecef);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-        }
-        .card {
-            border: none;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-        .login-card {
-            width: 420px;
-        }
-        .card-header {
-            background: #198754;
-            color: white;
-            text-align: center;
-            padding: 2rem;
-            position: relative;
-        }
-        .btn-primary {
-            background: #198754;
-            border: none;
-            padding: 12px;
-            font-size: 1.1rem;
-        }
-        .btn-primary:hover {
-            background: #157347;
-        }
-        .logo-shadow {
-            filter: drop-shadow(0 0 3px #ffffff) drop-shadow(0 0 12px rgba(255,255,255,0.9));
-        }
-        .brand-tile {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #198754, #157347);
-            border-radius: 16px;
-            padding: 8px;
-            box-shadow: 0 6px 18px rgba(25,135,84,0.35);
-            animation: tileGlow 3.2s ease-in-out infinite;
-        }
-        @keyframes tileGlow { 0%, 100% { box-shadow: 0 6px 18px rgba(25,135,84,0.35); } 50% { box-shadow: 0 10px 26px rgba(25,135,84,0.55); } }
-        .brand-logo-img-lg { height: 96px; display: block; }
-        .brand-logo-anim { animation: logoFloat 3s ease-in-out infinite; will-change: transform; }
-        @keyframes logoFloat { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-4px) scale(1.03); } }
-        @media (prefers-reduced-motion: reduce) { .brand-logo-anim { animation: none; } }
-        form[data-bs-theme="light"] { background-color: #ffffff !important; color: #000000 !important; }
-        form[data-bs-theme="light"] .form-label,
-        form[data-bs-theme="light"] .form-control,
-        form[data-bs-theme="light"] .form-select,
-        form[data-bs-theme="light"] .form-text,
-        form[data-bs-theme="light"] .text-muted,
-        form[data-bs-theme="light"] label,
-        form[data-bs-theme="light"] .small,
-        form[data-bs-theme="light"] .btn { color: #000000 !important; }
-        form[data-bs-theme="light"] .form-control::placeholder { color: #000000 !important; opacity: 0.7; }
-        form[data-bs-theme="light"] .form-select option { color: #000000 !important; }
-        .login-blocker { position: absolute; inset: 0; background: rgba(0,0,0,0.06); display: none; z-index: 2; }
-        .login-blocker.show { display: block; }
-        .logo-loader { display: none; justify-content: center; align-items: center; margin-top: 12px; }
-        .logo-loader.show { display: flex; }
-        .brand-logo-img-sm { height: 56px; display: block; }
-    </style>
 </head>
+
 <body>
     
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-auto">
+            <div class="col-12 col-sm-auto d-flex justify-content-center">
+
                 <div class="card login-card logo-shadow">
                     <div class="card-header">
                         
-                        <span class="brand-tile"><img class="brand-logo-img-lg logo-shadow brand-logo-anim" src="{{ url_for('static', filename='icons/logo-user.png') }}" alt="MultiMax"></span>
+                        <span class="brand-tile">
+                            <img class="brand-logo-img-lg logo-shadow brand-logo-anim"
+                                 src="{{ url_for('static', filename='icons/logo-user.png') }}"
+                                 alt="MultiMax">
+                        </span>
+
                         <h2 class="mb-1 fw-bold">MultiMax</h2>
-                        <div class="small opacity-75">Gestão Amora</div>
+                        <div class="small opacity-75"><em>Gestão Amora</em></div>
                     </div>
+
                     <div class="card-body p-5 position-relative">
+
                         <div id="loginBlocker" class="login-blocker"></div>
+
                         {% with messages = get_flashed_messages() %}
                           {% if messages %}
                             <div class="alert alert-danger mb-4 text-center">{{ messages[0] }}</div>
@@ -102,26 +57,32 @@
 
                         <form id="loginForm" method="post" data-bs-theme="light">
                             <div class="mb-4">
-                                <input type="text" name="username" class="form-control form-control-lg text-center" 
+                                <input type="text" name="username" class="form-control form-control-lg text-center"
                                        placeholder="Login" required autofocus autocomplete="username">
                             </div>
+
                             <div class="mb-4">
-                                <input type="password" name="password" class="form-control form-control-lg text-center" 
+                                <input type="password" name="password" class="form-control form-control-lg text-center"
                                        placeholder="Senha" required autocomplete="current-password">
                             </div>
-                            <button id="loginSubmit" type="submit" class="btn btn-primary w-100">Entrar no Sistema</button>
+
+                            <button id="loginSubmit" type="submit" class="btn btn-primary w-100">
+                                Entrar no Sistema
+                            </button>
+
                             <div id="loginLoader" class="logo-loader" aria-hidden="true">
-                                <span class="brand-tile"><img class="brand-logo-img-sm logo-shadow brand-logo-anim" src="{{ url_for('static', filename='icons/logo-user.png') }}" alt="MultiMax"></span>
+                                <span class="brand-tile">
+                                    <img class="brand-logo-img-sm logo-shadow brand-logo-anim"
+                                         src="{{ url_for('static', filename='icons/logo-user.png') }}"
+                                         alt="MultiMax">
+                                </span>
                             </div>
                         </form>
+
                     </div>
-                    <div class="card-footer bg-light text-center py-4">
-                        <small class="text-dark">© 2025 <strong>MultiMax</strong> — Todos os direitos reservados</small>
-                    </div>
-                </div>
-                <div class="mt-3 text-center">
-                    <div class="alert alert-info d-inline-block mb-0" role="alert" style="min-width: 420px;">
-                        Seja bem-vindo ao <strong>MultiMax</strong>! Faça login para continuar.
+
+                    <div class="card-footer text-center py-4">
+                        <small class="text-muted">© 2025 <strong>MultiMax</strong> — Todos os direitos reservados</small>
                     </div>
                 </div>
             </div>
@@ -134,19 +95,22 @@
         var blocker = document.getElementById('loginBlocker');
         var submitBtn = document.getElementById('loginSubmit');
         var loader = document.getElementById('loginLoader');
+
         if(form){
           form.addEventListener('submit', function(){
             if(blocker) blocker.classList.add('show');
-            if(loader) loader.classList.add('show');
+            if(loader)  loader.classList.add('show');
             if(submitBtn) submitBtn.disabled = true;
           });
         }
+
         window.addEventListener('pageshow', function(){
           if(blocker) blocker.classList.remove('show');
-          if(loader) loader.classList.remove('show');
+          if(loader)  loader.classList.remove('show');
           if(submitBtn) submitBtn.disabled = false;
         });
       })();
     </script>
-    </body>
-    </html>
+
+</body>
+</html>
