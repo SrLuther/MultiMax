@@ -7,6 +7,11 @@
     <form method="post" action="{{ url_for('dbadmin.backup_now') }}">
       <button class="btn btn-primary">Criar backup agora</button>
     </form>
+    {% if is_sqlite %}
+    <form method="post" action="{{ url_for('dbadmin.restaurar_snapshot') }}" onsubmit="return confirm('Restaurar o último snapshot? Esta ação sobrescreve o banco atual.')">
+      <button class="btn btn-outline-primary">Restaurar último snapshot</button>
+    </form>
+    {% endif %}
   </div>
   </div>
 
@@ -42,6 +47,11 @@
             <td>{{ it.mtime_str }}</td>
             <td class="text-end d-flex gap-2 justify-content-end">
               <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('dbadmin.download', name=it.name) }}">Baixar</a>
+              {% if is_sqlite %}
+              <form method="post" action="{{ url_for('dbadmin.restaurar', name=it.name) }}" onsubmit="return confirm('Restaurar este backup? Esta ação sobrescreve o banco atual.')">
+                <button class="btn btn-sm btn-outline-primary" type="submit">Restaurar</button>
+              </form>
+              {% endif %}
               <form method="post" action="{{ url_for('dbadmin.excluir', name=it.name) }}" onsubmit="return confirm('Excluir backup {{ it.name }}?')">
                 <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
               </form>

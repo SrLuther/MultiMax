@@ -119,6 +119,15 @@ def create_app():
     from .routes.usuarios import bp as usuarios_bp
     from .routes.carnes import bp as carnes_bp
     from .routes.colaboradores import bp as colaboradores_bp
+    from .routes.receitas import bp as receitas_bp
+    notif_enabled = (os.getenv('NOTIFICACOES_ENABLED', 'false') or 'false').lower() == 'true'
+    notificacoes_bp = None
+    if notif_enabled:
+        try:
+            from .routes.notificacoes import bp as _notifs
+            notificacoes_bp = _notifs
+        except Exception:
+            notificacoes_bp = None
     try:
         from .routes.dbadmin import bp as dbadmin_bp
     except Exception:
@@ -132,6 +141,9 @@ def create_app():
     app.register_blueprint(usuarios_bp)
     app.register_blueprint(carnes_bp)
     app.register_blueprint(colaboradores_bp)
+    app.register_blueprint(receitas_bp)
+    if notificacoes_bp:
+        app.register_blueprint(notificacoes_bp)
     if dbadmin_bp:
         app.register_blueprint(dbadmin_bp)
 
@@ -227,6 +239,8 @@ def create_app():
             return html, status_code
         except Exception as e:
             return f"erro={e}", 500
+
+    
 
     @app.context_processor
     def inject_notifications():
@@ -673,5 +687,48 @@ def create_app():
 
         setattr(app, 'perform_backup', _make_backup)
         _start_backup_scheduler()
+
+        def _start_notif_scheduler():
+            try:
+                from datetime import datetime
+                from zoneinfo import ZoneInfo
+            except Exception:
+                return
+            try:
+                target_hour = int(os.getenv('NOTIFICACOES_ENVIO_AUTOMATICO_HORA', '20'))
+            except Exception:
+                target_hour = 20
+            def _loop():
+                last_sent = None
+                while True:
+                    try:
+                        now = datetime.now(ZoneInfo('America/Sao_Paulo'))
+                        if now.hour == target_hour and now.minute == 0:
+                            d = now.date()
+                            if last_sent != d:
+                                try:
+                                    from .services.notificacao_service import enviar_relatorio_diario
+                                    with app.app_context():
+                                        enviar_relatorio_diario('automatico', False)
+                                except Exception:
+                                    pass
+                                last_sent = d
+                                time.sleep(60)
+                    except Exception:
+                        pass
+                    time.sleep(15)
+            t = threading.Thread(target=_loop, daemon=True)
+            t.start()
+
+        if notif_enabled:
+            _start_notif_scheduler()
+
+    @app.context_processor
+    def inject_notif_flag():
+        try:
+            enabled = (os.getenv('NOTIFICACOES_ENABLED', 'false') or 'false').lower() == 'true'
+        except Exception:
+            enabled = False
+        return {'notifications_enabled': enabled}
 
     return app
