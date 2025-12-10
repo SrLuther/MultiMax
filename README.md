@@ -1,141 +1,123 @@
-<img src="https://raw.githubusercontent.com/SrLuther/MultiMax/main/static/icons/logo-user.png" height="90"/>
-<div align="center"> <img width="650" src="https://img.shields.io/badge/Flask%20Framework-198754?style=for-the-badge&logo=flask&logoColor=white&labelColor=1a1d1f&color=198754&cacheSeconds=1"/> <img width="650" src="https://img.shields.io/badge/Python-3.10+-1a1d1f?style=for-the-badge&logo=python&logoColor=yellow&cacheSeconds=1"/> <img width="650" src="https://img.shields.io/badge/Status-Em%20Desenvolvimento-198754?style=for-the-badge&logoColor=white&labelColor=1a1d1f&cacheSeconds=1"/> </div>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SrLuther/MultiMax/main/static/icons/logo-user.png" height="140"/>
+</p>
 
-# MultiMax — Plataforma Integrada de Gestão
+<p align="center">
+  <img src="https://img.shields.io/badge/Flask-198754?style=for-the-badge&logo=flask&logoColor=white&labelColor=1a1d1f&color=198754" alt="Flask Badge"/>
+  <img src="https://img.shields.io/badge/Python-3.10+-1a1d1f?style=for-the-badge&logo=python&logoColor=yellow&labelColor=198754&color=1a1d1f" alt="Python Badge"/>
+  <img src="https://img.shields.io/badge/Status-Em%20Desenvolvimento-198754?style=for-the-badge&labelColor=1a1d1f&color=198754" alt="Status Badge"/>
+</p>
 
-## - 🚀 O que é o MultiMax?
+# 🌟 MultiMax — Plataforma Integrada de Gestão
 
-O MultiMax é uma plataforma web moderna de gestão interna desenvolvida com Flask, projetada para unificar processos administrativos essenciais:
+---
 
-- ✔ Estoque
-- ✔ Cronograma de limpeza
-- ✔ Gestão de colaboradores
-- ✔ Backups automáticos
-- ✔ Administração completa do banco de dados
-- ✔ Sistema de login com níveis
-- ✔ Painéis modernos e responsivos
-- ✔ Visual premium com gradientes e neon
+## 🚀 Sobre o MultiMax
 
+O **MultiMax** é uma plataforma **web moderna e premium** de gestão interna, desenvolvida com **Flask**, com **interface responsiva**, **gradientes neon** e painéis otimizados para produtividade.  
 
-⚡ Principais Módulos
-## - 🗃️ Gestão de Estoque
+Funcionalidades principais:  
+- ✔ Gestão de Estoque  
+- ✔ Cronograma de Limpeza  
+- ✔ Gestão de Colaboradores  
+- ✔ Backups Automáticos  
+- ✔ Administração Completa do Banco de Dados  
+- ✔ Sistema de Login com Níveis  
+- ✔ Painéis Modernos com Gradientes e Neon  
 
-Controle completo com atualização visual
+---
 
-Categorias e organização por tipo
+## ⚡ Módulos Principais
 
-Quantidades imediatas sem conferência física
+### 🗃️ Estoque
+- Interface visual em tempo real com efeitos neon  
+- Organização por categorias e tipo  
+- Quantidades sem conferência física  
+- Histórico detalhado de movimentações  
+- Filtros inteligentes  
 
-Histórico de movimentações
+### 🧼 Cronograma de Limpeza
+- Planejamento quinzenal automático  
+- Histórico completo das ações realizadas  
+- Filtros por período  
+- Regras inteligentes (evita agendar dias 1–4)  
+- Cards dinâmicos com cores neon  
 
-Filtros inteligentes e interface moderna
+### 👥 Colaboradores
+- Escalas personalizadas  
+- Perfis e credenciais com níveis  
+- Atribuição de permissões por função  
 
-## - 🧼 Cronograma de Limpeza
+### 🛢️ Banco de Dados & Backups
+- Backup automático a cada hora  
+- Mantém os 10 backups mais recentes  
+- Snapshot pré-restauração  
+- Restaurar backup ou snapshot com 1 clique  
+- Painel administrativo seguro  
 
-Planejamento quinzenal automático
+---
 
-Histórico de ações realizadas
+## 🌈 Tecnologias Utilizadas
 
-Filtros por período
+- **Python 3.10+**  
+- **Flask + Login Manager**  
+- **SQLAlchemy**  
+- **Bootstrap 5.3** (customização neon)  
+- **Waitress** (produção Windows)  
+- **FontAwesome**  
+- **Matplotlib / ReportLab**  
+- **SQLite / PostgreSQL**  
 
-Regras inteligentes (evita dia 1–4)
+---
 
-Interface com cards e seções dinâmicas
+## 📦 Instalação e Execução (Bloco único)
 
-## - 👥 Gestão de Colaboradores
+- git clone https://github.com/SrLuther/MultiMax.git
+- cd MultiMax
+- pip install -r requirements.txt
+- python -m venv .venv
+- .\.venv\Scripts\activate   # Windows
+- source .venv/bin/activate   # Linux/macOS
+- start_local.cmd
+- python app.py
+- Acesse: ➡️ [MultiMax](https://multimax.tec.br/)
 
-Escalas
+---
 
-Perfis e credenciais
+##  ⚙️ Configuração de Variáveis de Ambiente
+- Variável	Exemplo	Descrição
+- HOST	0.0.0.0	Endereço do servidor
+- PORT	5000	Porta da aplicação
+- DEBUG	True / False	Ativa modo debug
+- SQLALCHEMY_DATABASE_URI	sqlite:///multimax.db	Conexão com o banco
+- SENHA_ADMIN	admin123	Senha do administrador
+- SENHA_OPERADOR	operador123	Senha do operador
+- DB_BACKUP_ENABLED	True / False	Ativa backups automáticos
+- KEEPALIVE_ENABLED	True / False	Ativa ping keepalive
+- KEEPALIVE_URL	http://localhost:5000	URL do ping
+- KEEPALIVE_INTERVAL	300	Intervalo em segundos
 
-Atribuições e permissões
+---
 
-## - 🛢️ Banco de Dados + Backups
+## 💾 Backups & Snapshots
+- Backup automático a cada hora
 
-Backup automático (hora a hora)
+- Mantém os 10 mais recentes
 
-Snapshots antes de restauração
+- Snapshot pré-restauração
 
-Download / excluir / restaurar
+- Restaurar backup ou snapshot com 1 clique
 
-Painel administrativo seguro
+---
 
-## - 🌐 Tecnologias
+## 🔐 Login Padrão
+- Usuários: admin e operador
 
-Python 3.10+
+- Senhas definidas pelas variáveis de ambiente ou na primeira execução
 
-Flask + Login Manager
+---
 
-SQLAlchemy
-
-Bootstrap 5.3
-
-Waitress (produção Windows)
-
-FontAwesome
-
-Matplotlib / ReportLab
-
-SQLite / PostgreSQL
-
-## - 📦 Instalação
-pip install -r requirements.txt
-
-
-Crie e ative a venv:
-
-python -m venv .venv
-.\.venv\Scripts\activate
-
-## - ▶️ Executando o Sistema
-
-(Recomendado — Windows)
-
-start_local.cmd
-
-
-Ou simplesmente:
-
-python app.py
-
-
-Acesse:
-
-👉 https://multimax.tec.br/
-
-## - ⚙️ Configuração com Variáveis
-
-As principais:
-
-- HOST
-- PORT
-- DEBUG
-- SQLALCHEMY_DATABASE_URI
-- SENHA_ADMIN
-- SENHA_OPERADOR
-- DB_BACKUP_ENABLED
-- KEEPALIVE_ENABLED
-- KEEPALIVE_URL
-- KEEPALIVE_INTERVAL
-
-## - 💾 Backups & Snapshots
-
-Backup automático a cada hora
-
-Mantém os 10 mais recentes
-
-Snapshot antes de restaurar
-
-Restaurar backup com um clique
-
-Restaurar snapshot pré-restauração
-
-## - 🔐 Login
-
-Usuários padrão:
-
-admin
-
-operador
-
-Senhas definidas por variáveis ou na primeira execução.
+## 🖼️ Interface Premium (Exemplo)
+<p align="center"> <img src="https://raw.githubusercontent.com/SrLuther/MultiMax/main/static/icons/logo-user.png" width="400"/> </p>
+📄 Licença
+MIT License
