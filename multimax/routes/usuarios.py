@@ -327,6 +327,7 @@ def gestao():
         flash('Acesso negado. Apenas Administradores.', 'danger')
         return redirect(url_for('estoque.index'))
     q = (request.args.get('q') or '').strip()
+    view = (request.args.get('view') or '').strip()
     # QR removido
     try:
         u_page = int(request.args.get('u_page', '1'))
@@ -373,6 +374,30 @@ def gestao():
     l_end = l_start + per_logs
     logs_page = logs[l_start:l_end]
 
+    # Registro de Acessos (pagina e filtra por usuário)
+    try:
+        acc_user = (request.args.get('acc_user') or '').strip()
+    except Exception:
+        acc_user = ''
+    try:
+        acc_page = int(request.args.get('acc_page', '1'))
+    except Exception:
+        acc_page = 1
+    if acc_page < 1:
+        acc_page = 1
+    aq = SystemLog.query.filter(SystemLog.origem == 'Acesso', SystemLog.evento == 'login')
+    if acc_user:
+        aq = aq.filter(SystemLog.usuario.ilike(f"%{acc_user}%"))
+    access_all = aq.order_by(SystemLog.data.desc()).all()
+    per_acc = 10
+    acc_total = len(access_all)
+    acc_total_pages = max(1, (acc_total + per_acc - 1) // per_acc)
+    if acc_page > acc_total_pages:
+        acc_page = acc_total_pages
+    acc_start = (acc_page - 1) * per_acc
+    acc_end = acc_start + per_acc
+    access_page = access_all[acc_start:acc_end]
+
     senha_sugestao = '123456'
     roles = JobRole.query.order_by(JobRole.name.asc()).all()
     colaboradores = Collaborator.query.order_by(Collaborator.name.asc()).all()
@@ -410,13 +435,18 @@ def gestao():
         u_page=u_page,
         u_total_pages=u_total_pages,
         q=q,
+        view=view,
         senha_sugestao=senha_sugestao,
         roles=roles,
         colaboradores=colaboradores,
         folgas=folgas,
         users=all_users,
         bank_balances=bank_balances,
-        recent_entries=recent_entries
+        recent_entries=recent_entries,
+        access_page=access_page,
+        acc_page=acc_page,
+        acc_total_pages=acc_total_pages,
+        acc_user=acc_user
     )
 
 
