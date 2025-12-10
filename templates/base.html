@@ -337,33 +337,29 @@
 
 <div class="content-wrapper container-fluid mt-4">
     <div class="row">
-        <aside class="d-none d-md-block col-md-3 col-lg-2 mb-3 mb-md-0">
-            <div class="list-group">
+        <div class="d-none d-md-block mb-3">
+            <ul class="nav nav-pills flex-nowrap gap-2">
                 {% if current_user.is_authenticated %}
-                <a class="list-group-item list-group-item-action {% if active_page == 'perfil' %}active{% endif %}" href="{{ url_for('usuarios.perfil') }}"><i class="fas fa-id-badge me-2"></i>Perfil</a>
+                <li class="nav-item"><a class="nav-link {% if active_page == 'perfil' %}active{% endif %}" href="{{ url_for('usuarios.perfil') }}"><i class="fas fa-id-badge me-1"></i> Perfil</a></li>
                 {% endif %}
-                <a class="list-group-item list-group-item-action {% if active_page == 'home' %}active{% endif %}" href="{{ url_for('home.index') }}"><i class="fas fa-house me-2"></i>Home</a>
-                <a class="list-group-item list-group-item-action {% if active_page == 'index' %}active{% endif %}" href="{{ url_for('estoque.index') }}"><i class="fas fa-boxes me-2"></i>Estoque</a>
+                <li class="nav-item"><a class="nav-link {% if active_page == 'home' %}active{% endif %}" href="{{ url_for('home.index') }}"><i class="fas fa-house me-1"></i> Home</a></li>
+                <li class="nav-item"><a class="nav-link {% if active_page == 'index' %}active{% endif %}" href="{{ url_for('estoque.index') }}"><i class="fas fa-boxes me-1"></i> Estoque</a></li>
                 {% if current_user.nivel in ('operador', 'admin') %}
-                <a class="list-group-item list-group-item-action {% if active_page == 'cronograma' %}active{% endif %}" href="{{ url_for('cronograma.cronograma') }}"><i class="fas fa-clipboard-check me-2"></i>Cronograma</a>
-                {% endif %}
-                {% if current_user.nivel in ('operador', 'admin') %}
-                <a class="list-group-item list-group-item-action {% if active_page == 'carnes' %}active{% endif %}" href="{{ url_for('carnes.index') }}"><i class="fas fa-drumstick-bite me-2"></i>Carnes</a>
-                <a class="list-group-item list-group-item-action {% if active_page == 'receitas' %}active{% endif %}" href="{{ url_for('receitas.index') }}"><i class="fas fa-utensils me-2"></i>Receitas</a>
+                <li class="nav-item"><a class="nav-link {% if active_page == 'cronograma' %}active{% endif %}" href="{{ url_for('cronograma.cronograma') }}"><i class="fas fa-clipboard-check me-1"></i> Cronograma</a></li>
+                <li class="nav-item"><a class="nav-link {% if active_page == 'carnes' %}active{% endif %}" href="{{ url_for('carnes.index') }}"><i class="fas fa-drumstick-bite me-1"></i> Carnes</a></li>
+                <li class="nav-item"><a class="nav-link {% if active_page == 'receitas' %}active{% endif %}" href="{{ url_for('receitas.index') }}"><i class="fas fa-utensils me-1"></i> Receitas</a></li>
                 {% if notifications_enabled %}
-                <a class="list-group-item list-group-item-action {% if active_page == 'notificacoes' %}active{% endif %}" href="{{ url_for('notificacoes.index') }}"><i class="fas fa-bullhorn me-2"></i>Notificações</a>
+                <li class="nav-item"><a class="nav-link {% if active_page == 'notificacoes' %}active{% endif %}" href="{{ url_for('notificacoes.index') }}"><i class="fas fa-bullhorn me-1"></i> Notificações</a></li>
                 {% endif %}
-                <a class="list-group-item list-group-item-action {% if active_page == 'escala' %}active{% endif %}" href="{{ url_for('colaboradores.escala') }}"><i class="fas fa-calendar-alt me-2"></i>Escalas</a>
+                <li class="nav-item"><a class="nav-link {% if active_page == 'escala' %}active{% endif %}" href="{{ url_for('colaboradores.escala') }}"><i class="fas fa-calendar-alt me-1"></i> Escalas</a></li>
                 {% endif %}
-                
                 {% if current_user.nivel == 'admin' %}
-                <a class="list-group-item list-group-item-action {% if active_page == 'gestao' %}active{% endif %}" href="{{ url_for('usuarios.gestao') }}"><i class="fas fa-gears me-2"></i>Gestão</a>
-                <a class="list-group-item list-group-item-action {% if active_page == 'dbadmin' %}active{% endif %}" href="{{ url_for('dbadmin.index') }}"><i class="fas fa-database me-2"></i>Banco de Dados</a>
+                <li class="nav-item"><a class="nav-link {% if active_page == 'gestao' %}active{% endif %}" href="{{ url_for('usuarios.gestao') }}"><i class="fas fa-gears me-1"></i> Gestão</a></li>
+                <li class="nav-item"><a class="nav-link {% if active_page == 'dbadmin' %}active{% endif %}" href="{{ url_for('dbadmin.index') }}"><i class="fas fa-database me-1"></i> Banco de Dados</a></li>
                 {% endif %}
-            </div>
-            
-        </aside>
-        <main class="col-12 col-md-9 col-lg-10">
+            </ul>
+        </div>
+        <main class="col-12">
             {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}

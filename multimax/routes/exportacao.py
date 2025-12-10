@@ -8,7 +8,7 @@ from reportlab.lib import colors
 from reportlab.lib.units import inch, cm
 from flask import Blueprint, redirect, url_for, flash, send_file, request
 from flask_login import login_required, current_user
-from ..models import Produto, CleaningTask, CleaningHistory, Historico, MeatReception, MeatCarrier, MeatPart, User
+from ..models import Produto, CleaningTask, CleaningHistory, Historico, MeatReception, MeatCarrier, MeatPart, User, Recipe, RecipeIngredient
 from io import BytesIO
 from typing import Any
 from reportlab.platypus import Image
@@ -51,6 +51,60 @@ def _brand_header(canvas, doc):
     canvas.setFont('Helvetica-Oblique', 14)
     canvas.drawString(next_x, y + h / 2 - 6, 'Gestão Amora')
     canvas.restoreState()
+
+@bp.route('/exportar/receita/<int:id>.pdf')
+@login_required
+def exportar_receita_pdf(id: int):
+    try:
+        r = Recipe.query.get_or_404(id)
+        ings = RecipeIngredient.query.filter_by(recipe_id=r.id).order_by(RecipeIngredient.id.asc()).all()
+        filename = f"receita_{r.id}.pdf"
+        pdf_buffer = BytesIO()
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, leftMargin=0.6*inch, rightMargin=0.6*inch, topMargin=0.6*inch, bottomMargin=0.6*inch)
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(name='Cell', parent=styles['Normal'], fontSize=10, leading=12, wordWrap='LTR'))
+        story: list[Any] = []
+        story.append(Paragraph('<b>MultiMax - Receita</b>', styles['Title']))
+        story.append(Spacer(1, 0.2 * inch))
+        story.append(Paragraph(f"Nome: <b>{r.nome}</b>", styles['Normal']))
+        emb = 'Embalado a vácuo' if (r.embalagem or '') == 'vacuo' else 'Caixa'
+        story.append(Paragraph(f"Embalagem: {emb}", styles['Normal']))
+        story.append(Paragraph(f"Gerado por: {current_user.name} ({current_user.nivel.upper()})", styles['Normal']))
+        story.append(Paragraph(f"Data de Geração: {_now_br().strftime('%d/%m/%Y %H:%M:%S')}", styles['Normal']))
+        story.append(Spacer(1, 0.3 * inch))
+        story.append(Paragraph('<b>Modo de Preparo</b>', styles['h2']))
+        story.append(Paragraph(r.preparo or '-', styles['Cell']))
+        story.append(Spacer(1, 0.3 * inch))
+        story.append(Paragraph('<b>Ingredientes</b>', styles['h2']))
+        data: list[list[Any]] = [["Ingrediente", "Quantidade"]]
+        if ings:
+            for it in ings:
+                data.append([it.nome, it.quantidade or '-'])
+        else:
+            data.append(["—", "—"])
+        table = Table(data, colWidths=[3.5*inch, 2.0*inch])
+        table.setStyle(TableStyle([
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#6c757d')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ]))
+        story.append(table)
+        def footer_on_page(canvas, doc):
+            canvas.saveState()
+            canvas.setFont('Helvetica', 8)
+            footer_text = f"Página {canvas.getPageNumber()} | MultiMax Receita | {_now_br().strftime('%d/%m/%Y %H:%M:%S')}"
+            canvas.drawString(inch, 0.5 * inch, footer_text)
+            canvas.restoreState()
+        def on_page(canvas, doc):
+            _brand_header(canvas, doc)
+            footer_on_page(canvas, doc)
+        doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
+        pdf_buffer.seek(0)
+        return send_file(pdf_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+    except Exception as e:
+        flash(f'Erro ao gerar PDF da Receita: {e}', 'danger')
+        return redirect(url_for('receitas.index', id=id))
 
 @bp.route('/exportar/cronograma/pdf')
 @login_required
