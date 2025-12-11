@@ -6,7 +6,7 @@
   <div></div>
 </div>
 
-<div class="card mb-3">
+<div class="card mb-3 card-animated">
   <div class="card-header">Configurar Domingos</div>
   <div class="card-body">
     <form method="post" action="{{ url_for('colaboradores.domingo_configurar') }}" class="row g-2">
@@ -27,7 +27,7 @@
     </form>
   </div>
 </div>
-<div class="card mb-3">
+<div class="card mb-3 card-animated">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span>Configurar Feriados</span>
     <span class="small text-muted">Adicionar/remover datas especiais</span>
@@ -83,7 +83,7 @@
 {% if current_user.nivel in ('operador','admin') %}{% endif %}
 
 
-<div class="card mt-3">
+<div class="card mt-3 card-animated">
   <div class="card-header">Calendário do Sistema</div>
   <div class="card-body">
     <div id="calendar" style="min-height: 600px"></div>

@@ -5,31 +5,28 @@
   <h3 class="mb-0">Gestão</h3>
 </div>
 
-<div class="mb-3">
-  {% if not view %}
-  <div class="card">
-    <div class="card-header">GESTÃO</div>
-    <div class="card-body d-flex flex-wrap gap-2">
-      <a class="btn btn-primary" href="{{ url_for('usuarios.gestao') }}?view=folgas">Gestão de Folgas</a>
-      <a class="btn btn-primary" href="{{ url_for('usuarios.gestao') }}?view=eventos">Registro de Eventos</a>
-      <a class="btn btn-primary" href="{{ url_for('usuarios.gestao') }}?view=acessos">Registro de Acessos</a>
-      <a class="btn btn-primary" href="{{ url_for('usuarios.gestao') }}?view=usuarios">Gerenciar Usuários</a>
-      <a class="btn btn-primary" href="{{ url_for('usuarios.gestao') }}?view=roles">Cargos e Permissões</a>
-      <a class="btn btn-primary" href="{{ url_for('usuarios.gestao') }}?view=colaboradores">Colaboradores</a>
-      <a class="btn btn-primary" href="{{ url_for('usuarios.gestao') }}?view=banco">Banco de Horas</a>
-    </div>
+<div class="card card-animated sticky-top mb-3 d-none d-md-block" style="top: 90px; z-index: 2;">
+  <div class="card-body d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-secondary btn-sm" href="#gerenciar-usuarios">Gerenciar Usuários</a>
+    <a class="btn btn-outline-secondary btn-sm" href="#cargos-permissoes">Cargos e Permissões</a>
+    <a class="btn btn-outline-secondary btn-sm" href="#colaboradores">Colaboradores</a>
+    <a class="btn btn-outline-secondary btn-sm" href="#banco-de-horas">Banco de Horas</a>
+    <a class="btn btn-outline-secondary btn-sm" href="#gestao-de-folgas">Gestão de Folgas</a>
+    <a class="btn btn-outline-secondary btn-sm" href="#registro-de-eventos">Registro de Eventos</a>
+    <a class="btn btn-outline-secondary btn-sm" href="#registro-de-acessos">Registro de Acessos</a>
   </div>
-  {% endif %}
 </div>
 
+<div class="mb-3"></div>
 
-{% if view == 'usuarios' %}
+
+{% if not view or view == 'usuarios' %}
 <div class="row g-3">
-  <div class="col-12 col-lg-6">
-    <div class="card">
+  <div class="col-12">
+    <div class="card card-animated" id="gerenciar-usuarios">
       <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
         <span>Gerenciar Usuários</span>
-        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('usuarios.gestao') }}">Voltar</a>
+        
         <form method="get" action="{{ url_for('usuarios.gestao') }}" class="d-flex align-items-center gap-2">
           <input type="hidden" name="u_page" value="1">
           <input type="hidden" name="l_page" value="{{ l_page }}">
@@ -93,7 +90,61 @@
 </div>
 
 {% endif %}
-{% if view == 'colaboradores' %}
+
+
+{% if not view or view == 'roles' %}
+<div class="row g-3 mt-3">
+  <div class="col-12">
+    <div class="card card-animated" id="cargos-permissoes">
+      <div class="card-header d-flex align-items-center justify-content-between"><span>Cargos e Permissões</span></div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('usuarios.gestao_role_criar') }}" class="row g-2 mb-3">
+          <div class="col-md-6"><label class="form-label">Nome do cargo</label><input type="text" name="name" class="form-control" required></div>
+          <div class="col-md-4"><label class="form-label">Permissão</label>
+            <select name="nivel" class="form-select">
+              <option value="visualizador">Visualizador</option>
+              <option value="operador">Operador</option>
+              <option value="admin">Gerente</option>
+            </select>
+          </div>
+          <div class="col-md-2 d-flex align-items-end"><button class="btn btn-success w-100" type="submit">Adicionar</button></div>
+        </form>
+        <div class="table-responsive-sm">
+          <table class="table table-hover align-middle">
+            <thead class="table-light"><tr><th>Nome</th><th>Permissão</th><th class="text-end">Ações</th></tr></thead>
+            <tbody>
+              {% for r in roles %}
+              <tr>
+                <td>{{ r.name }}</td>
+                <td>{{ r.nivel }}</td>
+                <td class="text-end">
+                  <form method="post" action="{{ url_for('usuarios.gestao_role_editar', id=r.id) }}" class="d-inline-flex gap-2 align-items-center">
+                    <input type="text" name="name" class="form-control form-control-sm" value="{{ r.name }}" placeholder="Nome">
+                    <select name="nivel" class="form-select form-select-sm">
+                      <option value="visualizador" {% if r.nivel=='visualizador' %}selected{% endif %}>Visualizador</option>
+                      <option value="operador" {% if r.nivel=='operador' %}selected{% endif %}>Operador</option>
+                      <option value="admin" {% if r.nivel=='admin' %}selected{% endif %}>Gerente</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" type="submit">Salvar</button>
+                  </form>
+                  <form method="post" action="{{ url_for('usuarios.gestao_role_excluir', id=r.id) }}" class="d-inline" onsubmit="return confirm('Excluir cargo {{ r.name }}?')">
+                    <button class="btn btn-danger btn-sm" type="submit">Excluir</button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="3" class="text-center text-muted">Nenhum cargo</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if not view or view == 'colaboradores' %}
 {% for c in colaboradores %}
 <div class="modal fade" id="modalEditColab{{ c.id }}" tabindex="-1">
   <div class="modal-dialog">
@@ -148,9 +199,9 @@
   </div>
   </div>
 {% endfor %}
-  <div class="col-12 col-lg-6">
-    <div class="card">
-      <div class="card-header d-flex align-items-center justify-content-between"><span>Colaboradores</span><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('usuarios.gestao') }}">Voltar</a></div>
+  <div class="col-12">
+    <div class="card card-animated" id="colaboradores">
+      <div class="card-header d-flex align-items-center justify-content-between"><span>Colaboradores</span></div>
       <div class="card-body">
         <form method="post" action="{{ url_for('usuarios.gestao_colabs_horas_adicionar') }}" class="row g-2 mb-3">
           <div class="col-md-3">
@@ -214,7 +265,7 @@
 </div>
 {% endif %}
 
-{% if view == 'banco' %}
+{% if not view or view == 'banco' %}
 <div class="row g-3 mt-3">
   {% for c in colaboradores %}
   <div class="modal fade" id="modalEditColab{{ c.id }}" tabindex="-1">
@@ -270,9 +321,9 @@
     </div>
   </div>
   {% endfor %}
-  <div class="col-12 col-lg-6">
-    <div class="card">
-      <div class="card-header d-flex align-items-center justify-content-between"><span>Banco de Horas</span><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('usuarios.gestao') }}">Voltar</a></div>
+  <div class="col-12">
+    <div class="card card-animated" id="banco-de-horas">
+      <div class="card-header d-flex align-items-center justify-content-between"><span>Banco de Horas</span></div>
       <div class="card-body">
         <div class="table-responsive-sm">
           <table class="table table-hover align-middle">
@@ -319,7 +370,7 @@
 {% endif %}
 
 
-{% if view == 'colaboradores' %}
+{% if not view or view == 'colaboradores' %}
 <div class="modal fade" id="modalNovoColab" tabindex="-1">
   <div class="modal-dialog">
     <form method="post" action="{{ url_for('usuarios.gestao_colabs_criar') }}">
@@ -402,60 +453,17 @@
 </div>
 </div>
 
-{% if view == 'acessos' %}
-<div class="row g-3 mt-3">
-  <div class="col-12">
-    <div class="card">
-      <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-        <span>Registro de Acessos</span>
-        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('usuarios.gestao') }}">Voltar</a>
-        <form method="get" action="{{ url_for('usuarios.gestao') }}" class="d-flex align-items-center gap-2">
-          <input type="hidden" name="u_page" value="{{ u_page }}">
-          <input type="hidden" name="l_page" value="{{ l_page }}">
-          <input type="hidden" name="acc_page" value="1">
-          <input type="text" name="acc_user" class="form-control form-control-sm" placeholder="Filtrar por usuário" value="{{ acc_user }}" style="max-width: 220px;">
-          <button type="submit" class="btn btn-outline-primary btn-sm">Filtrar</button>
-        </form>
-      </div>
-      <div class="card-body">
-        <div class="table-responsive-sm">
-          <table class="table table-hover align-middle">
-            <thead class="table-light"><tr><th>Data/Hora</th><th>Usuário</th></tr></thead>
-            <tbody>
-              {% for a in access_page %}
-              <tr>
-                <td>{{ a.data.strftime('%d/%m/%Y %H:%M:%S') }}</td>
-                <td>{{ a.usuario }}</td>
-              </tr>
-              {% else %}
-              <tr><td colspan="2" class="text-center text-muted">Sem acessos</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        <nav class="mt-2 d-flex justify-content-between align-items-center">
-          <div class="small text-muted">Página {{ acc_page }} de {{ acc_total_pages }}</div>
-          <div class="btn-group">
-            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page }}&l_page={{ l_page }}&acc_page={{ acc_page-1 if acc_page>1 else 1 }}&acc_user={{ acc_user }}">Anterior</a>
-            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page }}&l_page={{ l_page }}&acc_page={{ acc_page+1 if acc_page<acc_total_pages else acc_total_pages }}&acc_user={{ acc_user }}">Próximo</a>
-          </div>
-        </nav>
-      </div>
-    </div>
-  </div>
-</div>
-{% endif %}
 
-{% if view == 'folgas' %}
-<div class="card mt-3">
+{% if not view or view == 'folgas' %}
+<div class="card card-animated mt-3" id="gestao-de-folgas">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span>Gestão de Folgas</span>
-    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('usuarios.gestao') }}">Voltar</a>
+    
     <small class="text-muted">Automático: a cada 8h no banco vira +1 dia</small>
   </div>
   <div class="card-body">
     <div class="row g-3">
-      <div class="col-12 col-lg-6">
+      <div class="col-12">
         <div class="border rounded p-3">
           <div class="fw-bold mb-2">Créditos de Folga</div>
           <div class="fw-semibold mb-1">Domingo trabalhado</div>
@@ -531,7 +539,7 @@
           </form>
         </div>
       </div>
-      <div class="col-12 col-lg-6">
+      <div class="col-12">
         <div class="border rounded p-3">
           <div class="fw-bold mb-2">Agendar e Converter</div>
           <div class="fw-semibold mb-1">Agendar folga</div>
@@ -618,11 +626,10 @@
 </div>
 {% endif %}
 
-{% if view == 'eventos' %}
-<div class="card mt-3">
+{% if not view or view == 'eventos' %}
+<div class="card card-animated mt-3" id="registro-de-eventos">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span>Registro de Eventos</span>
-    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('usuarios.gestao') }}">Voltar</a>
     <div class="small text-muted">Últimos registros do sistema, estoque e limpeza</div>
   </div>
   <div class="card-body">
@@ -657,56 +664,50 @@
  </div>
 {% endif %}
 
-{% if view == 'roles' %}
-<div class="row g-3 mt-3">
-  <div class="col-12 col-lg-8">
-    <div class="card">
-      <div class="card-header d-flex align-items-center justify-content-between"><span>Cargos e Permissões</span><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('usuarios.gestao') }}">Voltar</a></div>
-      <div class="card-body">
-        <form method="post" action="{{ url_for('usuarios.gestao_role_criar') }}" class="row g-2 mb-3">
-          <div class="col-md-6"><label class="form-label">Nome do cargo</label><input type="text" name="name" class="form-control" required></div>
-          <div class="col-md-4"><label class="form-label">Permissão</label>
-            <select name="nivel" class="form-select">
-              <option value="visualizador">Visualizador</option>
-              <option value="operador">Operador</option>
-              <option value="admin">Gerente</option>
-            </select>
-          </div>
-          <div class="col-md-2 d-flex align-items-end"><button class="btn btn-success w-100" type="submit">Adicionar</button></div>
+
+{% if not view or view == 'acessos' %}
+<div class="row g-3 mt-3" id="registro-de-acessos">
+  <div class="col-12">
+    <div class="card card-animated">
+      <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <span>Registro de Acessos</span>
+        <form method="get" action="{{ url_for('usuarios.gestao') }}" class="d-flex align-items-center gap-2">
+          <input type="hidden" name="u_page" value="{{ u_page }}">
+          <input type="hidden" name="l_page" value="{{ l_page }}">
+          <input type="hidden" name="acc_page" value="1">
+          <input type="text" name="acc_user" class="form-control form-control-sm" placeholder="Filtrar por usuário" value="{{ acc_user }}" style="max-width: 220px;">
+          <button type="submit" class="btn btn-outline-primary btn-sm">Filtrar</button>
         </form>
+      </div>
+      <div class="card-body">
         <div class="table-responsive-sm">
           <table class="table table-hover align-middle">
-            <thead class="table-light"><tr><th>Nome</th><th>Permissão</th><th class="text-end">Ações</th></tr></thead>
+            <thead class="table-light"><tr><th>Data/Hora</th><th>Usuário</th></tr></thead>
             <tbody>
-              {% for r in roles %}
+              {% for a in access_page %}
               <tr>
-                <td>{{ r.name }}</td>
-                <td>{{ r.nivel }}</td>
-                <td class="text-end">
-                  <form method="post" action="{{ url_for('usuarios.gestao_role_editar', id=r.id) }}" class="d-inline-flex gap-2 align-items-center">
-                    <input type="text" name="name" class="form-control form-control-sm" value="{{ r.name }}" placeholder="Nome">
-                    <select name="nivel" class="form-select form-select-sm">
-                      <option value="visualizador" {% if r.nivel=='visualizador' %}selected{% endif %}>Visualizador</option>
-                      <option value="operador" {% if r.nivel=='operador' %}selected{% endif %}>Operador</option>
-                      <option value="admin" {% if r.nivel=='admin' %}selected{% endif %}>Gerente</option>
-                    </select>
-                    <button class="btn btn-primary btn-sm" type="submit">Salvar</button>
-                  </form>
-                  <form method="post" action="{{ url_for('usuarios.gestao_role_excluir', id=r.id) }}" class="d-inline" onsubmit="return confirm('Excluir cargo {{ r.name }}?')">
-                    <button class="btn btn-danger btn-sm" type="submit">Excluir</button>
-                  </form>
-                </td>
+                <td>{{ a.data.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                <td>{{ a.usuario }}</td>
               </tr>
               {% else %}
-              <tr><td colspan="3" class="text-center text-muted">Nenhum cargo</td></tr>
+              <tr><td colspan="2" class="text-center text-muted">Sem acessos</td></tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
+        <nav class="mt-2 d-flex justify-content-between align-items-center">
+          <div class="small text-muted">Página {{ acc_page }} de {{ acc_total_pages }}</div>
+          <div class="btn-group">
+            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page }}&l_page={{ l_page }}&acc_page={{ acc_page-1 if acc_page>1 else 1 }}&acc_user={{ acc_user }}">Anterior</a>
+            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page }}&l_page={{ l_page }}&acc_page={{ acc_page+1 if acc_page<acc_total_pages else acc_total_pages }}&acc_user={{ acc_user }}">Próximo</a>
+          </div>
+        </nav>
       </div>
     </div>
   </div>
 </div>
 {% endif %}
+
+<div style="height:3cm"></div>
 
 {% endblock %}

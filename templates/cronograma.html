@@ -9,7 +9,7 @@
 </div>
 
 <div class="mb-3">
-  <div class="card">
+  <div class="card card-animated">
     <div class="card-header d-flex justify-content-between align-items-center">
       <span>Histórico de Limpezas</span>
       <form method="get" action="{{ url_for('cronograma.cronograma') }}" class="d-flex align-items-center gap-2">
@@ -85,7 +85,7 @@
     {% set header_class = 'card-header-noprazo' %}
 
     <div class="cronograma-item">
-        <div class="card shadow-sm {{ card_class }} flex-fill d-flex flex-column">
+        <div class="card card-animated shadow-sm {{ card_class }} flex-fill d-flex flex-column">
             <div class="card-header {{ header_class }} fw-bold">
                 {{ tarefa.nome_limpeza }}
             </div>
