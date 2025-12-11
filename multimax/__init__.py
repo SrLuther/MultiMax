@@ -64,16 +64,17 @@ def create_app():
         template_folder=os.path.join(base_dir, 'templates'),
         static_folder=os.path.join(base_dir, 'static'),
     )
-    data_dir = None
+    data_dir = (os.getenv('DATA_DIR') or os.getenv('MULTIMAX_DATA_DIR') or None)
     if os.name == 'nt':
         localapp = os.getenv('LOCALAPPDATA')
-        if localapp:
+        if (not data_dir) and localapp:
             data_dir = os.path.join(localapp, 'MultiMax')
     if not data_dir:
         home = os.path.expanduser('~')
         data_dir = os.path.join(home, '.multimax')
     os.makedirs(data_dir, exist_ok=True)
-    db_path = os.path.join(data_dir, 'estoque.db').replace('\\', '/')
+    db_file_name = (os.getenv('DB_FILE_NAME') or 'estoque.db').strip() or 'estoque.db'
+    db_path = os.path.join(data_dir, db_file_name).replace('\\', '/')
     uri_env = os.getenv('SQLALCHEMY_DATABASE_URI') or os.getenv('DATABASE_URL')
     uri_env = _normalize_db_uri(uri_env)
     selected_uri = uri_env if uri_env else ('sqlite:///' + db_path)

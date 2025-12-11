@@ -1,539 +1,89 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}MultiMax{% endblock %}</title>
-    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}?v=6">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='icons/favicon.ico') }}?v=6" type="image/x-icon">
-    <link rel="icon" href="{{ url_for('static', filename='icons/favicon.ico') }}?v=6" type="image/x-icon">
-    <link rel="icon" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192.png') }}?v=6" type="image/png">
-    <link rel="icon" sizes="512x512" href="{{ url_for('static', filename='icons/icon-512.png') }}?v=6" type="image/png">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon-180.png') }}?v=6">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/apple-touch-icon-180.png') }}?v=6">
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="MultiMax">
-    <meta name="theme-color" content="#198754">
-    <meta name="description" content="MultiMax - Gestão Amora">
-    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='multimax-estilo.css') }}">
-    <script>
-        (function(){
-            document.documentElement.setAttribute('data-bs-theme', 'light');
-            try { localStorage.setItem('theme', 'light'); } catch(e) {}
-        })();
-    </script>
-        <style>
-            .table-responsive-sm {
-                overflow-x: auto;
-            }
-            .logo-shadow {
-                filter: drop-shadow(0 0 3px #ffffff) drop-shadow(0 0 12px rgba(255,255,255,0.9));
-            }
-            .brand-tile {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                background: linear-gradient(135deg, #198754, #157347);
-                border-radius: 12px;
-                padding: 4px;
-                box-shadow: 0 4px 12px rgba(25,135,84,0.35);
-            }
-            .brand-logo-img { height: 56px; display: block; }
-        /* Estilo para garantir que o rodapé fique sempre na parte inferior da tela */
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        .content-wrapper {
-            flex-grow: 1;
-        }
-        .footer-fixed {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            width: 100%;
-            z-index: 1100;
-        }
-        .theme-fab {
-            position: fixed;
-            right: 16px;
-            bottom: 16px;
-            z-index: 3000;
-        }
-        @media (max-width: 1400px) {
-            .theme-fab { top: 12px; right: 12px; bottom: auto; }
-        }
-        :root[data-bs-theme="light"] {
-            --mm-bg: #e9ecef;
-            --mm-surface: #eef1ef;
-            --mm-card-bg: #ffffff;
-            --bs-body-bg: var(--mm-bg);
-            --bs-body-color: #111111;
-            --bs-heading-color: #000000;
-            --bs-secondary-color: #4a4a4a;
-            --bs-tertiary-color: #6e6e6e;
-            --bs-primary: #198754;
-            --bs-primary-rgb: 25,135,84;
-            --bs-success: #198754;
-            --bs-danger: #cc1f1a;
-            --bs-warning: #d97706;
-        }
-        :root[data-bs-theme="dark"] {
-            --bs-body-bg: #2b2b2b;
-            --bs-body-color: #ffffff;
-            --bs-heading-color: #ffffff;
-            --bs-secondary-color: #ffffff;
-            --bs-tertiary-color: #ffffff;
-        }
-        [data-bs-theme="dark"] .text-muted { color: #e6e6e6 !important; }
-        .content-wrapper .bg-white, .content-wrapper .bg-light, .content-wrapper .table-light, .content-wrapper .modal-content { color: #1f2937 !important; }
-        .content-wrapper .bg-white .form-control::placeholder, .content-wrapper .bg-light .form-control::placeholder, .content-wrapper .modal-content .form-control::placeholder { color: #6b7280 !important; opacity: 0.8; }
-        .content-wrapper .bg-white .form-select option, .content-wrapper .bg-light .form-select option, .content-wrapper .modal-content .form-select option { color: #1f2937; }
-        [data-bs-theme="dark"] .content-wrapper .bg-dark,
-        [data-bs-theme="dark"] .content-wrapper .text-bg-dark,
-        [data-bs-theme="dark"] .content-wrapper .table-dark,
-        [data-bs-theme="dark"] .content-wrapper .card:not(.bg-white):not(.bg-light) { color: #fff !important; }
-        [data-bs-theme="dark"] .content-wrapper .bg-dark .form-control::placeholder,
-        [data-bs-theme="dark"] .content-wrapper .text-bg-dark .form-control::placeholder,
-        [data-bs-theme="dark"] .content-wrapper .card:not(.bg-white):not(.bg-light) .form-control::placeholder { color: #fff !important; opacity: 0.7; }
-        .modal-content { background-color: var(--mm-surface) !important; color: #1f2937 !important; }
-        .modal-header, .modal-body, .modal-footer { background-color: var(--mm-surface) !important; color: #1f2937 !important; }
-        .modal-header .modal-title { color: #111827 !important; }
-        .modal .form-label, .modal .form-control, .modal .form-select, .modal .form-text, .modal .text-muted, .modal label, .modal .small { color: #1f2937 !important; }
-        .modal .form-control::placeholder { color: #6b7280 !important; opacity: 0.8; }
-        .modal .btn-close { filter: none; }
-        form[data-bs-theme="light"] { background-color: var(--mm-card-bg) !important; color: #1f2937 !important; }
-        form[data-bs-theme="light"] .form-label,
-        form[data-bs-theme="light"] .form-control,
-        form[data-bs-theme="light"] .form-select,
-        form[data-bs-theme="light"] .form-text,
-        form[data-bs-theme="light"] .text-muted,
-        form[data-bs-theme="light"] label,
-        form[data-bs-theme="light"] .small { color: #1f2937 !important; }
-        form[data-bs-theme="light"] .form-control::placeholder { color: #6b7280 !important; opacity: 0.8; }
-        form[data-bs-theme="light"] .form-select option { color: #1f2937 !important; }
-        .card { background-color: var(--mm-card-bg); border: 1px solid #e5e7eb; box-shadow: 0 6px 18px rgba(17,24,39,.06); }
-        .table-dark { background-color: #111111; }
-        .table-striped tbody tr:nth-of-type(odd) { background-color: #f3f3f3; }
-        .alert { border: 1px solid #e5e7eb; }
-        .list-group-item.active { background-color: #198754; border-color: #157347; color: #fff; }
-        .navbar .nav-link.active { color: #fff; border-bottom: 2px solid #198754; }
-        body.bg-body { background: #666666; }
-        .loading-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.25); z-index: 5000; }
-        .loading-overlay.show { display: flex; }
-        .version-green { color: var(--bs-success) !important; }
-        nav.navbar { position: fixed; top: 0; left: 0; right: 0; z-index: 1100; }
-        .offcanvas, .offcanvas-start, .offcanvas-end, .offcanvas-top, .offcanvas-bottom { z-index: 1300 !important; height: 100vh; }
-        .offcanvas-backdrop { z-index: 1250 !important; }
-        .offcanvas-body { overflow-y: auto; }
-        .footer-fixed { padding: 4px 8px !important; }
-        .footer-fixed .container-fluid small { font-size: 10px; line-height: 1.1; }
-        @media (max-width: 768px) {
-            .navbar .mobile-user-menu { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; height: 56px; }
-            .navbar .mobile-user-menu .btn { padding: 2px 8px; font-size: 0.75rem; }
-            .navbar .mobile-right { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 56px; flex: 1; }
-            .navbar .mobile-user-stack { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; line-height: 1; }
-            .navbar .mobile-user-stack .btn { padding: 2px 8px; font-size: 0.75rem; margin-top: 2px; }
-            .navbar .mobile-bell { margin-left: auto; }
-        }
-        @media (max-width: 768px) {
-            .navbar .brand-text { display: flex; flex-direction: column; justify-content: center; height: 56px; }
-            .navbar .brand-line { flex: 1; display: flex; align-items: center; line-height: 1; }
-            .navbar .brand-title { font-weight: 700; font-size: 1.05rem; color: #fff; }
-            .navbar .brand-subtitle { font-size: 0.85rem; color: #fff; }
-        }
-    </style>
-    
+    <title>{% block title %}MultiMax{% endblock %}</title>
 </head>
-<body class="bg-body">
-
-<!-- Navbar Persistente (Cabeçalho) -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
-    <div class="container-fluid">
-        <a class="navbar-brand d-flex align-items-center" href="{{ url_for('home.index') }}">
-            <span class="brand-tile"><img class="brand-logo-img logo-shadow" src="{{ url_for('static', filename='icons/logo-user.png') }}?v=6" alt="MultiMax"></span>
-            <span class="ms-2 brand-text">
-                <span class="brand-line brand-title">MultiMax</span>
-                <span class="brand-line brand-subtitle"><em>Gestão Amora</em></span>
-            </span>
-        </a>
-        <div class="d-none d-md-block text-white fw-semibold mx-auto"></div>
-        <div class="d-md-none ms-2 mobile-right">
-            <div class="mobile-user-stack">
-                <span class="small text-white">{{ current_user.is_authenticated and current_user.name }}</span>
-                <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMobile" aria-controls="sidebarMobile">
-                    <span class="fw-bold">MENU</span>
-                </button>
-            </div>
-            <a class="nav-link text-white position-relative mobile-bell" href="#" id="notifDropdownMobile" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="fas fa-bell"></i>
-                {% if notif_count and notif_count > 0 %}
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ notif_count }}</span>
-                {% endif %}
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notifDropdownMobile" style="min-width: 360px;">
-                <li class="px-3 py-2 border-bottom">
-                    <div class="d-flex gap-2 flex-wrap">
-                        <a class="badge bg-secondary text-decoration-none" href="{{ request.path }}">Todos</a>
-                        <a class="badge bg-primary text-decoration-none" href="{{ request.path }}?nf=estoque">Estoque</a>
-                        <a class="badge bg-info text-decoration-none" href="{{ request.path }}?nf=limpeza">Limpeza</a>
-                        <a class="badge bg-dark text-decoration-none" href="{{ url_for('usuarios.notifications_unread_all', next=request.path) }}">Mostrar todas</a>
-                        <div class="vr"></div>
-                        <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=CX">CX</a>
-                        <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=PC">PC</a>
-                        <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=VA">VA</a>
-                        <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=AV">AV</a>
-                    </div>
-                </li>
-                {% if notif_items and notif_items|length > 0 %}
-                    {% for n in notif_items %}
-                    <li>
-                        <div class="dropdown-item">
-                            {% if n.tipo == 'estoque' %}
-                            <i class="fas fa-box-open text-warning me-2"></i>
-                            {% elif n.tipo == 'limpeza' %}
-                            <i class="fas fa-broom text-info me-2"></i>
-                            {% endif %}
-                            <div class="d-inline-block">
-                                <div class="fw-bold">{{ n.titulo }}</div>
-                                <div class="small text-muted">{{ n.descricao }}</div>
-                            </div>
-                            <div class="mt-2 d-flex gap-2">
-                                <a class="btn btn-sm btn-outline-secondary" href="{{ n.url }}">Abrir</a>
-                                <a class="btn btn-sm btn-outline-success" href="{{ url_for('usuarios.notifications_read', tipo=n.tipo, id=n.id, next=request.path) }}">Ocultar</a>
-                                {% if n.tipo == 'estoque' %}
-                                <form method="post" action="{{ url_for('estoque.atualizar_minimo', id=n.id) }}" class="d-flex align-items-center gap-1">
-                                    <input type="number" name="novo_minimo" class="form-control form-control-sm" style="width:90px" min="0" placeholder="Min" required>
-                                    <input type="hidden" name="next" value="{{ request.path }}">
-                                    <button class="btn btn-sm btn-outline-primary" type="submit">Salvar</button>
-                                </form>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </li>
-                    {% endfor %}
-                {% else %}
-                    <li><span class="dropdown-item text-muted">Sem notificações</span></li>
-                {% endif %}
-            </ul>
+<body class="app-background">
+    <header class="main-header">
+        <div class="left">
+            <img src="{{ url_for('static', filename='icons/logo-user.png') }}" alt="MultiMax" height="38">
         </div>
-        
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto align-items-center">
-                
-                <li class="nav-item dropdown me-2">
-                    <a class="nav-link text-white position-relative" href="#" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-bell"></i>
-                        {% if notif_count and notif_count > 0 %}
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ notif_count }}</span>
-                        {% endif %}
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notifDropdown" style="min-width: 360px;">
-                        <li class="px-3 py-2 border-bottom">
-                            <div class="d-flex gap-2 flex-wrap">
-                                <a class="badge bg-secondary text-decoration-none" href="{{ request.path }}">Todos</a>
-                                <a class="badge bg-primary text-decoration-none" href="{{ request.path }}?nf=estoque">Estoque</a>
-                                <a class="badge bg-info text-decoration-none" href="{{ request.path }}?nf=limpeza">Limpeza</a>
-                                <a class="badge bg-dark text-decoration-none" href="{{ url_for('usuarios.notifications_unread_all', next=request.path) }}">Mostrar todas</a>
-                                <div class="vr"></div>
-                                <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=CX">CX</a>
-                                <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=PC">PC</a>
-                                <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=VA">VA</a>
-                                <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=AV">AV</a>
-                            </div>
-                        </li>
-                        {% if notif_items and notif_items|length > 0 %}
-                            {% for n in notif_items %}
-                            <li>
-                                <div class="dropdown-item">
-                                    {% if n.tipo == 'estoque' %}
-                                    <i class="fas fa-box-open text-warning me-2"></i>
-                                    {% elif n.tipo == 'limpeza' %}
-                                    <i class="fas fa-broom text-info me-2"></i>
-                                    {% endif %}
-                                    <div class="d-inline-block">
-                                        <div class="fw-bold">{{ n.titulo }}</div>
-                                        <div class="small text-muted">{{ n.descricao }}</div>
-                                    </div>
-                                    <div class="mt-2 d-flex gap-2">
-                                        <a class="btn btn-sm btn-outline-secondary" href="{{ n.url }}">Abrir</a>
-                                        <a class="btn btn-sm btn-outline-success" href="{{ url_for('usuarios.notifications_read', tipo=n.tipo, id=n.id, next=request.path) }}">Ocultar</a>
-                                        {% if n.tipo == 'estoque' %}
-                                        <form method="post" action="{{ url_for('estoque.atualizar_minimo', id=n.id) }}" class="d-flex align-items-center gap-1">
-                                            <input type="number" name="novo_minimo" class="form-control form-control-sm" style="width:90px" min="0" placeholder="Min" required>
-                                            <input type="hidden" name="next" value="{{ request.path }}">
-                                            <button class="btn btn-sm btn-outline-primary" type="submit">Salvar</button>
-                                        </form>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </li>
-                            {% endfor %}
-                        {% else %}
-                            <li><span class="dropdown-item text-muted">Sem notificações</span></li>
-                        {% endif %}
-                    </ul>
-                </li>
-                {% if current_user.is_authenticated and current_user.nivel == 'admin' %}
-                <li class="nav-item me-2">
-                    <a class="nav-link {% if active_page == 'gestao' %}active{% endif %} text-white" href="{{ url_for('usuarios.gestao') }}">Gestão</a>
-                </li>
-                {% endif %}
-                
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-user-circle me-1"></i> {{ current_user.name }} ({{ current_user.nivel | upper }})
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                        <li><a class="dropdown-item" href="{{ url_for('usuarios.perfil') }}"><i class="fas fa-id-badge me-1"></i> Perfil</a></li>
-                        <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-1"></i> Sair</a></li>
-                    </ul>
-                </li>
-            </ul>
+        <div class="center">
+            <h2 class="brand-title">MultiMax <span class="brand-subtitle">Gestão Amora</span></h2>
         </div>
-    </div>
-</nav>
-
-  <div class="offcanvas offcanvas-start d-md-none" tabindex="-1" id="sidebarMobile" aria-labelledby="sidebarMobileLabel">
-  <div class="offcanvas-header bg-primary text-white">
-    <h5 id="sidebarMobileLabel" class="mb-0">Menu</h5>
-    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-  </div>
-  <div class="offcanvas-body p-0">
-    <div class="list-group">
-      {% if current_user.is_authenticated %}
-      <a class="list-group-item list-group-item-action" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Sair</a>
-      {% else %}
-      <a class="list-group-item list-group-item-action" href="{{ url_for('auth.login') }}"><i class="fas fa-sign-in-alt me-2"></i>Entrar</a>
-      {% endif %}
-      {% if current_user.is_authenticated %}
-      <a class="list-group-item list-group-item-action {% if active_page == 'perfil' %}active{% endif %}" href="{{ url_for('usuarios.perfil') }}"><i class="fas fa-id-badge me-2"></i>Perfil</a>
-      {% endif %}
-      <a class="list-group-item list-group-item-action {% if active_page == 'home' %}active{% endif %}" href="{{ url_for('home.index') }}"><i class="fas fa-house me-2"></i>Home</a>
-      <a class="list-group-item list-group-item-action {% if active_page == 'index' %}active{% endif %}" href="{{ url_for('estoque.index') }}"><i class="fas fa-boxes me-2"></i>Estoque</a>
-      {% if current_user.nivel in ('operador', 'admin') %}
-      <a class="list-group-item list-group-item-action {% if active_page == 'cronograma' %}active{% endif %}" href="{{ url_for('cronograma.cronograma') }}"><i class="fas fa-clipboard-check me-2"></i>Cronograma</a>
-      <a class="list-group-item list-group-item-action {% if active_page == 'carnes' %}active{% endif %}" href="{{ url_for('carnes.index') }}"><i class="fas fa-drumstick-bite me-2"></i>Carnes</a>
-      <a class="list-group-item list-group-item-action {% if active_page == 'receitas' %}active{% endif %}" href="{{ url_for('receitas.index') }}"><i class="fas fa-utensils me-2"></i>Receitas</a>
-      {% if notifications_enabled %}
-      <a class="list-group-item list-group-item-action {% if active_page == 'notificacoes' %}active{% endif %}" href="{{ url_for('notificacoes.index') }}"><i class="fas fa-bullhorn me-2"></i>Notificações</a>
-      {% endif %}
-      <a class="list-group-item list-group-item-action {% if active_page == 'escala' %}active{% endif %}" href="{{ url_for('colaboradores.escala') }}"><i class="fas fa-calendar-alt me-2"></i>Escalas</a>
-      {% endif %}
-      
-      {% if current_user.nivel == 'admin' %}
-      <a class="list-group-item list-group-item-action {% if active_page == 'gestao' %}active{% endif %}" href="{{ url_for('usuarios.gestao') }}"><i class="fas fa-gears me-2"></i>Gestão</a>
-      {% endif %}
-    </div>
-  </div>
-</div>
-
-<div class="content-wrapper container-fluid mt-4">
-    <div class="row">
-        <div class="d-none d-md-block mb-3">
-            <ul class="nav nav-pills flex-nowrap gap-2">
-                {% if current_user.is_authenticated %}
-                <li class="nav-item"><a class="nav-link {% if active_page == 'perfil' %}active{% endif %}" href="{{ url_for('usuarios.perfil') }}"><i class="fas fa-id-badge me-1"></i> Perfil</a></li>
-                {% endif %}
-                <li class="nav-item"><a class="nav-link {% if active_page == 'home' %}active{% endif %}" href="{{ url_for('home.index') }}"><i class="fas fa-house me-1"></i> Home</a></li>
-                <li class="nav-item"><a class="nav-link {% if active_page == 'index' %}active{% endif %}" href="{{ url_for('estoque.index') }}"><i class="fas fa-boxes me-1"></i> Estoque</a></li>
-                {% if current_user.nivel in ('operador', 'admin') %}
-                <li class="nav-item"><a class="nav-link {% if active_page == 'cronograma' %}active{% endif %}" href="{{ url_for('cronograma.cronograma') }}"><i class="fas fa-clipboard-check me-1"></i> Cronograma</a></li>
-                <li class="nav-item"><a class="nav-link {% if active_page == 'carnes' %}active{% endif %}" href="{{ url_for('carnes.index') }}"><i class="fas fa-drumstick-bite me-1"></i> Carnes</a></li>
-                <li class="nav-item"><a class="nav-link {% if active_page == 'receitas' %}active{% endif %}" href="{{ url_for('receitas.index') }}"><i class="fas fa-utensils me-1"></i> Receitas</a></li>
-                {% if notifications_enabled %}
-                <li class="nav-item"><a class="nav-link {% if active_page == 'notificacoes' %}active{% endif %}" href="{{ url_for('notificacoes.index') }}"><i class="fas fa-bullhorn me-1"></i> Notificações</a></li>
-                {% endif %}
-                <li class="nav-item"><a class="nav-link {% if active_page == 'escala' %}active{% endif %}" href="{{ url_for('colaboradores.escala') }}"><i class="fas fa-calendar-alt me-1"></i> Escalas</a></li>
-                {% endif %}
-                {% if current_user.nivel == 'admin' %}
-                <li class="nav-item"><a class="nav-link {% if active_page == 'gestao' %}active{% endif %}" href="{{ url_for('usuarios.gestao') }}"><i class="fas fa-gears me-1"></i> Gestão</a></li>
-                <li class="nav-item"><a class="nav-link {% if active_page == 'dbadmin' %}active{% endif %}" href="{{ url_for('dbadmin.index') }}"><i class="fas fa-database me-1"></i> Banco de Dados</a></li>
-                {% endif %}
-            </ul>
-        </div>
-        <main class="col-12">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} {% if category == 'danger' %}alert-error{% endif %} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
+        <div class="right d-none d-md-flex align-items-center gap-3 flex-wrap">
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('usuarios.perfil') }}" class="btn btn-outline-light btn-sm">Perfil</a>
             {% endif %}
-            {% endwith %}
-            {% block content %}{% endblock %}
-        </main>
-    </div>
-</div>
-
-<div id="globalLoading" class="loading-overlay">
-    <div class="text-center">
-        <div class="spinner-border text-light" style="width:3rem;height:3rem;" role="status"><span class="visually-hidden">Carregando...</span></div>
-        <div class="mt-2 text-white fw-semibold">Carregando...</div>
-    </div>
-</div>
-
-<div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 6000"></div>
-
-<!-- Rodapé Persistente com Data/Hora Instantânea -->
-<footer class="bg-dark text-white text-center p-2 mt-auto footer-fixed">
-    <div class="container-fluid d-flex justify-content-between align-items-center">
-        <div class="d-flex flex-column align-items-start">
-            <small>© 2025 MultiMax</small>
-            <small><em>Gestão Amora</em></small>
+            <a href="{{ url_for('home.index') }}" class="btn btn-outline-light btn-sm">Home</a>
+            <a href="{{ url_for('estoque.index') }}" class="btn btn-outline-light btn-sm">Estoque</a>
+            {% if current_user.is_authenticated and current_user.nivel in ('operador','admin') %}
+            <a href="{{ url_for('cronograma.cronograma') }}" class="btn btn-outline-light btn-sm">Cronograma</a>
+            <a href="{{ url_for('carnes.index') }}" class="btn btn-outline-light btn-sm">Carnes</a>
+            <a href="{{ url_for('receitas.index') }}" class="btn btn-outline-light btn-sm">Receitas</a>
+            <a href="{{ url_for('colaboradores.escala') }}" class="btn btn-outline-light btn-sm">Escalas</a>
+            {% endif %}
+            {% if current_user.is_authenticated and current_user.nivel == 'admin' %}
+            <a href="{{ url_for('usuarios.gestao') }}" class="btn btn-outline-light btn-sm">Gestão</a>
+            <a href="{{ url_for('dbadmin.index') }}" class="btn btn-outline-light btn-sm">Banco de Dados</a>
+            {% endif %}
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-danger btn-sm fw-bold px-3">Sair</a>
+            {% endif %}
         </div>
-        <div class="d-flex flex-column align-items-end text-end">
-            <small id="current-date"></small>
-            <small id="current-time"></small>
+        <div class="ms-auto d-md-none">
+            <button class="btn btn-outline-light btn-sm fw-bold" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMobile" aria-controls="sidebarMobile">MENU</button>
+        </div>
+    </header>
+
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarMobile" aria-labelledby="sidebarMobileLabel">
+        <div class="offcanvas-header">
+            <h5 id="sidebarMobileLabel" class="mb-0">Menu</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body p-0">
+            <div class="list-group list-group-flush">
+                {% if current_user.is_authenticated %}
+                <a class="list-group-item list-group-item-action" href="{{ url_for('usuarios.perfil') }}">Perfil</a>
+                {% endif %}
+                <a class="list-group-item list-group-item-action" href="{{ url_for('home.index') }}">Home</a>
+                <a class="list-group-item list-group-item-action" href="{{ url_for('estoque.index') }}">Estoque</a>
+                {% if current_user.is_authenticated and current_user.nivel in ('operador','admin') %}
+                <a class="list-group-item list-group-item-action" href="{{ url_for('cronograma.cronograma') }}">Cronograma</a>
+                <a class="list-group-item list-group-item-action" href="{{ url_for('carnes.index') }}">Carnes</a>
+                <a class="list-group-item list-group-item-action" href="{{ url_for('receitas.index') }}">Receitas</a>
+                <a class="list-group-item list-group-item-action" href="{{ url_for('colaboradores.escala') }}">Escalas</a>
+                {% endif %}
+                {% if current_user.is_authenticated and current_user.nivel == 'admin' %}
+                <a class="list-group-item list-group-item-action" href="{{ url_for('usuarios.gestao') }}">Gestão</a>
+                <a class="list-group-item list-group-item-action" href="{{ url_for('dbadmin.index') }}">Banco de Dados</a>
+                {% endif %}
+                {% if current_user.is_authenticated %}
+                <a class="list-group-item list-group-item-action text-danger" href="{{ url_for('auth.logout') }}">Sair</a>
+                {% else %}
+                <a class="list-group-item list-group-item-action" href="{{ url_for('auth.login') }}">Entrar</a>
+                {% endif %}
+            </div>
         </div>
     </div>
-</footer>
 
+    <div class="content-wrapper container py-4">
+        {% block content %}{% endblock %}
+    </div>
 
+    <footer class="footer-dark">
+        <div class="container py-2 d-flex justify-content-between align-items-center">
+            <small>© 2025 <strong>MultiMax</strong></small>
+            <small>Todos os direitos reservados</small>
+        </div>
+    </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=YOUR_TRACKING_ID"></script>
-<script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'YOUR_TRACKING_ID');
-</script>
-<script>
-    // Função para manter a data e hora atualizadas
-    function updateDateTime() {
-        var now = new Date();
-        function pad(n){ return String(n).padStart(2, '0'); }
-        var d = pad(now.getDate());
-        var m = pad(now.getMonth() + 1);
-        var y = String(now.getFullYear());
-        var hh = pad(now.getHours());
-        var mm = pad(now.getMinutes());
-        var ss = pad(now.getSeconds());
-        var dateStr = d + '/' + m + '/' + y;
-        var timeStr = hh + ':' + mm + ':' + ss + ' BTR';
-        var elDate = document.getElementById('current-date');
-        var elTime = document.getElementById('current-time');
-        if(elDate) elDate.textContent = dateStr;
-        if(elTime) elTime.textContent = timeStr;
-    }
-    // Atualiza imediatamente e a cada segundo
-    updateDateTime();
-    setInterval(updateDateTime, 1000);
-</script>
-<script>
-    (function(){
-        function adjustPadding(){
-            var header = document.querySelector('nav.navbar');
-            var footer = document.querySelector('footer.footer-fixed');
-            var content = document.querySelector('.content-wrapper');
-            if(!header || !footer || !content) return;
-            var hh = header.offsetHeight || 0;
-            var fh = footer.offsetHeight || 0;
-            content.style.paddingTop = hh + 'px';
-            content.style.paddingBottom = fh + 'px';
-            var offbodies = document.querySelectorAll('.offcanvas .offcanvas-body');
-            for(var i=0;i<offbodies.length;i++){
-                offbodies[i].style.paddingTop = hh + 'px';
-                offbodies[i].style.paddingBottom = fh + 'px';
-            }
-        }
-        window.addEventListener('load', adjustPadding);
-        window.addEventListener('resize', adjustPadding);
-    })();
-</script>
- 
-<script>
-    (function(){
-        if (!('serviceWorker' in navigator)) return;
-        function canRegister(){
-            try {
-                if (window.top !== window.self) return false;
-                var protoOk = (location.protocol === 'https:') || (location.hostname === 'localhost') || (location.hostname === '127.0.0.1');
-                if (!protoOk) return false;
-                if (document.visibilityState === 'prerender') return false;
-                return true;
-            } catch(_) { return false; }
-        }
-        window.addEventListener('load', function(){
-            if (!canRegister()) return;
-            try {
-                var swUrl = new URL("{{ url_for('static', filename='service-worker.js') }}", location.href).toString();
-                navigator.serviceWorker.register(swUrl);
-            } catch(_) {}
-        });
-    })();
-</script>
-<script>
-    (function(){
-        var overlay = document.getElementById('globalLoading');
-        function show(){ if(overlay) overlay.classList.add('show'); }
-        function hide(){ if(overlay) overlay.classList.remove('show'); }
-        function showPdfToast(msg){
-            var cont = document.getElementById('toastContainer');
-            if(!cont) return;
-            var el = document.createElement('div');
-            el.className = 'toast align-items-center text-bg-dark border-0';
-            el.setAttribute('role','alert');
-            el.setAttribute('aria-live','assertive');
-            el.setAttribute('aria-atomic','true');
-            el.innerHTML = '<div class="d-flex"><div class="toast-body">'+(msg||'PDF será gerado em instantes')+'</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>';
-            cont.appendChild(el);
-            try { var t = new bootstrap.Toast(el, { delay: 3000, autohide: true }); t.show(); setTimeout(function(){ try{ el.remove(); }catch(_){ } }, 3500); } catch(_){ }
-        }
-        document.addEventListener('click', function(e){
-            var a = e.target && e.target.closest && e.target.closest('a[href]');
-            if(!a) return;
-            var href = a.getAttribute('href') || '';
-            if(!href || href.indexOf('#') === 0) return;
-            if(a.hasAttribute('data-no-loading')) return;
-            var target = a.getAttribute('target');
-            if(target && target !== '_self') return;
-            if(a.hasAttribute('data-pdf-export')){ showPdfToast('PDF será gerado em instantes'); return; }
-            if(a.hasAttribute('data-download')){ show(); setTimeout(hide, 1200); return; }
-            show();
-        });
-        document.addEventListener('submit', function(e){
-            var form = e.target;
-            if(form && form.hasAttribute('data-no-loading')) return;
-            show();
-            try {
-                var btns = form.querySelectorAll('button[type="submit"], input[type="submit"]');
-                for (var i=0;i<btns.length;i++){ btns[i].disabled = true; }
-            } catch(_){ }
-        });
-        window.addEventListener('pageshow', function(){ hide(); });
-        window.addEventListener('beforeunload', function(){ show(); });
-    })();
-</script>
-<script>
-    (function(){
-        function prefetch(url){ try { fetch(url, { credentials: 'same-origin', cache: 'no-cache' }); } catch(_){} }
-        function bindPrefetch(selector){
-            var links = document.querySelectorAll(selector);
-            for(var i=0;i<links.length;i++){
-                var a = links[i];
-                var href = a.getAttribute('href');
-                if(!href || href.indexOf('#')===0) continue;
-                a.addEventListener('mouseover', function(e){ var u=e.currentTarget.getAttribute('href'); prefetch(u); });
-                a.addEventListener('touchstart', function(e){ var u=e.currentTarget.getAttribute('href'); prefetch(u); }, {passive:true});
-                a.addEventListener('focus', function(e){ var u=e.currentTarget.getAttribute('href'); prefetch(u); });
-            }
-        }
-        window.addEventListener('load', function(){
-            bindPrefetch('.list-group a.list-group-item');
-            bindPrefetch('.navbar-nav a.nav-link');
-        });
-    })();
-</script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

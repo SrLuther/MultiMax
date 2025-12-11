@@ -1,1 +1,10 @@
+Flask>=2.3.0
+Flask-SQLAlchemy>=3.0.0
+Flask-Login>=0.6.2
+SQLAlchemy>=2.0.0
+psycopg[binary]>=3.1
+reportlab>=4.0.0
+matplotlib>=3.8.0
+waitress>=2.1.2
 requests>=2.31.0
+PyPDF2>=3.0.0

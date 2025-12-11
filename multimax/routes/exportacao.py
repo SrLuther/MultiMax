@@ -17,6 +17,8 @@ from reportlab.pdfbase.pdfmetrics import stringWidth
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import importlib
+ 
 
 bp = Blueprint('exportacao', __name__)
 
@@ -51,6 +53,101 @@ def _brand_header(canvas, doc):
     canvas.setFont('Helvetica-Oblique', 14)
     canvas.drawString(next_x, y + h / 2 - 6, 'Gestão Amora')
     canvas.restoreState()
+
+def _get_pdf_template_path() -> str:
+    try:
+        root = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), '..'))
+        default_path = os.path.join(root, 'templates', 'ModeloBasePDF.pdf')
+        p = os.getenv('PDF_TEMPLATE_PATH', default_path)
+        return p
+    except Exception:
+        try:
+            root = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), '..'))
+            return os.path.join(root, 'templates', 'ModeloBasePDF.pdf')
+        except Exception:
+            return r'C:\Users\Ciano\Desktop\MultiMax\templates\ModeloBasePDF.pdf'
+
+def _has_pdf_template() -> bool:
+    try:
+        p = _get_pdf_template_path()
+        return os.path.exists(p)
+    except Exception:
+        return False
+
+def _finalize_pdf(pdf_buffer: BytesIO) -> BytesIO:
+    try:
+        pdf_buffer.seek(0)
+        base_bytes = pdf_buffer.read()
+        if not _has_pdf_template():
+            return BytesIO(base_bytes)
+        mod = importlib.import_module('PyPDF2')
+        PdfReader = getattr(mod, 'PdfReader')
+        PdfWriter = getattr(mod, 'PdfWriter')
+        template_path = _get_pdf_template_path()
+        reader_content = PdfReader(BytesIO(base_bytes))
+        reader_template = PdfReader(template_path)
+        writer = PdfWriter()
+        tpages = getattr(reader_template, 'pages', [])
+        # try get Transformation for reliable scaling
+        try:
+            trans_mod = importlib.import_module('PyPDF2.transforms')
+            Transformation = getattr(trans_mod, 'Transformation')
+        except Exception:
+            Transformation = None
+        for i, cp in enumerate(reader_content.pages):
+            cpw = float(cp.mediabox.width)
+            cph = float(cp.mediabox.height)
+            tp = tpages[min(i, len(tpages)-1)] if len(tpages) > 0 else None
+            if tp is not None:
+                try:
+                    tpw = float(tp.mediabox.width)
+                    tph = float(tp.mediabox.height)
+                except Exception:
+                    tpw, tph = cpw, cph
+                sx = cpw / tpw if tpw else 1.0
+                sy = cph / tph if tph else 1.0
+                s = min(max(sx, 0.0001), max(sy, 0.0001))
+                tw = tpw * s
+                th = tph * s
+                dx = (cpw - tw) / 2.0
+                dy = (cph - th) / 2.0
+                try:
+                    ox = float(os.getenv('PDF_TEMPLATE_OFFSET_X', '0'))
+                    oy = float(os.getenv('PDF_TEMPLATE_OFFSET_Y', '0'))
+                except Exception:
+                    ox, oy = 0.0, 0.0
+                dx += ox
+                dy += oy
+                applied = False
+                if Transformation is not None and hasattr(cp, 'merge_transformed_page'):
+                    try:
+                        T = Transformation().scale(s).translate(dx, dy)
+                        cp.merge_transformed_page(tp, T)
+                        applied = True
+                    except Exception:
+                        applied = False
+                if not applied:
+                    try:
+                        cp.merge_page(tp)
+                    except Exception:
+                        pass
+                writer.add_page(cp)
+            else:
+                writer.add_page(cp)
+        out = BytesIO()
+        writer.write(out)
+        out.seek(0)
+        return out
+    except Exception:
+        pdf_buffer.seek(0)
+        return BytesIO(pdf_buffer.read())
+
+def _template_has_footer() -> bool:
+    try:
+        v = os.getenv('PDF_TEMPLATE_HAS_FOOTER', '0').strip().lower()
+        return v in ('1', 'true', 'yes', 'y')
+    except Exception:
+        return False
 
 @bp.route('/exportar/receita/<int:id>.pdf')
 @login_required
@@ -97,11 +194,13 @@ def exportar_receita_pdf(id: int):
             canvas.drawString(inch, 0.5 * inch, footer_text)
             canvas.restoreState()
         def on_page(canvas, doc):
-            _brand_header(canvas, doc)
-            footer_on_page(canvas, doc)
+            if not _has_pdf_template():
+                _brand_header(canvas, doc)
+            if not _template_has_footer():
+                footer_on_page(canvas, doc)
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
-        pdf_buffer.seek(0)
-        return send_file(pdf_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        final_io = _finalize_pdf(pdf_buffer)
+        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
     except Exception as e:
         flash(f'Erro ao gerar PDF da Receita: {e}', 'danger')
         return redirect(url_for('receitas.index', id=id))
@@ -175,11 +274,13 @@ def exportar_cronograma_pdf():
             canvas.drawString(inch, 0.5 * inch, footer_text)
             canvas.restoreState()
         def on_page(canvas, doc):
-            _brand_header(canvas, doc)
-            footer_on_page(canvas, doc)
+            if not _has_pdf_template():
+                _brand_header(canvas, doc)
+            if not _template_has_footer():
+                footer_on_page(canvas, doc)
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
-        pdf_buffer.seek(0)
-        return send_file(pdf_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        final_io = _finalize_pdf(pdf_buffer)
+        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
     except Exception as e:
         flash(f'Erro ao gerar PDF do Cronograma: {e}', 'danger')
         return redirect(url_for('cronograma.cronograma'))
@@ -231,11 +332,13 @@ def exportar_tarefa_pdf(id):
             canvas.drawString(inch, 0.5 * inch, footer_text)
             canvas.restoreState()
         def on_page(canvas, doc):
-            _brand_header(canvas, doc)
-            footer_on_page(canvas, doc)
+            if not _has_pdf_template():
+                _brand_header(canvas, doc)
+            if not _template_has_footer():
+                footer_on_page(canvas, doc)
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
-        pdf_buffer.seek(0)
-        return send_file(pdf_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        final_io = _finalize_pdf(pdf_buffer)
+        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
     except Exception as e:
         flash(f'Erro ao gerar PDF da Tarefa: {e}', 'danger')
         return redirect(url_for('cronograma.cronograma'))
@@ -266,12 +369,14 @@ def exportar_historico_limpeza_pdf(id):
             canvas.drawString(inch, 0.5 * inch, footer_text)
             canvas.restoreState()
         def on_page(canvas, doc):
-            _brand_header(canvas, doc)
-            footer_on_page(canvas, doc)
+            if not _has_pdf_template():
+                _brand_header(canvas, doc)
+            if not _template_has_footer():
+                footer_on_page(canvas, doc)
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
-        pdf_buffer.seek(0)
+        final_io = _finalize_pdf(pdf_buffer)
         filename = f"historico_{id}.pdf"
-        return send_file(pdf_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
     except Exception as e:
         flash(f'Erro ao gerar PDF do histórico: {e}', 'danger')
         return redirect(url_for('cronograma.cronograma'))
@@ -292,7 +397,7 @@ def exportar():
         story.append(Paragraph(f"Data de Geração: {_now_br().strftime('%d/%m/%Y %H:%M:%S')}", styles['Normal']))
         story.append(Spacer(1, 0.5 * inch))
         produtos = Produto.query.order_by(Produto.quantidade.asc()).all()
-        data: list[list[Any]] = [["Cód.", "Produto", "Estoque", "Mínimo", "Custo (R$)", "Venda (R$)", "Status"]]
+        data: list[list[Any]] = [["Cód.", "Produto", "Estoque", "Mínimo", "Status"]]
         # Larguras dinâmicas baseadas na largura disponível da página
         avail_in = (doc.width) / inch
         code_env_in = float(os.getenv('PDF_CODE_COL_IN', '0.5'))
@@ -308,10 +413,8 @@ def exportar():
         # Larguras fixas para colunas numéricas/status
         estoque_in = 0.8
         minimo_in = 0.8
-        custo_in = 1.0
-        venda_in = 1.0
         status_in = 1.0
-        numeric_sum_in = estoque_in + minimo_in + custo_in + venda_in + status_in
+        numeric_sum_in = estoque_in + minimo_in + status_in
         # Produto ocupa o restante e quebra linha
         product_col_width_in = max(1.2, avail_in - code_col_width_in - numeric_sum_in)
         code_col_width = code_col_width_in * inch
@@ -352,13 +455,11 @@ def exportar():
                 Paragraph(p.nome or '-', product_style),
                 str(p.quantidade),
                 str(p.estoque_minimo),
-                f"{p.preco_custo:.2f}",
-                f"{p.preco_venda:.2f}",
                 status
             ])
         table = Table(
             data,
-            colWidths=[code_col_width, product_col_width, estoque_in*inch, minimo_in*inch, custo_in*inch, venda_in*inch, status_in*inch]
+            colWidths=[code_col_width, product_col_width, estoque_in*inch, minimo_in*inch, status_in*inch]
         )
         table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#198754')),
@@ -390,11 +491,13 @@ def exportar():
             canvas.drawString(inch, 0.5 * inch, footer_text)
             canvas.restoreState()
         def on_page(canvas, doc):
-            _brand_header(canvas, doc)
-            footer_on_page(canvas, doc)
+            if not _has_pdf_template():
+                _brand_header(canvas, doc)
+            if not _template_has_footer():
+                footer_on_page(canvas, doc)
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
-        pdf_buffer.seek(0)
-        return send_file(pdf_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        final_io = _finalize_pdf(pdf_buffer)
+        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
     except Exception as e:
         flash(f'Erro ao gerar PDF do Estoque: {e}', 'danger')
         return redirect(url_for('estoque.index'))
@@ -598,11 +701,13 @@ def exportar_graficos_produto(id):
             canvas.drawString(inch, 0.5 * inch, footer_text)
             canvas.restoreState()
         def on_page(canvas, doc):
-            _brand_header(canvas, doc)
-            footer_on_page(canvas, doc)
+            if not _has_pdf_template():
+                _brand_header(canvas, doc)
+            if not _template_has_footer():
+                footer_on_page(canvas, doc)
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
-        pdf_buffer.seek(0)
-        return send_file(pdf_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        final_io = _finalize_pdf(pdf_buffer)
+        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
     except Exception as e:
         flash(f'Erro ao gerar PDF de Gráficos: {e}', 'danger')
         return redirect(url_for('usuarios.graficos'))
@@ -832,13 +937,14 @@ def exportar_relatorio_carnes_pdf(id):
             canvas.drawString(inch, 0.5 * inch, footer_text)
             canvas.restoreState()
         def on_page(canvas, doc):
-            _brand_header(canvas, doc)
+            if not _has_pdf_template():
+                _brand_header(canvas, doc)
             footer_on_page(canvas, doc)
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
-        pdf_buffer.seek(0)
+        final_io = _finalize_pdf(pdf_buffer)
         ref = r.reference_code or f"R{r.id:04d}"
         filename = f"{ref}_CARNE.pdf"
-        return send_file(pdf_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
     except Exception as e:
         flash(f'Erro ao gerar PDF de Carnes: {e}', 'danger')
         return redirect(url_for('carnes.relatorio', id=id))
