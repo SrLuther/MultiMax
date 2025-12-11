@@ -23,7 +23,7 @@
             {% endif %}
             <a href="{{ url_for('home.index') }}" class="btn btn-outline-light btn-sm">Home</a>
             <a href="{{ url_for('estoque.index') }}" class="btn btn-outline-light btn-sm">Estoque</a>
-            {% if current_user.is_authenticated and current_user.nivel in ('operador','admin') %}
+            {% if current_user.is_authenticated and current_user.nivel in ('visualizador','operador','admin') %}
             <a href="{{ url_for('cronograma.cronograma') }}" class="btn btn-outline-light btn-sm">Cronograma</a>
             <a href="{{ url_for('carnes.index') }}" class="btn btn-outline-light btn-sm">Carnes</a>
             <a href="{{ url_for('receitas.index') }}" class="btn btn-outline-light btn-sm">Receitas</a>
@@ -54,7 +54,7 @@
                 {% endif %}
                 <a class="list-group-item list-group-item-action" href="{{ url_for('home.index') }}">Home</a>
                 <a class="list-group-item list-group-item-action" href="{{ url_for('estoque.index') }}">Estoque</a>
-                {% if current_user.is_authenticated and current_user.nivel in ('operador','admin') %}
+                {% if current_user.is_authenticated and current_user.nivel in ('visualizador','operador','admin') %}
                 <a class="list-group-item list-group-item-action" href="{{ url_for('cronograma.cronograma') }}">Cronograma</a>
                 <a class="list-group-item list-group-item-action" href="{{ url_for('carnes.index') }}">Carnes</a>
                 <a class="list-group-item list-group-item-action" href="{{ url_for('receitas.index') }}">Receitas</a>
