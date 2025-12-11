@@ -8,7 +8,7 @@ from reportlab.lib import colors
 from reportlab.lib.units import inch, cm
 from flask import Blueprint, redirect, url_for, flash, send_file, request
 from flask_login import login_required, current_user
-from ..models import Produto, CleaningTask, CleaningHistory, Historico, MeatReception, MeatCarrier, MeatPart, User, Recipe, RecipeIngredient
+from ..models import Produto, CleaningTask as CleaningTaskModel, CleaningHistory as CleaningHistoryModel, Historico, MeatReception, MeatCarrier, MeatPart, User, Recipe, RecipeIngredient
 from io import BytesIO
 from typing import Any
 from reportlab.platypus import Image
@@ -227,7 +227,7 @@ def exportar_cronograma_pdf():
         story.append(Spacer(1, 0.5 * inch))
         story.append(Paragraph('<b>Tarefas de Limpeza Agendadas</b>', styles['h2']))
         story.append(Spacer(1, 0.2 * inch))
-        tarefas = CleaningTask.query.order_by(CleaningTask.proxima_data.asc()).all()
+        tarefas = CleaningTaskModel.query.order_by(CleaningTaskModel.proxima_data.asc()).all()
         data: list[list[Any]] = [["Área/Limpeza", "Frequência", "Última Data", "Próxima Prevista", "Designado(s)", "Observações"]]
         for t in tarefas:
             data.append([
@@ -252,7 +252,7 @@ def exportar_cronograma_pdf():
         story.append(PageBreak())
         story.append(Paragraph('<b>Histórico de Conclusões (Recentes)</b>', styles['h2']))
         story.append(Spacer(1, 0.2 * inch))
-        historico = CleaningHistory.query.order_by(CleaningHistory.data_conclusao.desc()).limit(20).all()
+        historico = CleaningHistoryModel.query.order_by(CleaningHistoryModel.data_conclusao.desc()).limit(20).all()
         data_hist: list[list[Any]] = [["Data Conclusão", "Limpeza", "Realizado Por", "Observações"]]
         for h in historico:
             data_hist.append([h.data_conclusao.strftime('%d/%m/%Y %H:%M'), Paragraph(h.nome_limpeza, styles['Normal']), h.designados, Paragraph(h.observacao or '-', styles['Normal'])])
@@ -292,12 +292,12 @@ def exportar_tarefa_pdf(id):
         flash('Você não tem permissão para exportar tarefas.', 'danger')
         return redirect(url_for('cronograma.cronograma'))
     try:
-        tarefa = CleaningTask.query.get_or_404(id)
+        tarefa = CleaningTaskModel.query.get_or_404(id)
         filename = f"tarefa_{tarefa.id}_cronograma.pdf"
         pdf_buffer = BytesIO()
         doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
         styles = getSampleStyleSheet()
-        styles.add(ParagraphStyle(name='Cell', parent=styles['Normal'], fontSize=9, leading=11, wordWrap='LTR'))
+        styles.add(ParagraphStyle(name='Cell', parent=styles['Normal'], fontSize=8, leading=10, wordWrap='LTR'))
         story: list[Any] = []
         story.append(Paragraph('<b>MultiMax - Detalhes da Tarefa de Limpeza</b>', styles['Title']))
         story.append(Spacer(1, 0.2 * inch))
@@ -306,7 +306,7 @@ def exportar_tarefa_pdf(id):
         story.append(Paragraph(f"Última Realização: {tarefa.ultima_data.strftime('%d/%m/%Y')}", styles['Normal']))
         story.append(Paragraph(f"Próxima Prevista: {tarefa.proxima_data.strftime('%d/%m/%Y')}", styles['Normal']))
         story.append(Spacer(1, 0.2 * inch))
-        hist = CleaningHistory.query.filter_by(nome_limpeza=tarefa.nome_limpeza).order_by(CleaningHistory.data_conclusao.desc()).limit(5).all()
+        hist = CleaningHistoryModel.query.filter_by(nome_limpeza=tarefa.nome_limpeza).order_by(CleaningHistoryModel.data_conclusao.desc()).limit(5).all()
         obs = tarefa.observacao or ('Sem observações.' if not hist else hist[0].observacao or 'Sem observações.')
         desig = tarefa.designados or ('Não especificado' if not hist else hist[0].designados or 'Não especificado')
         story.append(Paragraph(f"Observações: {obs}", styles['Normal']))
@@ -350,7 +350,7 @@ def exportar_historico_limpeza_pdf(id):
         flash('Você não tem permissão para exportar histórico de limpezas.', 'danger')
         return redirect(url_for('cronograma.cronograma'))
     try:
-        h = CleaningHistory.query.get_or_404(id)
+        h = CleaningHistoryModel.query.get_or_404(id)
         pdf_buffer = BytesIO()
         doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
         styles = getSampleStyleSheet()
@@ -948,3 +948,145 @@ def exportar_relatorio_carnes_pdf(id):
     except Exception as e:
         flash(f'Erro ao gerar PDF de Carnes: {e}', 'danger')
         return redirect(url_for('carnes.relatorio', id=id))
+
+@bp.route('/exportar/carnes/relatorio/periodo.pdf')
+@login_required
+def exportar_relatorio_carnes_periodo():
+    if current_user.nivel not in ['operador', 'admin']:
+        flash('Você não tem permissão para exportar relatório de carnes.', 'danger')
+        return redirect(url_for('carnes.index'))
+    try:
+        tipo = (request.args.get('tipo') or '').strip().lower()
+        escopo = (request.args.get('escopo') or 'dia').strip().lower()
+        data_str = (request.args.get('data') or '').strip()
+        if tipo not in ('bovina','suina','frango'):
+            tipo = 'frango'
+        from datetime import datetime, timedelta, date as _date
+        tz = ZoneInfo('America/Sao_Paulo')
+        base_date = None
+        if data_str:
+            try:
+                base_date = datetime.strptime(data_str, '%Y-%m-%d').date()
+            except Exception:
+                base_date = None
+        if not base_date:
+            base_date = _date.today()
+        if escopo == 'semana':
+            monday = base_date - timedelta(days=base_date.weekday())
+            sunday = monday + timedelta(days=6)
+            start_dt = datetime.combine(monday, datetime.min.time()).replace(tzinfo=tz)
+            end_dt = datetime.combine(sunday, datetime.max.time()).replace(tzinfo=tz)
+            escopo_label = f"Semana {monday.strftime('%d/%m/%Y')} — {sunday.strftime('%d/%m/%Y')}"
+        else:
+            start_dt = datetime.combine(base_date, datetime.min.time()).replace(tzinfo=tz)
+            end_dt = datetime.combine(base_date, datetime.max.time()).replace(tzinfo=tz)
+            escopo_label = f"Dia {base_date.strftime('%d/%m/%Y')}"
+
+        recs = (
+            MeatReception.query
+            .filter(MeatReception.tipo == tipo)
+            .filter(MeatReception.data >= start_dt)
+            .filter(MeatReception.data <= end_dt)
+            .order_by(MeatReception.data.asc())
+            .all()
+        )
+        carriers_all = MeatCarrier.query.filter(MeatCarrier.reception_id.in_([r.id for r in recs])).all() if recs else []
+        carriers_by_rec = {}
+        for c in carriers_all:
+            carriers_by_rec.setdefault(c.reception_id, []).append(c)
+        parts_all = MeatPart.query.filter(MeatPart.reception_id.in_([r.id for r in recs])).order_by(MeatPart.id.asc()).all() if recs else []
+        parts_by_rec = {}
+        for p in parts_all:
+            parts_by_rec.setdefault(p.reception_id, []).append(p)
+
+        def _total_liquido(r: MeatReception) -> float:
+            if tipo == 'frango':
+                return float(r.peso_frango or 0.0)
+            total = 0.0
+            plist = parts_by_rec.get(r.id, [])
+            if tipo == 'bovina':
+                cmap = {c.id: c for c in carriers_by_rec.get(r.id, [])}
+                for part in plist:
+                    c = cmap.get(part.carrier_id)
+                    cw = (c.peso if c else 0.0)
+                    bruto = float(part.peso_bruto or 0.0)
+                    sub = cw if cw > 0 else float(part.tara or 0.0)
+                    total += max(0.0, bruto - sub)
+            else:  # suina
+                for part in plist:
+                    bruto = float(part.peso_bruto or 0.0)
+                    tara = float(part.tara or 0.0)
+                    total += max(0.0, bruto - tara)
+            return float(total)
+
+        filename = f"relatorio_carnes_{tipo}_{escopo}_{base_date.strftime('%Y%m%d')}.pdf"
+        pdf_buffer = BytesIO()
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(name='Cell', parent=styles['Normal'], fontSize=9, leading=11, wordWrap='LTR'))
+        story: list[Any] = []
+        story.append(Paragraph('<b>MultiMax - Relatório de Recepção de Carnes</b>', styles['Title']))
+        story.append(Spacer(1, 0.2 * inch))
+        story.append(Paragraph(f"Escopo: {escopo_label}", styles['Normal']))
+        story.append(Paragraph(f"Tipo: {(tipo or '').capitalize()}", styles['Normal']))
+        story.append(Paragraph(f"Gerado por: {current_user.name} ({current_user.nivel.upper()})", styles['Normal']))
+        story.append(Paragraph(f"Data de Geração: {_now_br().strftime('%d/%m/%Y %H:%M:%S')}", styles['Normal']))
+        story.append(Spacer(1, 0.4 * inch))
+
+        data_rows: list[list[Any]] = [['Data/Hora', 'Fornecedor', 'Ref.', 'Recebedor', 'Total (kg)']]
+        total_geral = 0.0
+        for r in recs:
+            try:
+                recebedor = User.query.get(getattr(r, 'recebedor_id', None))
+            except Exception:
+                recebedor = None
+            tot = _total_liquido(r)
+            total_geral += tot
+            data_rows.append([
+                r.data.strftime('%d/%m/%Y %H:%M'),
+                Paragraph(r.fornecedor, styles['Cell']),
+                r.reference_code or '-',
+                (recebedor and f"{recebedor.name} ({recebedor.username})" or '-'),
+                f"{tot:.2f}",
+            ])
+
+        avail_in = (doc.width) / inch
+        date_in = 1.2
+        ref_in = 0.9
+        total_in = 1.2
+        recebedor_in = 1.5
+        fixed_sum = date_in + ref_in + total_in + recebedor_in
+        fornecedor_in = max(1.2, avail_in - fixed_sum)
+        if fornecedor_in + fixed_sum > avail_in:
+            excess = (fornecedor_in + fixed_sum) - avail_in
+            recebedor_in = max(1.2, recebedor_in - excess)
+        table = Table(data_rows, colWidths=[date_in*inch, fornecedor_in*inch, ref_in*inch, recebedor_in*inch, total_in*inch])
+        table.setStyle(TableStyle([
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f8f9fa')),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 8),
+            ('ALIGN', (-1, 1), (-1, -1), 'RIGHT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        story.append(table)
+        story.append(Spacer(1, 0.3 * inch))
+        story.append(Paragraph(f"Total geral: <b>{total_geral:.2f} kg</b>", styles['h2']))
+
+        def footer_on_page(canvas, doc):
+            canvas.saveState()
+            canvas.setFont('Helvetica', 8)
+            footer_text = f"Página {canvas.getPageNumber()} | MultiMax Carnes {escopo_label} | {_now_br().strftime('%d/%m/%Y %H:%M:%S')}"
+            canvas.drawString(inch, 0.5 * inch, footer_text)
+            canvas.restoreState()
+        def on_page(canvas, doc):
+            if not _has_pdf_template():
+                _brand_header(canvas, doc)
+            if not _template_has_footer():
+                footer_on_page(canvas, doc)
+        doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
+        final_io = _finalize_pdf(pdf_buffer)
+        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
+    except Exception as e:
+        flash(f'Erro ao gerar PDF de Carnes (período): {e}', 'danger')
+        return redirect(url_for('carnes.index'))

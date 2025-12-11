@@ -425,8 +425,21 @@ F_updateTotal();
 </script>
 {% else %}
 <div class="card mb-3 card-animated">
-  <div class="card-header d-flex justify-content-between align-items-center">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <span>Recepções</span>
+    <form class="d-flex align-items-center gap-2" method="get" action="{{ url_for('exportacao.exportar_relatorio_carnes_periodo') }}">
+      <div class="input-group input-group-sm" style="max-width: 360px;">
+        <span class="input-group-text">Tipo</span>
+        <select name="tipo" class="form-select form-select-sm">
+          <option value="frango">Frango</option>
+          <option value="suina">Suína</option>
+          <option value="bovina">Bovina</option>
+        </select>
+      </div>
+      <input type="date" name="data" class="form-control form-control-sm" style="max-width: 160px;" value="{{ today_str }}">
+      <button type="submit" name="escopo" value="dia" class="btn btn-outline-primary btn-sm">Relatório Diário</button>
+      <button type="submit" name="escopo" value="semana" class="btn btn-outline-secondary btn-sm">Relatório Semanal</button>
+    </form>
   </div>
   <div class="card-body">
     <div class="table-responsive">
