@@ -1,5 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from ..models import MeatReception, MeatCarrier, MeatPart
 from .. import db
 from sqlalchemy import inspect, text
@@ -80,6 +82,10 @@ def index():
         return redirect(url_for('estoque.index'))
     _check_schema_once()
     try:
+        today_str = datetime.now(ZoneInfo('America/Sao_Paulo')).date().strftime('%Y-%m-%d')
+    except Exception:
+        today_str = datetime.now().date().strftime('%Y-%m-%d')
+    try:
         recs = MeatReception.query.order_by(MeatReception.data.desc()).limit(20).all()
         items = []
         for r in recs:
@@ -97,14 +103,14 @@ def index():
                     sub = cw if cw > 0 else (p.tara or 0.0)
                     total += max(0.0, (p.peso_bruto or 0.0) - sub)
                 items.append({'r': r, 'total': total, 'count': len(parts)})
-        return render_template('carnes.html', items=items, active_page='carnes')
+        return render_template('carnes.html', items=items, active_page='carnes', today_str=today_str)
     except Exception as e:
         try:
             db.session.rollback()
         except Exception:
             pass
         flash(f'Erro ao carregar Carnes: {e}', 'danger')
-        return render_template('carnes.html', items=[], active_page='carnes')
+        return render_template('carnes.html', items=[], active_page='carnes', today_str=today_str)
 
 @bp.route('/nova', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
