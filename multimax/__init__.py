@@ -728,6 +728,46 @@ def create_app():
             enabled = (os.getenv('NOTIFICACOES_ENABLED', 'false') or 'false').lower() == 'true'
         except Exception:
             enabled = False
-        return {'notifications_enabled': enabled}
+    return {'notifications_enabled': enabled}
 
     return app
+    try:
+        import logging
+        level_name = (os.getenv('FLASK_LOG_LEVEL') or '').strip().upper()
+        if not level_name:
+            level_name = 'DEBUG' if (os.getenv('DEBUG', 'false').lower() == 'true') else 'INFO'
+        level = getattr(logging, level_name, logging.INFO)
+        app.logger.setLevel(level)
+        logging.getLogger('werkzeug').setLevel(level)
+    except Exception:
+        pass
+    from flask import request, g
+    @app.before_request
+    def _http_log_req():
+        try:
+            g._req_start = time.time()
+            app.logger.info(f"REQ {request.method} {request.path} args={dict(request.args)}")
+        except Exception:
+            pass
+    @app.after_request
+    def _http_log_resp(resp):
+        try:
+            dur = 0.0
+            try:
+                dur = time.time() - getattr(g, '_req_start', time.time())
+            except Exception:
+                pass
+            app.logger.info(f"RES {resp.status_code} {request.method} {request.path} dur={dur:.3f}s")
+        except Exception:
+            pass
+        return resp
+    def _on_exc(sender, exception, **extra):
+        try:
+            app.logger.exception(f"ERR {request.method} {request.path}: {exception}")
+        except Exception:
+            pass
+    try:
+        from flask import got_request_exception
+        got_request_exception.connect(_on_exc, app)
+    except Exception:
+        pass
