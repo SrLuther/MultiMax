@@ -373,15 +373,13 @@ def create_app():
                 except Exception:
                     commits = []
             curated = [
-                'Gestão: unifica Usuários e Monitor com Cargos',
-                'Cargos: criar/editar/excluir e níveis de permissão',
-                'Perfil: exibe cargo do colaborador e edição de dados',
-                'Layout: cabeçalho/rodapé fixos; MENU sob usuário; sino à direita',
-                'Menu móvel: offcanvas com z-index ajustado',
-                'Versão: somente o texto da versão em verde no rodapé',
-                'Rodapé: fonte ajustada para 7px',
-                'Service Worker: registro seguro e cache v9',
-                'QR Code e URL integrados na página Gestão'
+                'Segurança: ajuste de permissões para Visualizador',
+                'Escala: Domingos/Feriados restritos a Administrador',
+                'Colaboradores: criação automática da coluna name (DB fix)',
+                'Correção: acesso seguro ao nome do colaborador',
+                'Relatórios de carnes: tabelas mais densas e legíveis',
+                'Dependências: atualizações e imports corrigidos',
+                'Versão de segurança publicada'
             ]
             commits = curated
             head = f'v{ver}' if isinstance(ver, str) else str(ver)

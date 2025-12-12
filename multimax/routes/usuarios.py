@@ -330,6 +330,31 @@ def gestao():
     view = (request.args.get('view') or '').strip()
     # QR removido
     try:
+        from sqlalchemy import inspect, text
+        insp = inspect(db.engine)
+        cols_meta = [c['name'] for c in insp.get_columns('collaborator')]
+        changed = False
+        if 'name' not in cols_meta:
+            db.session.execute(text('ALTER TABLE collaborator ADD COLUMN name TEXT'))
+            changed = True
+            if 'nome' in cols_meta:
+                try:
+                    db.session.execute(text('UPDATE collaborator SET name = nome WHERE name IS NULL'))
+                except Exception:
+                    pass
+            else:
+                try:
+                    db.session.execute(text("UPDATE collaborator SET name = '' WHERE name IS NULL"))
+                except Exception:
+                    pass
+        if changed:
+            db.session.commit()
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+    try:
         u_page = int(request.args.get('u_page', '1'))
     except Exception:
         u_page = 1
