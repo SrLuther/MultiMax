@@ -456,7 +456,8 @@ def folga_agendar():
         db.session.add(la)
         db.session.commit()
         try:
-            nome = (Collaborator.query.get(cid).name if Collaborator.query.get(cid) else f'ID {cid}')
+            col = Collaborator.query.get(cid)
+            nome = col.name if col and col.name else f'ID {cid}'
         except Exception:
             nome = f'ID {cid}'
         registrar_evento('folga cadastrada', produto=nome, quantidade=days, descricao=notes)
