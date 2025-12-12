@@ -642,7 +642,7 @@ def create_app():
                 except Exception:
                     pass
 
-        def _make_backup(retain_count: int = 10):
+        def _make_backup(retain_count: int = 50):
             try:
                 bdir = str(app.config.get('BACKUP_DIR') or '').strip()
                 if not bdir:
@@ -677,7 +677,7 @@ def create_app():
                 while True:
                     try:
                         with app.app_context():
-                            _make_backup(retain_count=10)
+                            _make_backup(retain_count=50)
                     except Exception:
                         pass
                     time.sleep(3600)

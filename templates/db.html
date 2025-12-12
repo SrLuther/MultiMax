@@ -25,7 +25,7 @@
   </div>
   </div>
 
-<div class="alert alert-info">Backups automáticos a cada hora. Mantém no máximo 10 mais recentes.</div>
+<div class="alert alert-info">Backups automáticos a cada hora. Mantém no máximo 50 mais recentes.</div>
 {% if not is_sqlite %}
 <div class="alert alert-warning">Backup automático está disponível apenas quando o banco é SQLite.</div>
 {% endif %}
@@ -63,6 +63,13 @@
         </tbody>
       </table>
     </div>
+    <nav class="mt-2 d-flex justify-content-between align-items-center">
+      <div class="small text-muted">Página {{ page }} de {{ total_pages }}</div>
+      <div class="btn-group">
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('dbadmin.index') }}?page={{ page-1 if page>1 else 1 }}">Anterior</a>
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('dbadmin.index') }}?page={{ page+1 if page<total_pages else total_pages }}">Próximo</a>
+      </div>
+    </nav>
   </div>
 </div>
 <script>
