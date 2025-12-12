@@ -331,7 +331,7 @@ def create_app():
                 return r2.stdout.strip()
         except Exception:
             pass
-        return '1.3.2.6'
+        return '1.3.6.0'
 
     resolved_version = _get_version()
     app.config['APP_VERSION_RESOLVED'] = resolved_version.lstrip('vV') if isinstance(resolved_version, str) else resolved_version

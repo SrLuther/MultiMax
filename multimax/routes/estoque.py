@@ -423,9 +423,42 @@ def editar(id: int):
     produto = Produto.query.get_or_404(id)
     if request.method == 'POST':
         try:
-            produto.nome = request.form['nome']
-            produto.estoque_minimo = int(request.form['estoque_minimo'])
+            novo_nome = request.form.get('nome', produto.nome)
+            novo_codigo = request.form.get('codigo', produto.codigo)
+            novo_minimo = int(request.form.get('estoque_minimo', str(produto.estoque_minimo)))
+            ajuste_str = request.form.get('ajuste', '0')
+            detalhes = (request.form.get('detalhes') or '').strip()
+            try:
+                ajuste = int(ajuste_str)
+            except Exception:
+                ajuste = 0
+            produto.nome = novo_nome
+            produto.codigo = novo_codigo
+            if novo_minimo < 0:
+                novo_minimo = 0
+            produto.estoque_minimo = novo_minimo
+            if ajuste != 0:
+                if ajuste < 0 and produto.quantidade < abs(ajuste):
+                    flash(f'Ajuste de {-ajuste} excede estoque atual ({produto.quantidade}).', 'warning')
+                    return redirect(url_for('estoque.editar', id=id))
+                if ajuste > 0:
+                    produto.quantidade += ajuste
+                else:
+                    produto.quantidade -= abs(ajuste)
+                hist = Historico()
+                hist.product_id = produto.id
+                hist.product_name = produto.nome
+                hist.action = 'entrada' if ajuste > 0 else 'saida'
+                hist.quantidade = abs(ajuste)
+                hist.details = detalhes or 'Ajuste via edição'
+                hist.usuario = current_user.username
+                db.session.add(hist)
             db.session.commit()
+            if ajuste != 0:
+                if ajuste > 0:
+                    registrar_evento('entrada de estoque', produto=produto.nome, quantidade=ajuste, descricao=detalhes or 'Ajuste via edição')
+                else:
+                    registrar_evento('saída de estoque', produto=produto.nome, quantidade=abs(ajuste), descricao=detalhes or 'Ajuste via edição')
             flash(f'Produto "{produto.nome}" atualizado com sucesso!', 'info')
         except Exception as e:
             db.session.rollback()

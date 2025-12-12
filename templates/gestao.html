@@ -55,6 +55,16 @@
                       </select>
                       <button type="submit" class="btn btn-primary btn-sm">Atualizar</button>
                     </form>
+                    <form method="post" action="{{ url_for('usuarios.gestao_usuarios_associar') }}" class="d-inline-flex align-items-center gap-2">
+                      <input type="hidden" name="user_id" value="{{ u.id }}">
+                      <select name="collaborator_id" class="form-select form-select-sm">
+                        <option value="">— colaborador —</option>
+                        {% for c in colaboradores %}
+                        <option value="{{ c.id }}" {% if c.user_id == u.id %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                      </select>
+                      <button type="submit" class="btn btn-outline-secondary btn-sm">Associar</button>
+                    </form>
                     <form method="post" action="{{ url_for('usuarios.update_password', user_id=u.id) }}" class="d-inline-flex align-items-center gap-2">
                       <input type="password" name="new_password" class="form-control form-control-sm" placeholder="Nova senha" required>
                       <button type="submit" class="btn btn-outline-primary btn-sm">Atualizar senha</button>

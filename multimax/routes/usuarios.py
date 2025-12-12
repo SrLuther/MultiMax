@@ -552,6 +552,42 @@ def gestao_colabs_excluir(id: int):
         flash(f'Erro ao excluir colaborador: {e}', 'danger')
     return redirect(url_for('usuarios.gestao'))
 
+@bp.route('/gestao/usuarios/associar', methods=['POST'])
+@login_required
+def gestao_usuarios_associar():
+    if current_user.nivel != 'admin':
+        flash('Você não tem permissão para associar usuário a colaborador.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    try:
+        uid = int(request.form.get('user_id', '0'))
+    except Exception:
+        uid = 0
+    try:
+        cid = int(request.form.get('collaborator_id', '0'))
+    except Exception:
+        cid = 0
+    if uid <= 0:
+        flash('Usuário inválido.', 'warning')
+        return redirect(url_for('usuarios.gestao'))
+    try:
+        # Limpa associações anteriores para este usuário
+        try:
+            Collaborator.query.filter(Collaborator.user_id == uid).update({'user_id': None})
+        except Exception:
+            pass
+        if cid > 0:
+            c = Collaborator.query.get(cid)
+            if not c:
+                flash('Colaborador não encontrado.', 'warning')
+                return redirect(url_for('usuarios.gestao'))
+            c.user_id = uid
+            db.session.add(c)
+        db.session.commit()
+        flash('Associação atualizada.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao associar: {e}', 'danger')
+    return redirect(url_for('usuarios.gestao'))
 @bp.route('/gestao/colaboradores/horas/adicionar', methods=['POST'])
 @login_required
 def gestao_colabs_horas_adicionar():
