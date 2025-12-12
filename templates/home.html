@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}Home — MultiMax{% endblock %}
+{% block content %}
+<div class="mb-3">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span>Quadro de Avisos</span>
+      {% if current_user.nivel == 'admin' %}
+      <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalEditarMural">Editar Quadro</button>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      {% if mural_html and mural_html|length > 0 %}
+      <div class="mural-content">{{ mural_html|safe }}</div>
+      {% else %}
+      <div class="text-muted">Sem aviso</div>
+      {% endif %}
+    </div>
+  </div>
+  {% if current_user.nivel == 'admin' %}
+  <div class="modal fade" id="modalEditarMural">
+    <div class="modal-dialog modal-lg">
+      <form id="formEditarMural" method="post" action="{{ url_for('home.update_mural') }}">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Editar Quadro de Avisos</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <textarea class="form-control" name="mural_text" id="mural_text" rows="8" placeholder="Escreva o aviso. Texto simples.">{{ mural_text }}</textarea>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Salvar</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+  </div>
+
+<div class="mb-3">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span>Changelog</span>
+      {% if current_user.nivel == 'admin' %}
+      <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalEditarChangelog">Editar Changelog</button>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      {% if changelog_html and changelog_html|length > 0 %}
+      <div class="changelog-content">{{ changelog_html|safe }}</div>
+      {% else %}
+      <div class="changelog-content">
+        Release 1.3.5.2 — 12/12/2025<br>
+        - Segurança: ajuste de permissões para nível Visualizador (menu e páginas)<br>
+        - Escala: Domingos/Feriados restritos a Administrador<br>
+        - Banco: criação automática da coluna <code>name</code> em <code>collaborator</code><br>
+        - Correção: acesso seguro ao nome do colaborador<br>
+        - Relatórios de carnes: tabelas mais densas e legíveis<br>
+        - Dependências e imports atualizados<br>
+        - Tag de versão de segurança publicada: v1.3.5.2
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+ 
+
+<!-- Status do Banco movido para página Banco de Dados -->
+
+{% if current_user.nivel == 'admin' %}
+<div class="modal fade" id="modalEditarChangelog">
+  <div class="modal-dialog modal-lg">
+    <form id="formEditarChangelog" method="post" action="{{ url_for('home.update_changelog') }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Editar Changelog</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <textarea class="form-control" name="changelog_text" id="changelog_text" rows="8" placeholder="Escreva as alterações. Texto simples.">{{ changelog_text }}</textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+  </div>
+{% endif %}
+
+<style>
+  .mural-content { background: #fff3cd; border: 1px solid #ffe69c; border-radius: .5rem; padding: .75rem; box-shadow: 0 0 0 2px rgba(255,193,7,.25) inset; }
+  .changelog-content { background: #e9f7ef; border: 1px solid #c7e6d7; border-radius: .5rem; padding: .75rem; box-shadow: 0 0 0 2px rgba(25,135,84,.20) inset; }
+</style>
+{% endblock %}

@@ -3,74 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MultiMax - Login</title>
+    <title>MultiMax</title>
+
+    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            background: linear-gradient(135deg, #0d6efd, #0d47a1);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-        }
-        .card {
-            border: none;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-        .card-header {
-            background: #0d6efd;
-            color: white;
-            text-align: center;
-            padding: 2rem;
-        }
-        .btn-primary {
-            background: #0d6efd;
-            border: none;
-            padding: 12px;
-            font-size: 1.1rem;
-        }
-        .btn-primary:hover {
-            background: #0b5ed7;
-        }
-    </style>
+
+    <!-- Ícones -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
+
+    <!-- Fonte Ubuntu -->
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Tema Animado MultiMax -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='login-animated.css') }}">
+
+    <!-- Forçar tema claro no login -->
+    <script>
+        (function(){
+            document.documentElement.setAttribute('data-bs-theme', 'light');
+            try { localStorage.setItem('theme', 'light'); } catch(e) {}
+        })();
+    </script>
 </head>
+
 <body>
+    
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-md-4 col-sm-8">
-                <div class="card">
+            <div class="col-12 col-sm-auto d-flex justify-content-center">
+
+                <div class="card login-card logo-shadow">
                     <div class="card-header">
-                        <h2 class="mb-0 fw-bold">MultiMax</h2>
-                        <p class="mb-0 opacity-75">Controle de Estoque</p>
+                        
+                        <span class="brand-tile">
+                            <img class="brand-logo-img-lg logo-shadow brand-logo-anim"
+                                 src="{{ url_for('static', filename='icons/logo-user.png') }}"
+                                 alt="MultiMax">
+                        </span>
+
+                        <h2 class="mb-1 fw-bold">MultiMax</h2>
+                        <div class="small opacity-75"><em>Gestão Amora</em></div>
                     </div>
-                    <div class="card-body p-5">
+
+                    <div class="card-body p-5 position-relative">
+
+                        <div id="loginBlocker" class="login-blocker"></div>
+
                         {% with messages = get_flashed_messages() %}
                           {% if messages %}
                             <div class="alert alert-danger mb-4 text-center">{{ messages[0] }}</div>
                           {% endif %}
                         {% endwith %}
 
-                        <form method="post">
+                        <form id="loginForm" method="post" data-bs-theme="light">
                             <div class="mb-4">
-                                <input type="text" name="username" class="form-control form-control-lg text-center" 
+                                <input type="text" name="username" class="form-control form-control-lg text-center"
                                        placeholder="Login" required autofocus autocomplete="username">
                             </div>
+
                             <div class="mb-4">
-                                <input type="password" name="password" class="form-control form-control-lg text-center" 
+                                <input type="password" name="password" class="form-control form-control-lg text-center"
                                        placeholder="Senha" required autocomplete="current-password">
                             </div>
-                            <button type="submit" class="btn btn-primary w-100">Entrar no Sistema</button>
+
+                            <button id="loginSubmit" type="submit" class="btn btn-primary w-100">
+                                Entrar no Sistema
+                            </button>
+
+                            <div id="loginLoader" class="logo-loader" aria-hidden="true">
+                                <span class="brand-tile">
+                                    <img class="brand-logo-img-sm logo-shadow brand-logo-anim"
+                                         src="{{ url_for('static', filename='icons/logo-user.png') }}"
+                                         alt="MultiMax">
+                                </span>
+                            </div>
                         </form>
+
                     </div>
-                    <div class="card-footer bg-light text-center py-4">
-                        <small class="text-muted">
-                            © 2025 <strong>MultiMax</strong> — Todos os direitos reservados
-                        </small>
+
+                    <div class="card-footer text-center py-4">
+                        <small class="text-muted">© 2025 <strong>MultiMax</strong> — Todos os direitos reservados</small>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    
+    <script>
+      (function(){
+        var form = document.getElementById('loginForm');
+        var blocker = document.getElementById('loginBlocker');
+        var submitBtn = document.getElementById('loginSubmit');
+        var loader = document.getElementById('loginLoader');
+
+        if(form){
+          form.addEventListener('submit', function(){
+            if(blocker) blocker.classList.add('show');
+            if(loader)  loader.classList.add('show');
+            if(submitBtn) submitBtn.disabled = true;
+          });
+        }
+
+        window.addEventListener('pageshow', function(){
+          if(blocker) blocker.classList.remove('show');
+          if(loader)  loader.classList.remove('show');
+          if(submitBtn) submitBtn.disabled = false;
+        });
+      })();
+    </script>
+
 </body>
 </html>
