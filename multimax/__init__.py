@@ -738,6 +738,7 @@ def create_app():
         level = getattr(logging, level_name, logging.INFO)
         app.logger.setLevel(level)
         logging.getLogger('werkzeug').setLevel(level)
+        app.config['LOG_BODY'] = (os.getenv('FLASK_LOG_BODY') or 'true').strip().lower() == 'true'
     except Exception:
         pass
     from flask import request, g
@@ -745,7 +746,36 @@ def create_app():
     def _http_log_req():
         try:
             g._req_start = time.time()
-            app.logger.info(f"REQ {request.method} {request.path} args={dict(request.args)}")
+            info = {}
+            info['args'] = dict(request.args)
+            if bool(app.config.get('LOG_BODY', False)):
+                ct = (request.headers.get('Content-Type') or '').lower()
+                body = None
+                if 'application/json' in ct:
+                    try:
+                        j = request.get_json(silent=True)
+                    except Exception:
+                        j = None
+                    if isinstance(j, dict):
+                        masked = {}
+                        sens = {'password','senha','new_password','confirmar_senha','token','authorization','secret'}
+                        for k, v in j.items():
+                            masked[k] = ('***' if (str(k).lower() in sens) else v)
+                        body = masked
+                    else:
+                        body = j
+                else:
+                    try:
+                        f = request.form.to_dict()
+                    except Exception:
+                        f = {}
+                    sens = {'password','senha','new_password','confirmar_senha','token','authorization','secret'}
+                    masked = {}
+                    for k, v in (f or {}).items():
+                        masked[k] = ('***' if (str(k).lower() in sens) else v)
+                    body = masked
+                info['body'] = body
+            app.logger.info(f"REQ {request.method} {request.path} {info}")
         except Exception:
             pass
     @app.after_request
