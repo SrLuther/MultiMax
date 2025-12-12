@@ -721,16 +721,15 @@ def create_app():
 
         if notif_enabled:
             _start_notif_scheduler()
-
+        
     @app.context_processor
     def inject_notif_flag():
         try:
             enabled = (os.getenv('NOTIFICACOES_ENABLED', 'false') or 'false').lower() == 'true'
         except Exception:
             enabled = False
-    return {'notifications_enabled': enabled}
-
-    return app
+        return {'notifications_enabled': enabled}
+        
     try:
         import logging
         level_name = (os.getenv('FLASK_LOG_LEVEL') or '').strip().upper()
@@ -771,3 +770,5 @@ def create_app():
         got_request_exception.connect(_on_exc, app)
     except Exception:
         pass
+    
+    return app
