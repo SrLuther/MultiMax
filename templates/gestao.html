@@ -14,6 +14,66 @@
     <a class="btn btn-outline-secondary btn-sm" href="#gestao-de-folgas">Gestão de Folgas</a>
     <a class="btn btn-outline-secondary btn-sm" href="#registro-de-eventos">Registro de Eventos</a>
     <a class="btn btn-outline-secondary btn-sm" href="#registro-de-acessos">Registro de Acessos</a>
+    
+  </div>
+</div>
+
+{% if current_user.nivel == 'admin' %}{% endif %}
+
+<script>
+  (function(){
+    try {
+      document.querySelectorAll('.progress-bar[data-width]').forEach(function(el){
+        var v = parseInt(el.getAttribute('data-width') || '0', 10);
+        if (isNaN(v) || v < 0) v = 0;
+        if (v > 100) v = 100;
+        el.style.width = v + '%';
+        el.setAttribute('aria-valuenow', String(v));
+      });
+    } catch (e) {}
+  })();
+</script>
+<style>
+  .card-vps-danger {
+    border: 1px solid rgba(220,53,69,.5);
+    box-shadow: 0 0 0 2px rgba(220,53,69,.25) inset, 0 0 22px rgba(220,53,69,.35);
+    background: linear-gradient(180deg, #1a1d1f, #16191b 78%, #1a1d1f);
+  }
+  .card-vps-danger .card-header {
+    background: linear-gradient(135deg, #dc3545, #b02a37);
+    color: #fff;
+    box-shadow: 0 0 16px rgba(220,53,69,.45);
+    border-bottom: none;
+  }
+</style>
+<div class="card card-animated mb-3">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <span>Resumo de Saldo por Colaborador</span>
+    <form method="get" action="{{ url_for('usuarios.gestao') }}" class="d-flex align-items-center gap-2">
+      <input type="hidden" name="u_page" value="{{ u_page }}">
+      <input type="hidden" name="l_page" value="{{ l_page }}">
+      <select name="saldo_collaborator_id" class="form-select form-select-sm" style="min-width:220px">
+        <option value="">— selecionar colaborador —</option>
+        {% for c in colaboradores %}
+        <option value="{{ c.id }}" {% if saldo_collab and saldo_collab.id == c.id %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-outline-primary btn-sm">Buscar</button>
+    </form>
+  </div>
+  <div class="card-body">
+    {% if saldo_collab %}
+    <div class="d-flex gap-3 align-items-center flex-wrap">
+      <div class="fw-semibold">{{ saldo_collab.name }}</div>
+      <span class="badge text-bg-primary">Dias de folga: {{ saldo_days }}</span>
+      {% set hrs_cls = 'text-bg-secondary' %}
+      {% if saldo_hours > 0 %}{% set hrs_cls = 'text-bg-success' %}{% elif saldo_hours < 0 %}{% set hrs_cls = 'text-bg-danger' %}{% endif %}
+      <span class="badge {{ hrs_cls }}">Horas (residual): {{ '%.2f'|format(saldo_hours or 0.0) }}h</span>
+      <div class="small text-muted">Regra: a cada 8h acumuladas vira +1 dia e as horas são reiniciadas.</div>
+    </div>
+    {% else %}
+    <div class="text-muted">Selecione um colaborador para ver o saldo.</div>
+    {% endif %}
   </div>
 </div>
 
@@ -34,6 +94,7 @@
           <button type="submit" class="btn btn-outline-primary btn-sm">Buscar</button>
         </form>
         <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalNovoUsuario">Novo Usuário</button>
+        <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalNovoColab">Novo Colaborador</button>
       </div>
       <div class="card-body">
         <div class="table-responsive-sm">
@@ -54,6 +115,16 @@
                         <option value="admin" {% if u.nivel == 'admin' %}selected{% endif %}>Gerente</option>
                       </select>
                       <button type="submit" class="btn btn-primary btn-sm">Atualizar</button>
+                    </form>
+                    <form method="post" action="{{ url_for('usuarios.gestao_usuarios_associar') }}" class="d-inline-flex align-items-center gap-2">
+                      <input type="hidden" name="user_id" value="{{ u.id }}">
+                      <select name="collaborator_id" class="form-select form-select-sm">
+                        <option value="">— colaborador —</option>
+                        {% for c in colaboradores %}
+                        <option value="{{ c.id }}" {% if c.user_id == u.id %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                      </select>
+                      <button type="submit" class="btn btn-outline-secondary btn-sm">Associar</button>
                     </form>
                     <form method="post" action="{{ url_for('usuarios.update_password', user_id=u.id) }}" class="d-inline-flex align-items-center gap-2">
                       <input type="password" name="new_password" class="form-control form-control-sm" placeholder="Nova senha" required>
@@ -370,7 +441,6 @@
 {% endif %}
 
 
-{% if not view or view == 'colaboradores' %}
 <div class="modal fade" id="modalNovoColab" tabindex="-1">
   <div class="modal-dialog">
     <form method="post" action="{{ url_for('usuarios.gestao_colabs_criar') }}">
@@ -407,7 +477,6 @@
     </form>
 </div>
 </div>
-{% endif %}
 </div>
 
 <!-- Eventos movidos para o final -->
@@ -459,7 +528,7 @@
   <div class="card-header d-flex justify-content-between align-items-center">
     <span>Gestão de Folgas</span>
     
-    <small class="text-muted">Automático: a cada 8h no banco vira +1 dia</small>
+    <small class="text-muted">Automático: a cada 8h vira +1 dia e desconta 8h</small>
   </div>
   <div class="card-body">
     <div class="row g-3">
@@ -709,5 +778,53 @@
 {% endif %}
 
 <div style="height:3cm"></div>
+
+{% if current_user.nivel == 'admin' %}
+<div class="card card-animated card-vps-danger mb-3">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <span>Acesso VPS</span>
+  </div>
+  <div class="card-body">
+    <div class="row g-3 align-items-center">
+      <div class="col-12 col-md-6">
+        <div class="fw-semibold mb-1">Armazenamento da VPS</div>
+        {% if vps_storage %}
+        <div class="progress mb-1" style="height: 20px;">
+          <div class="progress-bar bg-danger" role="progressbar" style="width: 0%;" data-width="{{ vps_storage.used_pct }}" aria-valuemin="0" aria-valuemax="100">{{ vps_storage.used_pct }}%</div>
+        </div>
+        <div class="small text-muted">Usado: {{ vps_storage.used_str }} • Livre: {{ vps_storage.free_str }} • Total: {{ vps_storage.total_str }}</div>
+        <div class="small text-muted">Uptime: {{ vps_storage.uptime_str or '-' }} • Carga (1m/5m/15m): {{ vps_storage.load_str or '-' }}</div>
+        {% else %}
+        <div class="text-muted">Armazenamento indisponível.</div>
+        {% endif %}
+      </div>
+      <div class="col-12 col-md-6">
+        <div class="d-flex flex-column gap-2">
+          <form method="post" action="{{ url_for('usuarios.gestao_restart') }}" onsubmit="return confirm('Reiniciar o sistema MultiMax?')">
+            <div class="input-group">
+              <input type="password" name="secret_key" class="form-control form-control-sm" placeholder="Senha (.env SECRET_KEY)" required>
+              <button type="submit" class="btn btn-outline-danger btn-sm">Reiniciar Sistema</button>
+            </div>
+          </form>
+          <form method="post" action="{{ url_for('usuarios.gestao_vps_restart') }}" onsubmit="return confirm('Reiniciar a VPS agora?')">
+            <div class="input-group">
+              <input type="password" name="secret_key" class="form-control form-control-sm" placeholder="Senha (.env SECRET_KEY)" required>
+              <button type="submit" class="btn btn-danger btn-sm">Reiniciar VPS</button>
+            </div>
+          </form>
+          <form method="post" action="{{ url_for('usuarios.gestao_vps_upload') }}" enctype="multipart/form-data" onsubmit="return confirm('Enviar e aplicar atualização? A VPS será reiniciada.')">
+            <div class="input-group">
+              <input type="file" name="zipfile" class="form-control form-control-sm" accept=".zip" required>
+              <input type="password" name="secret_key" class="form-control form-control-sm" placeholder="Senha (.env SECRET_KEY)" required>
+              <button type="submit" class="btn btn-outline-primary btn-sm">Atualizar MultiMax (ZIP)</button>
+            </div>
+            <div class="small text-muted mt-1">O pacote será descompactado, arquivos alterados/substituídos, novos adicionados, executado vps_setup.sh e a VPS reiniciada.</div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 {% endblock %}

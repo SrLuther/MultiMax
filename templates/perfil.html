@@ -6,6 +6,24 @@
 </div>
 
 <div class="row g-3">
+  {% if collab %}
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div>Painel de Saldo</div>
+        <div class="d-flex gap-2 align-items-center">
+          <span class="badge text-bg-primary">Dias de folga: {{ folga_balance }}</span>
+          {% set hrs_cls = 'text-bg-secondary' %}
+          {% if residual_hours > 0 %}{% set hrs_cls = 'text-bg-success' %}{% elif residual_hours < 0 %}{% set hrs_cls = 'text-bg-danger' %}{% endif %}
+          <span class="badge {{ hrs_cls }}">Horas (residual): {{ '%.2f'|format(residual_hours) }}h</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="small text-muted">Regra: a cada 8h acumuladas vira +1 dia e as horas são reiniciadas.</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
   <div class="col-12 col-lg-6">
     <form method="post" action="{{ url_for('usuarios.perfil') }}" class="bg-white p-3 rounded border" data-bs-theme="light">
       <div class="mb-3">
@@ -49,12 +67,12 @@
   </div>
 </div>
 {% if collab %}
-<div class="card mt-4">
+  <div class="card mt-4">
   <div class="card-header d-flex justify-content-between align-items-center">
     <div>Banco de Horas — {{ collab.name }}{% if collab.role %} — {{ collab.role }}{% endif %}</div>
     {% set cls = 'text-bg-secondary' %}
-    {% if total > 0 %}{% set cls = 'text-bg-success' %}{% elif total < 0 %}{% set cls = 'text-bg-danger' %}{% endif %}
-    <span class="badge {{ cls }}">{{ '%.2f'|format(total) }}h</span>
+    {% if residual_hours > 0 %}{% set cls = 'text-bg-success' %}{% elif residual_hours < 0 %}{% set cls = 'text-bg-danger' %}{% endif %}
+    <span class="badge {{ cls }}">{{ '%.2f'|format(residual_hours) }}h (residual)</span>
   </div>
   <div class="card-body">
     <div class="table-responsive">

@@ -90,8 +90,8 @@ Funcionalidades principais:
 - PORT	5000	Porta da aplicação
 - DEBUG	True / False	Ativa modo debug
 - SQLALCHEMY_DATABASE_URI	sqlite:///multimax.db	Conexão com o banco
-- SENHA_ADMIN	admin123	Senha do administrador
-- SENHA_OPERADOR	operador123	Senha do operador
+- SENHA_ADMIN	Senha do administrador
+- SENHA_OPERADOR	Senha do operador
 - DB_BACKUP_ENABLED	True / False	Ativa backups automáticos
 - KEEPALIVE_ENABLED	True / False	Ativa ping keepalive
 - KEEPALIVE_URL	http://localhost:5000	URL do ping

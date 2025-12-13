@@ -58,14 +58,7 @@
         <td>{{ p.estoque_minimo }}</td>
         <td class="text-center">
           {% if current_user.nivel in ('operador','admin') %}
-          <div class="btn-group btn-group-sm" role="group">
-            <button class="btn btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#entrada{{p.id}}">Entrada</button>
-            <button class="btn btn-outline-warning" data-bs-toggle="collapse" data-bs-target="#saida{{p.id}}">Saída</button>
-            <a class="btn btn-outline-info" href="{{ url_for('estoque.editar', id=p.id) }}">Editar</a>
-            {% if current_user.nivel == 'admin' %}
-            <a class="btn btn-outline-danger" href="{{ url_for('estoque.excluir', id=p.id) }}">Excluir</a>
-            {% endif %}
-          </div>
+          <a class="btn btn-outline-info btn-sm" href="{{ url_for('estoque.editar', id=p.id) }}">EDITAR</a>
           {% endif %}
         </td>
       </tr>

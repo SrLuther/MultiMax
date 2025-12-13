@@ -17,7 +17,7 @@ if (Test-Path $envFile) {
 # Configurações padrão de produção
 Set-Item -Path Env:DEBUG -Value 'false'
 Set-Item -Path Env:DB_BACKUP_ENABLED -Value 'true'
-Set-Item -Path Env:APP_VERSION -Value 'v1.3.4'
+Set-Item -Path Env:APP_VERSION -Value 'v1.3.6.0'
 
 $activate = Join-Path $root '.venv\\Scripts\\Activate.ps1'
 if (Test-Path $activate) { & $activate }

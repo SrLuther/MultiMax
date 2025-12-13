@@ -1,13 +1,21 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from .. import db
-from ..models import User, Produto, Historico, CleaningHistory, SystemLog, NotificationRead, HourBankEntry, Collaborator, JobRole, LeaveCredit, LeaveAssignment, LeaveConversion, Shift
+from ..models import User, Produto, Historico, CleaningHistory, SystemLog, NotificationRead, HourBankEntry, Collaborator, JobRole, LeaveCredit, LeaveAssignment, LeaveConversion, Shift, CleaningTask
 from datetime import datetime, timedelta, date
 from collections import OrderedDict
-from typing import TypedDict
+from typing import TypedDict, cast, Sequence
 import os
  
+import threading
+import time
+import shutil
+import zipfile
+import tempfile
+import subprocess
+from pathlib import Path
+
 
 bp = Blueprint('usuarios', __name__)
 
@@ -58,6 +66,114 @@ def users():
             flash(f'Erro ao criar usuário: {e}', 'danger')
         return redirect(url_for('usuarios.gestao'))
     return redirect(url_for('usuarios.gestao'))
+
+@bp.route('/gestao/vps/restart', methods=['POST'])
+@login_required
+def gestao_vps_restart():
+    if current_user.nivel != 'admin':
+        flash('Apenas Administradores podem reiniciar a VPS.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    secret_in = (request.form.get('secret_key') or '').strip()
+    secret_cfg = str(current_app.config.get('SECRET_KEY') or '').strip()
+    if not secret_in or secret_in != secret_cfg:
+        flash('Senha inválida para reiniciar a VPS.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    try:
+        cmd = (os.getenv('VPS_REBOOT_CMD') or 'sudo reboot').strip()
+        subprocess.Popen(cmd, shell=True)
+        flash('Reinício da VPS iniciado.', 'warning')
+    except Exception as e:
+        flash(f'Falha ao reiniciar VPS: {e}', 'danger')
+    return redirect(url_for('usuarios.gestao'))
+
+@bp.route('/gestao/vps/upload', methods=['POST'])
+@login_required
+def gestao_vps_upload():
+    if current_user.nivel != 'admin':
+        flash('Apenas Administradores podem atualizar a VPS.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    secret_in = (request.form.get('secret_key') or '').strip()
+    secret_cfg = str(current_app.config.get('SECRET_KEY') or '').strip()
+    if not secret_in or secret_in != secret_cfg:
+        flash('Senha inválida para atualizar a VPS.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    file = request.files.get('zipfile')
+    if not file or not (file.filename or '').lower().endswith('.zip'):
+        flash('Selecione um arquivo .zip válido.', 'warning')
+        return redirect(url_for('usuarios.gestao'))
+    tmp_dir = tempfile.mkdtemp(prefix='mmx_up_')
+    zip_path = os.path.join(tmp_dir, 'update.zip')
+    try:
+        file.save(zip_path)
+        with zipfile.ZipFile(zip_path, 'r') as zf:
+            zf.extractall(tmp_dir)
+        root = Path(current_app.root_path).resolve()
+        extracted_root = Path(tmp_dir).resolve()
+        copied = 0
+        for p in extracted_root.rglob('*'):
+            if p.is_dir():
+                continue
+            rel = p.relative_to(extracted_root)
+            target = (root / rel).resolve()
+            try:
+                if str(target).startswith(str(root)):
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(str(p), str(target))
+                    copied += 1
+            except Exception:
+                pass
+        setup_script = (root / 'vps_setup.sh')
+        alt_setup_script = (root / 'scripts' / 'vps_setup.sh')
+        run_script = setup_script if setup_script.exists() else alt_setup_script
+        if run_script.exists():
+            try:
+                subprocess.Popen(['bash', str(run_script)], cwd=str(root))
+            except Exception:
+                pass
+        try:
+            cmd = (os.getenv('VPS_REBOOT_CMD') or 'sudo reboot').strip()
+            subprocess.Popen(cmd, shell=True)
+        except Exception:
+            pass
+        flash(f'Atualização aplicada ({copied} arquivos). VPS será reiniciada.', 'success')
+    except Exception as e:
+        flash(f'Falha ao aplicar atualização: {e}', 'danger')
+    finally:
+        try:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+        except Exception:
+            pass
+    return redirect(url_for('usuarios.gestao'))
+
+@bp.route('/gestao/restart', methods=['POST'])
+@login_required
+def gestao_restart():
+    if current_user.nivel != 'admin':
+        flash('Apenas Administradores podem reiniciar.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    secret_in = (request.form.get('secret_key') or '').strip()
+    secret_cfg = str(current_app.config.get('SECRET_KEY') or '').strip()
+    if not secret_in or secret_in != secret_cfg:
+        flash('Senha inválida para reinício do sistema.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    try:
+        cmd = (os.getenv('RESTART_CMD') or '').strip()
+        if cmd:
+            try:
+                subprocess.Popen(cmd, shell=True)
+            except Exception:
+                pass
+        def _do_exit():
+            time.sleep(1.0)
+            try:
+                os._exit(0)
+            except Exception:
+                pass
+        threading.Thread(target=_do_exit, daemon=True).start()
+        flash('Reiniciando MultiMax na VPS...', 'warning')
+    except Exception as e:
+        flash(f'Falha ao iniciar reinício: {e}', 'danger')
+    return redirect(url_for('home.index'))
 
 
 @bp.route('/users/<int:user_id>/senha', methods=['POST'])
@@ -171,6 +287,9 @@ def monitor():
 @bp.route('/notifications/read')
 @login_required
 def notifications_read():
+    if current_user.nivel != 'admin':
+        flash('Apenas Administradores podem resolver notificações.', 'danger')
+        return redirect(url_for('home.index'))
     tipo = request.args.get('tipo')
     ref_id = request.args.get('id', type=int)
     nxt = request.args.get('next', url_for('estoque.index'))
@@ -212,6 +331,43 @@ def notifications_unread_all():
         db.session.rollback()
     return redirect(nxt)
 
+@bp.route('/notifications/read_all')
+@login_required
+def notifications_read_all():
+    if current_user.nivel != 'admin':
+        flash('Apenas Administradores podem resolver notificações.', 'danger')
+        return redirect(url_for('home.index'))
+    nxt = request.args.get('next', url_for('home.index'))
+    try:
+        crit = (
+            Produto.query
+            .filter(Produto.estoque_minimo.isnot(None), Produto.estoque_minimo > 0, Produto.quantidade <= Produto.estoque_minimo)
+            .order_by(Produto.nome.asc())
+            .limit(100)
+            .all()
+        )
+        for p in crit:
+            if NotificationRead.query.filter_by(user_id=current_user.id, tipo='estoque', ref_id=p.id).first() is None:
+                nr = NotificationRead(); nr.user_id = current_user.id; nr.tipo = 'estoque'; nr.ref_id = p.id; db.session.add(nr)
+        from datetime import date as _date, timedelta as _td
+        horizon = _date.today() + _td(days=3)
+        tasks = (
+            CleaningTask.query
+            .filter(CleaningTask.proxima_data.isnot(None), CleaningTask.proxima_data <= horizon)
+            .order_by(CleaningTask.proxima_data.asc())
+            .limit(100)
+            .all()
+        )
+        for t in tasks:
+            if NotificationRead.query.filter_by(user_id=current_user.id, tipo='limpeza', ref_id=t.id).first() is None:
+                nr = NotificationRead(); nr.user_id = current_user.id; nr.tipo = 'limpeza'; nr.ref_id = t.id; db.session.add(nr)
+        db.session.commit()
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+    return redirect(nxt)
 @bp.route('/perfil', methods=['GET', 'POST'])
 @login_required
 def perfil():
@@ -256,6 +412,7 @@ def perfil():
     collab = None
     entries = []
     total = 0.0
+    residual_hours = 0.0
     folga_balance = 0
     folga_credits = []
     folga_assigned = []
@@ -263,13 +420,49 @@ def perfil():
     try:
         collab = Collaborator.query.filter_by(user_id=current_user.id).first()
         if collab:
+            try:
+                from sqlalchemy import func
+                total_pre = db.session.query(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).filter(HourBankEntry.collaborator_id == collab.id).scalar() or 0.0
+                total_pre = float(total_pre)
+                auto_credits_pre = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == collab.id, LeaveCredit.origin == 'horas').scalar() or 0
+                auto_credits_pre = int(auto_credits_pre)
+                desired_pre = int(total_pre // 8.0) if total_pre > 0.0 else 0
+                missing_pre = max(0, desired_pre - auto_credits_pre)
+                if missing_pre > 0:
+                    from datetime import date as _date
+                    for _ in range(missing_pre):
+                        lc = LeaveCredit()
+                        lc.collaborator_id = collab.id
+                        lc.date = _date.today()
+                        lc.amount_days = 1
+                        lc.origin = 'horas'
+                        lc.notes = 'Reconciliação automática: crédito por 8h acumuladas'
+                        db.session.add(lc)
+                    for _ in range(missing_pre):
+                        adj = HourBankEntry()
+                        adj.collaborator_id = collab.id
+                        adj.date = _date.today()
+                        adj.hours = -8.0
+                        adj.reason = 'Reconciliação automática: -8h por +1 dia'
+                        db.session.add(adj)
+                    db.session.commit()
+            except Exception:
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
             entries = HourBankEntry.query.filter_by(collaborator_id=collab.id).order_by(HourBankEntry.date.desc()).limit(50).all()
             try:
                 from sqlalchemy import func
                 total = db.session.query(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).filter(HourBankEntry.collaborator_id == collab.id).scalar() or 0.0
                 total = float(total)
+                if total >= 0.0:
+                    residual_hours = total % 8.0
+                else:
+                    residual_hours = - ((-total) % 8.0)
             except Exception:
                 total = 0.0
+                residual_hours = 0.0
             try:
                 from sqlalchemy import func
                 credits_sum = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == collab.id).scalar() or 0
@@ -294,7 +487,7 @@ def perfil():
         collab = None
         entries = []
         total = 0.0
-    return render_template('perfil.html', active_page='perfil', collab=collab, entries=entries, total=total, folga_balance=folga_balance, folga_credits=folga_credits, folga_assigned=folga_assigned, folga_conversions=folga_conversions)
+    return render_template('perfil.html', active_page='perfil', collab=collab, entries=entries, total=total, residual_hours=residual_hours, folga_balance=folga_balance, folga_credits=folga_credits, folga_assigned=folga_assigned, folga_conversions=folga_conversions)
 
 @bp.route('/perfil/senha', methods=['POST'])
 @login_required
@@ -329,6 +522,31 @@ def gestao():
     q = (request.args.get('q') or '').strip()
     view = (request.args.get('view') or '').strip()
     # QR removido
+    try:
+        from sqlalchemy import inspect, text
+        insp = inspect(db.engine)
+        cols_meta = [c['name'] for c in insp.get_columns('collaborator')]
+        changed = False
+        if 'name' not in cols_meta:
+            db.session.execute(text('ALTER TABLE collaborator ADD COLUMN name TEXT'))
+            changed = True
+            if 'nome' in cols_meta:
+                try:
+                    db.session.execute(text('UPDATE collaborator SET name = nome WHERE name IS NULL'))
+                except Exception:
+                    pass
+            else:
+                try:
+                    db.session.execute(text("UPDATE collaborator SET name = '' WHERE name IS NULL"))
+                except Exception:
+                    pass
+        if changed:
+            db.session.commit()
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
     try:
         u_page = int(request.args.get('u_page', '1'))
     except Exception:
@@ -402,11 +620,61 @@ def gestao():
     roles = JobRole.query.order_by(JobRole.name.asc()).all()
     colaboradores = Collaborator.query.order_by(Collaborator.name.asc()).all()
     bank_balances = {}
+    saldo_collab = None
+    saldo_hours = None
+    saldo_days = None
     try:
         from sqlalchemy import func
         sums = db.session.query(HourBankEntry.collaborator_id, func.coalesce(func.sum(HourBankEntry.hours), 0.0)).group_by(HourBankEntry.collaborator_id).all()
         for cid, total in sums:
             bank_balances[int(cid)] = float(total or 0.0)
+        try:
+            scid = request.args.get('saldo_collaborator_id', type=int)
+        except Exception:
+            scid = None
+        if scid:
+            saldo_collab = Collaborator.query.get(scid)
+            if saldo_collab:
+                try:
+                    hsum_pre = db.session.query(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).filter(HourBankEntry.collaborator_id == scid).scalar() or 0.0
+                    hsum_pre = float(hsum_pre)
+                    auto_pre = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == scid, LeaveCredit.origin == 'horas').scalar() or 0
+                    auto_pre = int(auto_pre)
+                    desired_pre = int(hsum_pre // 8.0) if hsum_pre > 0.0 else 0
+                    missing_pre = max(0, desired_pre - auto_pre)
+                    if missing_pre > 0:
+                        from datetime import date as _date
+                        for _ in range(missing_pre):
+                            lc = LeaveCredit()
+                            lc.collaborator_id = scid
+                            lc.date = _date.today()
+                            lc.amount_days = 1
+                            lc.origin = 'horas'
+                            lc.notes = 'Reconciliação automática: crédito por 8h acumuladas'
+                            db.session.add(lc)
+                        for _ in range(missing_pre):
+                            adj = HourBankEntry()
+                            adj.collaborator_id = scid
+                            adj.date = _date.today()
+                            adj.hours = -8.0
+                            adj.reason = 'Reconciliação automática: -8h por +1 dia'
+                            db.session.add(adj)
+                        db.session.commit()
+                except Exception:
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
+                hsum = db.session.query(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).filter(HourBankEntry.collaborator_id == scid).scalar() or 0.0
+                hsum = float(hsum)
+                if hsum >= 0.0:
+                    saldo_hours = hsum % 8.0
+                else:
+                    saldo_hours = - ((-hsum) % 8.0)
+                credits_sum = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == scid).scalar() or 0
+                assigned_sum = db.session.query(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).filter(LeaveAssignment.collaborator_id == scid).scalar() or 0
+                converted_sum = db.session.query(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).filter(LeaveConversion.collaborator_id == scid).scalar() or 0
+                saldo_days = int(credits_sum) - int(assigned_sum) - int(converted_sum)
     except Exception:
         bank_balances = {}
     recent_entries = []
@@ -424,6 +692,74 @@ def gestao():
             folgas.append({'collab': c, 'balance': int(credits_sum) - int(assigned_sum) - int(converted_sum)})
     except Exception:
         folgas = []
+    # VPS Storage
+    vps_storage = None
+    try:
+        root = str(current_app.root_path or os.getcwd())
+        du = shutil.disk_usage(root)
+        uptime_str = None
+        try:
+            with open('/proc/uptime', 'r') as f:
+                secs = float((f.read().split()[0] or '0').strip())
+            days = int(secs // 86400)
+            rem = secs % 86400
+            hours = int(rem // 3600)
+            minutes = int((rem % 3600) // 60)
+            uptime_str = f"{days}d {hours}h {minutes}m"
+        except Exception:
+            try:
+                out = subprocess.check_output(['uptime', '-p'], timeout=2)
+                uptime_str = (out.decode('utf-8', errors='ignore') or '').strip()
+            except Exception:
+                uptime_str = None
+        load_str = None
+        try:
+            import os as _os
+            la_fn = getattr(_os, 'getloadavg', None)
+            if callable(la_fn):
+                lv = cast(Sequence[float], la_fn())
+                try:
+                    a = float(lv[0]); b = float(lv[1]); c = float(lv[2])
+                    load_str = f"{a:.2f}, {b:.2f}, {c:.2f}"
+                except Exception:
+                    load_str = None
+            else:
+                try:
+                    with open('/proc/loadavg', 'r') as f:
+                        parts = f.read().split()
+                        it = iter(parts)
+                        a = next(it, None); b = next(it, None); c = next(it, None)
+                        if a is not None and b is not None and c is not None:
+                            try:
+                                aa = float(a); bb = float(b); cc = float(c)
+                                load_str = f"{aa:.2f}, {bb:.2f}, {cc:.2f}"
+                            except Exception:
+                                load_str = None
+                except Exception:
+                    load_str = None
+        except Exception:
+            load_str = None
+        def _fmt_bytes(n: int) -> str:
+            units = ['B','KB','MB','GB','TB','PB']
+            f = float(n)
+            for u in units:
+                if f < 1024.0:
+                    return f"{f:.1f} {u}"
+                f = f / 1024.0
+            return f"{f:.1f} EB"
+        vps_storage = {
+            'total': du.total,
+            'used': du.used,
+            'free': du.free,
+            'total_str': _fmt_bytes(du.total),
+            'used_str': _fmt_bytes(du.used),
+            'free_str': _fmt_bytes(du.free),
+            'used_pct': int((du.used / du.total) * 100) if du.total > 0 else 0
+            , 'uptime_str': uptime_str
+            , 'load_str': load_str
+        }
+    except Exception:
+        vps_storage = None
     # Removido endereço de acesso (url/qr), mantendo somente dados necessários
     return render_template(
         'gestao.html',
@@ -447,6 +783,8 @@ def gestao():
         acc_page=acc_page,
         acc_total_pages=acc_total_pages,
         acc_user=acc_user
+        , saldo_collab=saldo_collab, saldo_hours=saldo_hours, saldo_days=saldo_days
+        , vps_storage=vps_storage
     )
 
 
@@ -527,12 +865,48 @@ def gestao_colabs_excluir(id: int):
         flash(f'Erro ao excluir colaborador: {e}', 'danger')
     return redirect(url_for('usuarios.gestao'))
 
+@bp.route('/gestao/usuarios/associar', methods=['POST'])
+@login_required
+def gestao_usuarios_associar():
+    if current_user.nivel != 'admin':
+        flash('Você não tem permissão para associar usuário a colaborador.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    try:
+        uid = int(request.form.get('user_id', '0'))
+    except Exception:
+        uid = 0
+    try:
+        cid = int(request.form.get('collaborator_id', '0'))
+    except Exception:
+        cid = 0
+    if uid <= 0:
+        flash('Usuário inválido.', 'warning')
+        return redirect(url_for('usuarios.gestao'))
+    try:
+        # Limpa associações anteriores para este usuário
+        try:
+            Collaborator.query.filter(Collaborator.user_id == uid).update({'user_id': None})
+        except Exception:
+            pass
+        if cid > 0:
+            c = Collaborator.query.get(cid)
+            if not c:
+                flash('Colaborador não encontrado.', 'warning')
+                return redirect(url_for('usuarios.gestao'))
+            c.user_id = uid
+            db.session.add(c)
+        db.session.commit()
+        flash('Associação atualizada.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao associar: {e}', 'danger')
+    return redirect(url_for('usuarios.gestao'))
 @bp.route('/gestao/colaboradores/horas/adicionar', methods=['POST'])
 @login_required
 def gestao_colabs_horas_adicionar():
     if current_user.nivel != 'admin':
         flash('Você não tem permissão para registrar horas.', 'danger')
-        return redirect(url_for('usuarios.gestao_colaboradores'))
+        return redirect(url_for('usuarios.gestao', view='colaboradores'))
     cid_str = (request.form.get('collaborator_id', '').strip() or '')
     date_str = (request.form.get('date', '').strip() or '')
     hours_str = (request.form.get('hours', '0').strip() or '0')
@@ -543,7 +917,7 @@ def gestao_colabs_horas_adicionar():
         h = float(hours_str)
     except Exception:
         flash('Dados inválidos para banco de horas.', 'warning')
-        return redirect(url_for('usuarios.gestao_colaboradores'))
+        return redirect(url_for('usuarios.gestao', view='colaboradores'))
     try:
         e = HourBankEntry()
         e.collaborator_id = cid
@@ -570,8 +944,15 @@ def gestao_colabs_horas_adicionar():
                     lc.origin = 'horas'
                     lc.notes = 'Crédito automático por 8h no banco de horas'
                     db.session.add(lc)
+                for _ in range(missing):
+                    adj = HourBankEntry()
+                    adj.collaborator_id = cid
+                    adj.date = _date.today()
+                    adj.hours = -8.0
+                    adj.reason = 'Conversão automática: -8h por +1 dia de folga'
+                    db.session.add(adj)
                 db.session.commit()
-                flash(f'Horas registradas. Créditos de folga automáticos adicionados: {missing}.', 'success')
+                flash(f'Horas registradas. Conversão automática aplicada: +{missing} dia(s) e -{missing*8}h no banco.', 'success')
             else:
                 flash('Horas registradas.', 'success')
         except Exception:
@@ -582,26 +963,85 @@ def gestao_colabs_horas_adicionar():
         except Exception:
             pass
         flash(f'Erro ao registrar horas: {ex}', 'danger')
-    return redirect(url_for('usuarios.gestao_colaboradores'))
+    return redirect(url_for('usuarios.gestao', view='colaboradores'))
 
 @bp.route('/gestao/colaboradores/horas/excluir/<int:id>', methods=['POST'])
 @login_required
 def gestao_colabs_horas_excluir(id: int):
     if current_user.nivel != 'admin':
         flash('Apenas Gerente pode excluir lançamentos.', 'danger')
-        return redirect(url_for('usuarios.gestao_colaboradores'))
+        return redirect(url_for('usuarios.gestao', view='colaboradores'))
     e = HourBankEntry.query.get_or_404(id)
     try:
+        cid = int(e.collaborator_id or 0)
         db.session.delete(e)
         db.session.commit()
-        flash('Lançamento excluído.', 'danger')
+        try:
+            from sqlalchemy import func
+            total_hours = db.session.query(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).filter(HourBankEntry.collaborator_id == cid).scalar() or 0.0
+            total_hours = float(total_hours)
+            auto_credits = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == cid, LeaveCredit.origin == 'horas').scalar() or 0
+            auto_credits = int(auto_credits)
+            desired_credits = int(total_hours // 8.0)
+            if auto_credits > desired_credits:
+                excess = auto_credits - desired_credits
+                to_delete_credits = LeaveCredit.query.filter_by(collaborator_id=cid, origin='horas').order_by(LeaveCredit.date.desc(), LeaveCredit.id.desc()).limit(excess).all()
+                for lc in to_delete_credits:
+                    db.session.delete(lc)
+                to_delete_adjusts = (
+                    HourBankEntry.query
+                    .filter(HourBankEntry.collaborator_id == cid, HourBankEntry.hours == -8.0, HourBankEntry.reason.like('Conversão automática:%'))
+                    .order_by(HourBankEntry.date.desc(), HourBankEntry.id.desc())
+                    .limit(excess)
+                    .all()
+                )
+                for adj in to_delete_adjusts:
+                    db.session.delete(adj)
+                db.session.commit()
+                removed_adj = len(to_delete_adjusts)
+                if removed_adj < excess:
+                    missing_adj = excess - removed_adj
+                    from datetime import date as _date
+                    for _ in range(missing_adj):
+                        comp = HourBankEntry()
+                        comp.collaborator_id = cid
+                        comp.date = _date.today()
+                        comp.hours = +8.0
+                        comp.reason = 'Reversão automática: +8h pela exclusão de crédito por horas'
+                        db.session.add(comp)
+                    db.session.commit()
+                flash(f'Lançamento excluído. Conversões automáticas revertidas: -{excess} dia(s) e +{excess*8}h no banco.', 'warning')
+            elif auto_credits < desired_credits:
+                missing = desired_credits - auto_credits
+                from datetime import date as _date
+                for _ in range(missing):
+                    lc = LeaveCredit()
+                    lc.collaborator_id = cid
+                    lc.date = _date.today()
+                    lc.amount_days = 1
+                    lc.origin = 'horas'
+                    lc.notes = 'Crédito automático por 8h no banco de horas (ajuste pós-exclusão)'
+                    db.session.add(lc)
+                for _ in range(missing):
+                    adj = HourBankEntry()
+                    adj.collaborator_id = cid
+                    adj.date = _date.today()
+                    adj.hours = -8.0
+                    adj.reason = 'Conversão automática: -8h por +1 dia de folga (ajuste pós-exclusão)'
+                    db.session.add(adj)
+                db.session.commit()
+                flash(f'Lançamento excluído. Conversões automáticas ajustadas: +{missing} dia(s) e -{missing*8}h no banco.', 'info')
+            else:
+                flash('Lançamento excluído.', 'danger')
+        except Exception:
+            flash('Lançamento excluído.', 'danger')
     except Exception as ex:
         try:
             db.session.rollback()
         except Exception:
             pass
         flash(f'Erro ao excluir lançamento: {ex}', 'danger')
-    return redirect(url_for('usuarios.gestao_colaboradores'))
+    return redirect(url_for('usuarios.gestao', view='colaboradores'))
 
 @bp.route('/gestao/roles', methods=['POST'])
 @login_required
