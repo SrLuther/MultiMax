@@ -331,7 +331,7 @@ def create_app():
                 return r2.stdout.strip()
         except Exception:
             pass
-        return '1.3.2.6'
+        return '1.3.6.0'
 
     resolved_version = _get_version()
     app.config['APP_VERSION_RESOLVED'] = resolved_version.lstrip('vV') if isinstance(resolved_version, str) else resolved_version
@@ -373,15 +373,13 @@ def create_app():
                 except Exception:
                     commits = []
             curated = [
-                'Gestão: unifica Usuários e Monitor com Cargos',
-                'Cargos: criar/editar/excluir e níveis de permissão',
-                'Perfil: exibe cargo do colaborador e edição de dados',
-                'Layout: cabeçalho/rodapé fixos; MENU sob usuário; sino à direita',
-                'Menu móvel: offcanvas com z-index ajustado',
-                'Versão: somente o texto da versão em verde no rodapé',
-                'Rodapé: fonte ajustada para 7px',
-                'Service Worker: registro seguro e cache v9',
-                'QR Code e URL integrados na página Gestão'
+                'Segurança: ajuste de permissões para Visualizador',
+                'Escala: Domingos/Feriados restritos a Administrador',
+                'Colaboradores: criação automática da coluna name (DB fix)',
+                'Correção: acesso seguro ao nome do colaborador',
+                'Relatórios de carnes: tabelas mais densas e legíveis',
+                'Dependências: atualizações e imports corrigidos',
+                'Versão de segurança publicada'
             ]
             commits = curated
             head = f'v{ver}' if isinstance(ver, str) else str(ver)
@@ -391,8 +389,8 @@ def create_app():
                 s = AppSetting.query.filter_by(key='changelog_text').first()
                 if not s:
                     s = AppSetting(); s.key = 'changelog_text'; db.session.add(s)
-                s.value = txt
-                db.session.commit()
+                    s.value = txt
+                    db.session.commit()
             except Exception:
                 try:
                     db.session.rollback()
@@ -644,7 +642,7 @@ def create_app():
                 except Exception:
                     pass
 
-        def _make_backup(retain_count: int = 10):
+        def _make_backup(retain_count: int = 50):
             try:
                 bdir = str(app.config.get('BACKUP_DIR') or '').strip()
                 if not bdir:
@@ -679,7 +677,7 @@ def create_app():
                 while True:
                     try:
                         with app.app_context():
-                            _make_backup(retain_count=10)
+                            _make_backup(retain_count=50)
                     except Exception:
                         pass
                     time.sleep(3600)
@@ -723,7 +721,7 @@ def create_app():
 
         if notif_enabled:
             _start_notif_scheduler()
-
+        
     @app.context_processor
     def inject_notif_flag():
         try:
@@ -731,5 +729,76 @@ def create_app():
         except Exception:
             enabled = False
         return {'notifications_enabled': enabled}
-
+        
+    try:
+        import logging
+        level_name = (os.getenv('FLASK_LOG_LEVEL') or '').strip().upper()
+        if not level_name:
+            level_name = 'DEBUG' if (os.getenv('DEBUG', 'false').lower() == 'true') else 'INFO'
+        level = getattr(logging, level_name, logging.INFO)
+        app.logger.setLevel(level)
+        logging.getLogger('werkzeug').setLevel(level)
+        app.config['LOG_BODY'] = (os.getenv('FLASK_LOG_BODY') or 'true').strip().lower() == 'true'
+    except Exception:
+        pass
+    from flask import request, g
+    @app.before_request
+    def _http_log_req():
+        try:
+            g._req_start = time.time()
+            info = {}
+            info['args'] = dict(request.args)
+            if bool(app.config.get('LOG_BODY', False)):
+                ct = (request.headers.get('Content-Type') or '').lower()
+                body = None
+                if 'application/json' in ct:
+                    try:
+                        j = request.get_json(silent=True)
+                    except Exception:
+                        j = None
+                    if isinstance(j, dict):
+                        masked = {}
+                        sens = {'password','senha','new_password','confirmar_senha','token','authorization','secret'}
+                        for k, v in j.items():
+                            masked[k] = ('***' if (str(k).lower() in sens) else v)
+                        body = masked
+                    else:
+                        body = j
+                else:
+                    try:
+                        f = request.form.to_dict()
+                    except Exception:
+                        f = {}
+                    sens = {'password','senha','new_password','confirmar_senha','token','authorization','secret'}
+                    masked = {}
+                    for k, v in (f or {}).items():
+                        masked[k] = ('***' if (str(k).lower() in sens) else v)
+                    body = masked
+                info['body'] = body
+            app.logger.info(f"REQ {request.method} {request.path} {info}")
+        except Exception:
+            pass
+    @app.after_request
+    def _http_log_resp(resp):
+        try:
+            dur = 0.0
+            try:
+                dur = time.time() - getattr(g, '_req_start', time.time())
+            except Exception:
+                pass
+            app.logger.info(f"RES {resp.status_code} {request.method} {request.path} dur={dur:.3f}s")
+        except Exception:
+            pass
+        return resp
+    def _on_exc(sender, exception, **extra):
+        try:
+            app.logger.exception(f"ERR {request.method} {request.path}: {exception}")
+        except Exception:
+            pass
+    try:
+        from flask import got_request_exception
+        got_request_exception.connect(_on_exc, app)
+    except Exception:
+        pass
+    
     return app

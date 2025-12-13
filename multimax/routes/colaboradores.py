@@ -15,6 +15,31 @@ bp = Blueprint('colaboradores', __name__)
 @bp.route('/escala', strict_slashes=False)
 @login_required
 def escala():
+    try:
+        from sqlalchemy import inspect, text
+        insp = inspect(db.engine)
+        cols_meta = [c['name'] for c in insp.get_columns('collaborator')]
+        changed = False
+        if 'name' not in cols_meta:
+            db.session.execute(text('ALTER TABLE collaborator ADD COLUMN name TEXT'))
+            changed = True
+            if 'nome' in cols_meta:
+                try:
+                    db.session.execute(text('UPDATE collaborator SET name = nome WHERE name IS NULL'))
+                except Exception:
+                    pass
+            else:
+                try:
+                    db.session.execute(text("UPDATE collaborator SET name = '' WHERE name IS NULL"))
+                except Exception:
+                    pass
+        if changed:
+            db.session.commit()
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
     cols = Collaborator.query.filter_by(active=True).order_by(Collaborator.name.asc()).all()
     from datetime import timedelta
     today = date.today()
