@@ -25,9 +25,24 @@
   </div>
   </div>
 
-<div class="alert alert-info">Backups automáticos a cada hora. Mantém no máximo 50 mais recentes.</div>
+<div class="alert alert-info">Backups automáticos a cada 15 minutos (mínimo). Mantém no máximo 20 mais recentes. Inclui backup-24h.sqlite atualizado diariamente às 00h.</div>
 {% if not is_sqlite %}
 <div class="alert alert-warning">Backup automático está disponível apenas quando o banco é SQLite.</div>
+{% endif %}
+
+{% if daily_backup %}
+<div class="card mb-3" style="border-left:4px solid #198754;box-shadow:0 4px 12px rgba(0,0,0,.08);">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Backup Diário (24h)</span>
+    <span class="badge bg-primary">Atualizado diariamente às 00h</span>
+  </div>
+  <div class="card-body">
+    <p class="mb-1">Arquivo: {{ daily_backup.name }}</p>
+    <p class="mb-1">Tamanho: {{ '%.2f'|format((daily_backup.size or 0)/1024/1024) }} MB</p>
+    <p class="mb-1">Última atualização: {{ daily_backup.mtime_str }}</p>
+    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('dbadmin.download', name=daily_backup.name) }}">Baixar Backup 24h</a>
+  </div>
+</div>
 {% endif %}
 
 <div class="card">

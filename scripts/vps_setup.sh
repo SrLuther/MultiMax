@@ -12,7 +12,8 @@ set -euo pipefail
 # If no RAID path is provided, defaults to "./raid" inside the project.
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-RAID_DIR="${1:-${PROJECT_ROOT}/raid}"
+PARENT_ROOT="$(cd "${PROJECT_ROOT}/.." && pwd)"
+RAID_DIR="${1:-${PARENT_ROOT}/multimax-raid}"
 ENV_FILE="${PROJECT_ROOT}/.env.txt"
 VENV_DIR="${PROJECT_ROOT}/.venv"
 REQ_FILE="${PROJECT_ROOT}/requirements.txt"

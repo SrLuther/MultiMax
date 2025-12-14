@@ -186,7 +186,12 @@ def cronograma():
                 tarefa.observacao = defs[2]
     if atualizados:
         db.session.commit()
-    tarefas = CleaningTask.query.order_by(CleaningTask.proxima_data.asc()).all()
+    tipo_sel = request.args.get('tipo', '').strip()
+    tarefas_q = CleaningTask.query
+    allowed_types = {'Parcial','Geral','Mensal','Semanal'}
+    if tipo_sel in allowed_types:
+        tarefas_q = tarefas_q.filter(CleaningTask.tipo == tipo_sel)
+    tarefas = tarefas_q.order_by(CleaningTask.proxima_data.asc()).all()
     ajustes = {}
     for t in tarefas:
         base = proxima_base_sem_regra(t.ultima_data, t.frequencia, t.tipo, t.nome_limpeza)
@@ -206,7 +211,7 @@ def cronograma():
         if nomes_por_tipo:
             q = q.filter(CleaningHistory.nome_limpeza.in_(nomes_por_tipo))
     hist_pag = q.order_by(CleaningHistory.data_conclusao.desc()).paginate(page=page_hist, per_page=3, error_out=False)
-    return render_template('cronograma.html', cronograma_tarefas=tarefas, historico_limpezas=hist_pag.items, historico_pagination=hist_pag, active_page='cronograma', htipo=htipo, ajustes=ajustes)
+    return render_template('cronograma.html', cronograma_tarefas=tarefas, historico_limpezas=hist_pag.items, historico_pagination=hist_pag, active_page='cronograma', htipo=htipo, ajustes=ajustes, tipo=tipo_sel)
 
 @bp.route('/cronograma/salvar', methods=['POST'])
 @login_required
@@ -250,13 +255,22 @@ def salvar_cronograma():
             tarefa = CleaningTask.query.get_or_404(task_id)
             observacao = (request.form.get(f'obs_{task_id}', '') or '').strip()
             designados = (request.form.get(f'participantes_{task_id}', None) or current_user.name or '').strip()
+            data_conclusao_str = (request.form.get('data_conclusao', '') or '').strip()
             hist = CleaningHistory()
             hist.nome_limpeza = tarefa.nome_limpeza
             hist.observacao = observacao if observacao else "Sem observações."
             hist.designados = designados if designados else (current_user.name or '')
             hist.usuario_conclusao = current_user.name
+            if data_conclusao_str:
+                try:
+                    dtc = datetime.strptime(data_conclusao_str, '%Y-%m-%d').replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                    hist.data_conclusao = dtc
+                    tarefa.ultima_data = dtc.date()
+                except Exception:
+                    tarefa.ultima_data = datetime.now(ZoneInfo('America/Sao_Paulo')).date()
+            else:
+                tarefa.ultima_data = datetime.now(ZoneInfo('America/Sao_Paulo')).date()
             db.session.add(hist)
-            tarefa.ultima_data = datetime.now(ZoneInfo('America/Sao_Paulo')).date()
             tarefa.proxima_data = calcular_proxima_prevista(tarefa.ultima_data, tarefa.frequencia, tarefa.tipo, tarefa.nome_limpeza)
             tarefa.observacao = observacao if observacao else tarefa.observacao
             tarefa.designados = designados if designados else tarefa.designados
