@@ -4,6 +4,7 @@ import threading
 import time
 import shutil
 from flask import Flask
+from typing import cast
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 
@@ -65,16 +66,26 @@ def create_app():
         static_folder=os.path.join(base_dir, 'static'),
     )
     data_dir = (os.getenv('DATA_DIR') or os.getenv('MULTIMAX_DATA_DIR') or None)
-    if os.name == 'nt':
-        localapp = os.getenv('LOCALAPPDATA')
-        if (not data_dir) and localapp:
-            data_dir = os.path.join(localapp, 'MultiMax')
     if not data_dir:
-        home = os.path.expanduser('~')
-        data_dir = os.path.join(home, '.multimax')
-    os.makedirs(data_dir, exist_ok=True)
+        parent_dir = os.path.abspath(os.path.join(base_dir, '..'))
+        try:
+            pd = os.path.join(parent_dir, 'multimax-data')
+            os.makedirs(pd, exist_ok=True)
+            data_dir = pd
+        except Exception:
+            data_dir = None
+    if not data_dir:
+        if os.name == 'nt':
+            localapp = os.getenv('LOCALAPPDATA')
+            if localapp:
+                data_dir = os.path.join(localapp, 'MultiMax')
+        else:
+            home = os.path.expanduser('~')
+            data_dir = os.path.join(home, '.multimax')
+    data_dir_str = cast(str, data_dir)
+    os.makedirs(data_dir_str, exist_ok=True)
     db_file_name = (os.getenv('DB_FILE_NAME') or 'estoque.db').strip() or 'estoque.db'
-    db_path = os.path.join(data_dir, db_file_name).replace('\\', '/')
+    db_path = os.path.join(data_dir_str, db_file_name).replace('\\', '/')
     uri_env = os.getenv('SQLALCHEMY_DATABASE_URI') or os.getenv('DATABASE_URL')
     uri_env = _normalize_db_uri(uri_env)
     selected_uri = uri_env if uri_env else ('sqlite:///' + db_path)
@@ -83,8 +94,8 @@ def create_app():
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'uma_chave_secreta_muito_forte_e_aleatoria')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['PER_PAGE'] = 10
-    app.config['DATA_DIR'] = data_dir
-    backup_dir = os.path.join(data_dir, 'backups')
+    app.config['DATA_DIR'] = data_dir_str
+    backup_dir = os.path.join(data_dir_str, 'backups')
     os.makedirs(backup_dir, exist_ok=True)
     app.config['BACKUP_DIR'] = backup_dir
     if isinstance(selected_uri, str) and selected_uri.startswith('sqlite:'):
@@ -642,7 +653,7 @@ def create_app():
                 except Exception:
                     pass
 
-        def _make_backup(retain_count: int = 50):
+        def _make_backup(retain_count: int = 20, min_interval_sec: int = 900, update_daily_snapshot: bool = True, force: bool = False):
             try:
                 bdir = str(app.config.get('BACKUP_DIR') or '').strip()
                 if not bdir:
@@ -652,16 +663,57 @@ def create_app():
                 if isinstance(uri, str) and uri.startswith('sqlite:'):
                     src = str(app.config.get('DB_FILE_PATH') or '').strip()
                     if src and os.path.exists(src):
+                        files_all = [
+                            os.path.join(bdir, f) for f in os.listdir(bdir)
+                            if isinstance(f, str) and f.lower().endswith('.sqlite')
+                        ]
+                        files_regular = sorted([
+                            p for p in files_all
+                            if os.path.basename(p).startswith('backup-') and not os.path.basename(p).startswith('backup-24h')
+                        ], key=lambda p: os.path.getmtime(p), reverse=True)
+                        if not force and files_regular:
+                            try:
+                                last_mt = os.path.getmtime(files_regular[0])
+                            except Exception:
+                                last_mt = 0
+                            if last_mt and (time.time() - last_mt) < float(min_interval_sec):
+                                if update_daily_snapshot:
+                                    try:
+                                        target = time.time() - 86400.0
+                                        candidates = [(abs(os.path.getmtime(p) - target), p) for p in files_regular]
+                                        candidates.sort(key=lambda t: t[0])
+                                        if candidates:
+                                            src24 = candidates[0][1]
+                                            dst24 = os.path.join(bdir, 'backup-24h.sqlite')
+                                            shutil.copy2(src24, dst24)
+                                    except Exception:
+                                        pass
+                                return True
                         ts = time.strftime('%Y%m%d-%H%M%S')
                         dst = os.path.join(bdir, f'backup-{ts}.sqlite')
                         shutil.copy2(src, dst)
-                        files = sorted([
+                        files_regular = sorted([
                             os.path.join(bdir, f) for f in os.listdir(bdir)
-                            if isinstance(f, str) and f.lower().endswith('.sqlite')
+                            if isinstance(f, str) and f.lower().endswith('.sqlite') and f.startswith('backup-') and not f.startswith('backup-24h')
                         ], key=lambda p: os.path.getmtime(p), reverse=True)
-                        for old in files[retain_count:]:
+                        for old in files_regular[retain_count:]:
                             try:
                                 os.remove(old)
+                            except Exception:
+                                pass
+                        if update_daily_snapshot:
+                            try:
+                                target = time.time() - 86400.0
+                                files_regular = sorted([
+                                    os.path.join(bdir, f) for f in os.listdir(bdir)
+                                    if isinstance(f, str) and f.lower().endswith('.sqlite') and f.startswith('backup-') and not f.startswith('backup-24h')
+                                ], key=lambda p: os.path.getmtime(p), reverse=True)
+                                if files_regular:
+                                    candidates = [(abs(os.path.getmtime(p) - target), p) for p in files_regular]
+                                    candidates.sort(key=lambda t: t[0])
+                                    src24 = candidates[0][1]
+                                    dst24 = os.path.join(bdir, 'backup-24h.sqlite')
+                                    shutil.copy2(src24, dst24)
                             except Exception:
                                 pass
                         return True
@@ -677,15 +729,51 @@ def create_app():
                 while True:
                     try:
                         with app.app_context():
-                            _make_backup(retain_count=50)
+                            _make_backup(retain_count=20, min_interval_sec=900, update_daily_snapshot=False, force=False)
                     except Exception:
                         pass
-                    time.sleep(3600)
+                    time.sleep(900)
+            t = threading.Thread(target=_loop, daemon=True)
+            t.start()
+
+        def _start_daily_snapshot_scheduler():
+            try:
+                from datetime import datetime, timedelta
+                from zoneinfo import ZoneInfo
+            except Exception:
+                return
+            def _loop():
+                while True:
+                    try:
+                        tz = ZoneInfo('America/Sao_Paulo')
+                        now_dt = datetime.now(tz)
+                        tomorrow = (now_dt + timedelta(days=1)).date()
+                        next_midnight = datetime(tomorrow.year, tomorrow.month, tomorrow.day, 0, 0, 0, tzinfo=tz)
+                        wait = (next_midnight - now_dt).total_seconds()
+                        time.sleep(max(1, int(wait)))
+                        with app.app_context():
+                            ok = _make_backup(retain_count=20, min_interval_sec=0, update_daily_snapshot=False, force=True)
+                            bdir = str(app.config.get('BACKUP_DIR') or '').strip()
+                            if bdir:
+                                try:
+                                    files_regular = sorted([
+                                        os.path.join(bdir, f) for f in os.listdir(bdir)
+                                        if isinstance(f, str) and f.lower().endswith('.sqlite') and f.startswith('backup-') and not f.startswith('backup-24h')
+                                    ], key=lambda p: os.path.getmtime(p), reverse=True)
+                                    if files_regular:
+                                        src = files_regular[0]
+                                        dst = os.path.join(bdir, 'backup-24h.sqlite')
+                                        shutil.copy2(src, dst)
+                                except Exception:
+                                    pass
+                    except Exception:
+                        pass
             t = threading.Thread(target=_loop, daemon=True)
             t.start()
 
         setattr(app, 'perform_backup', _make_backup)
         _start_backup_scheduler()
+        _start_daily_snapshot_scheduler()
 
         def _start_notif_scheduler():
             try:
@@ -745,6 +833,9 @@ def create_app():
     @app.before_request
     def _http_log_req():
         try:
+            p = request.path or ''
+            if p.startswith('/static/'):
+                return
             g._req_start = time.time()
             info = {}
             info['args'] = dict(request.args)
@@ -781,6 +872,9 @@ def create_app():
     @app.after_request
     def _http_log_resp(resp):
         try:
+            p = request.path or ''
+            if p.startswith('/static/'):
+                return resp
             dur = 0.0
             try:
                 dur = time.time() - getattr(g, '_req_start', time.time())

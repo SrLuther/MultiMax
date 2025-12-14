@@ -37,7 +37,6 @@
   .card-vps-danger {
     border: 1px solid rgba(220,53,69,.5);
     box-shadow: 0 0 0 2px rgba(220,53,69,.25) inset, 0 0 22px rgba(220,53,69,.35);
-    background: linear-gradient(180deg, #1a1d1f, #16191b 78%, #1a1d1f);
   }
   .card-vps-danger .card-header {
     background: linear-gradient(135deg, #dc3545, #b02a37);
@@ -524,158 +523,176 @@
 
 
 {% if not view or view == 'folgas' %}
-<div class="card card-animated mt-3" id="gestao-de-folgas">
+<div class="card card-animated mt-3" id="folga-credito-domingo">
   <div class="card-header d-flex justify-content-between align-items-center">
-    <span>Gestão de Folgas</span>
-    
-    <small class="text-muted">Automático: a cada 8h vira +1 dia e desconta 8h</small>
+    <span>Créditos de Folga</span>
+    <small class="text-muted">Domingo trabalhado</small>
   </div>
   <div class="card-body">
-    <div class="row g-3">
-      <div class="col-12">
-        <div class="border rounded p-3">
-          <div class="fw-bold mb-2">Créditos de Folga</div>
-          <div class="fw-semibold mb-1">Domingo trabalhado</div>
-          <div class="small text-muted mb-2">Informe uma data que seja domingo; gera +1 dia por domingo.</div>
-          <form class="row g-2" method="post" action="{{ url_for('colaboradores.folga_credito_domingo') }}">
-            <div class="col-md-6">
-              <label class="form-label">Colaborador</label>
-              <select name="collaborator_id" class="form-select" required>
-                {% for c in colaboradores %}
-                <option value="{{ c.id }}">{{ c.name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label">Data (domingo)</label>
-              <input type="date" name="date" class="form-control" required>
-              <div class="form-text">Use um domingo; evita duplicidade por data.</div>
-            </div>
-            <div class="col-md-2 d-flex align-items-end">
-              <button class="btn btn-warning w-100" type="submit">Domingo</button>
-            </div>
-          </form>
-          <hr class="my-3">
-          <div class="fw-semibold mb-1">Crédito personalizado</div>
-          <div class="small text-muted mb-2">Informe data, quantidade de dias e motivo do crédito.</div>
-          <form class="row g-2 mt-2" method="post" action="{{ url_for('colaboradores.folga_credito_registrar_gestao') }}">
-            <div class="col-md-6">
-              <label class="form-label">Colaborador</label>
-              <select name="collaborator_id" class="form-select" required>
-                {% for c in colaboradores %}
-                <option value="{{ c.id }}">{{ c.name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label">Data</label>
-              <input type="date" name="date" class="form-control" required>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label">Dias (inteiro)</label>
-              <input type="number" min="1" step="1" name="amount" class="form-control" value="1">
-            </div>
-            <div class="col-12">
-              <label class="form-label">Motivo</label>
-              <input type="text" name="notes" class="form-control" placeholder="Ex.: compensação, acordo, extra">
-            </div>
-            <div class="col-12 d-flex justify-content-end">
-              <button class="btn btn-success" type="submit">Adicionar (Personalizado)</button>
-            </div>
-          </form>
-          <hr class="my-3">
-          <div class="fw-semibold mb-1">Redução de crédito</div>
-          <div class="small text-muted mb-2">Diminui dias disponíveis do colaborador; informe quantidade inteira e opcionalmente uma observação.</div>
-          <form class="row g-2 mt-2" method="post" action="{{ url_for('colaboradores.folga_credito_reduzir') }}">
-            <div class="col-md-6">
-              <label class="form-label">Colaborador</label>
-              <select name="collaborator_id" class="form-select" required>
-                {% for c in colaboradores %}
-                <option value="{{ c.id }}">{{ c.name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label">Reduzir (dias inteiros)</label>
-              <input type="number" min="1" step="1" name="amount" class="form-control" value="1">
-            </div>
-            <div class="col-md-3 d-flex align-items-end">
-              <button class="btn btn-outline-danger w-100" type="submit">Reduzir</button>
-            </div>
-            <div class="col-12">
-              <input type="text" name="notes" class="form-control" placeholder="Observação do ajuste">
-            </div>
-          </form>
-        </div>
+    <div class="small text-muted mb-2">Informe uma data que seja domingo; gera +1 dia por domingo.</div>
+    <form class="row g-2" method="post" action="{{ url_for('colaboradores.folga_credito_domingo') }}">
+      <div class="col-md-6">
+        <label class="form-label">Colaborador</label>
+        <select name="collaborator_id" class="form-select" required>
+          {% for c in colaboradores %}
+          <option value="{{ c.id }}">{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Data (domingo)</label>
+        <input type="date" name="date" class="form-control" required>
+        <div class="form-text">Use um domingo; evita duplicidade por data.</div>
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button class="btn btn-warning w-100" type="submit">Domingo</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card card-animated mt-3" id="folga-credito-personalizado">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Crédito personalizado</span>
+  </div>
+  <div class="card-body">
+    <div class="small text-muted mb-2">Informe data, quantidade de dias e motivo do crédito.</div>
+    <form class="row g-2" method="post" action="{{ url_for('colaboradores.folga_credito_registrar_gestao') }}">
+      <div class="col-md-6">
+        <label class="form-label">Colaborador</label>
+        <select name="collaborator_id" class="form-select" required>
+          {% for c in colaboradores %}
+          <option value="{{ c.id }}">{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Data</label>
+        <input type="date" name="date" class="form-control" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Dias (inteiro)</label>
+        <input type="number" min="1" step="1" name="amount" class="form-control" value="1">
       </div>
       <div class="col-12">
-        <div class="border rounded p-3">
-          <div class="fw-bold mb-2">Agendar e Converter</div>
-          <div class="fw-semibold mb-1">Agendar folga</div>
-          <div class="small text-muted mb-2">Registra uso de dias de folga; informe data e dias inteiros.</div>
-          <form class="row g-2" method="post" action="{{ url_for('colaboradores.folga_agendar') }}">
-            <div class="col-md-5">
-              <label class="form-label">Colaborador</label>
-              <select name="collaborator_id" class="form-select" required>
-                {% for c in colaboradores %}
-                <option value="{{ c.id }}">{{ c.name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label">Data da folga</label>
-              <input type="date" name="date" class="form-control" required>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label">Dias (inteiro)</label>
-              <input type="number" min="1" step="1" name="days" class="form-control" value="1">
-            </div>
-            <div class="col-12">
-              <input type="text" name="notes" class="form-control" placeholder="Observação">
-            </div>
-            <div class="col-12 d-flex justify-content-end">
-              <button class="btn btn-primary" type="submit">Agendar Folga</button>
-            </div>
-          </form>
-          <hr class="my-3">
-          <div class="fw-semibold mb-1">Converter em pagamento (R$)</div>
-          <div class="small text-muted mb-2">Converte dias em valor; se não informar o total pago, será calculado automaticamente por R$/dia × dias.</div>
-          <form class="row g-2 mt-2" method="post" action="{{ url_for('colaboradores.folga_converter') }}">
-            <div class="col-md-5">
-              <label class="form-label">Colaborador</label>
-              <select name="collaborator_id" class="form-select" required>
-                {% for c in colaboradores %}
-                <option value="{{ c.id }}">{{ c.name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label">Data</label>
-              <input type="date" name="date" class="form-control" required>
-            </div>
-            <div class="col-md-2">
-              <label class="form-label">Dias (inteiro)</label>
-              <input type="number" min="1" step="1" name="days" class="form-control" value="1">
-            </div>
-            <div class="col-md-2">
-              <label class="form-label">R$/dia</label>
-              <input type="number" step="0.01" name="rate_per_day" class="form-control" value="65.00">
-            </div>
-            <div class="col-12">
-              <label class="form-label">Valor pago</label>
-              <input type="number" step="0.01" name="amount_paid" class="form-control" placeholder="Opcional: calcula automático">
-            </div>
-            <div class="col-12">
-              <input type="text" name="notes" class="form-control" placeholder="Observação">
-            </div>
-            <div class="col-12 d-flex justify-content-end">
-              <button class="btn btn-outline-success" type="submit">Converter em R$</button>
-            </div>
-          </form>
-        </div>
+        <label class="form-label">Motivo</label>
+        <input type="text" name="notes" class="form-control" placeholder="Ex.: compensação, acordo, extra">
       </div>
-    </div>
-    <hr>
+      <div class="col-12 d-flex justify-content-end">
+        <button class="btn btn-success" type="submit">Adicionar (Personalizado)</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card card-animated mt-3" id="folga-reducao-credito">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Redução de crédito</span>
+  </div>
+  <div class="card-body">
+    <div class="small text-muted mb-2">Diminui dias disponíveis do colaborador; informe quantidade inteira e opcionalmente uma observação.</div>
+    <form class="row g-2" method="post" action="{{ url_for('colaboradores.folga_credito_reduzir') }}">
+      <div class="col-md-6">
+        <label class="form-label">Colaborador</label>
+        <select name="collaborator_id" class="form-select" required>
+          {% for c in colaboradores %}
+          <option value="{{ c.id }}">{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Reduzir (dias inteiros)</label>
+        <input type="number" min="1" step="1" name="amount" class="form-control" value="1">
+      </div>
+      <div class="col-md-3 d-flex align-items-end">
+        <button class="btn btn-outline-danger w-100" type="submit">Reduzir</button>
+      </div>
+      <div class="col-12">
+        <input type="text" name="notes" class="form-control" placeholder="Observação do ajuste">
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card card-animated mt-3" id="folga-agendar">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Agendar folga</span>
+  </div>
+  <div class="card-body">
+    <div class="small text-muted mb-2">Registra uso de dias de folga; informe data e dias inteiros.</div>
+    <form class="row g-2" method="post" action="{{ url_for('colaboradores.folga_agendar') }}">
+      <div class="col-md-5">
+        <label class="form-label">Colaborador</label>
+        <select name="collaborator_id" class="form-select" required>
+          {% for c in colaboradores %}
+          <option value="{{ c.id }}">{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Data da folga</label>
+        <input type="date" name="date" class="form-control" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Dias (inteiro)</label>
+        <input type="number" min="1" step="1" name="days" class="form-control" value="1">
+      </div>
+      <div class="col-12">
+        <input type="text" name="notes" class="form-control" placeholder="Observação">
+      </div>
+      <div class="col-12 d-flex justify-content-end">
+        <button class="btn btn-primary" type="submit">Agendar Folga</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card card-animated mt-3" id="folga-converter">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Converter em pagamento (R$)</span>
+  </div>
+  <div class="card-body">
+    <div class="small text-muted mb-2">Converte dias em valor; se não informar o total pago, será calculado automaticamente por R$/dia × dias.</div>
+    <form class="row g-2" method="post" action="{{ url_for('colaboradores.folga_converter') }}">
+      <div class="col-md-5">
+        <label class="form-label">Colaborador</label>
+        <select name="collaborator_id" class="form-select" required>
+          {% for c in colaboradores %}
+          <option value="{{ c.id }}">{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Data</label>
+        <input type="date" name="date" class="form-control" required>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Dias (inteiro)</label>
+        <input type="number" min="1" step="1" name="days" class="form-control" value="1">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">R$/dia</label>
+        <input type="number" step="0.01" name="rate_per_day" class="form-control" value="65.00">
+      </div>
+      <div class="col-12">
+        <label class="form-label">Valor pago</label>
+        <input type="number" step="0.01" name="amount_paid" class="form-control" placeholder="Opcional: calcula automático">
+      </div>
+      <div class="col-12">
+        <input type="text" name="notes" class="form-control" placeholder="Observação">
+      </div>
+      <div class="col-12 d-flex justify-content-end">
+        <button class="btn btn-outline-success" type="submit">Converter em R$</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card card-animated mt-3" id="folga-saldo">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Saldo de Folgas</span>
+  </div>
+  <div class="card-body">
     <div class="table-responsive-sm">
       <table class="table table-hover align-middle">
         <thead class="table-light"><tr><th>Colaborador</th><th class="text-end">Dias disponíveis</th></tr></thead>

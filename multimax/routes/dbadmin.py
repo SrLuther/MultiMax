@@ -46,6 +46,11 @@ def index():
     uri = current_app.config.get('SQLALCHEMY_DATABASE_URI', '')
     is_sqlite = isinstance(uri, str) and uri.startswith('sqlite:')
     backups = _list_backups()
+    daily = None
+    try:
+        daily = next((it for it in backups if it.get('name') == 'backup-24h.sqlite'), None)
+    except Exception:
+        daily = None
     try:
         page = int(request.args.get('page', '1'))
     except Exception:
@@ -60,7 +65,7 @@ def index():
     start = (page - 1) * per_page
     end = start + per_page
     backups_page = backups[start:end]
-    return render_template('db.html', active_page='dbadmin', is_sqlite=is_sqlite, backups=backups_page, page=page, total_pages=total_pages)
+    return render_template('db.html', active_page='dbadmin', is_sqlite=is_sqlite, backups=backups_page, page=page, total_pages=total_pages, daily_backup=daily)
 
 @bp.route('/backup', methods=['POST'], strict_slashes=False)
 @login_required
@@ -72,7 +77,7 @@ def backup_now():
     try:
         fn = getattr(current_app, 'perform_backup', None)
         if callable(fn):
-            ok = bool(fn(retain_count=50))
+            ok = bool(fn(retain_count=20, force=True))
     except Exception:
         ok = False
     flash('Backup criado.' if ok else 'Falha ao criar backup.', 'success' if ok else 'danger')
@@ -146,7 +151,7 @@ def restaurar(name: str):
             ok = False
             fn = getattr(current_app, 'perform_backup', None)
             if callable(fn):
-                ok = bool(fn(retain_count=50))
+                ok = bool(fn(retain_count=20, force=True))
             if not ok and os.path.exists(db_path):
                 ts = time.strftime('%Y%m%d-%H%M%S')
                 snap = os.path.join(bdir, f'pre-restore-{ts}.sqlite')
