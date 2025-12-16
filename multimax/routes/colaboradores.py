@@ -1,45 +1,156 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from .. import db
-from ..models import Collaborator, Shift, AppSetting, User, Holiday
-from ..models import LeaveAssignment
+from ..models import Collaborator, Shift, AppSetting
 from ..models import HourBankEntry
-from ..models import LeaveCredit, LeaveAssignment, LeaveConversion
-from ..services.notificacao_service import registrar_evento
+from ..models import LeaveCredit
 from datetime import datetime, date, time
 from zoneinfo import ZoneInfo
 
 bp = Blueprint('colaboradores', __name__)
 
-
-@bp.route('/escala', strict_slashes=False)
+@bp.route('/colaboradores', strict_slashes=False)
 @login_required
-def escala():
+def index():
+    cols = Collaborator.query.order_by(Collaborator.name.asc()).all()
+    bank_balances = {}
     try:
-        from sqlalchemy import inspect, text
-        insp = inspect(db.engine)
-        cols_meta = [c['name'] for c in insp.get_columns('collaborator')]
-        changed = False
-        if 'name' not in cols_meta:
-            db.session.execute(text('ALTER TABLE collaborator ADD COLUMN name TEXT'))
-            changed = True
-            if 'nome' in cols_meta:
-                try:
-                    db.session.execute(text('UPDATE collaborator SET name = nome WHERE name IS NULL'))
-                except Exception:
-                    pass
-            else:
-                try:
-                    db.session.execute(text("UPDATE collaborator SET name = '' WHERE name IS NULL"))
-                except Exception:
-                    pass
-        if changed:
-            db.session.commit()
+        from sqlalchemy import func
+        sums = db.session.query(HourBankEntry.collaborator_id, func.coalesce(func.sum(HourBankEntry.hours), 0.0)).group_by(HourBankEntry.collaborator_id).all()
+        for cid, total in sums:
+            bank_balances[int(cid)] = float(total or 0.0)
     except Exception:
+        bank_balances = {}
+    recent_entries = []
+    try:
+        recent_entries = HourBankEntry.query.order_by(HourBankEntry.date.desc()).limit(50).all()
+    except Exception:
+        recent_entries = []
+    return render_template('colaboradores.html', colaboradores=cols, bank_balances=bank_balances, recent_entries=recent_entries, active_page='colaboradores')
+
+@bp.route('/colaboradores/criar', methods=['POST'], strict_slashes=False)
+@login_required
+def criar_colaborador():
+    if current_user.nivel not in ('operador', 'admin'):
+        flash('Você não tem permissão para criar colaboradores.', 'danger')
+        return redirect(url_for('colaboradores.index'))
+    nome = request.form.get('name', '').strip()
+    cargo = request.form.get('role', '').strip()
+    try:
+        c = Collaborator()
+        c.name = nome
+        c.role = cargo
+        c.active = True
+        c.regular_team = (request.form.get('regular_team', '').strip() or None)
+        c.sunday_team = (request.form.get('sunday_team', '').strip() or None)
+        c.special_team = (request.form.get('special_team', '').strip() or None)
+        db.session.add(c)
+        db.session.commit()
+        flash(f'Colaborador "{c.name}" criado.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao criar colaborador: {e}', 'danger')
+    return redirect(url_for('colaboradores.index'))
+
+@bp.route('/colaboradores/<int:id>/editar', methods=['POST'], strict_slashes=False)
+@login_required
+def editar_colaborador(id: int):
+    if current_user.nivel not in ('operador', 'admin'):
+        flash('Você não tem permissão para editar colaboradores.', 'danger')
+        return redirect(url_for('colaboradores.index'))
+    c = Collaborator.query.get_or_404(id)
+    try:
+        c.name = ((request.form.get('name') or c.name or '').strip()) or c.name
+        role_in = request.form.get('role')
+        c.role = ((role_in or c.role or '').strip()) or None
+        active_str = request.form.get('active', 'on') or 'on'
+        c.active = True if active_str.lower() in ('on', 'true', '1') else False
+        rt_in = request.form.get('regular_team') or (c.regular_team or '')
+        st_in = request.form.get('sunday_team') or (c.sunday_team or '')
+        xt_in = request.form.get('special_team') or (c.special_team or '')
+        c.regular_team = (rt_in.strip() or None) if (rt_in.strip() in ('1','2')) else None
+        c.sunday_team = (st_in.strip() or None) if (st_in.strip() in ('1','2')) else None
+        c.special_team = (xt_in.strip() or None) if (xt_in.strip() in ('1','2')) else None
+        db.session.commit()
+        flash('Colaborador atualizado.', 'info')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao atualizar colaborador: {e}', 'danger')
+    return redirect(url_for('colaboradores.index'))
+
+@bp.route('/colaboradores/<int:id>/excluir', methods=['POST'], strict_slashes=False)
+@login_required
+def excluir_colaborador(id: int):
+    if current_user.nivel != 'admin':
+        flash('Apenas Gerente pode excluir colaboradores.', 'danger')
+        return redirect(url_for('colaboradores.index'))
+    c = Collaborator.query.get_or_404(id)
+    try:
+        Shift.query.filter_by(collaborator_id=c.id).delete()
+        db.session.delete(c)
+        db.session.commit()
+        flash('Colaborador excluído.', 'danger')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir colaborador: {e}', 'danger')
+    return redirect(url_for('colaboradores.index'))
+
+@bp.route('/colaboradores/horas/adicionar', methods=['POST'], strict_slashes=False)
+@login_required
+def horas_adicionar():
+    if current_user.nivel not in ('operador', 'admin'):
+        flash('Você não tem permissão para registrar horas.', 'danger')
+        return redirect(url_for('colaboradores.index'))
+    cid_str = (request.form.get('collaborator_id', '').strip() or '')
+    date_str = (request.form.get('date', '').strip() or '')
+    hours_str = (request.form.get('hours', '0').strip() or '0')
+    reason = (request.form.get('reason', '').strip() or '')
+    try:
+        cid = int(cid_str)
+        d = datetime.strptime(date_str, '%Y-%m-%d').date()
+        h = float(hours_str)
+    except Exception:
+        flash('Dados inválidos para banco de horas.', 'warning')
+        return redirect(url_for('colaboradores.index'))
+    try:
+        e = HourBankEntry()
+        e.collaborator_id = cid
+        e.date = d
+        e.hours = h
+        e.reason = reason
+        db.session.add(e)
+        db.session.commit()
+        flash('Horas registradas.', 'success')
+    except Exception as ex:
         try:
             db.session.rollback()
         except Exception:
             pass
+        flash(f'Erro ao registrar horas: {ex}', 'danger')
+    return redirect(url_for('colaboradores.index'))
+
+@bp.route('/colaboradores/horas/excluir/<int:id>', methods=['POST'], strict_slashes=False)
+@login_required
+def horas_excluir(id: int):
+    if current_user.nivel != 'admin':
+        flash('Apenas Gerente pode excluir lançamentos.', 'danger')
+        return redirect(url_for('colaboradores.index'))
+    e = HourBankEntry.query.get_or_404(id)
+    try:
+        db.session.delete(e)
+        db.session.commit()
+        flash('Lançamento excluído.', 'danger')
+    except Exception as ex:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        flash(f'Erro ao excluir lançamento: {ex}', 'danger')
+    return redirect(url_for('colaboradores.index'))
+
+@bp.route('/escala', strict_slashes=False)
+@login_required
+def escala():
     cols = Collaborator.query.filter_by(active=True).order_by(Collaborator.name.asc()).all()
     from datetime import timedelta
     today = date.today()
@@ -111,142 +222,324 @@ def escala():
     events = []
     try:
         from datetime import timedelta
-        base_team = domingo_team if domingo_team in ('1','2') else '1'
-        ref_sun = None
-        if domingo_ref_date:
-            try:
-                ref_sun = datetime.strptime(domingo_ref_date, '%Y-%m-%d').date()
-            except Exception:
-                ref_sun = None
         for i in range(5):
             ws = current_monday + timedelta(days=7*i)
+            we = ws + timedelta(days=5)
+            open_team = open_ref if (i % 2 == 0) else ('2' if open_ref == '1' else '1')
+            close_team = '2' if open_team == '1' else '1'
+            d = ws
+            while d <= we:
+                events.append({
+                    'title': f"EQUIPE ABERTURA '{open_team}'",
+                    'start': d.strftime('%Y-%m-%d'),
+                    'color': '#0d6efd',
+                    'url': url_for('colaboradores.escala'),
+                    'kind': 'rodizio-open',
+                    'team': open_team,
+                })
+                events.append({
+                    'title': f"EQUIPE FECHAMENTO '{close_team}'",
+                    'start': d.strftime('%Y-%m-%d'),
+                    'color': '#0b5ed7',
+                    'url': url_for('colaboradores.escala'),
+                    'kind': 'rodizio-close',
+                    'team': close_team,
+                })
+                d = d + timedelta(days=1)
             sunday = ws + timedelta(days=6)
-            team_i = base_team
-            if ref_sun:
-                weeks_diff = ((sunday - ref_sun).days // 7)
-                if weeks_diff % 2 == 1:
-                    team_i = '2' if base_team == '1' else '1'
-            else:
-                if i % 2 == 1:
-                    team_i = '2' if base_team == '1' else '1'
             events.append({
-                'title': f"DOMINGO EQUIPE '{team_i}' (5h–13h)",
+                'title': f"DOMINGO EQUIPE '{domingo_team}' (5h–13h)",
                 'start': sunday.strftime('%Y-%m-%d'),
                 'color': '#fd7e14',
                 'url': url_for('colaboradores.escala'),
                 'kind': 'rodizio-sunday',
-                'team': team_i,
+                'team': domingo_team,
             })
     except Exception:
         pass
+    return render_template('escala.html', colaboradores=cols, weeks=weeks, ref_open=open_ref, domingo_team=domingo_team, domingo_ref_date=domingo_ref_date, events=events, active_page='escala')
+
+@bp.route('/escala/novo', methods=['POST'], strict_slashes=False)
+@login_required
+def nova_escala():
+    if current_user.nivel not in ('operador', 'admin'):
+        flash('Você não tem permissão para criar escalas.', 'danger')
+        return redirect(url_for('colaboradores.escala'))
+    col_id = request.form.get('collaborator_id', '').strip()
+    data_str = request.form.get('date', '').strip()
+    turno = request.form.get('turno', '').strip()
+    obs = request.form.get('observacao', '').strip()
     try:
-        y = today.year
-        fixed = [
-            (date(y, 2, 2), 'Padroeiro de Umbaúba'),
-            (date(y, 2, 6), 'Aniversário de Umbaúba'),
-            (date(y + 1, 2, 2), 'Padroeiro de Umbaúba'),
-            (date(y + 1, 2, 6), 'Aniversário de Umbaúba'),
-        ]
-        for dt, nm in fixed:
-            h = Holiday.query.filter_by(date=dt).first()
-            if h:
-                h.name = nm
-                h.kind = 'municipal-Umbaúba'
-            else:
-                hh = Holiday(); hh.date = dt; hh.name = nm; hh.kind = 'municipal-Umbaúba'; db.session.add(hh)
+        cid = int(col_id)
+        d = datetime.strptime(data_str, '%Y-%m-%d').date()
+    except Exception:
+        flash('Dados inválidos para nova escala.', 'warning')
+        return redirect(url_for('colaboradores.escala'))
+    try:
+        s = Shift()
+        s.collaborator_id = cid
+        s.date = d
+        s.turno = turno
+        s.observacao = obs
+        db.session.add(s)
         db.session.commit()
-    except Exception:
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
+        flash('Escala adicionada.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao adicionar escala: {e}', 'danger')
+    return redirect(url_for('colaboradores.escala'))
+
+@bp.route('/escala/excluir/<int:id>', methods=['POST'], strict_slashes=False)
+@login_required
+def excluir_escala(id: int):
+    if current_user.nivel != 'admin':
+        flash('Apenas Gerente pode excluir escalas.', 'danger')
+        return redirect(url_for('colaboradores.escala'))
+    s = Shift.query.get_or_404(id)
     try:
-        ano = 2026
-        fixes = [
-            (date(ano,1,1), 'Confraternização Universal'),
-            (date(ano,4,21), 'Tiradentes'),
-            (date(ano,5,1), 'Dia do Trabalho'),
-            (date(ano,9,7), 'Independência do Brasil'),
-            (date(ano,10,12), 'Nossa Senhora Aparecida'),
-            (date(ano,11,2), 'Finados'),
-            (date(ano,11,15), 'Proclamação da República'),
-            (date(ano,11,20), 'Consciência Negra'),
-            (date(ano,12,25), 'Natal'),
-        ]
-        def easter(y):
-            a = y % 19
-            b = y // 100
-            c = y % 100
-            d = (19*a + b - (b//4) - ((b - ((b+8)//25) + 1)//3) + 15) % 30
-            e = (32 + 2*(b%4) + 2*(c//4) - d - (c%4)) % 7
-            f = d + e - 7*((a + 11*d + 22*e)//451) + 114
-            month = f // 31
-            day = (f % 31) + 1
-            return date(y, month, day)
-        gf = easter(ano)
-        try:
-            from datetime import timedelta as _timedelta
-            gf = gf - _timedelta(days=2)
-            fixes.append((gf, 'Sexta-Feira Santa'))
-            cc = easter(ano) + _timedelta(days=60)
-            fixes.append((cc, 'Corpus Christi'))
-        except Exception:
-            pass
-        for dt, nm in fixes:
-            h = Holiday.query.filter_by(date=dt).first()
-            if h:
-                h.name = nm
-                h.kind = 'nacional'
-            else:
-                hh = Holiday(); hh.date = dt; hh.name = nm; hh.kind = 'nacional'; db.session.add(hh)
+        db.session.delete(s)
         db.session.commit()
-    except Exception:
+        flash('Escala excluída.', 'danger')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir escala: {e}', 'danger')
+    return redirect(url_for('colaboradores.escala'))
+
+@bp.route('/escala/gerar', methods=['POST'], strict_slashes=False)
+@login_required
+def gerar_semana():
+    if current_user.nivel not in ('operador', 'admin'):
+        flash('Você não tem permissão para gerar escalas.', 'danger')
+        return redirect(url_for('colaboradores.escala'))
+    di_str = request.form.get('data_inicio', '').strip()
+    df_str = request.form.get('data_fim', '').strip()
+    limpar = request.form.get('limpar', '') in ('on','true','1')
+    tipo = (request.form.get('tipo', 'regular') or 'regular').strip().lower()
+    abertura_sel = (request.form.get('abertura_equipe', '1') or '1').strip()
+    fechamento_sel = (request.form.get('fechamento_equipe', '2') or '2').strip()
+    def parse_date_safe(s: str):
         try:
-            db.session.rollback()
+            return datetime.strptime(s, '%Y-%m-%d').date()
         except Exception:
-            pass
+            return None
+    di = parse_date_safe(di_str)
+    df = parse_date_safe(df_str)
+    if not di or not df:
+        flash('Informe período válido para geração.', 'warning')
+        return redirect(url_for('colaboradores.escala'))
+    if di > df:
+        di, df = df, di
     try:
-        hs = Holiday.query.order_by(Holiday.date.asc()).all()
-        color_map = {
-            'nacional': '#20c997',
-            'movel': '#198754',
-            'estadual-SE': '#0dcaf0',
-            'municipal-Umbaúba': '#0d6efd',
-            'facultativo': '#adb5bd',
-            'municipal': '#0d6efd',
-            'estadual': '#0dcaf0',
-        }
-        for h in hs:
-            kind = (h.kind or 'feriado').strip()
-            events.append({
-                'title': h.name,
-                'start': h.date.strftime('%Y-%m-%d'),
-                'color': color_map.get(kind, '#20c997'),
-                'url': url_for('colaboradores.escala'),
-                'kind': kind,
-            })
-    except Exception:
-        pass
-    try:
-        las = LeaveAssignment.query.order_by(LeaveAssignment.date.asc()).all()
-        name_by_id = {c.id: c.name for c in cols}
+        if limpar:
+            Shift.query.filter(Shift.date >= di, Shift.date <= df).delete()
+            db.session.commit()
+        cols = Collaborator.query.filter_by(active=True).all()
+        reg1 = [c for c in cols if (c.regular_team or '') == '1']
+        reg2 = [c for c in cols if (c.regular_team or '') == '2']
+        sun1 = [c for c in cols if (c.sunday_team or '') == '1']
+        sun2 = [c for c in cols if (c.sunday_team or '') == '2']
+        sp1 = [c for c in cols if (c.special_team or '') == '1']
+        sp2 = [c for c in cols if (c.special_team or '') == '2']
+        cur = di
         from datetime import timedelta
-        for la in las:
-            base = la.date
-            days = max(1, int(la.days_used or 1))
-            nm = name_by_id.get(la.collaborator_id) or f"ID {la.collaborator_id}"
-            for i in range(days):
-                d = base + timedelta(days=i)
-                events.append({
-                    'title': f"FOLGA: {nm}",
-                    'start': d.strftime('%Y-%m-%d'),
-                    'color': '#6f42c1',
-                    'url': url_for('colaboradores.escala'),
-                    'kind': 'folga',
-                })
-    except Exception:
-        pass
-    return render_template('escala.html', colaboradores=cols, weeks=weeks, ref_open=open_ref, domingo_team=domingo_team, domingo_ref_date=domingo_ref_date, events=events, feriados=hs if 'hs' in locals() else [], active_page='escala')
+        while cur <= df:
+            if tipo in ('domingo', 'todos') and cur.weekday() == 6:
+                sun_m = AppSetting.query.filter_by(key='domingo_manha_team').first()
+                domingo_team_val = (sun_m.value.strip() if sun_m and sun_m.value else '1')
+                domingo_team_val = domingo_team_val if domingo_team_val in ('1','2') else '1'
+                domingo_team = sun1 if domingo_team_val == '1' else sun2
+                for c in domingo_team:
+                    s = Shift()
+                    s.collaborator_id = c.id
+                    s.date = cur
+                    s.turno = 'Domingo'
+                    s.start_dt = datetime.combine(cur, time(5, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                    s.end_dt = datetime.combine(cur, time(13, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                    db.session.add(s)
+                    exists = LeaveCredit.query.filter_by(collaborator_id=c.id, date=cur, origin='domingo').first()
+                    if not exists:
+                        lc = LeaveCredit()
+                        lc.collaborator_id = c.id
+                        lc.date = cur
+                        lc.amount_days = 1
+                        lc.origin = 'domingo'
+                        lc.notes = 'Domingo trabalhado'
+                        db.session.add(lc)
+            if cur.weekday() in (0,1,2,3,4,5):
+                if tipo in ('regular', 'todos'):
+                    open_team = reg1 if abertura_sel == '1' else reg2
+                    close_team = reg1 if fechamento_sel == '1' else reg2
+                    for c in open_team:
+                        s1 = Shift()
+                        s1.collaborator_id = c.id
+                        s1.date = cur
+                        s1.turno = 'Abertura (Manhã)'
+                        s1.start_dt = datetime.combine(cur, time(5, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        s1.end_dt = datetime.combine(cur, time(11, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        db.session.add(s1)
+                        s2 = Shift()
+                        s2.collaborator_id = c.id
+                        s2.date = cur
+                        s2.turno = 'Abertura (Tarde)'
+                        s2.start_dt = datetime.combine(cur, time(13, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        s2.end_dt = datetime.combine(cur, time(15, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        db.session.add(s2)
+                    for c in close_team:
+                        s1 = Shift()
+                        s1.collaborator_id = c.id
+                        s1.date = cur
+                        s1.turno = 'Fechamento (Manhã)'
+                        s1.start_dt = datetime.combine(cur, time(9, 30)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        s1.end_dt = datetime.combine(cur, time(13, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        db.session.add(s1)
+                        s2 = Shift()
+                        s2.collaborator_id = c.id
+                        s2.date = cur
+                        s2.turno = 'Fechamento (Tarde)'
+                        s2.start_dt = datetime.combine(cur, time(15, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        s2.end_dt = datetime.combine(cur, time(19, 30)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        db.session.add(s2)
+                if tipo in ('especial', 'todos'):
+                    for c in sp1:
+                        s1 = Shift()
+                        s1.collaborator_id = c.id
+                        s1.date = cur
+                        s1.turno = 'Abertura (Especial-Manhã)'
+                        s1.start_dt = datetime.combine(cur, time(5, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        s1.end_dt = datetime.combine(cur, time(11, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        db.session.add(s1)
+                        s2 = Shift()
+                        s2.collaborator_id = c.id
+                        s2.date = cur
+                        s2.turno = 'Abertura (Especial-Tarde)'
+                        s2.start_dt = datetime.combine(cur, time(13, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        s2.end_dt = datetime.combine(cur, time(15, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        db.session.add(s2)
+                    for c in sp2:
+                        s1 = Shift()
+                        s1.collaborator_id = c.id
+                        s1.date = cur
+                        s1.turno = 'Fechamento (Especial-Manhã)'
+                        s1.start_dt = datetime.combine(cur, time(9, 30)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        s1.end_dt = datetime.combine(cur, time(13, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        db.session.add(s1)
+                        s2 = Shift()
+                        s2.collaborator_id = c.id
+                        s2.date = cur
+                        s2.turno = 'Fechamento (Especial-Tarde)'
+                        s2.start_dt = datetime.combine(cur, time(15, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        s2.end_dt = datetime.combine(cur, time(19, 30)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                        db.session.add(s2)
+            cur += timedelta(days=1)
+        db.session.commit()
+        flash('Escalas geradas para o período.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao gerar escalas: {e}', 'danger')
+    return redirect(url_for('colaboradores.escala'))
+
+@bp.route('/escala/rodizio/atualizar', methods=['POST'], strict_slashes=False)
+@login_required
+def rodizio_atualizar():
+    if current_user.nivel not in ('operador', 'admin'):
+        flash('Você não tem permissão para configurar rodízio.', 'danger')
+        return redirect(url_for('colaboradores.escala'))
+    open_sel = (request.form.get('abertura_equipe', '1') or '1').strip()
+    close_sel = (request.form.get('fechamento_equipe', '2') or '2').strip()
+    if open_sel not in ('1','2') or close_sel not in ('1','2') or open_sel == close_sel:
+        flash('Seleção inválida: equipes devem ser 1 e 2, distintas.', 'warning')
+        return redirect(url_for('colaboradores.escala'))
+    from datetime import timedelta
+    today = date.today()
+    current_monday = today - timedelta(days=today.weekday())
+    try:
+        rms = AppSetting.query.filter_by(key='rodizio_ref_monday').first()
+        ros = AppSetting.query.filter_by(key='rodizio_open_team_ref').first()
+        if not rms:
+            rms = AppSetting()
+            rms.key = 'rodizio_ref_monday'
+            db.session.add(rms)
+        if not ros:
+            ros = AppSetting()
+            ros.key = 'rodizio_open_team_ref'
+            db.session.add(ros)
+        rms.value = current_monday.strftime('%Y-%m-%d')
+        ros.value = open_sel
+        db.session.commit()
+        flash('Rodízio atualizado para a semana atual.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao atualizar rodízio: {e}', 'danger')
+    return redirect(url_for('colaboradores.escala'))
+
+@bp.route('/escala/rodizio/gerar', methods=['POST'], strict_slashes=False)
+@login_required
+def rodizio_gerar():
+    if current_user.nivel not in ('operador', 'admin'):
+        flash('Você não tem permissão para gerar rodízio.', 'danger')
+        return redirect(url_for('colaboradores.escala'))
+    limpar = request.form.get('limpar', '') in ('on','true','1')
+    from datetime import timedelta
+    today = date.today()
+    current_monday = today - timedelta(days=today.weekday())
+    ros = AppSetting.query.filter_by(key='rodizio_open_team_ref').first()
+    open_ref = (ros.value.strip() if ros and ros.value else '1')
+    if open_ref not in ('1','2'):
+        open_ref = '1'
+    try:
+        cols = Collaborator.query.filter_by(active=True).all()
+        reg1 = [c for c in cols if (c.regular_team or '') == '1']
+        reg2 = [c for c in cols if (c.regular_team or '') == '2']
+        start_range = current_monday
+        end_range = current_monday + timedelta(days=7*5 - 1)
+        if limpar:
+            Shift.query.filter(Shift.date >= start_range, Shift.date <= end_range).delete()
+            db.session.commit()
+        for i in range(5):
+            ws = current_monday + timedelta(days=7*i)
+            we = ws + timedelta(days=5)
+            open_team = reg1 if (open_ref == '1' and i % 2 == 0) or (open_ref == '2' and i % 2 == 1) else reg2
+            close_team = reg2 if open_team is reg1 else reg1
+            d = ws
+            while d <= we:
+                for c in open_team:
+                    s1 = Shift()
+                    s1.collaborator_id = c.id
+                    s1.date = d
+                    s1.turno = 'Abertura (Manhã)'
+                    s1.start_dt = datetime.combine(d, time(5, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                    s1.end_dt = datetime.combine(d, time(11, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                    db.session.add(s1)
+                    s2 = Shift()
+                    s2.collaborator_id = c.id
+                    s2.date = d
+                    s2.turno = 'Abertura (Tarde)'
+                    s2.start_dt = datetime.combine(d, time(13, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                    s2.end_dt = datetime.combine(d, time(15, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                    db.session.add(s2)
+                for c in close_team:
+                    c1 = Shift()
+                    c1.collaborator_id = c.id
+                    c1.date = d
+                    c1.turno = 'Fechamento (Manhã)'
+                    c1.start_dt = datetime.combine(d, time(9, 30)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                    c1.end_dt = datetime.combine(d, time(13, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                    db.session.add(c1)
+                    c2 = Shift()
+                    c2.collaborator_id = c.id
+                    c2.date = d
+                    c2.turno = 'Fechamento (Tarde)'
+                    c2.start_dt = datetime.combine(d, time(15, 0)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                    c2.end_dt = datetime.combine(d, time(19, 30)).replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                    db.session.add(c2)
+                d += timedelta(days=1)
+        db.session.commit()
+        flash('Rodízio gerado para as próximas 5 semanas.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao gerar rodízio: {e}', 'danger')
+    return redirect(url_for('colaboradores.escala'))
+
 @bp.route('/escala/domingo/configurar', methods=['POST'], strict_slashes=False)
 @login_required
 def domingo_configurar():
@@ -292,67 +585,12 @@ def domingo_configurar():
         flash(f'Erro ao salvar configuração de domingos: {e}', 'danger')
     return redirect(url_for('colaboradores.escala'))
 
-@bp.route('/escala/feriado/criar', methods=['POST'], strict_slashes=False)
+@bp.route('/escala/folga/credito', methods=['POST'], strict_slashes=False)
 @login_required
-def feriado_criar():
-    if current_user.nivel != 'admin':
-        flash('Apenas Gerente pode configurar feriados.', 'danger')
-        return redirect(url_for('colaboradores.escala'))
-    date_str = (request.form.get('date', '').strip() or '')
-    name = (request.form.get('name', '').strip() or '')
-    kind = (request.form.get('kind', '').strip() or '')
-    try:
-        d = datetime.strptime(date_str, '%Y-%m-%d').date()
-    except Exception:
-        flash('Data inválida para feriado.', 'warning')
-        return redirect(url_for('colaboradores.escala'))
-    if not name:
-        flash('Nome do feriado é obrigatório.', 'warning')
-        return redirect(url_for('colaboradores.escala'))
-    try:
-        existing = Holiday.query.filter_by(date=d).first()
-        if existing:
-            existing.name = name
-            existing.kind = kind or existing.kind
-        else:
-            h = Holiday()
-            h.date = d
-            h.name = name
-            h.kind = kind or None
-            db.session.add(h)
-        db.session.commit()
-        flash('Feriado salvo.', 'success')
-    except Exception as e:
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
-        flash(f'Erro ao salvar feriado: {e}', 'danger')
-    return redirect(url_for('colaboradores.escala'))
-
-@bp.route('/escala/feriado/excluir/<int:id>', methods=['POST'], strict_slashes=False)
-@login_required
-def feriado_excluir(id: int):
-    if current_user.nivel != 'admin':
-        flash('Apenas Gerente pode excluir feriados.', 'danger')
-        return redirect(url_for('colaboradores.escala'))
-    h = Holiday.query.get_or_404(id)
-    try:
-        db.session.delete(h)
-        db.session.commit()
-        flash('Feriado excluído.', 'danger')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Erro ao excluir feriado: {e}', 'danger')
-    return redirect(url_for('colaboradores.escala'))
-
-
-@bp.route('/gestao/folga/credito', methods=['POST'], strict_slashes=False)
-@login_required
-def folga_credito_registrar_gestao():
+def folga_credito_registrar():
     if current_user.nivel not in ('operador', 'admin'):
         flash('Você não tem permissão para registrar créditos.', 'danger')
-        return redirect(url_for('usuarios.gestao'))
+        return redirect(url_for('colaboradores.escala'))
     cid_str = (request.form.get('collaborator_id', '').strip() or '')
     date_str = (request.form.get('date', '').strip() or '')
     amount_str = (request.form.get('amount', '1').strip() or '1')
@@ -363,7 +601,7 @@ def folga_credito_registrar_gestao():
         amount = max(1, int(amount_str))
     except Exception:
         flash('Dados inválidos para crédito de folga.', 'warning')
-        return redirect(url_for('usuarios.gestao'))
+        return redirect(url_for('colaboradores.escala'))
     try:
         lc = LeaveCredit()
         lc.collaborator_id = cid
@@ -380,157 +618,4 @@ def folga_credito_registrar_gestao():
         except Exception:
             pass
         flash(f'Erro ao registrar crédito: {e}', 'danger')
-    return redirect(url_for('usuarios.gestao'))
-
-@bp.route('/gestao/folga/credito/domingo', methods=['POST'], strict_slashes=False)
-@login_required
-def folga_credito_domingo():
-    if current_user.nivel not in ('operador', 'admin'):
-        flash('Você não tem permissão para registrar créditos.', 'danger')
-        return redirect(url_for('usuarios.gestao'))
-    cid_str = (request.form.get('collaborator_id', '').strip() or '')
-    date_str = (request.form.get('date', '').strip() or '')
-    amount_str = (request.form.get('amount', '1').strip() or '1')
-    notes = (request.form.get('notes', '').strip() or 'Domingo trabalhado')
-    try:
-        cid = int(cid_str)
-        d = datetime.strptime(date_str, '%Y-%m-%d').date()
-        amount = max(1, int(amount_str))
-    except Exception:
-        flash('Dados inválidos para crédito de domingo.', 'warning')
-        return redirect(url_for('usuarios.gestao'))
-    try:
-        exists = LeaveCredit.query.filter_by(collaborator_id=cid, date=d, origin='domingo').first()
-        if not exists:
-            lc = LeaveCredit()
-            lc.collaborator_id = cid
-            lc.date = d
-            lc.amount_days = amount
-            lc.origin = 'domingo'
-            lc.notes = notes
-            db.session.add(lc)
-            db.session.commit()
-            flash('Crédito de domingo registrado.', 'success')
-        else:
-            flash('Crédito de domingo já existe para essa data.', 'info')
-    except Exception as e:
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
-        flash(f'Erro ao registrar crédito: {e}', 'danger')
-    return redirect(url_for('usuarios.gestao'))
-
-@bp.route('/gestao/folga/credito/reduzir', methods=['POST'], strict_slashes=False)
-@login_required
-def folga_credito_reduzir():
-    if current_user.nivel not in ('operador', 'admin'):
-        flash('Você não tem permissão para ajustar créditos.', 'danger')
-        return redirect(url_for('usuarios.gestao'))
-    cid_str = (request.form.get('collaborator_id', '').strip() or '')
-    amount_str = (request.form.get('amount', '1').strip() or '1')
-    notes = (request.form.get('notes', '').strip() or 'Ajuste negativo')
-    try:
-        cid = int(cid_str)
-        amount = max(1, int(amount_str))
-    except Exception:
-        flash('Dados inválidos para ajuste.', 'warning')
-        return redirect(url_for('usuarios.gestao'))
-    try:
-        from datetime import date as _date
-        lc = LeaveCredit()
-        lc.collaborator_id = cid
-        lc.date = _date.today()
-        lc.amount_days = -amount
-        lc.origin = 'ajuste'
-        lc.notes = notes
-        db.session.add(lc)
-        db.session.commit()
-        flash('Ajuste aplicado: dias reduzidos.', 'warning')
-    except Exception as e:
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
-        flash(f'Erro ao ajustar créditos: {e}', 'danger')
-    return redirect(url_for('usuarios.gestao'))
-
-@bp.route('/gestao/folga/agendar', methods=['POST'], strict_slashes=False)
-@login_required
-def folga_agendar():
-    if current_user.nivel not in ('operador', 'admin'):
-        flash('Você não tem permissão para agendar folga.', 'danger')
-        return redirect(url_for('usuarios.gestao'))
-    cid_str = (request.form.get('collaborator_id', '').strip() or '')
-    date_str = (request.form.get('date', '').strip() or '')
-    days_str = (request.form.get('days', '1').strip() or '1')
-    notes = (request.form.get('notes', '').strip() or '')
-    try:
-        cid = int(cid_str)
-        d = datetime.strptime(date_str, '%Y-%m-%d').date()
-        days = max(1, int(days_str))
-    except Exception:
-        flash('Dados inválidos para agendamento.', 'warning')
-        return redirect(url_for('usuarios.gestao'))
-    try:
-        la = LeaveAssignment()
-        la.collaborator_id = cid
-        la.date = d
-        la.days_used = days
-        la.notes = notes
-        db.session.add(la)
-        db.session.commit()
-        try:
-            col = Collaborator.query.get(cid)
-            nome = col.name if col and col.name else f'ID {cid}'
-        except Exception:
-            nome = f'ID {cid}'
-        registrar_evento('folga cadastrada', produto=nome, quantidade=days, descricao=notes)
-        flash('Folga agendada.', 'success')
-    except Exception as e:
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
-        flash(f'Erro ao agendar folga: {e}', 'danger')
-    return redirect(url_for('usuarios.gestao'))
-
-@bp.route('/gestao/folga/converter', methods=['POST'], strict_slashes=False)
-@login_required
-def folga_converter():
-    if current_user.nivel not in ('operador', 'admin'):
-        flash('Você não tem permissão para converter folga.', 'danger')
-        return redirect(url_for('usuarios.gestao'))
-    cid_str = (request.form.get('collaborator_id', '').strip() or '')
-    date_str = (request.form.get('date', '').strip() or '')
-    days_str = (request.form.get('days', '1').strip() or '1')
-    amount_str = (request.form.get('amount_paid', '').strip() or '')
-    rate_str = (request.form.get('rate_per_day', '65').strip() or '65')
-    notes = (request.form.get('notes', '').strip() or '')
-    try:
-        cid = int(cid_str)
-        d = datetime.strptime(date_str, '%Y-%m-%d').date()
-        days = max(1, int(days_str))
-        rate = float(rate_str)
-        amount_paid = float(amount_str) if amount_str else (rate * days)
-    except Exception:
-        flash('Dados inválidos para conversão.', 'warning')
-        return redirect(url_for('usuarios.gestao'))
-    try:
-        conv = LeaveConversion()
-        conv.collaborator_id = cid
-        conv.date = d
-        conv.amount_days = days
-        conv.amount_paid = amount_paid
-        conv.rate_per_day = rate
-        conv.notes = notes
-        db.session.add(conv)
-        db.session.commit()
-        flash('Conversão registrada.', 'success')
-    except Exception as e:
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
-        flash(f'Erro ao registrar conversão: {e}', 'danger')
-    return redirect(url_for('usuarios.gestao'))
+    return redirect(url_for('colaboradores.escala'))

@@ -2,21 +2,10 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import current_user
 from datetime import datetime
 from .. import db
-from ..models import Historico as HistoricoModel, CleaningTask, CleaningHistory, MeatReception, SystemLog, AppSetting as AppSettingModel, Holiday, Produto, NotificationRead
+from ..models import Historico, CleaningTask, CleaningHistory, MeatReception, SystemLog, AppSetting
 from ..models import LeaveCredit
 
 bp = Blueprint('home', __name__, url_prefix='/home')
-
-@bp.after_app_request
-def _home_no_cache(response):
-    try:
-        if request.path.startswith('/home'):
-            response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-            response.headers['Pragma'] = 'no-cache'
-            response.headers['Expires'] = '0'
-    except Exception:
-        pass
-    return response
 
 @bp.route('/', strict_slashes=False)
 def index():
@@ -53,12 +42,12 @@ def index():
     try:
         from flask import current_app
         if not db_diag.get('ok', True) or not current_app.config.get('DB_OK', True):
-            return render_template('home.html', active_page='home', events=[], mural_html='', mural_text='', notifications=[], next_holiday=None, db_diag=db_diag)
+            return render_template('home.html', active_page='home', events=[], mural_html='', mural_text='', db_diag=db_diag)
     except Exception:
         pass
     # Estoque (Histórico)
     try:
-        hist = HistoricoModel.query.order_by(HistoricoModel.data.desc()).limit(100).all()
+        hist = Historico.query.order_by(Historico.data.desc()).limit(100).all()
         for h in hist:
             t = 'Entrada' if (h.action or '').lower() == 'entrada' else 'Saída'
             qty = h.quantidade or 0
@@ -66,7 +55,7 @@ def index():
             events.append({
                 'title': f"📦 {t}: {h.product_name} {sign}{qty}",
                 'start': (h.data or datetime.utcnow()).isoformat(),
-                'color': '#198754',
+                'color': '#0d6efd',
                 'url': url_for('estoque.editar', id=h.product_id) if h.product_id else None,
             })
     except Exception:
@@ -75,8 +64,8 @@ def index():
         from datetime import date, timedelta
         today = date.today()
         current_monday = today - timedelta(days=today.weekday())
-        ref_monday_setting = AppSettingModel.query.filter_by(key='rodizio_ref_monday').first()
-        ref_open_setting = AppSettingModel.query.filter_by(key='rodizio_open_team_ref').first()
+        ref_monday_setting = AppSetting.query.filter_by(key='rodizio_ref_monday').first()
+        ref_open_setting = AppSetting.query.filter_by(key='rodizio_open_team_ref').first()
         ref_monday = None
         if ref_monday_setting and (ref_monday_setting.value or '').strip():
             try:
@@ -85,7 +74,7 @@ def index():
                 ref_monday = None
         if not ref_monday:
             if not ref_monday_setting:
-                ref_monday_setting = AppSettingModel()
+                ref_monday_setting = AppSetting()
                 ref_monday_setting.key = 'rodizio_ref_monday'
                 db.session.add(ref_monday_setting)
             ref_monday_setting.value = current_monday.strftime('%Y-%m-%d')
@@ -100,12 +89,12 @@ def index():
                 open_ref = '2' if open_ref == '1' else '1'
             ref_monday = current_monday
             if not ref_monday_setting:
-                ref_monday_setting = AppSettingModel()
+                ref_monday_setting = AppSetting()
                 ref_monday_setting.key = 'rodizio_ref_monday'
                 db.session.add(ref_monday_setting)
             ref_monday_setting.value = current_monday.strftime('%Y-%m-%d')
             if not ref_open_setting:
-                ref_open_setting = AppSettingModel()
+                ref_open_setting = AppSetting()
                 ref_open_setting.key = 'rodizio_open_team_ref'
                 db.session.add(ref_open_setting)
             ref_open_setting.value = open_ref
@@ -120,7 +109,7 @@ def index():
                 events.append({
                     'title': f"EQUIPE ABERTURA '{open_team}'",
                     'start': d.strftime('%Y-%m-%d'),
-                    'color': '#198754',
+                    'color': '#0d6efd',
                     'url': url_for('colaboradores.escala'),
                     'kind': 'rodizio-open',
                     'team': open_team,
@@ -128,7 +117,7 @@ def index():
                 events.append({
                     'title': f"EQUIPE FECHAMENTO '{close_team}'",
                     'start': d.strftime('%Y-%m-%d'),
-                    'color': '#157347',
+                    'color': '#0b5ed7',
                     'url': url_for('colaboradores.escala'),
                     'kind': 'rodizio-close',
                     'team': close_team,
@@ -136,17 +125,17 @@ def index():
                 d = d + timedelta(days=1)
             sunday = ws + timedelta(days=6)
             try:
-                sun_ref_setting = AppSettingModel.query.filter_by(key='domingo_ref_sunday').first()
-                sun_team_setting = AppSettingModel.query.filter_by(key='domingo_team_ref').first()
+                sun_ref_setting = AppSetting.query.filter_by(key='domingo_ref_sunday').first()
+                sun_team_setting = AppSetting.query.filter_by(key='domingo_team_ref').first()
                 base_team = (sun_team_setting.value.strip() if sun_team_setting and sun_team_setting.value else None)
                 if base_team not in ('1', '2'):
                     # fallback para configuração antiga, se existir
-                    sun_m = AppSettingModel.query.filter_by(key='domingo_manha_team').first()
+                    sun_m = AppSetting.query.filter_by(key='domingo_manha_team').first()
                     base_team = (sun_m.value.strip() if sun_m and sun_m.value else '1')
                     if base_team not in ('1','2'):
                         base_team = '1'
                     if not sun_team_setting:
-                        sun_team_setting = AppSettingModel()
+                        sun_team_setting = AppSetting()
                         sun_team_setting.key = 'domingo_team_ref'
                         db.session.add(sun_team_setting)
                     sun_team_setting.value = base_team
@@ -157,22 +146,17 @@ def index():
                         ref_sunday = datetime.strptime(sun_ref_setting.value.strip(), '%Y-%m-%d').date()
                     except Exception:
                         ref_sunday = None
-                if not sun_ref_setting:
+                if not ref_sunday:
                     last_sunday = (current_monday - timedelta(days=1))
                     if not sun_ref_setting:
-                        sun_ref_setting = AppSettingModel()
+                        sun_ref_setting = AppSetting()
                         sun_ref_setting.key = 'domingo_ref_sunday'
                         db.session.add(sun_ref_setting)
                     sun_ref_setting.value = last_sunday.strftime('%Y-%m-%d')
                     db.session.commit()
                     ref_sunday = last_sunday
                 # calcular equipe do domingo pelo número de semanas desde a referência
-                weeks_since_ref = 0
-                try:
-                    if ref_sunday:
-                        weeks_since_ref = max(0, (sunday - ref_sunday).days // 7)
-                except Exception:
-                    weeks_since_ref = 0
+                weeks_since_ref = max(0, (sunday - ref_sunday).days // 7)
                 domingo_val = base_team if (weeks_since_ref % 2 == 0) else ('2' if base_team == '1' else '1')
                 events.append({
                     'title': f"DOMINGO EQUIPE '{domingo_val}' (5h–13h)",
@@ -306,7 +290,7 @@ def index():
     
     mural_text = ''
     try:
-        s = AppSettingModel.query.filter_by(key='mural_text').first()
+        s = AppSetting.query.filter_by(key='mural_text').first()
         mural_text = (s.value or '') if s else ''
     except Exception:
         mural_text = ''
@@ -316,81 +300,7 @@ def index():
         esc = esc.replace("\n", "<br>")
         return esc
     mural_html = _to_html(mural_text)
-    next_holiday = None
-    try:
-        from datetime import date as _date
-        today = _date.today()
-        nh = Holiday.query.filter(Holiday.date >= today).order_by(Holiday.date.asc()).first()
-        if nh:
-            next_holiday = {'name': nh.name, 'date_str': nh.date.strftime('%d/%m/%Y')}
-    except Exception:
-        next_holiday = None
-    notifications = []
-    try:
-        crit = (
-            Produto.query
-            .filter(Produto.estoque_minimo.isnot(None), Produto.estoque_minimo > 0, Produto.quantidade <= Produto.estoque_minimo)
-            .order_by(Produto.nome.asc())
-            .limit(10)
-            .all()
-        )
-        for p in crit:
-            try:
-                is_read = NotificationRead.query.filter_by(user_id=current_user.id, tipo='estoque', ref_id=p.id).first() is not None
-            except Exception:
-                is_read = False
-            if is_read:
-                continue
-            notifications.append({
-                'id': p.id,
-                'type': 'estoque',
-                'title': f"Estoque crítico: {p.nome}",
-                'subtitle': f"Disponível: {p.quantidade} • Mínimo: {p.estoque_minimo}",
-                'color': 'text-bg-danger',
-                'emoji': '⚠️',
-                'url': url_for('estoque.index'),
-            })
-    except Exception:
-        pass
-    try:
-        from datetime import date as _date, timedelta as _td
-        horizon = _date.today() + _td(days=3)
-        tasks = (
-            CleaningTask.query
-            .filter(CleaningTask.proxima_data.isnot(None), CleaningTask.proxima_data <= horizon)
-            .order_by(CleaningTask.proxima_data.asc())
-            .limit(10)
-            .all()
-        )
-        for t in tasks:
-            try:
-                is_read = NotificationRead.query.filter_by(user_id=current_user.id, tipo='limpeza', ref_id=t.id).first() is not None
-            except Exception:
-                is_read = False
-            if is_read:
-                continue
-            notifications.append({
-                'id': t.id,
-                'type': 'limpeza',
-                'title': f"Tarefa próxima: {t.nome_limpeza}",
-                'subtitle': f"Prevista: {t.proxima_data.strftime('%d/%m/%Y')}",
-                'color': 'text-bg-warning',
-                'emoji': '📅',
-                'url': url_for('cronograma.cronograma'),
-            })
-    except Exception:
-        pass
-    if next_holiday:
-        notifications.append({
-            'id': None,
-            'type': 'holiday',
-            'title': f"Próximo feriado: {next_holiday['name']}",
-            'subtitle': f"Data: {next_holiday['date_str']}",
-            'color': 'text-bg-primary',
-            'emoji': '🚩',
-            'url': url_for('colaboradores.escala'),
-        })
-    return render_template('home.html', active_page='home', events=events, mural_html=mural_html, mural_text=mural_text, notifications=notifications, next_holiday=next_holiday, db_diag=db_diag)
+    return render_template('home.html', active_page='home', events=events, mural_html=mural_html, mural_text=mural_text, db_diag=db_diag)
 
 @bp.route('/mural', methods=['POST'], strict_slashes=False)
 def update_mural():
@@ -401,9 +311,9 @@ def update_mural():
         return redirect(url_for('home.index'))
     txt = request.form.get('mural_text', '').strip()
     try:
-        s = AppSettingModel.query.filter_by(key='mural_text').first()
+        s = AppSetting.query.filter_by(key='mural_text').first()
         if not s:
-            s = AppSettingModel()
+            s = AppSetting()
             s.key = 'mural_text'
             db.session.add(s)
         s.value = txt
@@ -415,27 +325,4 @@ def update_mural():
         except Exception:
             pass
         flash(f'Erro ao atualizar mural: {e}', 'danger')
-    return redirect(url_for('home.index'))
-
-@bp.route('/changelog', methods=['POST'], strict_slashes=False)
-def update_changelog():
-    if not current_user.is_authenticated:
-        return redirect(url_for('auth.login'))
-    if current_user.nivel != 'admin':
-        flash('Apenas Gerente pode editar o changelog.', 'danger')
-        return redirect(url_for('home.index'))
-    txt = request.form.get('changelog_text', '').strip()
-    try:
-        s = AppSettingModel.query.filter_by(key='changelog_text').first()
-        if not s:
-            s = AppSettingModel(); s.key = 'changelog_text'; db.session.add(s)
-        s.value = txt
-        db.session.commit()
-        flash('Changelog atualizado.', 'success')
-    except Exception as e:
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
-        flash(f'Erro ao atualizar changelog: {e}', 'danger')
     return redirect(url_for('home.index'))
