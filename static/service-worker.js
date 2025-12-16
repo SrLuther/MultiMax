@@ -1,4 +1,4 @@
-const CACHE_NAME = 'multimax-cache-v9';
+const CACHE_NAME = 'multimax-cache-v7';
 const STATIC_ASSETS = [
   '/static/manifest.json',
   '/static/icons/icon-192.png',

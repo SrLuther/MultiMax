@@ -1,10 +1,6 @@
 import os
 import sys
-import threading
-import time
-import shutil
 from flask import Flask
-from typing import cast
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 
@@ -65,27 +61,16 @@ def create_app():
         template_folder=os.path.join(base_dir, 'templates'),
         static_folder=os.path.join(base_dir, 'static'),
     )
-    data_dir = (os.getenv('DATA_DIR') or os.getenv('MULTIMAX_DATA_DIR') or None)
+    data_dir = None
+    if os.name == 'nt':
+        localapp = os.getenv('LOCALAPPDATA')
+        if localapp:
+            data_dir = os.path.join(localapp, 'MultiMax')
     if not data_dir:
-        parent_dir = os.path.abspath(os.path.join(base_dir, '..'))
-        try:
-            pd = os.path.join(parent_dir, 'multimax-data')
-            os.makedirs(pd, exist_ok=True)
-            data_dir = pd
-        except Exception:
-            data_dir = None
-    if not data_dir:
-        if os.name == 'nt':
-            localapp = os.getenv('LOCALAPPDATA')
-            if localapp:
-                data_dir = os.path.join(localapp, 'MultiMax')
-        else:
-            home = os.path.expanduser('~')
-            data_dir = os.path.join(home, '.multimax')
-    data_dir_str = cast(str, data_dir)
-    os.makedirs(data_dir_str, exist_ok=True)
-    db_file_name = (os.getenv('DB_FILE_NAME') or 'estoque.db').strip() or 'estoque.db'
-    db_path = os.path.join(data_dir_str, db_file_name).replace('\\', '/')
+        home = os.path.expanduser('~')
+        data_dir = os.path.join(home, '.multimax')
+    os.makedirs(data_dir, exist_ok=True)
+    db_path = os.path.join(data_dir, 'estoque.db').replace('\\', '/')
     uri_env = os.getenv('SQLALCHEMY_DATABASE_URI') or os.getenv('DATABASE_URL')
     uri_env = _normalize_db_uri(uri_env)
     selected_uri = uri_env if uri_env else ('sqlite:///' + db_path)
@@ -94,15 +79,6 @@ def create_app():
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'uma_chave_secreta_muito_forte_e_aleatoria')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['PER_PAGE'] = 10
-    app.config['DATA_DIR'] = data_dir_str
-    backup_dir = os.path.join(data_dir_str, 'backups')
-    os.makedirs(backup_dir, exist_ok=True)
-    app.config['BACKUP_DIR'] = backup_dir
-    if isinstance(selected_uri, str) and selected_uri.startswith('sqlite:'):
-        try:
-            app.config['DB_FILE_PATH'] = selected_uri.split('sqlite:///')[1]
-        except Exception:
-            app.config['DB_FILE_PATH'] = db_path
 
     db.init_app(app)
     login_manager.init_app(app)
@@ -131,19 +107,6 @@ def create_app():
     from .routes.usuarios import bp as usuarios_bp
     from .routes.carnes import bp as carnes_bp
     from .routes.colaboradores import bp as colaboradores_bp
-    from .routes.receitas import bp as receitas_bp
-    notif_enabled = (os.getenv('NOTIFICACOES_ENABLED', 'false') or 'false').lower() == 'true'
-    notificacoes_bp = None
-    if notif_enabled:
-        try:
-            from .routes.notificacoes import bp as _notifs
-            notificacoes_bp = _notifs
-        except Exception:
-            notificacoes_bp = None
-    try:
-        from .routes.dbadmin import bp as dbadmin_bp
-    except Exception:
-        dbadmin_bp = None
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(home_bp)
@@ -153,26 +116,6 @@ def create_app():
     app.register_blueprint(usuarios_bp)
     app.register_blueprint(carnes_bp)
     app.register_blueprint(colaboradores_bp)
-    app.register_blueprint(receitas_bp)
-    if notificacoes_bp:
-        app.register_blueprint(notificacoes_bp)
-    if dbadmin_bp:
-        app.register_blueprint(dbadmin_bp)
-
-    @app.context_processor
-    def _inject_version():
-        ver = (os.getenv('APP_VERSION') or '').strip()
-        if not ver:
-            try:
-                import subprocess
-                ver = subprocess.check_output(['git','describe','--tags','--abbrev=0'], cwd=os.path.dirname(os.path.dirname(__file__)), text=True).strip()
-            except Exception:
-                try:
-                    s = AppSetting.query.filter_by(key='app_version').first()
-                    ver = (s.value or '').strip() if s else ''
-                except Exception:
-                    ver = ''
-        return {'git_version': ver or 'dev'}
 
     @app.route('/', strict_slashes=False)
     def _root_redirect():
@@ -251,8 +194,6 @@ def create_app():
             return html, status_code
         except Exception as e:
             return f"erro={e}", 500
-
-    
 
     @app.context_processor
     def inject_notifications():
@@ -342,7 +283,7 @@ def create_app():
                 return r2.stdout.strip()
         except Exception:
             pass
-        return '1.3.6.0'
+        return 'dev'
 
     resolved_version = _get_version()
     app.config['APP_VERSION_RESOLVED'] = resolved_version.lstrip('vV') if isinstance(resolved_version, str) else resolved_version
@@ -352,63 +293,6 @@ def create_app():
         return {'git_version': app.config.get('APP_VERSION_RESOLVED', 'dev')}
 
     with app.app_context():
-        try:
-            from .models import AppSetting
-            import subprocess, json, urllib.request
-            ver = app.config.get('APP_VERSION_RESOLVED', 'dev')
-            base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.dirname(__file__)))
-            commits = []
-            last_tag = None
-            try:
-                r = subprocess.run(['git', 'describe', '--tags', '--abbrev=0'], cwd=base_dir, capture_output=True, text=True, timeout=2)
-                if r.returncode == 0 and r.stdout.strip():
-                    last_tag = r.stdout.strip()
-                if last_tag:
-                    rlog = subprocess.run(['git', 'log', '--pretty=%h %s', f'{last_tag}..HEAD'], cwd=base_dir, capture_output=True, text=True, timeout=3)
-                    if rlog.returncode == 0:
-                        commits = [line.strip() for line in rlog.stdout.splitlines() if line.strip()]
-                else:
-                    rlog2 = subprocess.run(['git', 'log', '-n', '20', '--pretty=%h %s'], cwd=base_dir, capture_output=True, text=True, timeout=3)
-                    if rlog2.returncode == 0:
-                        commits = [line.strip() for line in rlog2.stdout.splitlines() if line.strip()]
-            except Exception:
-                try:
-                    with urllib.request.urlopen('https://api.github.com/repos/SrLuther/MultiMax/commits?sha=main') as resp:
-                        raw = resp.read().decode('utf-8')
-                        arr = json.loads(raw)
-                        for it in arr[:20]:
-                            h = (it.get('sha') or '')[:7]
-                            msg = ((it.get('commit') or {}).get('message') or '').split('\n',1)[0]
-                            if msg:
-                                commits.append(f'{h} {msg}')
-                except Exception:
-                    commits = []
-            curated = [
-                'Segurança: ajuste de permissões para Visualizador',
-                'Escala: Domingos/Feriados restritos a Administrador',
-                'Colaboradores: criação automática da coluna name (DB fix)',
-                'Correção: acesso seguro ao nome do colaborador',
-                'Relatórios de carnes: tabelas mais densas e legíveis',
-                'Dependências: atualizações e imports corrigidos',
-                'Versão de segurança publicada'
-            ]
-            commits = curated
-            head = f'v{ver}' if isinstance(ver, str) else str(ver)
-            lines = [f'{head}'] + [f'- {c}' for c in commits]
-            txt = '\n'.join(lines)
-            try:
-                s = AppSetting.query.filter_by(key='changelog_text').first()
-                if not s:
-                    s = AppSetting(); s.key = 'changelog_text'; db.session.add(s)
-                    s.value = txt
-                    db.session.commit()
-            except Exception:
-                try:
-                    db.session.rollback()
-                except Exception:
-                    pass
-        except Exception:
-            pass
         uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
         is_sqlite = isinstance(uri, str) and uri.startswith('sqlite:')
         if is_sqlite:
@@ -426,7 +310,7 @@ def create_app():
             from sqlalchemy import inspect
             insp = inspect(db.engine)
             tables = set(insp.get_table_names())
-            if ('app_setting' not in tables) or ('job_role' not in tables) or ('leave_assignment' not in tables) or ('leave_conversion' not in tables):
+            if 'app_setting' not in tables:
                 db.create_all()
         except Exception:
             try:
@@ -460,7 +344,7 @@ def create_app():
                 tables = [
                     'cleaning_task','cleaning_history','system_log','notification_read','app_setting',
                     'produto','historico','meat_reception','meat_carrier','meat_part','collaborator',
-                    'shift','leave_credit','hour_bank_entry','leave_assignment','leave_conversion','user','holiday'
+                    'shift','leave_credit','hour_bank_entry','user'
                 ]
                 for t in tables:
                     try:
@@ -503,37 +387,6 @@ def create_app():
                     db.session.delete(r)
                 if rows:
                     db.session.commit()
-            except Exception:
-                try:
-                    db.session.rollback()
-                except Exception:
-                    pass
-            try:
-                s_ver = AppSetting.query.filter_by(key='app_version').first()
-                if not s_ver:
-                    s_ver = AppSetting(); s_ver.key = 'app_version'; db.session.add(s_ver)
-                cur_ver = (os.getenv('APP_VERSION') or '').strip()
-                if not cur_ver:
-                    try:
-                        import subprocess
-                        cur_ver = subprocess.check_output(['git','describe','--tags','--abbrev=0'], cwd=os.path.dirname(os.path.dirname(__file__)), text=True).strip()
-                    except Exception:
-                        cur_ver = (s_ver.value or '').strip()
-                s_ver.value = cur_ver
-                s_ch = AppSetting.query.filter_by(key='changelog_text').first()
-                if not s_ch:
-                    s_ch = AppSetting(); s_ch.key = 'changelog_text'; db.session.add(s_ch)
-                from datetime import date as _date
-                s_ch.value = (
-                    f"Release 1.3.3.1 — {_date.today().strftime('%Y-%m-%d')}\n"
-                    "- Banco de Dados: painel com backups e diagnóstico embutido\n"
-                    "- Backup automático por hora com retenção dos 10 mais recentes\n"
-                    "- Carnes: Frango com múltiplos pesos antes de salvar\n"
-                    "- Carnes: Suína com 'Pesos' e tara por item\n"
-                    "- PDF de Carnes: seção de cálculos mostra o tipo (Bovina/Suína/Frango)\n"
-                    "- Menu: link Banco de Dados visível apenas para gerente\n"
-                )
-                db.session.commit()
             except Exception:
                 try:
                     db.session.rollback()
@@ -653,246 +506,4 @@ def create_app():
                 except Exception:
                     pass
 
-        def _make_backup(retain_count: int = 20, min_interval_sec: int = 900, update_daily_snapshot: bool = True, force: bool = False):
-            try:
-                bdir = str(app.config.get('BACKUP_DIR') or '').strip()
-                if not bdir:
-                    return False
-                os.makedirs(bdir, exist_ok=True)
-                uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
-                if isinstance(uri, str) and uri.startswith('sqlite:'):
-                    src = str(app.config.get('DB_FILE_PATH') or '').strip()
-                    if src and os.path.exists(src):
-                        files_all = [
-                            os.path.join(bdir, f) for f in os.listdir(bdir)
-                            if isinstance(f, str) and f.lower().endswith('.sqlite')
-                        ]
-                        files_regular = sorted([
-                            p for p in files_all
-                            if os.path.basename(p).startswith('backup-') and not os.path.basename(p).startswith('backup-24h')
-                        ], key=lambda p: os.path.getmtime(p), reverse=True)
-                        if not force and files_regular:
-                            try:
-                                last_mt = os.path.getmtime(files_regular[0])
-                            except Exception:
-                                last_mt = 0
-                            if last_mt and (time.time() - last_mt) < float(min_interval_sec):
-                                if update_daily_snapshot:
-                                    try:
-                                        target = time.time() - 86400.0
-                                        candidates = [(abs(os.path.getmtime(p) - target), p) for p in files_regular]
-                                        candidates.sort(key=lambda t: t[0])
-                                        if candidates:
-                                            src24 = candidates[0][1]
-                                            dst24 = os.path.join(bdir, 'backup-24h.sqlite')
-                                            shutil.copy2(src24, dst24)
-                                    except Exception:
-                                        pass
-                                return True
-                        ts = time.strftime('%Y%m%d-%H%M%S')
-                        dst = os.path.join(bdir, f'backup-{ts}.sqlite')
-                        shutil.copy2(src, dst)
-                        files_regular = sorted([
-                            os.path.join(bdir, f) for f in os.listdir(bdir)
-                            if isinstance(f, str) and f.lower().endswith('.sqlite') and f.startswith('backup-') and not f.startswith('backup-24h')
-                        ], key=lambda p: os.path.getmtime(p), reverse=True)
-                        for old in files_regular[retain_count:]:
-                            try:
-                                os.remove(old)
-                            except Exception:
-                                pass
-                        if update_daily_snapshot:
-                            try:
-                                target = time.time() - 86400.0
-                                files_regular = sorted([
-                                    os.path.join(bdir, f) for f in os.listdir(bdir)
-                                    if isinstance(f, str) and f.lower().endswith('.sqlite') and f.startswith('backup-') and not f.startswith('backup-24h')
-                                ], key=lambda p: os.path.getmtime(p), reverse=True)
-                                if files_regular:
-                                    candidates = [(abs(os.path.getmtime(p) - target), p) for p in files_regular]
-                                    candidates.sort(key=lambda t: t[0])
-                                    src24 = candidates[0][1]
-                                    dst24 = os.path.join(bdir, 'backup-24h.sqlite')
-                                    shutil.copy2(src24, dst24)
-                            except Exception:
-                                pass
-                        return True
-                return False
-            except Exception:
-                return False
-
-        def _start_backup_scheduler():
-            enabled = os.getenv('DB_BACKUP_ENABLED', 'true').lower() == 'true'
-            if not enabled:
-                return
-            def _loop():
-                while True:
-                    try:
-                        with app.app_context():
-                            _make_backup(retain_count=20, min_interval_sec=900, update_daily_snapshot=False, force=False)
-                    except Exception:
-                        pass
-                    time.sleep(900)
-            t = threading.Thread(target=_loop, daemon=True)
-            t.start()
-
-        def _start_daily_snapshot_scheduler():
-            try:
-                from datetime import datetime, timedelta
-                from zoneinfo import ZoneInfo
-            except Exception:
-                return
-            def _loop():
-                while True:
-                    try:
-                        tz = ZoneInfo('America/Sao_Paulo')
-                        now_dt = datetime.now(tz)
-                        tomorrow = (now_dt + timedelta(days=1)).date()
-                        next_midnight = datetime(tomorrow.year, tomorrow.month, tomorrow.day, 0, 0, 0, tzinfo=tz)
-                        wait = (next_midnight - now_dt).total_seconds()
-                        time.sleep(max(1, int(wait)))
-                        with app.app_context():
-                            ok = _make_backup(retain_count=20, min_interval_sec=0, update_daily_snapshot=False, force=True)
-                            bdir = str(app.config.get('BACKUP_DIR') or '').strip()
-                            if bdir:
-                                try:
-                                    files_regular = sorted([
-                                        os.path.join(bdir, f) for f in os.listdir(bdir)
-                                        if isinstance(f, str) and f.lower().endswith('.sqlite') and f.startswith('backup-') and not f.startswith('backup-24h')
-                                    ], key=lambda p: os.path.getmtime(p), reverse=True)
-                                    if files_regular:
-                                        src = files_regular[0]
-                                        dst = os.path.join(bdir, 'backup-24h.sqlite')
-                                        shutil.copy2(src, dst)
-                                except Exception:
-                                    pass
-                    except Exception:
-                        pass
-            t = threading.Thread(target=_loop, daemon=True)
-            t.start()
-
-        setattr(app, 'perform_backup', _make_backup)
-        _start_backup_scheduler()
-        _start_daily_snapshot_scheduler()
-
-        def _start_notif_scheduler():
-            try:
-                from datetime import datetime
-                from zoneinfo import ZoneInfo
-            except Exception:
-                return
-            try:
-                target_hour = int(os.getenv('NOTIFICACOES_ENVIO_AUTOMATICO_HORA', '20'))
-            except Exception:
-                target_hour = 20
-            def _loop():
-                last_sent = None
-                while True:
-                    try:
-                        now = datetime.now(ZoneInfo('America/Sao_Paulo'))
-                        if now.hour == target_hour and now.minute == 0:
-                            d = now.date()
-                            if last_sent != d:
-                                try:
-                                    from .services.notificacao_service import enviar_relatorio_diario
-                                    with app.app_context():
-                                        enviar_relatorio_diario('automatico', False)
-                                except Exception:
-                                    pass
-                                last_sent = d
-                                time.sleep(60)
-                    except Exception:
-                        pass
-                    time.sleep(15)
-            t = threading.Thread(target=_loop, daemon=True)
-            t.start()
-
-        if notif_enabled:
-            _start_notif_scheduler()
-        
-    @app.context_processor
-    def inject_notif_flag():
-        try:
-            enabled = (os.getenv('NOTIFICACOES_ENABLED', 'false') or 'false').lower() == 'true'
-        except Exception:
-            enabled = False
-        return {'notifications_enabled': enabled}
-        
-    try:
-        import logging
-        level_name = (os.getenv('FLASK_LOG_LEVEL') or '').strip().upper()
-        if not level_name:
-            level_name = 'DEBUG' if (os.getenv('DEBUG', 'false').lower() == 'true') else 'INFO'
-        level = getattr(logging, level_name, logging.INFO)
-        app.logger.setLevel(level)
-        logging.getLogger('werkzeug').setLevel(level)
-        app.config['LOG_BODY'] = (os.getenv('FLASK_LOG_BODY') or 'true').strip().lower() == 'true'
-    except Exception:
-        pass
-    from flask import request, g
-    @app.before_request
-    def _http_log_req():
-        try:
-            p = request.path or ''
-            if p.startswith('/static/'):
-                return
-            g._req_start = time.time()
-            info = {}
-            info['args'] = dict(request.args)
-            if bool(app.config.get('LOG_BODY', False)):
-                ct = (request.headers.get('Content-Type') or '').lower()
-                body = None
-                if 'application/json' in ct:
-                    try:
-                        j = request.get_json(silent=True)
-                    except Exception:
-                        j = None
-                    if isinstance(j, dict):
-                        masked = {}
-                        sens = {'password','senha','new_password','confirmar_senha','token','authorization','secret'}
-                        for k, v in j.items():
-                            masked[k] = ('***' if (str(k).lower() in sens) else v)
-                        body = masked
-                    else:
-                        body = j
-                else:
-                    try:
-                        f = request.form.to_dict()
-                    except Exception:
-                        f = {}
-                    sens = {'password','senha','new_password','confirmar_senha','token','authorization','secret'}
-                    masked = {}
-                    for k, v in (f or {}).items():
-                        masked[k] = ('***' if (str(k).lower() in sens) else v)
-                    body = masked
-                info['body'] = body
-            app.logger.info(f"REQ {request.method} {request.path} {info}")
-        except Exception:
-            pass
-    @app.after_request
-    def _http_log_resp(resp):
-        try:
-            p = request.path or ''
-            if p.startswith('/static/'):
-                return resp
-            dur = 0.0
-            try:
-                dur = time.time() - getattr(g, '_req_start', time.time())
-            except Exception:
-                pass
-            app.logger.info(f"RES {resp.status_code} {request.method} {request.path} dur={dur:.3f}s")
-        except Exception:
-            pass
-        return resp
-    def _on_exc(sender, exception, **extra):
-        try:
-            app.logger.exception(f"ERR {request.method} {request.path}: {exception}")
-        except Exception:
-            pass
-    try:
-        from flask import got_request_exception
-        got_request_exception.connect(_on_exc, app)
-    except Exception:
-        pass
-    
     return app

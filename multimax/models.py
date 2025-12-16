@@ -105,7 +105,6 @@ class Collaborator(db.Model):
     regular_team = db.Column(db.String(1))
     sunday_team = db.Column(db.String(1))
     special_team = db.Column(db.String(1))
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
 class Shift(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -130,68 +129,3 @@ class HourBankEntry(db.Model):
     date = db.Column(db.Date, nullable=False)
     hours = db.Column(db.Float, nullable=False)
     reason = db.Column(db.String(255))
-
-class JobRole(db.Model):
-    __tablename__ = 'job_role'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
-    nivel = db.Column(db.String(20), nullable=False)
-
-class LeaveAssignment(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'))
-    date = db.Column(db.Date, nullable=False)
-    days_used = db.Column(db.Integer, default=1)
-    notes = db.Column(db.String(255))
-
-class LeaveConversion(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'))
-    date = db.Column(db.Date, nullable=False)
-    amount_days = db.Column(db.Integer, nullable=False)
-    amount_paid = db.Column(db.Float, nullable=False)
-    rate_per_day = db.Column(db.Float, default=65.0)
-    notes = db.Column(db.String(255))
-
-class Holiday(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.Date, unique=True, nullable=False)
-    name = db.Column(db.String(100), nullable=False)
-    kind = db.Column(db.String(20))
-class NotificacaoDiaria(db.Model):
-    __tablename__ = 'notificacao_diaria'
-    id = db.Column(db.Integer, primary_key=True)
-    data = db.Column(db.Date, nullable=False)
-    hora = db.Column(db.String(5))
-    tipo = db.Column(db.String(20))
-    conteudo = db.Column(db.Text)
-    enviado = db.Column(db.Boolean, default=False)
-class NotificacaoPersonalizada(db.Model):
-    __tablename__ = 'notificacao_personalizada'
-    id = db.Column(db.Integer, primary_key=True)
-    mensagem = db.Column(db.Text, nullable=False)
-    data_criacao = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
-    enviar_novamente = db.Column(db.Boolean, default=True)
-    enviada = db.Column(db.Boolean, default=False)
-class EventoDoDia(db.Model):
-    __tablename__ = 'evento_dia'
-    id = db.Column(db.Integer, primary_key=True)
-    tipo = db.Column(db.String(50), nullable=False)
-    produto = db.Column(db.String(100))
-    quantidade = db.Column(db.Integer)
-    limite = db.Column(db.Integer)
-    descricao = db.Column(db.String(255))
-    data = db.Column(db.Date, nullable=False)
-class Recipe(db.Model):
-    __tablename__ = 'recipe'
-    id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(100), nullable=False)
-    preparo = db.Column(db.Text)
-    embalagem = db.Column(db.String(10))
-    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
-class RecipeIngredient(db.Model):
-    __tablename__ = 'recipe_ingredient'
-    id = db.Column(db.Integer, primary_key=True)
-    recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'))
-    nome = db.Column(db.String(100), nullable=False)
-    quantidade = db.Column(db.String(50))
