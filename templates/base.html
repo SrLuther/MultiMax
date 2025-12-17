@@ -1,439 +1,915 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}MultiMax{% endblock %}</title>
-    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}?v=6">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='icons/favicon.ico') }}?v=6" type="image/x-icon">
-    <link rel="icon" href="{{ url_for('static', filename='icons/favicon.ico') }}?v=6" type="image/x-icon">
-    <link rel="icon" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192.png') }}?v=6" type="image/png">
-    <link rel="icon" sizes="512x512" href="{{ url_for('static', filename='icons/icon-512.png') }}?v=6" type="image/png">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon-180.png') }}?v=6">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/apple-touch-icon-180.png') }}?v=6">
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="description" content="MultiMax - Sistema de gestão completo para seu negócio">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='multimax-estilo.css') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon-180.png') }}">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="MultiMax">
-    <meta name="theme-color" content="#0d6efd">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
-    <script>
-        (function(){
-            document.documentElement.setAttribute('data-bs-theme', 'light');
-            try { localStorage.setItem('theme', 'light'); } catch(e) {}
-        })();
-    </script>
-        <style>
-            .table-responsive-sm {
-                overflow-x: auto;
-            }
-            .logo-shadow {
-                filter: drop-shadow(0 0 3px #ffffff) drop-shadow(0 0 12px rgba(255,255,255,0.9));
-            }
-            .brand-tile {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                background: linear-gradient(135deg, #0d6efd, #0b5ed7);
-                border-radius: 12px;
-                padding: 4px;
-                box-shadow: 0 4px 12px rgba(13,110,253,0.35);
-            }
-            .brand-logo-img { height: 56px; display: block; }
-        /* Estilo para garantir que o rodapé fique sempre na parte inferior da tela */
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        .content-wrapper {
-            flex-grow: 1;
-        }
-        .footer-fixed {
-            position: sticky;
-            bottom: 0;
-            width: 100%;
-            z-index: 1000;
-        }
-        .theme-fab {
-            position: fixed;
-            right: 16px;
-            bottom: 16px;
-            z-index: 3000;
-        }
-        @media (max-width: 1400px) {
-            .theme-fab { top: 12px; right: 12px; bottom: auto; }
-        }
-        :root[data-bs-theme="light"] {
-            --bs-body-bg: #ffffff;
-            --bs-body-color: #000000;
-            --bs-heading-color: #000000;
-            --bs-secondary-color: #000000;
-            --bs-tertiary-color: #000000;
-        }
-        :root[data-bs-theme="dark"] {
-            --bs-body-bg: #2b2b2b;
-            --bs-body-color: #ffffff;
-            --bs-heading-color: #ffffff;
-            --bs-secondary-color: #ffffff;
-            --bs-tertiary-color: #ffffff;
-        }
-        [data-bs-theme="dark"] .text-muted { color: #e6e6e6 !important; }
-        .content-wrapper .bg-white, .content-wrapper .bg-light, .content-wrapper .table-light, .content-wrapper .modal-content { color: #000 !important; }
-        .content-wrapper .bg-white .form-control::placeholder, .content-wrapper .bg-light .form-control::placeholder, .content-wrapper .modal-content .form-control::placeholder { color: #000 !important; opacity: 0.7; }
-        .content-wrapper .bg-white .form-select option, .content-wrapper .bg-light .form-select option, .content-wrapper .modal-content .form-select option { color: #000; }
-        [data-bs-theme="dark"] .content-wrapper .bg-dark,
-        [data-bs-theme="dark"] .content-wrapper .text-bg-dark,
-        [data-bs-theme="dark"] .content-wrapper .table-dark,
-        [data-bs-theme="dark"] .content-wrapper .card:not(.bg-white):not(.bg-light) { color: #fff !important; }
-        [data-bs-theme="dark"] .content-wrapper .bg-dark .form-control::placeholder,
-        [data-bs-theme="dark"] .content-wrapper .text-bg-dark .form-control::placeholder,
-        [data-bs-theme="dark"] .content-wrapper .card:not(.bg-white):not(.bg-light) .form-control::placeholder { color: #fff !important; opacity: 0.7; }
-        .modal-content { background-color: #f4f4f5 !important; color: #000 !important; }
-        .modal-header, .modal-body, .modal-footer { background-color: #f4f4f5 !important; color: #000 !important; }
-        .modal-header .modal-title { color: #000 !important; }
-        .modal .form-label, .modal .form-control, .modal .form-select, .modal .form-text, .modal .text-muted, .modal label, .modal .small { color: #000 !important; }
-        .modal .form-control::placeholder { color: #000 !important; opacity: 0.7; }
-        .modal .btn-close { filter: none; }
-        form[data-bs-theme="light"] { background-color: #ffffff !important; color: #000000 !important; }
-        form[data-bs-theme="light"] .form-label,
-        form[data-bs-theme="light"] .form-control,
-        form[data-bs-theme="light"] .form-select,
-        form[data-bs-theme="light"] .form-text,
-        form[data-bs-theme="light"] .text-muted,
-        form[data-bs-theme="light"] label,
-        form[data-bs-theme="light"] .small { color: #000000 !important; }
-        form[data-bs-theme="light"] .form-control::placeholder { color: #000000 !important; opacity: 0.7; }
-        form[data-bs-theme="light"] .form-select option { color: #000000 !important; }
-        .loading-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.25); z-index: 5000; }
-        .loading-overlay.show { display: flex; }
-    </style>
-    
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#00ff88">
+    <title>{% block title %}MultiMax{% endblock %}</title>
+    {% block head %}{% endblock %}
 </head>
-<body class="bg-body">
-
-<!-- Navbar Persistente (Cabeçalho) -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
-    <div class="container-fluid">
-        <a class="navbar-brand d-flex align-items-center" href="{{ url_for('home.index') }}">
-            <span class="brand-tile"><img class="brand-logo-img logo-shadow" src="{{ url_for('static', filename='icons/logo-user.png') }}?v=6" alt="MultiMax"></span>
-            <span class="ms-2 text-white fw-bold fs-4">MultiMax</span>
-            <span class="ms-2 text-white">— Gestão Amora</span>
-        </a>
-        <button class="btn btn-sm btn-outline-light d-md-none ms-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMobile" aria-controls="sidebarMobile">
-            <span class="fw-bold">MENU</span>
-        </button>
-        <span class="d-inline-block d-md-none ms-2 small text-white">{{ current_user.is_authenticated and current_user.name }}</span>
-        <div class="d-none d-md-block text-white fw-semibold mx-auto"></div>
-        <div class="d-md-none ms-2">
-            <a class="nav-link text-white position-relative" href="#" id="notifDropdownMobile" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="fas fa-bell"></i>
-                {% if notif_count and notif_count > 0 %}
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ notif_count }}</span>
-                {% endif %}
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notifDropdownMobile" style="min-width: 360px;">
-                <li class="px-3 py-2 border-bottom">
-                    <div class="d-flex gap-2 flex-wrap">
-                        <a class="badge bg-secondary text-decoration-none" href="{{ request.path }}">Todos</a>
-                        <a class="badge bg-primary text-decoration-none" href="{{ request.path }}?nf=estoque">Estoque</a>
-                        <a class="badge bg-info text-decoration-none" href="{{ request.path }}?nf=limpeza">Limpeza</a>
-                        <a class="badge bg-dark text-decoration-none" href="{{ url_for('usuarios.notifications_unread_all', next=request.path) }}">Mostrar todas</a>
-                        <div class="vr"></div>
-                        <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=CX">CX</a>
-                        <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=PC">PC</a>
-                        <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=VA">VA</a>
-                        <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=AV">AV</a>
-                    </div>
-                </li>
-                {% if notif_items and notif_items|length > 0 %}
-                    {% for n in notif_items %}
-                    <li>
-                        <div class="dropdown-item">
-                            {% if n.tipo == 'estoque' %}
-                            <i class="fas fa-box-open text-warning me-2"></i>
-                            {% elif n.tipo == 'limpeza' %}
-                            <i class="fas fa-broom text-info me-2"></i>
-                            {% endif %}
-                            <div class="d-inline-block">
-                                <div class="fw-bold">{{ n.titulo }}</div>
-                                <div class="small text-muted">{{ n.descricao }}</div>
-                            </div>
-                            <div class="mt-2 d-flex gap-2">
-                                <a class="btn btn-sm btn-outline-secondary" href="{{ n.url }}">Abrir</a>
-                                <a class="btn btn-sm btn-outline-success" href="{{ url_for('usuarios.notifications_read', tipo=n.tipo, id=n.id, next=request.path) }}">Ocultar</a>
-                                {% if n.tipo == 'estoque' %}
-                                <form method="post" action="{{ url_for('estoque.atualizar_minimo', id=n.id) }}" class="d-flex align-items-center gap-1">
-                                    <input type="number" name="novo_minimo" class="form-control form-control-sm" style="width:90px" min="0" placeholder="Min" required>
-                                    <input type="hidden" name="next" value="{{ request.path }}">
-                                    <button class="btn btn-sm btn-outline-primary" type="submit">Salvar</button>
-                                </form>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </li>
-                    {% endfor %}
-                {% else %}
-                    <li><span class="dropdown-item text-muted">Sem notificações</span></li>
-                {% endif %}
-            </ul>
+<body>
+    <a href="#main-content" class="mm-skip-link">Pular para o conteúdo principal</a>
+    <aside class="mm-sidebar" id="sidebar" role="navigation" aria-label="Menu principal">
+        <div class="mm-sidebar-header">
+            <img src="{{ url_for('static', filename='icons/logo-user.png') }}" alt="Logo MultiMax" class="mm-sidebar-logo">
+            <div class="mm-sidebar-brand">
+                MultiMax
+                <span>Gestão Amora</span>
+            </div>
         </div>
         
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto align-items-center">
-                
-                <li class="nav-item dropdown me-2">
-                    <a class="nav-link text-white position-relative" href="#" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-bell"></i>
-                        {% if notif_count and notif_count > 0 %}
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ notif_count }}</span>
-                        {% endif %}
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notifDropdown" style="min-width: 360px;">
-                        <li class="px-3 py-2 border-bottom">
-                            <div class="d-flex gap-2 flex-wrap">
-                                <a class="badge bg-secondary text-decoration-none" href="{{ request.path }}">Todos</a>
-                                <a class="badge bg-primary text-decoration-none" href="{{ request.path }}?nf=estoque">Estoque</a>
-                                <a class="badge bg-info text-decoration-none" href="{{ request.path }}?nf=limpeza">Limpeza</a>
-                                <a class="badge bg-dark text-decoration-none" href="{{ url_for('usuarios.notifications_unread_all', next=request.path) }}">Mostrar todas</a>
-                                <div class="vr"></div>
-                                <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=CX">CX</a>
-                                <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=PC">PC</a>
-                                <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=VA">VA</a>
-                                <a class="badge bg-light text-dark text-decoration-none" href="{{ request.path }}?nf=estoque&cat=AV">AV</a>
-                            </div>
-                        </li>
-                        {% if notif_items and notif_items|length > 0 %}
-                            {% for n in notif_items %}
-                            <li>
-                                <div class="dropdown-item">
-                                    {% if n.tipo == 'estoque' %}
-                                    <i class="fas fa-box-open text-warning me-2"></i>
-                                    {% elif n.tipo == 'limpeza' %}
-                                    <i class="fas fa-broom text-info me-2"></i>
-                                    {% endif %}
-                                    <div class="d-inline-block">
-                                        <div class="fw-bold">{{ n.titulo }}</div>
-                                        <div class="small text-muted">{{ n.descricao }}</div>
-                                    </div>
-                                    <div class="mt-2 d-flex gap-2">
-                                        <a class="btn btn-sm btn-outline-secondary" href="{{ n.url }}">Abrir</a>
-                                        <a class="btn btn-sm btn-outline-success" href="{{ url_for('usuarios.notifications_read', tipo=n.tipo, id=n.id, next=request.path) }}">Ocultar</a>
-                                        {% if n.tipo == 'estoque' %}
-                                        <form method="post" action="{{ url_for('estoque.atualizar_minimo', id=n.id) }}" class="d-flex align-items-center gap-1">
-                                            <input type="number" name="novo_minimo" class="form-control form-control-sm" style="width:90px" min="0" placeholder="Min" required>
-                                            <input type="hidden" name="next" value="{{ request.path }}">
-                                            <button class="btn btn-sm btn-outline-primary" type="submit">Salvar</button>
-                                        </form>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </li>
-                            {% endfor %}
-                        {% else %}
-                            <li><span class="dropdown-item text-muted">Sem notificações</span></li>
-                        {% endif %}
-                    </ul>
-                </li>
-                
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-user-circle me-1"></i> {{ current_user.name }} ({{ current_user.nivel | upper }})
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                        <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-1"></i> Sair</a></li>
-                    </ul>
-                </li>
-            </ul>
+        <nav class="mm-sidebar-nav" aria-label="Navegação do sistema">
+            <div class="mm-nav-section">
+                <div class="mm-nav-section-title">Principal</div>
+                <a href="{{ url_for('home.index') }}" class="mm-nav-item {% if request.endpoint == 'home.index' %}active{% endif %}">
+                    <i class="bi bi-house-door mm-nav-icon"></i>
+                    <span class="mm-nav-text">Dashboard</span>
+                </a>
+                <a href="{{ url_for('estoque.index') }}" class="mm-nav-item {% if 'estoque' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-box-seam mm-nav-icon"></i>
+                    <span class="mm-nav-text">Estoque</span>
+                </a>
+            </div>
+            
+            {% if current_user.is_authenticated and current_user.nivel in ('visualizador','operador','admin') %}
+            <div class="mm-nav-section">
+                <div class="mm-nav-section-title">Operações</div>
+                <a href="{{ url_for('cronograma.cronograma') }}" class="mm-nav-item {% if 'cronograma' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-calendar-check mm-nav-icon"></i>
+                    <span class="mm-nav-text">Cronograma</span>
+                </a>
+                <a href="{{ url_for('carnes.index') }}" class="mm-nav-item {% if 'carnes' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-basket mm-nav-icon"></i>
+                    <span class="mm-nav-text">Carnes</span>
+                </a>
+                <a href="{{ url_for('receitas.index') }}" class="mm-nav-item {% if 'receitas' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-journal-text mm-nav-icon"></i>
+                    <span class="mm-nav-text">Receitas</span>
+                </a>
+                <a href="{{ url_for('colaboradores.escala') }}" class="mm-nav-item {% if 'colaboradores' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-people mm-nav-icon"></i>
+                    <span class="mm-nav-text">Escalas</span>
+                </a>
+                <a href="{{ url_for('temperatura.index') }}" class="mm-nav-item {% if 'temperatura' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-thermometer-half mm-nav-icon"></i>
+                    <span class="mm-nav-text">Temperatura</span>
+                </a>
+                <a href="{{ url_for('validade.index') }}" class="mm-nav-item {% if 'validade' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-calendar-x mm-nav-icon"></i>
+                    <span class="mm-nav-text">Validade</span>
+                </a>
+                <a href="{{ url_for('perdas.index') }}" class="mm-nav-item {% if 'perdas' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-trash mm-nav-icon"></i>
+                    <span class="mm-nav-text">Perdas</span>
+                </a>
+            </div>
+            
+            <div class="mm-nav-section">
+                <div class="mm-nav-section-title">Gestão</div>
+                <a href="{{ url_for('pedidos.index') }}" class="mm-nav-item {% if 'pedidos' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-clipboard-check mm-nav-icon"></i>
+                    <span class="mm-nav-text">Pedidos</span>
+                </a>
+                <a href="{{ url_for('fornecedores.index') }}" class="mm-nav-item {% if 'fornecedores' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-truck mm-nav-icon"></i>
+                    <span class="mm-nav-text">Fornecedores</span>
+                </a>
+                <a href="{{ url_for('relatorios.index') }}" class="mm-nav-item {% if 'relatorios' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-file-earmark-bar-graph mm-nav-icon"></i>
+                    <span class="mm-nav-text">Relatórios</span>
+                </a>
+                <a href="{{ url_for('previsao.index') }}" class="mm-nav-item {% if 'previsao' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-graph-up-arrow mm-nav-icon"></i>
+                    <span class="mm-nav-text">Previsão</span>
+                </a>
+            </div>
+            {% endif %}
+            
+            {% if current_user.is_authenticated and current_user.nivel == 'admin' %}
+            <div class="mm-nav-section">
+                <div class="mm-nav-section-title">Administração</div>
+                <a href="{{ url_for('usuarios.gestao') }}" class="mm-nav-item {% if 'usuarios' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-gear mm-nav-icon"></i>
+                    <span class="mm-nav-text">Gestão</span>
+                </a>
+                <a href="{{ url_for('dbadmin.index') }}" class="mm-nav-item {% if 'dbadmin' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-database mm-nav-icon"></i>
+                    <span class="mm-nav-text">Banco de Dados</span>
+                </a>
+            </div>
+            {% endif %}
+        </nav>
+        
+        <div class="mm-sidebar-footer">
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('usuarios.perfil') }}" class="mm-nav-item">
+                <i class="bi bi-person-circle mm-nav-icon"></i>
+                <span class="mm-nav-text">{{ current_user.nome or current_user.username }}</span>
+            </a>
+            <a href="{{ url_for('auth.logout') }}" class="mm-nav-item" style="color: var(--mm-danger);">
+                <i class="bi bi-box-arrow-right mm-nav-icon"></i>
+                <span class="mm-nav-text">Sair</span>
+            </a>
+            {% else %}
+            <a href="{{ url_for('auth.login') }}" class="mm-nav-item">
+                <i class="bi bi-box-arrow-in-right mm-nav-icon"></i>
+                <span class="mm-nav-text">Entrar</span>
+            </a>
+            {% endif %}
         </div>
-    </div>
-</nav>
+    </aside>
 
-  <div class="offcanvas offcanvas-start d-md-none" tabindex="-1" id="sidebarMobile" aria-labelledby="sidebarMobileLabel">
-  <div class="offcanvas-header bg-primary text-white">
-    <h5 id="sidebarMobileLabel" class="mb-0">Menu</h5>
-    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-  </div>
-  <div class="offcanvas-body p-0">
-    <div class="list-group">
-      {% if current_user.is_authenticated %}
-      <a class="list-group-item list-group-item-action" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Sair</a>
-      {% else %}
-      <a class="list-group-item list-group-item-action" href="{{ url_for('auth.login') }}"><i class="fas fa-sign-in-alt me-2"></i>Entrar</a>
-      {% endif %}
-      <a class="list-group-item list-group-item-action {% if active_page == 'home' %}active{% endif %}" href="{{ url_for('home.index') }}"><i class="fas fa-house me-2"></i>Home</a>
-      <a class="list-group-item list-group-item-action {% if active_page == 'index' %}active{% endif %}" href="{{ url_for('estoque.index') }}"><i class="fas fa-boxes me-2"></i>Estoque</a>
-      {% if current_user.nivel in ('operador', 'admin') %}
-      <a class="list-group-item list-group-item-action {% if active_page == 'cronograma' %}active{% endif %}" href="{{ url_for('cronograma.cronograma') }}"><i class="fas fa-clipboard-check me-2"></i>Cronograma</a>
-      <a class="list-group-item list-group-item-action {% if active_page == 'carnes' %}active{% endif %}" href="{{ url_for('carnes.index') }}"><i class="fas fa-drumstick-bite me-2"></i>Carnes</a>
-      <a class="list-group-item list-group-item-action {% if active_page == 'colaboradores' %}active{% endif %}" href="{{ url_for('colaboradores.index') }}"><i class="fas fa-user-friends me-2"></i>Colaboradores</a>
-      <a class="list-group-item list-group-item-action {% if active_page == 'escala' %}active{% endif %}" href="{{ url_for('colaboradores.escala') }}"><i class="fas fa-calendar-alt me-2"></i>Escalas</a>
-      {% endif %}
-      <a class="list-group-item list-group-item-action {% if active_page == 'graficos' %}active{% endif %}" href="{{ url_for('usuarios.graficos') }}"><i class="fas fa-chart-bar me-2"></i>Gráficos</a>
-      {% if current_user.nivel == 'admin' %}
-      <a class="list-group-item list-group-item-action {% if active_page == 'monitor' %}active{% endif %}" href="{{ url_for('usuarios.monitor') }}"><i class="fas fa-desktop me-2"></i>Monitor</a>
-      <a class="list-group-item list-group-item-action {% if active_page == 'users' %}active{% endif %}" href="{{ url_for('usuarios.users') }}"><i class="fas fa-users-cog me-2"></i>Usuários</a>
-      {% endif %}
-    </div>
-  </div>
-</div>
-
-<div class="content-wrapper container-fluid mt-4">
-    <div class="row">
-        <aside class="d-none d-md-block col-md-3 col-lg-2 mb-3 mb-md-0">
-            <div class="list-group">
-                <a class="list-group-item list-group-item-action {% if active_page == 'home' %}active{% endif %}" href="{{ url_for('home.index') }}"><i class="fas fa-house me-2"></i>Home</a>
-                <a class="list-group-item list-group-item-action {% if active_page == 'index' %}active{% endif %}" href="{{ url_for('estoque.index') }}"><i class="fas fa-boxes me-2"></i>Estoque</a>
-                {% if current_user.nivel in ('operador', 'admin') %}
-                <a class="list-group-item list-group-item-action {% if active_page == 'cronograma' %}active{% endif %}" href="{{ url_for('cronograma.cronograma') }}"><i class="fas fa-clipboard-check me-2"></i>Cronograma</a>
-                {% endif %}
-                {% if current_user.nivel in ('operador', 'admin') %}
-                <a class="list-group-item list-group-item-action {% if active_page == 'carnes' %}active{% endif %}" href="{{ url_for('carnes.index') }}"><i class="fas fa-drumstick-bite me-2"></i>Carnes</a>
-                <a class="list-group-item list-group-item-action {% if active_page == 'colaboradores' %}active{% endif %}" href="{{ url_for('colaboradores.index') }}"><i class="fas fa-user-friends me-2"></i>Colaboradores</a>
-                <a class="list-group-item list-group-item-action {% if active_page == 'escala' %}active{% endif %}" href="{{ url_for('colaboradores.escala') }}"><i class="fas fa-calendar-alt me-2"></i>Escalas</a>
-                {% endif %}
-                <a class="list-group-item list-group-item-action {% if active_page == 'graficos' %}active{% endif %}" href="{{ url_for('usuarios.graficos') }}"><i class="fas fa-chart-bar me-2"></i>Gráficos</a>
-                {% if current_user.nivel == 'admin' %}
-                <a class="list-group-item list-group-item-action {% if active_page == 'monitor' %}active{% endif %}" href="{{ url_for('usuarios.monitor') }}"><i class="fas fa-desktop me-2"></i>Monitor</a>
-                <a class="list-group-item list-group-item-action {% if active_page == 'users' %}active{% endif %}" href="{{ url_for('usuarios.users') }}"><i class="fas fa-users-cog me-2"></i>Usuários</a>
+    <header class="mm-topbar" role="banner">
+        <div class="mm-topbar-left">
+            <button class="mm-toggle-sidebar" onclick="toggleSidebar()" aria-label="Alternar menu lateral" aria-expanded="true" aria-controls="sidebar">
+                <i class="bi bi-list" aria-hidden="true"></i>
+            </button>
+            <nav class="mm-breadcrumb d-none d-md-flex" aria-label="Trilha de navegação">
+                <a href="{{ url_for('home.index') }}">Home</a>
+                {% block breadcrumb %}{% endblock %}
+            </nav>
+        </div>
+        <div class="mm-topbar-right">
+            {% if current_user.is_authenticated %}
+            
+            <div class="mm-quick-actions d-none d-lg-flex" role="toolbar" aria-label="Ações rápidas">
+                <a href="{{ url_for('estoque.lista_produtos') }}" class="mm-quick-action" title="Gerenciar produtos" aria-label="Gerenciar produtos">
+                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                </a>
+                <a href="{{ url_for('estoque.index') }}" class="mm-quick-action" title="Ver estoque" aria-label="Ver estoque">
+                    <i class="bi bi-box-seam" aria-hidden="true"></i>
+                </a>
+                {% if current_user.nivel in ('operador','admin') %}
+                <a href="{{ url_for('cronograma.cronograma') }}" class="mm-quick-action" title="Cronograma de limpeza" aria-label="Cronograma de limpeza">
+                    <i class="bi bi-calendar-check" aria-hidden="true"></i>
+                </a>
                 {% endif %}
             </div>
             
-        </aside>
-        <main class="col-12 col-md-9 col-lg-10">
-            {% with messages = get_flashed_messages(with_categories=true) %}
+            <div class="mm-topbar-divider d-none d-lg-block" aria-hidden="true"></div>
+            
+            <button class="mm-search-trigger" onclick="openSearch()" title="Buscar (Ctrl+K)" aria-label="Abrir busca global, atalho Ctrl+K">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <span class="d-none d-md-inline">Buscar</span>
+                <kbd class="d-none d-lg-inline" aria-hidden="true">Ctrl+K</kbd>
+            </button>
+            
+            <div class="mm-notifications-wrapper">
+                <button class="mm-notifications-btn" onclick="toggleNotifications()" id="notificationsBtn" aria-label="Notificações" aria-haspopup="true" aria-expanded="false">
+                    <i class="bi bi-bell" aria-hidden="true"></i>
+                    <span class="mm-notifications-badge" id="notificationsBadge" style="display: none;" aria-live="polite">0</span>
+                </button>
+                <div class="mm-notifications-dropdown" id="notificationsDropdown" role="menu" aria-label="Lista de notificações">
+                    <div class="mm-notifications-header">
+                        <span>Notificações</span>
+                        <button class="mm-btn mm-btn-sm mm-btn-ghost" onclick="markAllRead()" aria-label="Marcar todas como lidas">Limpar</button>
+                    </div>
+                    <div class="mm-notifications-list" id="notificationsList" role="list">
+                        <div class="mm-notifications-empty">
+                            <i class="bi bi-bell-slash" aria-hidden="true"></i>
+                            <span>Sem notificações</span>
+                        </div>
+                    </div>
+                    <div class="mm-notifications-footer">
+                        <a href="{{ url_for('home.index') }}">Ver todas</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <button class="mm-theme-toggle" onclick="toggleTheme()" aria-label="Alternar tema claro/escuro" aria-pressed="false">
+                <i class="bi bi-moon" id="themeIcon" aria-hidden="true"></i>
+            </button>
+            {% if current_user.is_authenticated %}
+            <span class="mm-badge mm-badge-primary d-none d-md-inline-flex" aria-label="Nível de acesso">{{ current_user.nivel|capitalize }}</span>
+            {% endif %}
+        </div>
+    </header>
+    
+    <div class="mm-install-banner" id="installBanner" role="alert" style="display: none;">
+        <div class="mm-install-content">
+            <i class="bi bi-download" aria-hidden="true"></i>
+            <span>Instale o MultiMax no seu dispositivo para acesso rápido!</span>
+        </div>
+        <div class="mm-install-actions">
+            <button class="mm-btn mm-btn-sm mm-btn-primary" onclick="installPWA()" aria-label="Instalar aplicativo">Instalar</button>
+            <button class="mm-btn mm-btn-sm mm-btn-ghost" onclick="dismissInstall()" aria-label="Fechar banner de instalação">
+                <i class="bi bi-x" aria-hidden="true"></i>
+            </button>
+        </div>
+    </div>
+    
+    <div class="mm-search-modal" id="searchModal" onclick="closeSearchOnOverlay(event)" role="dialog" aria-modal="true" aria-label="Busca global">
+        <div class="mm-search-container">
+            <div class="mm-search-input-wrapper">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <input type="text" id="searchInput" class="mm-search-input" placeholder="Buscar produtos, páginas, colaboradores..." autocomplete="off" aria-label="Campo de busca">
+                <kbd aria-hidden="true">ESC</kbd>
+            </div>
+            <div class="mm-search-results" id="searchResults" role="listbox" aria-label="Resultados da busca">
+                <div class="mm-search-empty">
+                    <i class="bi bi-search" style="font-size: 2rem; opacity: 0.3;" aria-hidden="true"></i>
+                    <span>Digite para buscar...</span>
+                </div>
+            </div>
+            <div class="mm-search-footer" aria-hidden="true">
+                <span><kbd>↑</kbd><kbd>↓</kbd> navegar</span>
+                <span><kbd>Enter</kbd> selecionar</span>
+                <span><kbd>ESC</kbd> fechar</span>
+            </div>
+        </div>
+    </div>
+
+    <main class="mm-main" id="main-content" role="main" tabindex="-1">
+        {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
+                <div class="mm-alert mm-alert-{{ 'success' if category == 'success' else 'danger' if category == 'error' else 'info' }} mm-mb-4">
+                    <i class="bi bi-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' if category == 'error' else 'info-circle' }}"></i>
+                    <span>{{ message }}</span>
+                </div>
                 {% endfor %}
             {% endif %}
-            {% endwith %}
-            {% block content %}{% endblock %}
-        </main>
-    </div>
-</div>
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </main>
 
-<div id="globalLoading" class="loading-overlay">
-    <div class="text-center">
-        <div class="spinner-border text-light" style="width:3rem;height:3rem;" role="status"><span class="visually-hidden">Carregando...</span></div>
-        <div class="mt-2 text-white fw-semibold">Carregando...</div>
-    </div>
-</div>
+    <div class="mm-sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 
-<div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 6000"></div>
-
-<!-- Rodapé Persistente com Data/Hora Instantânea -->
-<footer class="bg-dark text-white text-center p-2 mt-auto footer-fixed">
-    <div class="container-fluid d-flex justify-content-between align-items-center">
-        <div class="d-flex flex-column align-items-start">
-            <small>© 2025 MultiMax</small>
-            <small>Gestão Amora v1.3.2.1</small>
-        </div>
-        <div class="d-flex flex-column align-items-end text-end">
-            <small id="current-date"></small>
-            <small id="current-time"></small>
-        </div>
-    </div>
-</footer>
-
-
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    // Função para manter a data e hora atualizadas
-    function updateDateTime() {
-        var now = new Date();
-        function pad(n){ return String(n).padStart(2, '0'); }
-        var d = pad(now.getDate());
-        var m = pad(now.getMonth() + 1);
-        var y = String(now.getFullYear());
-        var hh = pad(now.getHours());
-        var mm = pad(now.getMinutes());
-        var ss = pad(now.getSeconds());
-        var dateStr = d + '/' + m + '/' + y;
-        var timeStr = hh + ':' + mm + ':' + ss + ' BTR';
-        var elDate = document.getElementById('current-date');
-        var elTime = document.getElementById('current-time');
-        if(elDate) elDate.textContent = dateStr;
-        if(elTime) elTime.textContent = timeStr;
-    }
-    // Atualiza imediatamente e a cada segundo
-    updateDateTime();
-    setInterval(updateDateTime, 1000);
-</script>
- 
-<script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-            navigator.serviceWorker.register("{{ url_for('static', filename='service-worker.js') }}");
-        });
-    }
-</script>
-<script>
-    (function(){
-        var overlay = document.getElementById('globalLoading');
-        function show(){ if(overlay) overlay.classList.add('show'); }
-        function hide(){ if(overlay) overlay.classList.remove('show'); }
-        function showPdfToast(msg){
-            var cont = document.getElementById('toastContainer');
-            if(!cont) return;
-            var el = document.createElement('div');
-            el.className = 'toast align-items-center text-bg-dark border-0';
-            el.setAttribute('role','alert');
-            el.setAttribute('aria-live','assertive');
-            el.setAttribute('aria-atomic','true');
-            el.innerHTML = '<div class="d-flex"><div class="toast-body">'+(msg||'PDF será gerado em instantes')+'</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>';
-            cont.appendChild(el);
-            try { var t = new bootstrap.Toast(el, { delay: 3000, autohide: true }); t.show(); setTimeout(function(){ try{ el.remove(); }catch(_){ } }, 3500); } catch(_){ }
-        }
-        document.addEventListener('click', function(e){
-            var a = e.target && e.target.closest && e.target.closest('a[href]');
-            if(!a) return;
-            var href = a.getAttribute('href') || '';
-            if(!href || href.indexOf('#') === 0) return;
-            if(a.hasAttribute('data-no-loading')) return;
-            var target = a.getAttribute('target');
-            if(target && target !== '_self') return;
-            if(a.hasAttribute('data-pdf-export')){ showPdfToast('PDF será gerado em instantes'); return; }
-            if(a.hasAttribute('data-download')){ show(); setTimeout(hide, 1200); return; }
-            show();
-        });
-        document.addEventListener('submit', function(e){
-            var form = e.target;
-            if(form && form.hasAttribute('data-no-loading')) return;
-            show();
-            try {
-                var btns = form.querySelectorAll('button[type="submit"], input[type="submit"]');
-                for (var i=0;i<btns.length;i++){ btns[i].disabled = true; }
-            } catch(_){ }
-        });
-        window.addEventListener('pageshow', function(){ hide(); });
-        window.addEventListener('beforeunload', function(){ show(); });
-    })();
-</script>
-<script>
-    (function(){
-        function prefetch(url){ try { fetch(url, { credentials: 'same-origin', cache: 'no-cache' }); } catch(_){} }
-        function bindPrefetch(selector){
-            var links = document.querySelectorAll(selector);
-            for(var i=0;i<links.length;i++){
-                var a = links[i];
-                var href = a.getAttribute('href');
-                if(!href || href.indexOf('#')===0) continue;
-                a.addEventListener('mouseover', function(e){ var u=e.currentTarget.getAttribute('href'); prefetch(u); });
-                a.addEventListener('touchstart', function(e){ var u=e.currentTarget.getAttribute('href'); prefetch(u); }, {passive:true});
-                a.addEventListener('focus', function(e){ var u=e.currentTarget.getAttribute('href'); prefetch(u); });
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            
+            if (window.innerWidth <= 768) {
+                sidebar.classList.toggle('open');
+                overlay.classList.toggle('active');
+            } else {
+                sidebar.classList.toggle('collapsed');
             }
         }
-        window.addEventListener('load', function(){
-            bindPrefetch('.list-group a.list-group-item');
-            bindPrefetch('.navbar-nav a.nav-link');
+        
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+        }
+        
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('themeIcon');
+            const currentTheme = html.getAttribute('data-theme');
+            
+            if (currentTheme === 'light') {
+                html.setAttribute('data-theme', 'dark');
+                icon.classList.remove('bi-moon');
+                icon.classList.add('bi-sun');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                html.setAttribute('data-theme', 'light');
+                icon.classList.remove('bi-sun');
+                icon.classList.add('bi-moon');
+                localStorage.setItem('theme', 'light');
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            const html = document.documentElement;
+            const icon = document.getElementById('themeIcon');
+            
+            html.setAttribute('data-theme', savedTheme);
+            if (savedTheme === 'dark') {
+                icon.classList.remove('bi-moon');
+                icon.classList.add('bi-sun');
+            }
         });
-    })();
-</script>
+        
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/static/service-worker.js')
+                    .then(function(reg) {
+                        console.log('Service Worker registrado:', reg.scope);
+                    })
+                    .catch(function(err) {
+                        console.log('Erro no Service Worker:', err);
+                    });
+            });
+        }
+        
+        let notificationsOpen = false;
+        let searchOpen = false;
+        let searchResults = [];
+        let selectedIndex = -1;
+        
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notificationsDropdown');
+            notificationsOpen = !notificationsOpen;
+            dropdown.classList.toggle('open', notificationsOpen);
+            if (notificationsOpen) {
+                loadNotifications();
+            }
+        }
+        
+        async function loadNotifications() {
+            try {
+                const res = await fetch('/api/v1/notifications');
+                const data = await res.json();
+                const list = document.getElementById('notificationsList');
+                const badge = document.getElementById('notificationsBadge');
+                
+                if (data.count > 0) {
+                    badge.textContent = data.count > 9 ? '9+' : data.count;
+                    badge.style.display = 'flex';
+                    
+                    list.innerHTML = data.notifications.map(n => `
+                        <a href="${n.url}" class="mm-notification-item" onclick="markRead('${n.type}', ${n.id})">
+                            <div class="mm-notification-icon mm-notification-${n.color}">
+                                <i class="bi bi-${n.icon}"></i>
+                            </div>
+                            <div class="mm-notification-content">
+                                <div class="mm-notification-title">${n.title}</div>
+                                <div class="mm-notification-subtitle">${n.subtitle}</div>
+                            </div>
+                        </a>
+                    `).join('');
+                } else {
+                    badge.style.display = 'none';
+                    list.innerHTML = `
+                        <div class="mm-notifications-empty">
+                            <i class="bi bi-check-circle" style="color: var(--mm-success);"></i>
+                            <span>Tudo em dia!</span>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                console.error('Erro ao carregar notificações:', e);
+            }
+        }
+        
+        async function markRead(type, id) {
+            if (!type || !id) return;
+            try {
+                await fetch('/api/v1/notifications/read', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({type, id})
+                });
+            } catch (e) {}
+        }
+        
+        function markAllRead() {
+            const badge = document.getElementById('notificationsBadge');
+            badge.style.display = 'none';
+            document.getElementById('notificationsList').innerHTML = `
+                <div class="mm-notifications-empty">
+                    <i class="bi bi-check-circle" style="color: var(--mm-success);"></i>
+                    <span>Tudo em dia!</span>
+                </div>
+            `;
+        }
+        
+        function openSearch() {
+            searchOpen = true;
+            document.getElementById('searchModal').classList.add('open');
+            document.getElementById('searchInput').focus();
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeSearch() {
+            searchOpen = false;
+            document.getElementById('searchModal').classList.remove('open');
+            document.getElementById('searchInput').value = '';
+            document.body.style.overflow = '';
+            selectedIndex = -1;
+        }
+        
+        function closeSearchOnOverlay(e) {
+            if (e.target.id === 'searchModal') closeSearch();
+        }
+        
+        async function performSearch(query) {
+            if (query.length < 2) {
+                document.getElementById('searchResults').innerHTML = `
+                    <div class="mm-search-empty">
+                        <i class="bi bi-search" style="font-size: 2rem; opacity: 0.3;"></i>
+                        <span>Digite para buscar...</span>
+                    </div>
+                `;
+                searchResults = [];
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/api/v1/search?q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                searchResults = data.results;
+                
+                if (searchResults.length === 0) {
+                    document.getElementById('searchResults').innerHTML = `
+                        <div class="mm-search-empty">
+                            <i class="bi bi-emoji-frown" style="font-size: 2rem; opacity: 0.3;"></i>
+                            <span>Nenhum resultado encontrado</span>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('searchResults').innerHTML = searchResults.map((r, i) => `
+                        <a href="${r.url}" class="mm-search-result ${i === selectedIndex ? 'selected' : ''}" data-index="${i}">
+                            <div class="mm-search-result-icon">
+                                <i class="bi bi-${r.icon}"></i>
+                            </div>
+                            <div class="mm-search-result-content">
+                                <div class="mm-search-result-title">${r.title}</div>
+                                <div class="mm-search-result-subtitle">${r.subtitle}</div>
+                            </div>
+                            <span class="mm-search-result-type">${r.type}</span>
+                        </a>
+                    `).join('');
+                }
+            } catch (e) {
+                console.error('Erro na busca:', e);
+            }
+        }
+        
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                openSearch();
+            }
+            
+            if (e.key === 'Escape' && searchOpen) {
+                closeSearch();
+            }
+            
+            if (searchOpen && searchResults.length > 0) {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, searchResults.length - 1);
+                    updateSearchSelection();
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, 0);
+                    updateSearchSelection();
+                } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                    e.preventDefault();
+                    window.location.href = searchResults[selectedIndex].url;
+                }
+            }
+        });
+        
+        function updateSearchSelection() {
+            document.querySelectorAll('.mm-search-result').forEach((el, i) => {
+                el.classList.toggle('selected', i === selectedIndex);
+            });
+        }
+        
+        document.getElementById('searchInput')?.addEventListener('input', function(e) {
+            performSearch(e.target.value);
+        });
+        
+        document.addEventListener('click', function(e) {
+            if (notificationsOpen && !e.target.closest('.mm-notifications-wrapper')) {
+                notificationsOpen = false;
+                document.getElementById('notificationsDropdown').classList.remove('open');
+            }
+        });
+        
+        if (document.getElementById('notificationsBadge')) {
+            loadNotifications();
+            setInterval(loadNotifications, 60000);
+        }
+    </script>
+    
+    <style>
+    .mm-search-trigger {
+        display: flex;
+        align-items: center;
+        gap: var(--mm-space-2);
+        padding: var(--mm-space-2) var(--mm-space-3);
+        background: var(--mm-bg-secondary);
+        border: 1px solid var(--mm-border);
+        border-radius: var(--mm-radius-md);
+        color: var(--mm-text-muted);
+        cursor: pointer;
+        transition: all var(--mm-transition);
+        font-size: var(--mm-text-sm);
+    }
+    .mm-search-trigger:hover {
+        background: var(--mm-bg-tertiary);
+        color: var(--mm-text-primary);
+        border-color: var(--mm-primary);
+    }
+    .mm-search-trigger kbd {
+        background: var(--mm-bg-tertiary);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        color: var(--mm-text-muted);
+    }
+    
+    .mm-notifications-wrapper {
+        position: relative;
+    }
+    .mm-notifications-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: var(--mm-radius);
+        background: transparent;
+        border: none;
+        color: var(--mm-text-secondary);
+        cursor: pointer;
+        position: relative;
+        transition: all var(--mm-transition);
+    }
+    .mm-notifications-btn:hover {
+        background: var(--mm-bg-secondary);
+        color: var(--mm-primary);
+    }
+    .mm-notifications-badge {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        min-width: 16px;
+        height: 16px;
+        background: var(--mm-danger);
+        color: white;
+        font-size: 10px;
+        font-weight: 600;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4px;
+    }
+    .mm-notifications-dropdown {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        width: 320px;
+        background: var(--mm-bg-card);
+        border: 1px solid var(--mm-border);
+        border-radius: var(--mm-radius-lg);
+        box-shadow: var(--mm-shadow-xl);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(10px);
+        transition: all var(--mm-transition);
+        z-index: 1000;
+        margin-top: var(--mm-space-2);
+    }
+    .mm-notifications-dropdown.open {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+    .mm-notifications-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--mm-space-3) var(--mm-space-4);
+        border-bottom: 1px solid var(--mm-border);
+        font-weight: var(--mm-font-semibold);
+    }
+    .mm-notifications-list {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    .mm-notifications-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--mm-space-2);
+        padding: var(--mm-space-6);
+        color: var(--mm-text-muted);
+    }
+    .mm-notification-item {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--mm-space-3);
+        padding: var(--mm-space-3) var(--mm-space-4);
+        text-decoration: none;
+        color: var(--mm-text-primary);
+        border-bottom: 1px solid var(--mm-border);
+        transition: background var(--mm-transition);
+    }
+    .mm-notification-item:hover {
+        background: var(--mm-bg-secondary);
+    }
+    .mm-notification-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--mm-radius);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .mm-notification-danger { background: rgba(239, 68, 68, 0.15); color: var(--mm-danger); }
+    .mm-notification-warning { background: rgba(245, 158, 11, 0.15); color: var(--mm-warning); }
+    .mm-notification-info { background: rgba(59, 130, 246, 0.15); color: var(--mm-info); }
+    .mm-notification-success { background: rgba(34, 197, 94, 0.15); color: var(--mm-success); }
+    .mm-notification-content { flex: 1; min-width: 0; }
+    .mm-notification-title { font-size: var(--mm-text-sm); font-weight: var(--mm-font-medium); }
+    .mm-notification-subtitle { font-size: var(--mm-text-xs); color: var(--mm-text-muted); }
+    .mm-notifications-footer {
+        padding: var(--mm-space-3) var(--mm-space-4);
+        border-top: 1px solid var(--mm-border);
+        text-align: center;
+    }
+    .mm-notifications-footer a {
+        color: var(--mm-primary);
+        text-decoration: none;
+        font-size: var(--mm-text-sm);
+    }
+    
+    .mm-search-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 9999;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding-top: 15vh;
+        opacity: 0;
+        visibility: hidden;
+        transition: all var(--mm-transition);
+    }
+    .mm-search-modal.open {
+        opacity: 1;
+        visibility: visible;
+    }
+    .mm-search-container {
+        width: 100%;
+        max-width: 560px;
+        background: var(--mm-bg-card);
+        border: 1px solid var(--mm-border);
+        border-radius: var(--mm-radius-xl);
+        box-shadow: var(--mm-shadow-xl);
+        overflow: hidden;
+        margin: 0 var(--mm-space-4);
+    }
+    .mm-search-input-wrapper {
+        display: flex;
+        align-items: center;
+        gap: var(--mm-space-3);
+        padding: var(--mm-space-4);
+        border-bottom: 1px solid var(--mm-border);
+    }
+    .mm-search-input-wrapper i { color: var(--mm-text-muted); font-size: 1.25rem; }
+    .mm-search-input {
+        flex: 1;
+        border: none;
+        background: transparent;
+        font-size: var(--mm-text-lg);
+        color: var(--mm-text-primary);
+        outline: none;
+    }
+    .mm-search-input::placeholder { color: var(--mm-text-muted); }
+    .mm-search-input-wrapper kbd {
+        background: var(--mm-bg-tertiary);
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        color: var(--mm-text-muted);
+    }
+    .mm-search-results {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .mm-search-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--mm-space-2);
+        padding: var(--mm-space-8);
+        color: var(--mm-text-muted);
+    }
+    .mm-search-result {
+        display: flex;
+        align-items: center;
+        gap: var(--mm-space-3);
+        padding: var(--mm-space-3) var(--mm-space-4);
+        text-decoration: none;
+        color: var(--mm-text-primary);
+        transition: background var(--mm-transition);
+    }
+    .mm-search-result:hover, .mm-search-result.selected {
+        background: var(--mm-bg-secondary);
+    }
+    .mm-search-result.selected {
+        background: rgba(var(--mm-primary-rgb), 0.1);
+    }
+    .mm-search-result-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--mm-radius);
+        background: var(--mm-bg-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--mm-primary);
+    }
+    .mm-search-result-content { flex: 1; min-width: 0; }
+    .mm-search-result-title { font-weight: var(--mm-font-medium); }
+    .mm-search-result-subtitle { font-size: var(--mm-text-xs); color: var(--mm-text-muted); }
+    .mm-search-result-type {
+        font-size: var(--mm-text-xs);
+        color: var(--mm-text-muted);
+        text-transform: capitalize;
+        background: var(--mm-bg-tertiary);
+        padding: 2px 8px;
+        border-radius: 4px;
+    }
+    .mm-search-footer {
+        display: flex;
+        gap: var(--mm-space-4);
+        padding: var(--mm-space-3) var(--mm-space-4);
+        border-top: 1px solid var(--mm-border);
+        font-size: var(--mm-text-xs);
+        color: var(--mm-text-muted);
+    }
+    .mm-search-footer kbd {
+        background: var(--mm-bg-tertiary);
+        padding: 2px 6px;
+        border-radius: 3px;
+        margin-right: 4px;
+    }
+    
+    @media (max-width: 768px) {
+        .mm-notifications-dropdown { width: 280px; right: -60px; }
+        .mm-search-container { margin: 0 var(--mm-space-2); }
+    }
+    
+    .mm-skip-link {
+        position: absolute;
+        top: -100px;
+        left: 0;
+        background: var(--mm-primary);
+        color: #0f172a;
+        padding: var(--mm-space-3) var(--mm-space-4);
+        z-index: 10000;
+        font-weight: var(--mm-font-semibold);
+        text-decoration: none;
+        border-radius: 0 0 var(--mm-radius) 0;
+        transition: top var(--mm-transition);
+    }
+    .mm-skip-link:focus {
+        top: 0;
+        outline: 2px solid var(--mm-primary-dark);
+        outline-offset: 2px;
+    }
+    
+    .mm-quick-actions {
+        display: flex;
+        align-items: center;
+        gap: var(--mm-space-1);
+    }
+    .mm-quick-action {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: var(--mm-radius);
+        background: transparent;
+        color: var(--mm-text-secondary);
+        text-decoration: none;
+        transition: all var(--mm-transition);
+        border: 1px solid transparent;
+    }
+    .mm-quick-action:hover {
+        background: rgba(var(--mm-primary-rgb), 0.1);
+        color: var(--mm-primary);
+        border-color: rgba(var(--mm-primary-rgb), 0.3);
+    }
+    .mm-quick-action:focus {
+        outline: 2px solid var(--mm-primary);
+        outline-offset: 2px;
+    }
+    .mm-quick-action i { font-size: 1.1rem; }
+    
+    .mm-topbar-divider {
+        width: 1px;
+        height: 24px;
+        background: var(--mm-border);
+        margin: 0 var(--mm-space-2);
+    }
+    
+    .mm-install-banner {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(135deg, var(--mm-bg-card) 0%, var(--mm-bg-secondary) 100%);
+        border-top: 1px solid var(--mm-border);
+        padding: var(--mm-space-3) var(--mm-space-4);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--mm-space-3);
+        z-index: 1000;
+        box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+        animation: mm-slide-up var(--mm-transition) ease-out;
+    }
+    .mm-install-content {
+        display: flex;
+        align-items: center;
+        gap: var(--mm-space-3);
+        color: var(--mm-text-primary);
+    }
+    .mm-install-content i {
+        font-size: 1.5rem;
+        color: var(--mm-primary);
+    }
+    .mm-install-actions {
+        display: flex;
+        align-items: center;
+        gap: var(--mm-space-2);
+    }
+    
+    @media (max-width: 768px) {
+        .mm-install-banner {
+            flex-direction: column;
+            text-align: center;
+        }
+    }
+    
+    *:focus-visible {
+        outline: 2px solid var(--mm-primary);
+        outline-offset: 2px;
+    }
+    </style>
+    
+    <script>
+        let deferredPrompt = null;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            if (!localStorage.getItem('pwaInstallDismissed')) {
+                document.getElementById('installBanner').style.display = 'flex';
+            }
+        });
+        
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('PWA instalado');
+                    }
+                    deferredPrompt = null;
+                    document.getElementById('installBanner').style.display = 'none';
+                });
+            }
+        }
+        
+        function dismissInstall() {
+            document.getElementById('installBanner').style.display = 'none';
+            localStorage.setItem('pwaInstallDismissed', 'true');
+        }
+        
+        window.addEventListener('appinstalled', () => {
+            document.getElementById('installBanner').style.display = 'none';
+            deferredPrompt = null;
+        });
+        
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistration().then((reg) => {
+                if (reg) {
+                    reg.addEventListener('updatefound', () => {
+                        const newWorker = reg.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                if (confirm('Nova versão disponível! Deseja atualizar?')) {
+                                    newWorker.postMessage('skipWaiting');
+                                    window.location.reload();
+                                }
+                            }
+                        });
+                    });
+                }
+            });
+        }
+    </script>
+    {% block scripts %}{% endblock %}
 </body>
 </html>

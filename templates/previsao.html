@@ -1,0 +1,274 @@
+{% extends 'base.html' %}
+{% block title %}Previsão de Estoque - MultiMax{% endblock %}
+{% block content %}
+
+<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
+    <div>
+        <h1 class="mm-page-title">Previsão de Estoque</h1>
+        <p class="mm-text-muted">Análise de consumo e sugestões de compra inteligentes</p>
+    </div>
+    <div class="mm-flex mm-gap-2">
+        <span class="mm-badge mm-badge-primary">{{ previsoes|length }} produtos analisados</span>
+    </div>
+</div>
+
+<div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
+    <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-danger);">
+        <div class="mm-flex mm-items-center mm-justify-between">
+            <div>
+                <div class="mm-kpi-label">Produtos Críticos</div>
+                <div class="mm-kpi-value" style="color: var(--mm-danger);">{{ total_criticos }}</div>
+                <div class="mm-text-muted" style="font-size: var(--mm-text-xs);">Menos de 7 dias</div>
+            </div>
+            <div class="mm-kpi-icon" style="background: rgba(239, 68, 68, 0.15); color: var(--mm-danger);">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-warning);">
+        <div class="mm-flex mm-items-center mm-justify-between">
+            <div>
+                <div class="mm-kpi-label">Em Atenção</div>
+                <div class="mm-kpi-value" style="color: var(--mm-warning);">{{ total_atencao }}</div>
+                <div class="mm-text-muted" style="font-size: var(--mm-text-xs);">7 a 14 dias</div>
+            </div>
+            <div class="mm-kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning);">
+                <i class="bi bi-exclamation-circle"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-success);">
+        <div class="mm-flex mm-items-center mm-justify-between">
+            <div>
+                <div class="mm-kpi-label">Produtos OK</div>
+                <div class="mm-kpi-value" style="color: var(--mm-success);">{{ previsoes|length - total_criticos - total_atencao }}</div>
+                <div class="mm-text-muted" style="font-size: var(--mm-text-xs);">Mais de 14 dias</div>
+            </div>
+            <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-success);">
+                <i class="bi bi-check-circle"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-info);">
+        <div class="mm-flex mm-items-center mm-justify-between">
+            <div>
+                <div class="mm-kpi-label">Total Analisado</div>
+                <div class="mm-kpi-value" style="color: var(--mm-info);">{{ previsoes|length }}</div>
+                <div class="mm-text-muted" style="font-size: var(--mm-text-xs);">Produtos ativos</div>
+            </div>
+            <div class="mm-kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--mm-info);">
+                <i class="bi bi-graph-up"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mm-card mm-mb-6">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <i class="bi bi-bar-chart-line me-2"></i>Análise de Consumo e Sugestões de Compra
+        </h3>
+        <div class="mm-flex mm-gap-2">
+            <span class="mm-badge mm-badge-danger">{{ total_criticos }} críticos</span>
+            <span class="mm-badge mm-badge-warning">{{ total_atencao }} atenção</span>
+        </div>
+    </div>
+    <div class="mm-card-body" style="padding: 0;">
+        {% if previsoes %}
+        <div class="mm-table-wrapper">
+            <table class="mm-table">
+                <thead>
+                    <tr>
+                        <th>Produto</th>
+                        <th class="text-center">Estoque</th>
+                        <th class="text-center">Consumo/Dia</th>
+                        <th class="text-center">Dias Restantes</th>
+                        <th class="text-center">Tendência</th>
+                        <th class="text-center">Sugestão</th>
+                        <th class="text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in previsoes %}
+                    <tr class="{% if p.status == 'critico' %}row-critico{% elif p.status == 'atencao' %}row-atencao{% endif %}">
+                        <td>
+                            <div class="mm-flex mm-items-center mm-gap-2">
+                                <div class="mm-produto-avatar" style="width: 36px; height: 36px; background: rgba(0, 255, 136, 0.15); border-radius: var(--mm-radius); display: flex; align-items: center; justify-content: center;">
+                                    <i class="bi bi-box" style="color: var(--mm-primary);"></i>
+                                </div>
+                                <div>
+                                    <strong>{{ p.produto.nome }}</strong>
+                                    <div class="mm-text-muted" style="font-size: var(--mm-text-xs);">{{ p.produto.codigo }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            <span class="mm-font-semibold">{{ p.produto.quantidade }}</span>
+                            <span class="mm-text-muted" style="font-size: var(--mm-text-xs);"> un.</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="mm-font-semibold">{{ p.consumo_diario }}</span>
+                            <span class="mm-text-muted" style="font-size: var(--mm-text-xs);"> /dia</span>
+                        </td>
+                        <td class="text-center">
+                            {% if p.dias_restantes is not none %}
+                            <div class="mm-dias-badge {% if p.status == 'critico' %}dias-critico{% elif p.status == 'atencao' %}dias-atencao{% else %}dias-ok{% endif %}">
+                                {{ p.dias_restantes }} dias
+                            </div>
+                            {% else %}
+                            <span class="mm-text-muted">Sem consumo</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if p.tendencia == 'alta' %}
+                            <span class="mm-badge mm-badge-danger">
+                                <i class="bi bi-arrow-up"></i> Alta
+                            </span>
+                            {% elif p.tendencia == 'baixa' %}
+                            <span class="mm-badge mm-badge-success">
+                                <i class="bi bi-arrow-down"></i> Baixa
+                            </span>
+                            {% else %}
+                            <span class="mm-badge" style="background: var(--mm-bg-tertiary); color: var(--mm-text-secondary);">
+                                <i class="bi bi-arrow-right"></i> Estável
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if p.sugestao_compra > 0 %}
+                            <div class="mm-sugestao">
+                                <span class="mm-font-bold" style="color: var(--mm-primary);">{{ p.sugestao_compra }}</span>
+                                <span class="mm-text-muted" style="font-size: var(--mm-text-xs);"> un.</span>
+                            </div>
+                            {% else %}
+                            <span class="mm-text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if p.status == 'critico' %}
+                            <span class="mm-badge mm-badge-danger">Crítico</span>
+                            {% elif p.status == 'atencao' %}
+                            <span class="mm-badge mm-badge-warning">Atenção</span>
+                            {% else %}
+                            <span class="mm-badge mm-badge-success">OK</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="mm-empty-state" style="text-align: center; padding: var(--mm-space-12);">
+            <div style="width: 80px; height: 80px; margin: 0 auto var(--mm-space-4); background: rgba(0, 255, 136, 0.1); border-radius: var(--mm-radius-full); display: flex; align-items: center; justify-content: center;">
+                <i class="bi bi-graph-up" style="font-size: 2rem; color: var(--mm-primary);"></i>
+            </div>
+            <h4 class="mm-font-semibold mm-mb-2">Sem dados para análise</h4>
+            <p class="mm-text-muted">Cadastre produtos e registre movimentações para ver previsões.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="mm-card">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <i class="bi bi-lightbulb me-2"></i>Como funciona a previsão
+        </h3>
+    </div>
+    <div class="mm-card-body">
+        <div class="mm-grid mm-grid-cols-2 mm-gap-6">
+            <div>
+                <div class="mm-info-item mm-flex mm-gap-4 mm-mb-4">
+                    <div class="mm-info-icon" style="width: 40px; height: 40px; background: rgba(0, 255, 136, 0.1); border-radius: var(--mm-radius); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="bi bi-calculator" style="color: var(--mm-primary);"></i>
+                    </div>
+                    <div>
+                        <h6 class="mm-font-medium mm-mb-1">Consumo por Dia</h6>
+                        <p class="mm-text-muted" style="font-size: var(--mm-text-sm); margin: 0;">Média de saídas calculada com base nos últimos 30 dias de movimentação.</p>
+                    </div>
+                </div>
+                
+                <div class="mm-info-item mm-flex mm-gap-4">
+                    <div class="mm-info-icon" style="width: 40px; height: 40px; background: rgba(59, 130, 246, 0.1); border-radius: var(--mm-radius); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="bi bi-calendar-check" style="color: var(--mm-info);"></i>
+                    </div>
+                    <div>
+                        <h6 class="mm-font-medium mm-mb-1">Dias Restantes</h6>
+                        <p class="mm-text-muted" style="font-size: var(--mm-text-sm); margin: 0;">Estimativa de duração do estoque atual com base no consumo médio.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <div class="mm-info-item mm-flex mm-gap-4 mm-mb-4">
+                    <div class="mm-info-icon" style="width: 40px; height: 40px; background: rgba(168, 85, 247, 0.1); border-radius: var(--mm-radius); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="bi bi-graph-up-arrow" style="color: var(--mm-accent-purple);"></i>
+                    </div>
+                    <div>
+                        <h6 class="mm-font-medium mm-mb-1">Tendência</h6>
+                        <p class="mm-text-muted" style="font-size: var(--mm-text-sm); margin: 0;">Comparação do consumo do mês atual versus o mês anterior.</p>
+                    </div>
+                </div>
+                
+                <div class="mm-info-item mm-flex mm-gap-4">
+                    <div class="mm-info-icon" style="width: 40px; height: 40px; background: rgba(245, 158, 11, 0.1); border-radius: var(--mm-radius); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="bi bi-cart-plus" style="color: var(--mm-warning);"></i>
+                    </div>
+                    <div>
+                        <h6 class="mm-font-medium mm-mb-1">Sugestão de Compra</h6>
+                        <p class="mm-text-muted" style="font-size: var(--mm-text-sm); margin: 0;">Quantidade recomendada para cobrir 30 dias de operação.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.mm-kpi-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--mm-radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+.text-center { text-align: center; }
+.me-2 { margin-right: 0.5rem; }
+.mm-mb-1 { margin-bottom: var(--mm-space-1); }
+.mm-mb-2 { margin-bottom: var(--mm-space-2); }
+.mm-mb-4 { margin-bottom: var(--mm-space-4); }
+.mm-mb-6 { margin-bottom: var(--mm-space-6); }
+
+.row-critico {
+    background: rgba(239, 68, 68, 0.05) !important;
+}
+.row-atencao {
+    background: rgba(245, 158, 11, 0.05) !important;
+}
+.mm-dias-badge {
+    display: inline-block;
+    padding: var(--mm-space-1) var(--mm-space-3);
+    border-radius: var(--mm-radius-full);
+    font-weight: var(--mm-font-semibold);
+    font-size: var(--mm-text-sm);
+}
+.dias-critico {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--mm-danger);
+}
+.dias-atencao {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--mm-warning);
+}
+.dias-ok {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--mm-success);
+}
+</style>
+{% endblock %}

@@ -1,20 +1,68 @@
 {% extends 'base.html' %}
-{% block title %}MultiMax{% endblock %}
+{% block title %}Editar Produto — MultiMax{% endblock %}
 {% block content %}
 <h2 class="mb-3">Editar Produto</h2>
 <form method="post" action="{{ url_for('estoque.editar', id=produto.id) }}" class="row g-3">
-  <div class="col-md-3">
+  <div class="col-md-4">
     <label class="form-label">Código</label>
-    <div class="form-control-plaintext">{{ produto.codigo }}</div>
+    <input name="codigo" class="form-control" value="{{ produto.codigo }}" required>
   </div>
-  <div class="col-md-9">
+  <div class="col-md-8">
     <label class="form-label">Nome</label>
     <input name="nome" class="form-control" value="{{ produto.nome }}" required>
   </div>
-  <div class="col-md-4">
+  <div class="col-md-3">
     <label class="form-label">Estoque Mínimo</label>
     <input type="number" name="estoque_minimo" class="form-control" value="{{ produto.estoque_minimo }}" required>
   </div>
+  <div class="col-md-3">
+    <label class="form-label">Estoque Atual</label>
+    <div class="form-control-plaintext fw-bold">{{ produto.quantidade }}</div>
+  </div>
+  <div class="col-md-3">
+    <label class="form-label">Data de Validade</label>
+    <input type="date" name="data_validade" class="form-control" value="{{ produto.data_validade.strftime('%Y-%m-%d') if produto.data_validade else '' }}">
+  </div>
+  <div class="col-md-3">
+    <label class="form-label">Lote</label>
+    <input type="text" name="lote" class="form-control" value="{{ produto.lote or '' }}" placeholder="Ex: L2024-001">
+  </div>
+  <div class="col-md-6">
+    <label class="form-label">Fornecedor</label>
+    <select name="fornecedor_id" class="form-select">
+      <option value="">-- Selecionar Fornecedor --</option>
+      {% for f in fornecedores %}
+      <option value="{{ f.id }}" {% if produto.fornecedor_id == f.id %}selected{% endif %}>{{ f.nome }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-6">
+    <label class="form-label">Ajuste de Quantidade</label>
+    <input type="number" name="ajuste" class="form-control" value="0">
+    <div class="form-text">Valores positivos = entrada, negativos = saída.</div>
+  </div>
+  <div class="col-md-6">
+    <label class="form-label">Detalhes do Ajuste</label>
+    <input type="text" name="detalhes" class="form-control" placeholder="Motivo do ajuste (opcional)">
+  </div>
+  {% if produto.data_validade %}
+  <div class="col-12">
+    {% set dias_validade = (produto.data_validade - today).days if produto.data_validade else 999 %}
+    {% if dias_validade < 0 %}
+    <div class="alert alert-danger mb-0">
+      <strong>VENCIDO!</strong> Este produto venceu há {{ -dias_validade }} dia(s).
+    </div>
+    {% elif dias_validade <= 7 %}
+    <div class="alert alert-warning mb-0">
+      <strong>Atenção!</strong> Este produto vence em {{ dias_validade }} dia(s).
+    </div>
+    {% elif dias_validade <= 30 %}
+    <div class="alert alert-info mb-0">
+      Validade: {{ dias_validade }} dias restantes.
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
   <div class="col-12 d-flex justify-content-between">
     <a class="btn btn-secondary" href="{{ url_for('estoque.lista_produtos') }}">Voltar</a>
     <button class="btn btn-primary" type="submit">Salvar</button>

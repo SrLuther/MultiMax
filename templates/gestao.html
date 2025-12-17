@@ -1,847 +1,1234 @@
 {% extends 'base.html' %}
 {% block title %}Gestão — MultiMax{% endblock %}
+
+{% block breadcrumb %}
+<span class="mm-breadcrumb-separator">/</span>
+<span>Gestão</span>
+{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h3 class="mb-0">Gestão</h3>
-</div>
-
-<div class="card card-animated sticky-top mb-3 d-none d-md-block" style="top: 90px; z-index: 2;">
-  <div class="card-body d-flex flex-wrap gap-2">
-    <a class="btn btn-outline-secondary btn-sm" href="#gerenciar-usuarios">Gerenciar Usuários</a>
-    <a class="btn btn-outline-secondary btn-sm" href="#cargos-permissoes">Cargos e Permissões</a>
-    <a class="btn btn-outline-secondary btn-sm" href="#colaboradores">Colaboradores</a>
-    <a class="btn btn-outline-secondary btn-sm" href="#banco-de-horas">Banco de Horas</a>
-    <a class="btn btn-outline-secondary btn-sm" href="#gestao-de-folgas">Gestão de Folgas</a>
-    <a class="btn btn-outline-secondary btn-sm" href="#registro-de-eventos">Registro de Eventos</a>
-    <a class="btn btn-outline-secondary btn-sm" href="#registro-de-acessos">Registro de Acessos</a>
-    
-  </div>
-</div>
-
-{% if current_user.nivel == 'admin' %}{% endif %}
-
-<script>
-  (function(){
-    try {
-      document.querySelectorAll('.progress-bar[data-width]').forEach(function(el){
-        var v = parseInt(el.getAttribute('data-width') || '0', 10);
-        if (isNaN(v) || v < 0) v = 0;
-        if (v > 100) v = 100;
-        el.style.width = v + '%';
-        el.setAttribute('aria-valuenow', String(v));
-      });
-    } catch (e) {}
-  })();
-</script>
-<style>
-  .card-vps-danger {
-    border: 1px solid rgba(220,53,69,.5);
-    box-shadow: 0 0 0 2px rgba(220,53,69,.25) inset, 0 0 22px rgba(220,53,69,.35);
-  }
-  .card-vps-danger .card-header {
-    background: linear-gradient(135deg, #dc3545, #b02a37);
-    color: #fff;
-    box-shadow: 0 0 16px rgba(220,53,69,.45);
-    border-bottom: none;
-  }
-</style>
-<div class="card card-animated mb-3">
-  <div class="card-header d-flex align-items-center justify-content-between">
-    <span>Resumo de Saldo por Colaborador</span>
-    <form method="get" action="{{ url_for('usuarios.gestao') }}" class="d-flex align-items-center gap-2">
-      <input type="hidden" name="u_page" value="{{ u_page }}">
-      <input type="hidden" name="l_page" value="{{ l_page }}">
-      <select name="saldo_collaborator_id" class="form-select form-select-sm" style="min-width:220px">
-        <option value="">— selecionar colaborador —</option>
-        {% for c in colaboradores %}
-        <option value="{{ c.id }}" {% if saldo_collab and saldo_collab.id == c.id %}selected{% endif %}>{{ c.name }}</option>
-        {% endfor %}
-      </select>
-      <button type="submit" class="btn btn-outline-primary btn-sm">Buscar</button>
-    </form>
-  </div>
-  <div class="card-body">
-    {% if saldo_collab %}
-    <div class="d-flex gap-3 align-items-center flex-wrap">
-      <div class="fw-semibold">{{ saldo_collab.name }}</div>
-      <span class="badge text-bg-primary">Dias de folga: {{ saldo_days }}</span>
-      {% set hrs_cls = 'text-bg-secondary' %}
-      {% if saldo_hours > 0 %}{% set hrs_cls = 'text-bg-success' %}{% elif saldo_hours < 0 %}{% set hrs_cls = 'text-bg-danger' %}{% endif %}
-      <span class="badge {{ hrs_cls }}">Horas (residual): {{ '%.2f'|format(saldo_hours or 0.0) }}h</span>
-      <div class="small text-muted">Regra: a cada 8h acumuladas vira +1 dia e as horas são reiniciadas.</div>
+<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
+    <div>
+        <h1 class="mm-page-title">Gestão de Colaboradores</h1>
+        <p class="mm-text-muted">Gerencie usuários, cargos, colaboradores e banco de horas</p>
     </div>
-    {% else %}
-    <div class="text-muted">Selecione um colaborador para ver o saldo.</div>
-    {% endif %}
-  </div>
 </div>
 
-<div class="mb-3"></div>
+<div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--mm-info);">
+            <i class="bi bi-people"></i>
+        </div>
+        <div class="mm-kpi-label">Usuários</div>
+        <div class="mm-kpi-value" style="color: var(--mm-info);">{{ users_page|length if users_page else 0 }}</div>
+    </div>
+    
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-success);">
+            <i class="bi bi-person-badge"></i>
+        </div>
+        <div class="mm-kpi-label">Colaboradores</div>
+        <div class="mm-kpi-value mm-text-success">{{ colaboradores|length if colaboradores else 0 }}</div>
+    </div>
+    
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning);">
+            <i class="bi bi-award"></i>
+        </div>
+        <div class="mm-kpi-label">Cargos</div>
+        <div class="mm-kpi-value" style="color: var(--mm-warning);">{{ roles|length if roles else 0 }}</div>
+    </div>
+    
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(var(--mm-primary-rgb), 0.15); color: var(--mm-primary);">
+            <i class="bi bi-check-circle"></i>
+        </div>
+        <div class="mm-kpi-label">Ativos</div>
+        <div class="mm-kpi-value mm-text-primary">{{ colaboradores|selectattr('active')|list|length if colaboradores else 0 }}</div>
+    </div>
+</div>
 
+<div class="mm-nav-tabs mm-mb-6">
+    <a class="mm-nav-tab" href="#gerenciar-usuarios">
+        <i class="bi bi-people"></i> Usuários
+    </a>
+    <a class="mm-nav-tab" href="#cargos-permissoes">
+        <i class="bi bi-award"></i> Cargos
+    </a>
+    <a class="mm-nav-tab" href="#colaboradores">
+        <i class="bi bi-person-badge"></i> Colaboradores
+    </a>
+    <a class="mm-nav-tab" href="#banco-de-horas">
+        <i class="bi bi-clock-history"></i> Banco de Horas
+    </a>
+    <a class="mm-nav-tab" href="#folgas">
+        <i class="bi bi-calendar-check"></i> Folgas
+    </a>
+</div>
+
+<div class="mm-card mm-mb-6">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <i class="bi bi-calculator mm-text-primary"></i>
+            Resumo de Saldo por Colaborador
+        </h3>
+        <form method="get" action="{{ url_for('usuarios.gestao') }}" class="mm-flex mm-gap-2 mm-items-center">
+            <input type="hidden" name="u_page" value="{{ u_page }}">
+            <input type="hidden" name="l_page" value="{{ l_page }}">
+            <select name="saldo_collaborator_id" class="mm-input mm-select" style="min-width: 220px;">
+                <option value="">— selecionar colaborador —</option>
+                {% for c in colaboradores %}
+                <option value="{{ c.id }}" {% if saldo_collab and saldo_collab.id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="mm-btn mm-btn-outline">
+                <i class="bi bi-search"></i>
+                Buscar
+            </button>
+        </form>
+    </div>
+    <div class="mm-card-body">
+        {% if saldo_collab %}
+        <div class="mm-saldo-info">
+            <div class="mm-saldo-name">{{ saldo_collab.name }}</div>
+            <div class="mm-saldo-badges">
+                <span class="mm-badge mm-badge-primary">
+                    <i class="bi bi-calendar-day"></i>
+                    Dias de folga: {{ saldo_days }}
+                </span>
+                {% set hrs_cls = 'mm-badge' %}
+                {% if saldo_hours > 0 %}{% set hrs_cls = 'mm-badge mm-badge-success' %}{% elif saldo_hours < 0 %}{% set hrs_cls = 'mm-badge mm-badge-danger' %}{% endif %}
+                <span class="{{ hrs_cls }}">
+                    <i class="bi bi-clock"></i>
+                    Horas (residual): {{ '%.2f'|format(saldo_hours or 0.0) }}h
+                </span>
+            </div>
+            <div class="mm-saldo-rule">
+                <i class="bi bi-info-circle"></i>
+                Regra: a cada 8h acumuladas vira +1 dia e as horas são reiniciadas.
+            </div>
+        </div>
+        {% else %}
+        <div class="mm-empty-inline">
+            <i class="bi bi-person-circle"></i>
+            <span>Selecione um colaborador para ver o saldo.</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
 
 {% if not view or view == 'usuarios' %}
-<div class="row g-3">
-  <div class="col-12">
-    <div class="card card-animated" id="gerenciar-usuarios">
-      <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-        <span>Gerenciar Usuários</span>
-        
-        <form method="get" action="{{ url_for('usuarios.gestao') }}" class="d-flex align-items-center gap-2">
-          <input type="hidden" name="u_page" value="1">
-          <input type="hidden" name="l_page" value="{{ l_page }}">
-          <input type="text" name="q" class="form-control form-control-sm" placeholder="Buscar por nome" value="{{ q }}" style="max-width: 220px;">
-          <button type="submit" class="btn btn-outline-primary btn-sm">Buscar</button>
-        </form>
-        <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalNovoUsuario">Novo Usuário</button>
-        <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalNovoColab">Novo Colaborador</button>
-      </div>
-      <div class="card-body">
-        <div class="table-responsive-sm">
-          <table class="table table-hover align-middle">
-            <thead class="table-light"><tr><th>Login</th><th>Nome</th><th>Nível</th><th>Ações</th></tr></thead>
-            <tbody>
-              {% for u in users_page %}
-              <tr>
-                <td>{{ u.username }}</td>
-                <td>{{ u.name }}</td>
-                <td>{{ u.nivel }}</td>
-                <td>
-                  <div class="d-flex flex-wrap align-items-center gap-2">
-                    <form method="post" action="{{ url_for('usuarios.update_level', user_id=u.id) }}" class="d-inline-flex me-2">
-                      <select name="nivel" class="form-select d-inline-block w-auto form-select-sm me-2">
-                        <option value="visualizador" {% if u.nivel == 'visualizador' %}selected{% endif %}>Visualizador</option>
-                        <option value="operador" {% if u.nivel == 'operador' %}selected{% endif %}>Operador</option>
-                        <option value="admin" {% if u.nivel == 'admin' %}selected{% endif %}>Gerente</option>
-                      </select>
-                      <button type="submit" class="btn btn-primary btn-sm">Atualizar</button>
-                    </form>
-                    <form method="post" action="{{ url_for('usuarios.gestao_usuarios_associar') }}" class="d-inline-flex align-items-center gap-2">
-                      <input type="hidden" name="user_id" value="{{ u.id }}">
-                      <select name="collaborator_id" class="form-select form-select-sm">
-                        <option value="">— colaborador —</option>
-                        {% for c in colaboradores %}
-                        <option value="{{ c.id }}" {% if c.user_id == u.id %}selected{% endif %}>{{ c.name }}</option>
-                        {% endfor %}
-                      </select>
-                      <button type="submit" class="btn btn-outline-secondary btn-sm">Associar</button>
-                    </form>
-                    <form method="post" action="{{ url_for('usuarios.update_password', user_id=u.id) }}" class="d-inline-flex align-items-center gap-2">
-                      <input type="password" name="new_password" class="form-control form-control-sm" placeholder="Nova senha" required>
-                      <button type="submit" class="btn btn-outline-primary btn-sm">Atualizar senha</button>
-                    </form>
-                    <form method="post" action="{{ url_for('usuarios.reset_password', user_id=u.id) }}" class="d-inline">
-                      <button type="submit" class="btn btn-outline-warning btn-sm">Redefinir senha</button>
-                    </form>
-                    {% if u.id != current_user.id %}
-                    <form method="post" action="{{ url_for('usuarios.excluir_user', user_id=u.id) }}" class="d-inline" onsubmit="return confirm('Excluir {{ u.name }} ({{ u.username }})?')">
-                      <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
-                    </form>
-                    {% else %}
-                    <span class="badge text-bg-warning">Você</span>
-                    {% endif %}
-                  </div>
-                </td>
-              </tr>
-              {% else %}
-              <tr><td colspan="4" class="text-center">Nenhum usuário</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
+<div class="mm-card mm-mb-6" id="gerenciar-usuarios">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <i class="bi bi-people mm-text-primary"></i>
+            Gerenciar Usuários
+        </h3>
+        <div class="mm-flex mm-gap-2 mm-items-center" style="flex-wrap: wrap;">
+            <form method="get" action="{{ url_for('usuarios.gestao') }}" class="mm-flex mm-gap-2">
+                <input type="hidden" name="u_page" value="1">
+                <input type="hidden" name="l_page" value="{{ l_page }}">
+                <input type="text" name="q" class="mm-input" placeholder="Buscar por nome" value="{{ q }}" style="width: 180px;">
+                <button type="submit" class="mm-btn mm-btn-outline mm-btn-sm">
+                    <i class="bi bi-search"></i>
+                </button>
+            </form>
+            <button class="mm-btn mm-btn-primary mm-btn-sm" data-bs-toggle="modal" data-bs-target="#modalNovoUsuario">
+                <i class="bi bi-plus-lg"></i>
+                Novo Usuário
+            </button>
+            <button class="mm-btn mm-btn-outline mm-btn-sm" data-bs-toggle="modal" data-bs-target="#modalNovoColab">
+                <i class="bi bi-person-plus"></i>
+                Novo Colaborador
+            </button>
         </div>
-        <nav class="mt-2 d-flex justify-content-between align-items-center">
-          <div class="small text-muted">Página {{ u_page }} de {{ u_total_pages }}</div>
-          <div class="btn-group">
-            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page-1 if u_page>1 else 1 }}&l_page={{ l_page }}&q={{ q }}">Anterior</a>
-            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page+1 if u_page<u_total_pages else u_total_pages }}&l_page={{ l_page }}&q={{ q }}">Próximo</a>
-          </div>
-        </nav>
-  </div>
+    </div>
+    <div class="mm-card-body">
+        <div class="mm-table-wrapper">
+            <table class="mm-table">
+                <thead>
+                    <tr>
+                        <th>Login</th>
+                        <th>Nome</th>
+                        <th>Nível</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users_page %}
+                    <tr>
+                        <td><strong>{{ u.username }}</strong></td>
+                        <td>{{ u.name }}</td>
+                        <td>
+                            {% if u.nivel == 'admin' %}
+                            <span class="mm-badge mm-badge-primary">Gerente</span>
+                            {% elif u.nivel == 'operador' %}
+                            <span class="mm-badge mm-badge-info">Operador</span>
+                            {% else %}
+                            <span class="mm-badge">Visualizador</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="mm-actions-group">
+                                <form method="post" action="{{ url_for('usuarios.update_level', user_id=u.id) }}" class="mm-inline-form mm-flex mm-gap-2 mm-items-center">
+                                    <select name="nivel" class="mm-input mm-select" style="width: 120px;">
+                                        <option value="visualizador" {% if u.nivel == 'visualizador' %}selected{% endif %}>Visualizador</option>
+                                        <option value="operador" {% if u.nivel == 'operador' %}selected{% endif %}>Operador</option>
+                                        <option value="admin" {% if u.nivel == 'admin' %}selected{% endif %}>Gerente</option>
+                                    </select>
+                                    <button type="submit" class="mm-btn mm-btn-primary mm-btn-sm">Atualizar</button>
+                                </form>
+                                <form method="post" action="{{ url_for('usuarios.gestao_usuarios_associar') }}" class="mm-inline-form mm-flex mm-gap-2 mm-items-center">
+                                    <input type="hidden" name="user_id" value="{{ u.id }}">
+                                    <select name="collaborator_id" class="mm-input mm-select" style="width: 140px;">
+                                        <option value="">— colaborador —</option>
+                                        {% for c in colaboradores %}
+                                        <option value="{{ c.id }}" {% if c.user_id == u.id %}selected{% endif %}>{{ c.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="mm-btn mm-btn-outline mm-btn-sm">Associar</button>
+                                </form>
+                                <form method="post" action="{{ url_for('usuarios.update_password', user_id=u.id) }}" class="mm-inline-form mm-flex mm-gap-2 mm-items-center">
+                                    <input type="password" name="new_password" class="mm-input" placeholder="Nova senha" style="width: 120px;" required>
+                                    <button type="submit" class="mm-btn mm-btn-outline mm-btn-sm">
+                                        <i class="bi bi-key"></i>
+                                    </button>
+                                </form>
+                                <form method="post" action="{{ url_for('usuarios.reset_password', user_id=u.id) }}" class="mm-inline-form">
+                                    <button type="submit" class="mm-btn mm-btn-outline mm-btn-sm" title="Redefinir senha">
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                    </button>
+                                </form>
+                                {% if u.id != current_user.id %}
+                                <form method="post" action="{{ url_for('usuarios.excluir_user', user_id=u.id) }}" class="mm-inline-form" onsubmit="return confirm('Excluir {{ u.name }} ({{ u.username }})?')">
+                                    <button type="submit" class="mm-btn mm-btn-danger mm-btn-sm">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span class="mm-badge mm-badge-warning">Você</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="mm-empty-cell">
+                            <div class="mm-empty-inline">
+                                <i class="bi bi-people"></i>
+                                <span>Nenhum usuário</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mm-pagination">
+            <span class="mm-pagination-info">Página {{ u_page }} de {{ u_total_pages }}</span>
+            <div class="mm-pagination-btns">
+                <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page-1 if u_page>1 else 1 }}&l_page={{ l_page }}&q={{ q }}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+                <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page+1 if u_page<u_total_pages else u_total_pages }}&l_page={{ l_page }}&q={{ q }}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
 </div>
-</div>
-
 {% endif %}
 
-
 {% if not view or view == 'roles' %}
-<div class="row g-3 mt-3">
-  <div class="col-12">
-    <div class="card card-animated" id="cargos-permissoes">
-      <div class="card-header d-flex align-items-center justify-content-between"><span>Cargos e Permissões</span></div>
-      <div class="card-body">
-        <form method="post" action="{{ url_for('usuarios.gestao_role_criar') }}" class="row g-2 mb-3">
-          <div class="col-md-6"><label class="form-label">Nome do cargo</label><input type="text" name="name" class="form-control" required></div>
-          <div class="col-md-4"><label class="form-label">Permissão</label>
-            <select name="nivel" class="form-select">
-              <option value="visualizador">Visualizador</option>
-              <option value="operador">Operador</option>
-              <option value="admin">Gerente</option>
-            </select>
-          </div>
-          <div class="col-md-2 d-flex align-items-end"><button class="btn btn-success w-100" type="submit">Adicionar</button></div>
-        </form>
-        <div class="table-responsive-sm">
-          <table class="table table-hover align-middle">
-            <thead class="table-light"><tr><th>Nome</th><th>Permissão</th><th class="text-end">Ações</th></tr></thead>
-            <tbody>
-              {% for r in roles %}
-              <tr>
-                <td>{{ r.name }}</td>
-                <td>{{ r.nivel }}</td>
-                <td class="text-end">
-                  <form method="post" action="{{ url_for('usuarios.gestao_role_editar', id=r.id) }}" class="d-inline-flex gap-2 align-items-center">
-                    <input type="text" name="name" class="form-control form-control-sm" value="{{ r.name }}" placeholder="Nome">
-                    <select name="nivel" class="form-select form-select-sm">
-                      <option value="visualizador" {% if r.nivel=='visualizador' %}selected{% endif %}>Visualizador</option>
-                      <option value="operador" {% if r.nivel=='operador' %}selected{% endif %}>Operador</option>
-                      <option value="admin" {% if r.nivel=='admin' %}selected{% endif %}>Gerente</option>
-                    </select>
-                    <button class="btn btn-primary btn-sm" type="submit">Salvar</button>
-                  </form>
-                  <form method="post" action="{{ url_for('usuarios.gestao_role_excluir', id=r.id) }}" class="d-inline" onsubmit="return confirm('Excluir cargo {{ r.name }}?')">
-                    <button class="btn btn-danger btn-sm" type="submit">Excluir</button>
-                  </form>
-                </td>
-              </tr>
-              {% else %}
-              <tr><td colspan="3" class="text-center text-muted">Nenhum cargo</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
+<div class="mm-card mm-mb-6" id="cargos-permissoes">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <i class="bi bi-award mm-text-primary"></i>
+            Cargos e Permissões
+        </h3>
     </div>
-  </div>
+    <div class="mm-card-body">
+        <form method="post" action="{{ url_for('usuarios.gestao_role_criar') }}" class="mm-form-row mm-mb-6">
+            <div class="mm-form-group" style="flex: 2;">
+                <label class="mm-label">Nome do Cargo</label>
+                <input type="text" name="name" class="mm-input" placeholder="Ex: Atendente" required>
+            </div>
+            <div class="mm-form-group">
+                <label class="mm-label">Permissão</label>
+                <select name="nivel" class="mm-input mm-select">
+                    <option value="visualizador">Visualizador</option>
+                    <option value="operador">Operador</option>
+                    <option value="admin">Gerente</option>
+                </select>
+            </div>
+            <div class="mm-form-group" style="align-self: end;">
+                <button class="mm-btn mm-btn-primary" type="submit">
+                    <i class="bi bi-plus-lg"></i>
+                    Adicionar
+                </button>
+            </div>
+        </form>
+        
+        <div class="mm-table-wrapper">
+            <table class="mm-table">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Permissão</th>
+                        <th style="text-align: right;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in roles %}
+                    <tr>
+                        <td><strong>{{ r.name }}</strong></td>
+                        <td>
+                            {% if r.nivel == 'admin' %}
+                            <span class="mm-badge mm-badge-primary">Gerente</span>
+                            {% elif r.nivel == 'operador' %}
+                            <span class="mm-badge mm-badge-info">Operador</span>
+                            {% else %}
+                            <span class="mm-badge">Visualizador</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right;">
+                            <div class="mm-flex mm-gap-2 mm-items-center" style="justify-content: flex-end;">
+                                <form method="post" action="{{ url_for('usuarios.gestao_role_editar', id=r.id) }}" class="mm-inline-form mm-flex mm-gap-2 mm-items-center">
+                                    <input type="text" name="name" class="mm-input" value="{{ r.name }}" style="width: 140px;">
+                                    <select name="nivel" class="mm-input mm-select" style="width: 120px;">
+                                        <option value="visualizador" {% if r.nivel=='visualizador' %}selected{% endif %}>Visualizador</option>
+                                        <option value="operador" {% if r.nivel=='operador' %}selected{% endif %}>Operador</option>
+                                        <option value="admin" {% if r.nivel=='admin' %}selected{% endif %}>Gerente</option>
+                                    </select>
+                                    <button class="mm-btn mm-btn-primary mm-btn-sm" type="submit">
+                                        <i class="bi bi-save"></i>
+                                    </button>
+                                </form>
+                                <form method="post" action="{{ url_for('usuarios.gestao_role_excluir', id=r.id) }}" class="mm-inline-form" onsubmit="return confirm('Excluir cargo {{ r.name }}?')">
+                                    <button class="mm-btn mm-btn-danger mm-btn-sm" type="submit">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="mm-empty-cell">
+                            <div class="mm-empty-inline">
+                                <i class="bi bi-award"></i>
+                                <span>Nenhum cargo</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 {% endif %}
 
 {% if not view or view == 'colaboradores' %}
 {% for c in colaboradores %}
 <div class="modal fade" id="modalEditColab{{ c.id }}" tabindex="-1">
-  <div class="modal-dialog">
-    <form method="post" action="{{ url_for('usuarios.gestao_colabs_editar', id=c.id) }}">
-      <div class="modal-content">
-        <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title">Editar Colaborador</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-2"><label class="form-label">Nome</label><input type="text" name="name" class="form-control" value="{{ c.name }}" required></div>
-          <div class="mb-2"><label class="form-label">Cargo</label><input type="text" name="role" class="form-control" value="{{ c.role or '' }}"></div>
-          <div class="mb-2"><label class="form-label">Usuário</label>
-            <select name="user_id" class="form-select">
-              <option value="">—</option>
-              {% for u in users %}
-              <option value="{{ u.id }}" {% if c.user_id == u.id %}selected{% endif %}>{{ u.username }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="form-check form-switch mb-3">
-            <input class="form-check-input" type="checkbox" id="ativo{{ c.id }}" name="active" {% if c.active %}checked{% endif %}>
-            <label class="form-check-label" for="ativo{{ c.id }}">Ativo</label>
-          </div>
-          <div class="row g-2">
-            <div class="col-md-4"><label class="form-label">Equipe 1/2</label>
-              <select name="regular_team" class="form-select">
-                <option value="" {% if not c.regular_team %}selected{% endif %}>—</option>
-                <option value="1" {% if c.regular_team=='1' %}selected{% endif %}>1</option>
-                <option value="2" {% if c.regular_team=='2' %}selected{% endif %}>2</option>
-              </select>
+    <div class="modal-dialog">
+        <form method="post" action="{{ url_for('usuarios.gestao_colabs_editar', id=c.id) }}">
+            <div class="modal-content mm-modal">
+                <div class="modal-header mm-modal-header">
+                    <h5 class="modal-title">Editar Colaborador</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body mm-modal-body">
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Nome</label>
+                        <input type="text" name="name" class="mm-input" value="{{ c.name }}" required>
+                    </div>
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Cargo</label>
+                        <input type="text" name="role" class="mm-input" value="{{ c.role or '' }}">
+                    </div>
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Usuário Associado</label>
+                        <select name="user_id" class="mm-input mm-select">
+                            <option value="">—</option>
+                            {% for u in users %}
+                            <option value="{{ u.id }}" {% if c.user_id == u.id %}selected{% endif %}>{{ u.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mm-switch-group mm-mb-4">
+                        <label class="mm-switch">
+                            <input type="checkbox" name="active" {% if c.active %}checked{% endif %}>
+                            <span class="mm-switch-slider"></span>
+                        </label>
+                        <span>Ativo</span>
+                    </div>
+                    <div class="mm-form-row">
+                        <div class="mm-form-group">
+                            <label class="mm-label">Equipe 1/2</label>
+                            <select name="regular_team" class="mm-input mm-select">
+                                <option value="" {% if not c.regular_team %}selected{% endif %}>—</option>
+                                <option value="1" {% if c.regular_team=='1' %}selected{% endif %}>1</option>
+                                <option value="2" {% if c.regular_team=='2' %}selected{% endif %}>2</option>
+                            </select>
+                        </div>
+                        <div class="mm-form-group">
+                            <label class="mm-label">Domingo 1/2</label>
+                            <select name="sunday_team" class="mm-input mm-select">
+                                <option value="" {% if not c.sunday_team %}selected{% endif %}>—</option>
+                                <option value="1" {% if c.sunday_team=='1' %}selected{% endif %}>1</option>
+                                <option value="2" {% if c.sunday_team=='2' %}selected{% endif %}>2</option>
+                            </select>
+                        </div>
+                        <div class="mm-form-group">
+                            <label class="mm-label">Especial 1/2</label>
+                            <select name="special_team" class="mm-input mm-select">
+                                <option value="" {% if not c.special_team %}selected{% endif %}>—</option>
+                                <option value="1" {% if c.special_team=='1' %}selected{% endif %}>1</option>
+                                <option value="2" {% if c.special_team=='2' %}selected{% endif %}>2</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer mm-modal-footer">
+                    <button class="mm-btn mm-btn-outline" type="button" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="mm-btn mm-btn-primary" type="submit">Salvar</button>
+                </div>
             </div>
-            <div class="col-md-4"><label class="form-label">Domingo 1/2</label>
-              <select name="sunday_team" class="form-select">
-                <option value="" {% if not c.sunday_team %}selected{% endif %}>—</option>
-                <option value="1" {% if c.sunday_team=='1' %}selected{% endif %}>1</option>
-                <option value="2" {% if c.sunday_team=='2' %}selected{% endif %}>2</option>
-              </select>
-            </div>
-            <div class="col-md-4"><label class="form-label">Especial 1/2</label>
-              <select name="special_team" class="form-select">
-                <option value="" {% if not c.special_team %}selected{% endif %}>—</option>
-                <option value="1" {% if c.special_team=='1' %}selected{% endif %}>1</option>
-                <option value="2" {% if c.special_team=='2' %}selected{% endif %}>2</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer"><button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary" type="submit">Salvar</button></div>
-      </div>
-    </form>
-  </div>
-  </div>
-{% endfor %}
-  <div class="col-12">
-    <div class="card card-animated" id="colaboradores">
-      <div class="card-header d-flex align-items-center justify-content-between"><span>Colaboradores</span></div>
-      <div class="card-body">
-        <form method="post" action="{{ url_for('usuarios.gestao_colabs_horas_adicionar') }}" class="row g-2 mb-3">
-          <div class="col-md-3">
-            <label class="form-label">Colaborador</label>
-            <select name="collaborator_id" class="form-select" required>
-              {% for c in colaboradores %}
-              <option value="{{ c.id }}">{{ c.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="col-md-2">
-            <label class="form-label">Data</label>
-            <input type="date" name="date" class="form-control" required>
-          </div>
-          <div class="col-md-2">
-            <label class="form-label">Horas (+/-)</label>
-            <input type="number" name="hours" step="0.25" class="form-control" placeholder="ex: 2 ou -1" required>
-          </div>
-          <div class="col-md-5">
-            <label class="form-label">Motivo</label>
-            <input type="text" name="reason" class="form-control" placeholder="Motivo do lançamento">
-          </div>
-          <div class="col-12 d-flex justify-content-end">
-            <button class="btn btn-primary" type="submit">Registrar</button>
-          </div>
         </form>
-        <div class="table-responsive">
-          <table class="table table-sm table-hover align-middle">
-            <thead class="table-light">
-              <tr>
-                <th>Data</th>
-                <th>Colaborador</th>
-                <th class="text-end">Horas</th>
-                <th>Motivo</th>
-                <th class="text-end">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for e in recent_entries %}
-              {% set col = colaboradores|selectattr('id', 'equalto', e.collaborator_id)|list|first %}
-              <tr>
-                <td>{{ e.date.strftime('%d/%m/%Y') }}</td>
-                <td>{{ col and col.name or ('ID ' ~ e.collaborator_id) }}</td>
-                <td class="text-end">{{ '%.2f'|format(e.hours) }}h</td>
-                <td>{{ e.reason or '-' }}</td>
-                <td class="text-end">
-                  <form method="post" action="{{ url_for('usuarios.gestao_colabs_horas_excluir', id=e.id) }}" class="d-inline" onsubmit="return confirm('Excluir lançamento?')">
-                    <button class="btn btn-sm btn-danger" type="submit">Excluir</button>
-                  </form>
-                </td>
-              </tr>
-              {% else %}
-              <tr><td colspan="5" class="text-center text-muted">Sem lançamentos</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
     </div>
-  </div>
-  </div>
-  </div>
 </div>
+{% endfor %}
+
+<div class="mm-card mm-mb-6" id="colaboradores">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <i class="bi bi-person-badge mm-text-primary"></i>
+            Colaboradores
+        </h3>
+    </div>
+    <div class="mm-card-body">
+        <form method="post" action="{{ url_for('usuarios.gestao_colabs_horas_adicionar') }}" class="mm-form-row mm-mb-6">
+            <div class="mm-form-group">
+                <label class="mm-label">Colaborador</label>
+                <select name="collaborator_id" class="mm-input mm-select" required>
+                    {% for c in colaboradores %}
+                    <option value="{{ c.id }}">{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mm-form-group">
+                <label class="mm-label">Data</label>
+                <input type="date" name="date" class="mm-input" required>
+            </div>
+            <div class="mm-form-group">
+                <label class="mm-label">Horas (+/-)</label>
+                <input type="number" name="hours" step="0.25" class="mm-input" placeholder="ex: 2 ou -1" required>
+            </div>
+            <div class="mm-form-group" style="flex: 2;">
+                <label class="mm-label">Motivo</label>
+                <input type="text" name="reason" class="mm-input" placeholder="Motivo do lançamento">
+            </div>
+            <div class="mm-form-group" style="align-self: end;">
+                <button class="mm-btn mm-btn-primary" type="submit">
+                    <i class="bi bi-plus-lg"></i>
+                    Registrar
+                </button>
+            </div>
+        </form>
+        
+        <div class="mm-table-wrapper">
+            <table class="mm-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Colaborador</th>
+                        <th style="text-align: right;">Horas</th>
+                        <th>Motivo</th>
+                        <th style="text-align: right;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in recent_entries %}
+                    {% set col = colaboradores|selectattr('id', 'equalto', e.collaborator_id)|list|first %}
+                    <tr>
+                        <td>{{ e.date.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ col and col.name or ('ID ' ~ e.collaborator_id) }}</td>
+                        <td style="text-align: right;">
+                            {% if e.hours > 0 %}
+                            <span class="mm-badge mm-badge-success">+{{ '%.2f'|format(e.hours) }}h</span>
+                            {% elif e.hours < 0 %}
+                            <span class="mm-badge mm-badge-danger">{{ '%.2f'|format(e.hours) }}h</span>
+                            {% else %}
+                            <span class="mm-badge">{{ '%.2f'|format(e.hours) }}h</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ e.reason or '-' }}</td>
+                        <td style="text-align: right;">
+                            <div class="mm-flex mm-gap-2" style="justify-content: flex-end;">
+                                <button class="mm-btn mm-btn-outline mm-btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#modalEditHoras{{ e.id }}">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" action="{{ url_for('usuarios.gestao_colabs_horas_excluir', id=e.id) }}" class="mm-inline-form" onsubmit="return confirm('Excluir lançamento?')">
+                                    <button class="mm-btn mm-btn-danger mm-btn-sm" type="submit">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="mm-empty-cell">
+                            <div class="mm-empty-inline">
+                                <i class="bi bi-clock-history"></i>
+                                <span>Sem lançamentos</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% for e in recent_entries %}
+<div class="modal fade" id="modalEditHoras{{ e.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="post" action="{{ url_for('usuarios.gestao_colabs_horas_editar', id=e.id) }}">
+            <div class="modal-content mm-modal">
+                <div class="modal-header mm-modal-header">
+                    <h5 class="modal-title">Editar Lançamento de Horas</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body mm-modal-body">
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Data</label>
+                        <input type="date" name="date" class="mm-input" value="{{ e.date.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Horas (+/-)</label>
+                        <input type="number" name="hours" step="0.25" class="mm-input" value="{{ e.hours }}" required>
+                    </div>
+                    <div class="mm-form-group">
+                        <label class="mm-label">Motivo</label>
+                        <input type="text" name="reason" class="mm-input" value="{{ e.reason or '' }}">
+                    </div>
+                </div>
+                <div class="modal-footer mm-modal-footer">
+                    <button class="mm-btn mm-btn-outline" type="button" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="mm-btn mm-btn-primary" type="submit">Salvar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
 {% endif %}
 
 {% if not view or view == 'banco' %}
-<div class="row g-3 mt-3">
-  {% for c in colaboradores %}
-  <div class="modal fade" id="modalEditColab{{ c.id }}" tabindex="-1">
-    <div class="modal-dialog">
-      <form method="post" action="{{ url_for('usuarios.gestao_colabs_editar', id=c.id) }}">
-        <div class="modal-content">
-          <div class="modal-header bg-primary text-white">
-            <h5 class="modal-title">Editar Colaborador</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <div class="mb-2"><label class="form-label">Nome</label><input type="text" name="name" class="form-control" value="{{ c.name }}" required></div>
-            <div class="mb-2"><label class="form-label">Cargo</label><input type="text" name="role" class="form-control" value="{{ c.role or '' }}"></div>
-            <div class="mb-2"><label class="form-label">Usuário</label>
-              <select name="user_id" class="form-select">
-                <option value="">—</option>
-                {% for u in users %}
-                <option value="{{ u.id }}" {% if c.user_id == u.id %}selected{% endif %}>{{ u.username }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="form-check form-switch mb-3">
-              <input class="form-check-input" type="checkbox" id="ativoBanco{{ c.id }}" name="active" {% if c.active %}checked{% endif %}>
-              <label class="form-check-label" for="ativoBanco{{ c.id }}">Ativo</label>
-            </div>
-            <div class="row g-2">
-              <div class="col-md-4"><label class="form-label">Equipe 1/2</label>
-                <select name="regular_team" class="form-select">
-                  <option value="" {% if not c.regular_team %}selected{% endif %}>—</option>
-                  <option value="1" {% if c.regular_team=='1' %}selected{% endif %}>1</option>
-                  <option value="2" {% if c.regular_team=='2' %}selected{% endif %}>2</option>
-                </select>
-              </div>
-              <div class="col-md-4"><label class="form-label">Domingo 1/2</label>
-                <select name="sunday_team" class="form-select">
-                  <option value="" {% if not c.sunday_team %}selected{% endif %}>—</option>
-                  <option value="1" {% if c.sunday_team=='1' %}selected{% endif %}>1</option>
-                  <option value="2" {% if c.sunday_team=='2' %}selected{% endif %}>2</option>
-                </select>
-              </div>
-              <div class="col-md-4"><label class="form-label">Especial 1/2</label>
-                <select name="special_team" class="form-select">
-                  <option value="" {% if not c.special_team %}selected{% endif %}>—</option>
-                  <option value="1" {% if c.special_team=='1' %}selected{% endif %}>1</option>
-                  <option value="2" {% if c.special_team=='2' %}selected{% endif %}>2</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer"><button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary" type="submit">Salvar</button></div>
-        </div>
-      </form>
+<div class="mm-card mm-mb-6" id="banco-de-horas">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <i class="bi bi-clock-history mm-text-primary"></i>
+            Banco de Horas
+        </h3>
     </div>
-  </div>
-  {% endfor %}
-  <div class="col-12">
-    <div class="card card-animated" id="banco-de-horas">
-      <div class="card-header d-flex align-items-center justify-content-between"><span>Banco de Horas</span></div>
-      <div class="card-body">
-        <div class="table-responsive-sm">
-          <table class="table table-hover align-middle">
-            <thead class="table-light">
-              <tr>
-                <th>Nome</th>
-                <th>Cargo</th>
-                <th>Banco</th>
-                <th>Usuário</th>
-                <th>Status</th>
-                <th class="text-end" style="width: 12rem">Ações</th>
-              </tr>
-            </thead>
-        <tbody>
-          {% for c in colaboradores %}
-          <tr>
-            <td>{{ c.name }}</td>
-            <td>{{ c.role or '-' }}</td>
-                {% set saldo = (bank_balances.get(c.id) or 0.0) %}
-                {% set cls = 'text-bg-secondary' %}
-                {% if saldo > 0 %}{% set cls = 'text-bg-success' %}{% elif saldo < 0 %}{% set cls = 'text-bg-danger' %}{% endif %}
-                <td><span class="badge {{ cls }}">{{ '%.2f'|format(saldo) }}h</span></td>
-                <td>
-                  {% set u = users|selectattr('id','equalto', c.user_id)|list|first %}
-                  {{ u and u.username or '-' }}
-                </td>
-                <td>{% if c.active %}<span class="badge text-bg-success">Ativo</span>{% else %}<span class="badge text-bg-secondary">Inativo</span>{% endif %}</td>
-            <td class="text-end">
-              <button class="btn btn-primary btn-sm me-2" data-bs-toggle="modal" data-bs-target="#modalEditColab{{ c.id }}">Editar</button>
-              <form method="post" action="{{ url_for('usuarios.gestao_colabs_excluir', id=c.id) }}" class="d-inline" onsubmit="return confirm('Excluir {{ c.name }}?')">
-                <button class="btn btn-danger btn-sm" type="submit">Excluir</button>
-              </form>
-            </td>
-          </tr>
-              {% else %}
-              <tr><td colspan="6" class="text-center text-muted">Nenhum colaborador</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
+    <div class="mm-card-body">
+        <div class="mm-table-wrapper">
+            <table class="mm-table">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Cargo</th>
+                        <th>Banco</th>
+                        <th>Usuário</th>
+                        <th>Status</th>
+                        <th style="text-align: right;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in colaboradores %}
+                    <tr>
+                        <td><strong>{{ c.name }}</strong></td>
+                        <td>{{ c.role or '-' }}</td>
+                        <td>
+                            {% set saldo = (bank_balances.get(c.id) or 0.0) %}
+                            {% if saldo > 0 %}
+                            <span class="mm-badge mm-badge-success">+{{ '%.2f'|format(saldo) }}h</span>
+                            {% elif saldo < 0 %}
+                            <span class="mm-badge mm-badge-danger">{{ '%.2f'|format(saldo) }}h</span>
+                            {% else %}
+                            <span class="mm-badge">{{ '%.2f'|format(saldo) }}h</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% set linked_user = users|selectattr('id', 'equalto', c.user_id)|list|first if c.user_id else None %}
+                            {{ linked_user.username if linked_user else '-' }}
+                        </td>
+                        <td>
+                            {% if c.active %}
+                            <span class="mm-badge mm-badge-success">Ativo</span>
+                            {% else %}
+                            <span class="mm-badge mm-badge-danger">Inativo</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right;">
+                            <button class="mm-btn mm-btn-outline mm-btn-sm" data-bs-toggle="modal" data-bs-target="#modalEditColab{{ c.id }}">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <form method="post" action="{{ url_for('usuarios.gestao_colabs_excluir', id=c.id) }}" class="mm-inline-form" onsubmit="return confirm('Excluir colaborador {{ c.name }}?')">
+                                <button class="mm-btn mm-btn-danger mm-btn-sm" type="submit">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="mm-empty-cell">
+                            <div class="mm-empty-inline">
+                                <i class="bi bi-person-x"></i>
+                                <span>Nenhum colaborador</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-      </div>
     </div>
-  </div>
+</div>
 {% endif %}
-
-
-<div class="modal fade" id="modalNovoColab" tabindex="-1">
-  <div class="modal-dialog">
-    <form method="post" action="{{ url_for('usuarios.gestao_colabs_criar') }}">
-      <div class="modal-content">
-        <div class="modal-header bg-success text-white">
-          <h5 class="modal-title">Novo Colaborador</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-2"><label class="form-label">Nome</label><input type="text" name="name" class="form-control" required></div>
-          <div class="mb-2"><label class="form-label">Cargo</label><input type="text" name="role" class="form-control"></div>
-          <div class="mb-2"><label class="form-label">Usuário</label>
-            <select name="user_id" class="form-select">
-              <option value="">—</option>
-              {% for u in users %}
-              <option value="{{ u.id }}">{{ u.username }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="row g-2">
-            <div class="col-md-4"><label class="form-label">Equipe 1/2</label>
-              <select name="regular_team" class="form-select"><option value="">—</option><option value="1">1</option><option value="2">2</option></select>
-            </div>
-            <div class="col-md-4"><label class="form-label">Domingo 1/2</label>
-              <select name="sunday_team" class="form-select"><option value="">—</option><option value="1">1</option><option value="2">2</option></select>
-            </div>
-            <div class="col-md-4"><label class="form-label">Especial 1/2</label>
-              <select name="special_team" class="form-select"><option value="">—</option><option value="1">1</option><option value="2">2</option></select>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer"><button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-success" type="submit">Criar</button></div>
-      </div>
-    </form>
-</div>
-</div>
-</div>
-
-<!-- Eventos movidos para o final -->
-
-<div class="modal fade" id="modalNovoUsuario">
-  <div class="modal-dialog">
-    <form method="post" action="{{ url_for('usuarios.users') }}">
-      <div class="modal-content">
-        <div class="modal-header bg-success text-white">
-          <h5 class="modal-title">Novo Usuário</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label fw-bold">Nome da pessoa</label>
-            <input type="text" name="name" class="form-control" required autofocus>
-          </div>
-          <div class="mb-3">
-            <label class="form-label fw-bold">Login</label>
-            <input type="text" name="username" class="form-control" placeholder="ex.: joaosilva">
-            <div class="form-text">Se deixar vazio, um login será gerado automaticamente.</div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label fw-bold">Senha</label>
-            <input type="text" name="password" class="form-control" value="{{ senha_sugestao }}" required>
-            <div class="form-text">Defina a senha inicial do usuário.</div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Nível inicial</label>
-            <select name="nivel" class="form-select">
-              <option value="visualizador">Visualizador</option>
-              <option value="operador">Operador</option>
-              <option value="admin">Gerente</option>
-            </select>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-success">Criar</button>
-        </div>
-      </div>
-    </form>
-</div>
-</div>
-
 
 {% if not view or view == 'folgas' %}
-<div class="card card-animated mt-3" id="folga-credito-domingo">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <span>Créditos de Folga</span>
-    <small class="text-muted">Domingo trabalhado</small>
-  </div>
-  <div class="card-body">
-    <div class="small text-muted mb-2">Informe uma data que seja domingo; gera +1 dia por domingo.</div>
-    <form class="row g-2" method="post" action="{{ url_for('colaboradores.folga_credito_domingo') }}">
-      <div class="col-md-6">
-        <label class="form-label">Colaborador</label>
-        <select name="collaborator_id" class="form-select" required>
-          {% for c in colaboradores %}
-          <option value="{{ c.id }}">{{ c.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Data (domingo)</label>
-        <input type="date" name="date" class="form-control" required>
-        <div class="form-text">Use um domingo; evita duplicidade por data.</div>
-      </div>
-      <div class="col-md-2 d-flex align-items-end">
-        <button class="btn btn-warning w-100" type="submit">Domingo</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<div class="card card-animated mt-3" id="folga-credito-personalizado">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <span>Crédito personalizado</span>
-  </div>
-  <div class="card-body">
-    <div class="small text-muted mb-2">Informe data, quantidade de dias e motivo do crédito.</div>
-    <form class="row g-2" method="post" action="{{ url_for('colaboradores.folga_credito_registrar_gestao') }}">
-      <div class="col-md-6">
-        <label class="form-label">Colaborador</label>
-        <select name="collaborator_id" class="form-select" required>
-          {% for c in colaboradores %}
-          <option value="{{ c.id }}">{{ c.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Data</label>
-        <input type="date" name="date" class="form-control" required>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Dias (inteiro)</label>
-        <input type="number" min="1" step="1" name="amount" class="form-control" value="1">
-      </div>
-      <div class="col-12">
-        <label class="form-label">Motivo</label>
-        <input type="text" name="notes" class="form-control" placeholder="Ex.: compensação, acordo, extra">
-      </div>
-      <div class="col-12 d-flex justify-content-end">
-        <button class="btn btn-success" type="submit">Adicionar (Personalizado)</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<div class="card card-animated mt-3" id="folga-reducao-credito">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <span>Redução de crédito</span>
-  </div>
-  <div class="card-body">
-    <div class="small text-muted mb-2">Diminui dias disponíveis do colaborador; informe quantidade inteira e opcionalmente uma observação.</div>
-    <form class="row g-2" method="post" action="{{ url_for('colaboradores.folga_credito_reduzir') }}">
-      <div class="col-md-6">
-        <label class="form-label">Colaborador</label>
-        <select name="collaborator_id" class="form-select" required>
-          {% for c in colaboradores %}
-          <option value="{{ c.id }}">{{ c.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Reduzir (dias inteiros)</label>
-        <input type="number" min="1" step="1" name="amount" class="form-control" value="1">
-      </div>
-      <div class="col-md-3 d-flex align-items-end">
-        <button class="btn btn-outline-danger w-100" type="submit">Reduzir</button>
-      </div>
-      <div class="col-12">
-        <input type="text" name="notes" class="form-control" placeholder="Observação do ajuste">
-      </div>
-    </form>
-  </div>
-</div>
-
-<div class="card card-animated mt-3" id="folga-agendar">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <span>Agendar folga</span>
-  </div>
-  <div class="card-body">
-    <div class="small text-muted mb-2">Registra uso de dias de folga; informe data e dias inteiros.</div>
-    <form class="row g-2" method="post" action="{{ url_for('colaboradores.folga_agendar') }}">
-      <div class="col-md-5">
-        <label class="form-label">Colaborador</label>
-        <select name="collaborator_id" class="form-select" required>
-          {% for c in colaboradores %}
-          <option value="{{ c.id }}">{{ c.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Data da folga</label>
-        <input type="date" name="date" class="form-control" required>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Dias (inteiro)</label>
-        <input type="number" min="1" step="1" name="days" class="form-control" value="1">
-      </div>
-      <div class="col-12">
-        <input type="text" name="notes" class="form-control" placeholder="Observação">
-      </div>
-      <div class="col-12 d-flex justify-content-end">
-        <button class="btn btn-primary" type="submit">Agendar Folga</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<div class="card card-animated mt-3" id="folga-converter">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <span>Converter em pagamento (R$)</span>
-  </div>
-  <div class="card-body">
-    <div class="small text-muted mb-2">Converte dias em valor; se não informar o total pago, será calculado automaticamente por R$/dia × dias.</div>
-    <form class="row g-2" method="post" action="{{ url_for('colaboradores.folga_converter') }}">
-      <div class="col-md-5">
-        <label class="form-label">Colaborador</label>
-        <select name="collaborator_id" class="form-select" required>
-          {% for c in colaboradores %}
-          <option value="{{ c.id }}">{{ c.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Data</label>
-        <input type="date" name="date" class="form-control" required>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Dias (inteiro)</label>
-        <input type="number" min="1" step="1" name="days" class="form-control" value="1">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">R$/dia</label>
-        <input type="number" step="0.01" name="rate_per_day" class="form-control" value="65.00">
-      </div>
-      <div class="col-12">
-        <label class="form-label">Valor pago</label>
-        <input type="number" step="0.01" name="amount_paid" class="form-control" placeholder="Opcional: calcula automático">
-      </div>
-      <div class="col-12">
-        <input type="text" name="notes" class="form-control" placeholder="Observação">
-      </div>
-      <div class="col-12 d-flex justify-content-end">
-        <button class="btn btn-outline-success" type="submit">Converter em R$</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<div class="card card-animated mt-3" id="folga-saldo">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <span>Saldo de Folgas</span>
-  </div>
-  <div class="card-body">
-    <div class="table-responsive-sm">
-      <table class="table table-hover align-middle">
-        <thead class="table-light"><tr><th>Colaborador</th><th class="text-end">Dias disponíveis</th></tr></thead>
-        <tbody>
-          {% for it in folgas %}
-          <tr>
-            <td>{{ it.collab.name }}</td>
-            <td class="text-end">{{ it.balance }}</td>
-          </tr>
-          {% else %}
-          <tr><td colspan="2" class="text-center text-muted">Sem dados</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+<div class="mm-card mm-mb-6" id="folgas">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <i class="bi bi-calendar-check mm-text-primary"></i>
+            Gestão de Folgas
+        </h3>
     </div>
-  </div>
-</div>
-{% endif %}
-
-{% if not view or view == 'eventos' %}
-<div class="card card-animated mt-3" id="registro-de-eventos">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <span>Registro de Eventos</span>
-    <div class="small text-muted">Últimos registros do sistema, estoque e limpeza</div>
-  </div>
-  <div class="card-body">
-    <div class="table-responsive-sm">
-      <table class="table table-hover align-middle">
-        <thead class="table-light"><tr><th>Data</th><th>Origem</th><th>Evento</th><th>Detalhes</th><th>Usuário</th><th>Produto</th><th class="text-end">Quantidade</th></tr></thead>
-        <tbody>
-          {% for it in logs_page %}
-          <tr>
-            <td>{{ it.data.strftime('%d/%m/%Y %H:%M') }}</td>
-            <td>{{ it.origem }}</td>
-            <td>{{ it.evento }}</td>
-            <td>{{ it.detalhes }}</td>
-            <td>{{ it.usuario or '-' }}</td>
-            <td>{{ it.produto or '-' }}</td>
-            <td class="text-end">{{ it.quantidade if it.quantidade is not none else '-' }}</td>
-          </tr>
-          {% else %}
-          <tr><td colspan="7" class="text-center text-muted">Sem eventos</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    <nav class="mt-2 d-flex justify-content-between align-items-center">
-      <div class="small text-muted">Página {{ l_page }} de {{ l_total_pages }}</div>
-      <div class="btn-group">
-        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page }}&l_page={{ l_page-1 if l_page>1 else 1 }}&q={{ q }}">Anterior</a>
-        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page }}&l_page={{ l_page+1 if l_page<l_total_pages else l_total_pages }}&q={{ q }}">Próximo</a>
-      </div>
-    </nav>
-  </div>
- </div>
-{% endif %}
-
-
-{% if not view or view == 'acessos' %}
-<div class="row g-3 mt-3" id="registro-de-acessos">
-  <div class="col-12">
-    <div class="card card-animated">
-      <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-        <span>Registro de Acessos</span>
-        <form method="get" action="{{ url_for('usuarios.gestao') }}" class="d-flex align-items-center gap-2">
-          <input type="hidden" name="u_page" value="{{ u_page }}">
-          <input type="hidden" name="l_page" value="{{ l_page }}">
-          <input type="hidden" name="acc_page" value="1">
-          <input type="text" name="acc_user" class="form-control form-control-sm" placeholder="Filtrar por usuário" value="{{ acc_user }}" style="max-width: 220px;">
-          <button type="submit" class="btn btn-outline-primary btn-sm">Filtrar</button>
+    <div class="mm-card-body">
+        <h4 class="mm-text-lg mm-font-semibold mm-mb-4">
+            <i class="bi bi-plus-circle mm-text-success"></i>
+            Créditos de Folga
+        </h4>
+        <form method="post" action="{{ url_for('usuarios.gestao_colabs_folga_credito_adicionar') }}" class="mm-form-row mm-mb-6">
+            <div class="mm-form-group">
+                <label class="mm-label">Colaborador</label>
+                <select name="collaborator_id" class="mm-input mm-select" required>
+                    {% for c in colaboradores %}
+                    <option value="{{ c.id }}">{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mm-form-group">
+                <label class="mm-label">Data</label>
+                <input type="date" name="date" class="mm-input" required>
+            </div>
+            <div class="mm-form-group">
+                <label class="mm-label">Dias</label>
+                <input type="number" name="amount_days" class="mm-input" min="1" value="1" required>
+            </div>
+            <div class="mm-form-group">
+                <label class="mm-label">Origem</label>
+                <select name="origin" class="mm-input mm-select">
+                    <option value="manual">Manual</option>
+                    <option value="horas">Banco de Horas</option>
+                    <option value="bonus">Bônus</option>
+                </select>
+            </div>
+            <div class="mm-form-group" style="flex: 2;">
+                <label class="mm-label">Observações</label>
+                <input type="text" name="notes" class="mm-input" placeholder="Observações (opcional)">
+            </div>
+            <div class="mm-form-group" style="align-self: end;">
+                <button class="mm-btn mm-btn-primary" type="submit">
+                    <i class="bi bi-plus-lg"></i>
+                    Adicionar Crédito
+                </button>
+            </div>
         </form>
-      </div>
-      <div class="card-body">
-        <div class="table-responsive-sm">
-          <table class="table table-hover align-middle">
-            <thead class="table-light"><tr><th>Data/Hora</th><th>Usuário</th></tr></thead>
-            <tbody>
-              {% for a in access_page %}
-              <tr>
-                <td>{{ a.data.strftime('%d/%m/%Y %H:%M:%S') }}</td>
-                <td>{{ a.usuario }}</td>
-              </tr>
-              {% else %}
-              <tr><td colspan="2" class="text-center text-muted">Sem acessos</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
+        
+        <div class="mm-table-wrapper mm-mb-6">
+            <table class="mm-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Colaborador</th>
+                        <th style="text-align: center;">Dias</th>
+                        <th>Origem</th>
+                        <th>Observações</th>
+                        <th style="text-align: right;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lc in leave_credits %}
+                    {% set col = colaboradores|selectattr('id', 'equalto', lc.collaborator_id)|list|first %}
+                    <tr>
+                        <td>{{ lc.date.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ col and col.name or ('ID ' ~ lc.collaborator_id) }}</td>
+                        <td style="text-align: center;">
+                            <span class="mm-badge mm-badge-success">+{{ lc.amount_days }}</span>
+                        </td>
+                        <td>
+                            {% if lc.origin == 'horas' %}
+                            <span class="mm-badge mm-badge-info">Banco de Horas</span>
+                            {% elif lc.origin == 'bonus' %}
+                            <span class="mm-badge mm-badge-warning">Bônus</span>
+                            {% else %}
+                            <span class="mm-badge">Manual</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ lc.notes or '-' }}</td>
+                        <td style="text-align: right;">
+                            <div class="mm-flex mm-gap-2" style="justify-content: flex-end;">
+                                <button class="mm-btn mm-btn-outline mm-btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#modalEditCredito{{ lc.id }}">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" action="{{ url_for('usuarios.gestao_colabs_folga_credito_excluir', id=lc.id) }}" class="mm-inline-form" onsubmit="return confirm('Excluir crédito de folga?')">
+                                    <button class="mm-btn mm-btn-danger mm-btn-sm" type="submit">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="mm-empty-cell">
+                            <div class="mm-empty-inline">
+                                <i class="bi bi-calendar-plus"></i>
+                                <span>Sem créditos de folga</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-        <nav class="mt-2 d-flex justify-content-between align-items-center">
-          <div class="small text-muted">Página {{ acc_page }} de {{ acc_total_pages }}</div>
-          <div class="btn-group">
-            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page }}&l_page={{ l_page }}&acc_page={{ acc_page-1 if acc_page>1 else 1 }}&acc_user={{ acc_user }}">Anterior</a>
-            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page }}&l_page={{ l_page }}&acc_page={{ acc_page+1 if acc_page<acc_total_pages else acc_total_pages }}&acc_user={{ acc_user }}">Próximo</a>
-          </div>
-        </nav>
-      </div>
+        
+        <hr class="mm-divider mm-mb-6">
+        
+        <h4 class="mm-text-lg mm-font-semibold mm-mb-4">
+            <i class="bi bi-calendar-minus mm-text-danger"></i>
+            Uso de Folgas
+        </h4>
+        <form method="post" action="{{ url_for('usuarios.gestao_colabs_folga_uso_adicionar') }}" class="mm-form-row mm-mb-6">
+            <div class="mm-form-group">
+                <label class="mm-label">Colaborador</label>
+                <select name="collaborator_id" class="mm-input mm-select" required>
+                    {% for c in colaboradores %}
+                    <option value="{{ c.id }}">{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mm-form-group">
+                <label class="mm-label">Data</label>
+                <input type="date" name="date" class="mm-input" required>
+            </div>
+            <div class="mm-form-group">
+                <label class="mm-label">Dias Usados</label>
+                <input type="number" name="days_used" class="mm-input" min="1" value="1" required>
+            </div>
+            <div class="mm-form-group" style="flex: 2;">
+                <label class="mm-label">Motivo</label>
+                <input type="text" name="reason" class="mm-input" placeholder="Motivo da folga (opcional)">
+            </div>
+            <div class="mm-form-group" style="align-self: end;">
+                <button class="mm-btn mm-btn-primary" type="submit">
+                    <i class="bi bi-plus-lg"></i>
+                    Registrar Uso
+                </button>
+            </div>
+        </form>
+        
+        <div class="mm-table-wrapper">
+            <table class="mm-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Colaborador</th>
+                        <th style="text-align: center;">Dias Usados</th>
+                        <th>Motivo</th>
+                        <th style="text-align: right;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for la in leave_assignments %}
+                    {% set col = colaboradores|selectattr('id', 'equalto', la.collaborator_id)|list|first %}
+                    <tr>
+                        <td>{{ la.date.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ col and col.name or ('ID ' ~ la.collaborator_id) }}</td>
+                        <td style="text-align: center;">
+                            <span class="mm-badge mm-badge-danger">-{{ la.days_used }}</span>
+                        </td>
+                        <td>{{ la.reason or '-' }}</td>
+                        <td style="text-align: right;">
+                            <div class="mm-flex mm-gap-2" style="justify-content: flex-end;">
+                                <button class="mm-btn mm-btn-outline mm-btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#modalEditUso{{ la.id }}">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" action="{{ url_for('usuarios.gestao_colabs_folga_uso_excluir', id=la.id) }}" class="mm-inline-form" onsubmit="return confirm('Excluir uso de folga?')">
+                                    <button class="mm-btn mm-btn-danger mm-btn-sm" type="submit">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="mm-empty-cell">
+                            <div class="mm-empty-inline">
+                                <i class="bi bi-calendar-x"></i>
+                                <span>Sem uso de folgas registrado</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-  </div>
 </div>
+
+{% for lc in leave_credits %}
+<div class="modal fade" id="modalEditCredito{{ lc.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="post" action="{{ url_for('usuarios.gestao_colabs_folga_credito_editar', id=lc.id) }}">
+            <div class="modal-content mm-modal">
+                <div class="modal-header mm-modal-header">
+                    <h5 class="modal-title">Editar Crédito de Folga</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body mm-modal-body">
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Data</label>
+                        <input type="date" name="date" class="mm-input" value="{{ lc.date.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Dias</label>
+                        <input type="number" name="amount_days" class="mm-input" min="1" value="{{ lc.amount_days }}" required>
+                    </div>
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Origem</label>
+                        <select name="origin" class="mm-input mm-select">
+                            <option value="manual" {% if lc.origin == 'manual' %}selected{% endif %}>Manual</option>
+                            <option value="horas" {% if lc.origin == 'horas' %}selected{% endif %}>Banco de Horas</option>
+                            <option value="bonus" {% if lc.origin == 'bonus' %}selected{% endif %}>Bônus</option>
+                        </select>
+                    </div>
+                    <div class="mm-form-group">
+                        <label class="mm-label">Observações</label>
+                        <input type="text" name="notes" class="mm-input" value="{{ lc.notes or '' }}">
+                    </div>
+                </div>
+                <div class="modal-footer mm-modal-footer">
+                    <button class="mm-btn mm-btn-outline" type="button" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="mm-btn mm-btn-primary" type="submit">Salvar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+
+{% for la in leave_assignments %}
+<div class="modal fade" id="modalEditUso{{ la.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="post" action="{{ url_for('usuarios.gestao_colabs_folga_uso_editar', id=la.id) }}">
+            <div class="modal-content mm-modal">
+                <div class="modal-header mm-modal-header">
+                    <h5 class="modal-title">Editar Uso de Folga</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body mm-modal-body">
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Data</label>
+                        <input type="date" name="date" class="mm-input" value="{{ la.date.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Dias Usados</label>
+                        <input type="number" name="days_used" class="mm-input" min="1" value="{{ la.days_used }}" required>
+                    </div>
+                    <div class="mm-form-group">
+                        <label class="mm-label">Motivo</label>
+                        <input type="text" name="reason" class="mm-input" value="{{ la.reason or '' }}">
+                    </div>
+                </div>
+                <div class="modal-footer mm-modal-footer">
+                    <button class="mm-btn mm-btn-outline" type="button" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="mm-btn mm-btn-primary" type="submit">Salvar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
 {% endif %}
 
-<div style="height:3cm"></div>
+<style>
+.mm-page-header {
+    margin-bottom: var(--mm-space-6);
+}
 
-{% if current_user.nivel == 'admin' %}
-<div class="card card-animated card-vps-danger mb-3">
-  <div class="card-header d-flex align-items-center justify-content-between">
-    <span>Acesso VPS</span>
-  </div>
-  <div class="card-body">
-    <div class="row g-3 align-items-center">
-      <div class="col-12 col-md-6">
-        <div class="fw-semibold mb-1">Armazenamento da VPS</div>
-        {% if vps_storage %}
-        <div class="progress mb-1" style="height: 20px;">
-          <div class="progress-bar bg-danger" role="progressbar" style="width: 0%;" data-width="{{ vps_storage.used_pct }}" aria-valuemin="0" aria-valuemax="100">{{ vps_storage.used_pct }}%</div>
-        </div>
-        <div class="small text-muted">Usado: {{ vps_storage.used_str }} • Livre: {{ vps_storage.free_str }} • Total: {{ vps_storage.total_str }}</div>
-        <div class="small text-muted">Uptime: {{ vps_storage.uptime_str or '-' }} • Carga (1m/5m/15m): {{ vps_storage.load_str or '-' }}</div>
-        {% else %}
-        <div class="text-muted">Armazenamento indisponível.</div>
-        {% endif %}
-      </div>
-      <div class="col-12 col-md-6">
-        <div class="d-flex flex-column gap-2">
-          <form method="post" action="{{ url_for('usuarios.gestao_restart') }}" onsubmit="return confirm('Reiniciar o sistema MultiMax?')">
-            <div class="input-group">
-              <input type="password" name="secret_key" class="form-control form-control-sm" placeholder="Senha (.env SECRET_KEY)" required>
-              <button type="submit" class="btn btn-outline-danger btn-sm">Reiniciar Sistema</button>
+.mm-page-title {
+    font-size: var(--mm-text-2xl);
+    font-weight: var(--mm-font-bold);
+    color: var(--mm-text-primary);
+    margin: 0 0 var(--mm-space-1) 0;
+}
+
+.mm-kpi-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mm-space-3);
+}
+
+.mm-kpi-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--mm-radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.mm-nav-tabs {
+    display: flex;
+    gap: var(--mm-space-2);
+    flex-wrap: wrap;
+    padding: var(--mm-space-4);
+    background: var(--mm-bg-card);
+    border-radius: var(--mm-radius-xl);
+    border: 1px solid var(--mm-border);
+}
+
+.mm-nav-tab {
+    display: flex;
+    align-items: center;
+    gap: var(--mm-space-2);
+    padding: var(--mm-space-2) var(--mm-space-4);
+    font-size: var(--mm-text-sm);
+    font-weight: var(--mm-font-medium);
+    color: var(--mm-text-secondary);
+    background: var(--mm-bg-secondary);
+    border-radius: var(--mm-radius-md);
+    text-decoration: none;
+    transition: all var(--mm-transition);
+}
+
+.mm-nav-tab:hover {
+    background: rgba(var(--mm-primary-rgb), 0.1);
+    color: var(--mm-primary);
+}
+
+.mm-form-row {
+    display: flex;
+    gap: var(--mm-space-4);
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.mm-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mm-space-2);
+    flex: 1;
+    min-width: 120px;
+}
+
+.mm-saldo-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mm-space-3);
+}
+
+.mm-saldo-name {
+    font-size: var(--mm-text-lg);
+    font-weight: var(--mm-font-semibold);
+    color: var(--mm-text-primary);
+}
+
+.mm-saldo-badges {
+    display: flex;
+    gap: var(--mm-space-3);
+    flex-wrap: wrap;
+}
+
+.mm-saldo-badges .mm-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--mm-space-2);
+    padding: var(--mm-space-2) var(--mm-space-3);
+}
+
+.mm-saldo-rule {
+    display: flex;
+    align-items: center;
+    gap: var(--mm-space-2);
+    font-size: var(--mm-text-sm);
+    color: var(--mm-text-muted);
+}
+
+.mm-empty-inline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--mm-space-2);
+    color: var(--mm-text-muted);
+    padding: var(--mm-space-4);
+}
+
+.mm-empty-inline i {
+    font-size: 1.25rem;
+}
+
+.mm-empty-cell {
+    text-align: center;
+    padding: var(--mm-space-8) !important;
+}
+
+.mm-actions-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mm-space-2);
+    align-items: center;
+}
+
+.mm-inline-form {
+    display: inline-flex;
+}
+
+.mm-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: var(--mm-space-4);
+    padding-top: var(--mm-space-4);
+    border-top: 1px solid var(--mm-border);
+}
+
+.mm-pagination-info {
+    font-size: var(--mm-text-sm);
+    color: var(--mm-text-muted);
+}
+
+.mm-pagination-btns {
+    display: flex;
+    gap: var(--mm-space-2);
+}
+
+.mm-modal {
+    background: var(--mm-bg-card);
+    border: 1px solid var(--mm-border);
+    border-radius: var(--mm-radius-xl);
+}
+
+.mm-modal-header {
+    background: linear-gradient(135deg, var(--mm-primary) 0%, var(--mm-primary-dark) 100%);
+    color: #0f172a;
+    border-radius: var(--mm-radius-xl) var(--mm-radius-xl) 0 0;
+    border-bottom: none;
+}
+
+.mm-modal-body {
+    padding: var(--mm-space-6);
+}
+
+.mm-modal-footer {
+    padding: var(--mm-space-4) var(--mm-space-6);
+    border-top: 1px solid var(--mm-border);
+    background: var(--mm-bg-secondary);
+    border-radius: 0 0 var(--mm-radius-xl) var(--mm-radius-xl);
+}
+
+.mm-switch-group {
+    display: flex;
+    align-items: center;
+    gap: var(--mm-space-3);
+}
+
+.mm-switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 24px;
+}
+
+.mm-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.mm-switch-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--mm-bg-tertiary);
+    transition: .3s;
+    border-radius: 24px;
+}
+
+.mm-switch-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+}
+
+.mm-switch input:checked + .mm-switch-slider {
+    background-color: var(--mm-primary);
+}
+
+.mm-switch input:checked + .mm-switch-slider:before {
+    transform: translateX(24px);
+}
+
+.mm-mb-4 {
+    margin-bottom: var(--mm-space-4);
+}
+
+.mm-divider {
+    border: none;
+    border-top: 1px solid var(--mm-border);
+    margin: var(--mm-space-6) 0;
+}
+
+.mm-text-lg {
+    font-size: var(--mm-text-lg);
+}
+
+.mm-font-semibold {
+    font-weight: var(--mm-font-semibold);
+}
+
+@media (max-width: 1024px) {
+    .mm-actions-group {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .mm-form-row {
+        flex-direction: column;
+    }
+    
+    .mm-form-group {
+        width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .mm-nav-tabs {
+        flex-direction: column;
+    }
+    
+    .mm-nav-tab {
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+(function(){
+    try {
+        document.querySelectorAll('.progress-bar[data-width]').forEach(function(el){
+            var v = parseInt(el.getAttribute('data-width') || '0', 10);
+            if (isNaN(v) || v < 0) v = 0;
+            if (v > 100) v = 100;
+            el.style.width = v + '%';
+            el.setAttribute('aria-valuenow', String(v));
+        });
+    } catch (e) {}
+})();
+</script>
+
+<div class="modal fade" id="modalNovoUsuario" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="post" action="{{ url_for('usuarios.users') }}">
+            <div class="modal-content mm-modal">
+                <div class="modal-header mm-modal-header">
+                    <h5 class="modal-title">Novo Usuário</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body mm-modal-body">
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Login</label>
+                        <input type="text" name="username" class="mm-input" required>
+                    </div>
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Nome</label>
+                        <input type="text" name="name" class="mm-input" required>
+                    </div>
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Senha</label>
+                        <input type="password" name="password" class="mm-input" required>
+                    </div>
+                    <div class="mm-form-group">
+                        <label class="mm-label">Nível</label>
+                        <select name="nivel" class="mm-input mm-select">
+                            <option value="visualizador">Visualizador</option>
+                            <option value="operador">Operador</option>
+                            <option value="admin">Gerente</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer mm-modal-footer">
+                    <button class="mm-btn mm-btn-outline" type="button" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="mm-btn mm-btn-primary" type="submit">Criar Usuário</button>
+                </div>
             </div>
-          </form>
-          <form method="post" action="{{ url_for('usuarios.gestao_vps_restart') }}" onsubmit="return confirm('Reiniciar a VPS agora?')">
-            <div class="input-group">
-              <input type="password" name="secret_key" class="form-control form-control-sm" placeholder="Senha (.env SECRET_KEY)" required>
-              <button type="submit" class="btn btn-danger btn-sm">Reiniciar VPS</button>
-            </div>
-          </form>
-          <form method="post" action="{{ url_for('usuarios.gestao_vps_upload') }}" enctype="multipart/form-data" onsubmit="return confirm('Enviar e aplicar atualização? A VPS será reiniciada.')">
-            <div class="input-group">
-              <input type="file" name="zipfile" class="form-control form-control-sm" accept=".zip" required>
-              <input type="password" name="secret_key" class="form-control form-control-sm" placeholder="Senha (.env SECRET_KEY)" required>
-              <button type="submit" class="btn btn-outline-primary btn-sm">Atualizar MultiMax (ZIP)</button>
-            </div>
-            <div class="small text-muted mt-1">O pacote será descompactado, arquivos alterados/substituídos, novos adicionados, executado vps_setup.sh e a VPS reiniciada.</div>
-          </form>
-        </div>
-      </div>
+        </form>
     </div>
-  </div>
 </div>
-{% endif %}
 
+<div class="modal fade" id="modalNovoColab" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="post" action="{{ url_for('usuarios.gestao_colabs_criar') }}">
+            <div class="modal-content mm-modal">
+                <div class="modal-header mm-modal-header">
+                    <h5 class="modal-title">Novo Colaborador</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body mm-modal-body">
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Nome</label>
+                        <input type="text" name="name" class="mm-input" required>
+                    </div>
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Cargo</label>
+                        <input type="text" name="role" class="mm-input">
+                    </div>
+                    <div class="mm-form-group">
+                        <label class="mm-label">Usuário Associado (opcional)</label>
+                        <select name="user_id" class="mm-input mm-select">
+                            <option value="">—</option>
+                            {% for u in users %}
+                            <option value="{{ u.id }}">{{ u.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer mm-modal-footer">
+                    <button class="mm-btn mm-btn-outline" type="button" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="mm-btn mm-btn-primary" type="submit">Criar Colaborador</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}

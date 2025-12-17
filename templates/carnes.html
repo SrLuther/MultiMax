@@ -1,206 +1,246 @@
 {% extends 'base.html' %}
 {% block title %}Carnes — MultiMax{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h3 class="mb-0">Recepção de Carnes</h3>
-  {% if not nova %}
-  <a class="btn btn-success" href="{{ url_for('carnes.nova') }}">Nova Recepção</a>
-  {% endif %}
+
+<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
+    <div>
+        <h1 class="mm-page-title">Recepção de Carnes</h1>
+        <p class="mm-text-muted">Controle de entrada de carnes bovinas, suínas e frangos</p>
+    </div>
+    {% if not nova %}
+    <a href="{{ url_for('carnes.nova') }}" class="mm-btn mm-btn-primary">
+        <i class="bi bi-plus-lg"></i>
+        Nova Recepção
+    </a>
+    {% endif %}
+</div>
+
+<div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
+    <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-danger);">
+        <div class="mm-flex mm-items-center mm-justify-between">
+            <div>
+                <div class="mm-kpi-label">Bovina</div>
+                <div class="mm-kpi-value" style="color: var(--mm-danger);">
+                    <i class="bi bi-box-seam"></i>
+                </div>
+            </div>
+            <div class="mm-kpi-icon" style="background: rgba(239, 68, 68, 0.15); color: var(--mm-danger);">
+                <span style="font-size: 1.5rem;">🐄</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-accent-pink);">
+        <div class="mm-flex mm-items-center mm-justify-between">
+            <div>
+                <div class="mm-kpi-label">Suína</div>
+                <div class="mm-kpi-value" style="color: var(--mm-accent-pink);">
+                    <i class="bi bi-box-seam"></i>
+                </div>
+            </div>
+            <div class="mm-kpi-icon" style="background: rgba(236, 72, 153, 0.15); color: var(--mm-accent-pink);">
+                <span style="font-size: 1.5rem;">🐷</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-warning);">
+        <div class="mm-flex mm-items-center mm-justify-between">
+            <div>
+                <div class="mm-kpi-label">Frango</div>
+                <div class="mm-kpi-value" style="color: var(--mm-warning);">
+                    <i class="bi bi-box-seam"></i>
+                </div>
+            </div>
+            <div class="mm-kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning);">
+                <span style="font-size: 1.5rem;">🐔</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-primary);">
+        <div class="mm-flex mm-items-center mm-justify-between">
+            <div>
+                <div class="mm-kpi-label">{{ 'Cadastro' if nova else 'Registros' }}</div>
+                <div class="mm-kpi-value" style="color: var(--mm-primary);">
+                    {% if nova %}Em andamento{% else %}{{ items|length if items else 0 }}{% endif %}
+                </div>
+            </div>
+            <div class="mm-kpi-icon" style="background: rgba(0, 255, 136, 0.15); color: var(--mm-primary);">
+                <i class="bi bi-{% if nova %}pencil{% else %}list-check{% endif %}"></i>
+            </div>
+        </div>
+    </div>
 </div>
 
 {% if nova %}
-<form id="carnesForm" method="post" action="{{ url_for('carnes.nova') }}" class="bg-white p-3 rounded border" data-bs-theme="light">
-  <style>
-    #carnesForm,
-    #carnesForm .form-label,
-    #carnesForm .form-control,
-    #carnesForm .form-select,
-    #carnesForm .small,
-    #carnesForm .text-muted { color: #000 !important; }
-    #carnesForm .card-header,
-    #carnesForm h3,
-    #carnesForm h5,
-    #carnesForm strong,
-    #carnesForm .btn { color: #000 !important; }
-    #carnesForm .form-control::placeholder { color: #000 !important; opacity: 0.7; }
-    #carnesForm .form-select option { color: #000; }
-    #carnesForm .card { border-width: 2px; }
-    #carnesForm .card-header { background: #f7f7f8; font-weight: 600; }
-    #carnesForm .animal-block { background: #f8f9fa; border-width: 2px; }
-    #carnesForm .part-card { background: #fff; border-width: 2px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
-  </style>
-  <div class="row g-3">
-    <div class="col-md-4">
-      <label class="form-label">Fornecedor</label>
-      <input type="text" name="fornecedor" class="form-control" required>
+<div class="mm-alert mm-alert-info mm-mb-6" style="display: flex; align-items: center; gap: var(--mm-space-3);">
+    <i class="bi bi-info-circle" style="font-size: 1.25rem;"></i>
+    <span>Cadastros separados por tipo: Bovina, Suína e Frango.</span>
+</div>
+
+<div class="mm-card mm-mb-6" style="border-left: 4px solid var(--mm-danger);">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <span style="margin-right: 0.5rem;">🐄</span> Bovina
+        </h3>
     </div>
-    <div class="col-md-3">
-      <label class="form-label">Tipo</label>
-      <select name="tipo" class="form-select">
-        <option value="bovina">Bovina</option>
-        <option value="suina">Suína</option>
-        <option value="frango">Frango</option>
-      </select>
+    <div class="mm-card-body">
+        <form id="carnesFormBovina" method="post" action="{{ url_for('carnes.nova') }}" class="mm-form">
+            <input type="hidden" name="tipo" value="bovina">
+            <div class="mm-form-row mm-grid mm-grid-cols-3 mm-gap-4">
+                <div class="mm-form-group">
+                    <label class="mm-label">Fornecedor</label>
+                    <input type="text" name="fornecedor" class="mm-input" required>
+                </div>
+                <div class="mm-form-group" style="grid-column: span 2;">
+                    <label class="mm-label">Observação</label>
+                    <input type="text" name="observacao" class="mm-input">
+                </div>
+            </div>
+            <div class="mm-form-row mm-grid mm-grid-cols-4 mm-gap-4 mm-mt-4">
+                <div class="mm-form-group">
+                    <label class="mm-label">Peso na Nota (kg)</label>
+                    <input type="number" step="0.01" name="peso_nota" class="mm-input">
+                </div>
+            </div>
+            
+            <div class="mm-card mm-mt-4" style="background: var(--mm-bg-secondary);">
+                <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
+                    <span class="mm-font-medium">Entregador</span>
+                    <button type="button" class="mm-btn mm-btn-outline mm-btn-sm" onclick="B_addCarrier()">
+                        <i class="bi bi-plus"></i> Adicionar Entregador
+                    </button>
+                </div>
+                <div class="mm-card-body" id="B_carriers"></div>
+            </div>
+            
+            <div class="mm-card mm-mt-4" style="background: var(--mm-bg-secondary);">
+                <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
+                    <span class="mm-font-medium">Romaneios e partes</span>
+                    <button type="button" class="mm-btn mm-btn-primary mm-btn-sm" onclick="B_addAnimal()">
+                        <i class="bi bi-plus"></i> Adicionar Romaneio
+                    </button>
+                </div>
+                <div class="mm-card-body" id="B_animals"></div>
+            </div>
+            
+            <div class="mm-grid mm-grid-cols-3 mm-gap-4 mm-mt-4">
+                <div class="mm-stat-box" style="background: rgba(0, 255, 136, 0.1); padding: var(--mm-space-4); border-radius: var(--mm-radius-lg);">
+                    <strong>Total líquido:</strong> <span id="B_totalLiquido">0.00</span> kg
+                </div>
+                <div class="mm-stat-box" style="background: rgba(59, 130, 246, 0.1); padding: var(--mm-space-4); border-radius: var(--mm-radius-lg);">
+                    <strong>Peso na Nota:</strong> <span id="B_pesoNotaEcho">0.00</span> kg
+                </div>
+                <div class="mm-stat-box" style="background: rgba(239, 68, 68, 0.1); padding: var(--mm-space-4); border-radius: var(--mm-radius-lg);">
+                    <strong>Perda no transporte:</strong> <span id="B_perdaTransporte">0.00</span> kg
+                </div>
+            </div>
+            
+            <div class="mm-flex mm-justify-end mm-mt-4">
+                <button type="submit" id="B_saveAllBtn" class="mm-btn mm-btn-primary" disabled>
+                    <i class="bi bi-check-lg"></i> Salvar Recepção
+                </button>
+            </div>
+        </form>
     </div>
-    <div class="col-md-5">
-      <label class="form-label">Observação</label>
-      <input type="text" name="observacao" class="form-control">
+</div>
+
+<div class="mm-card mm-mb-6" style="border-left: 4px solid var(--mm-accent-pink);">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <span style="margin-right: 0.5rem;">🐷</span> Suína
+        </h3>
     </div>
-  </div>
-  <div id="pesoNotaRow" class="row g-3 mt-1" style="display:none">
-    <div class="col-md-3">
-      <label class="form-label">Peso na Nota (kg)</label>
-      <input type="number" step="0.01" name="peso_nota" class="form-control" oninput="updateTotal()">
+    <div class="mm-card-body">
+        <form id="carnesFormSuina" method="post" action="{{ url_for('carnes.nova') }}" class="mm-form">
+            <input type="hidden" name="tipo" value="suina">
+            <div class="mm-form-row mm-grid mm-grid-cols-3 mm-gap-4">
+                <div class="mm-form-group">
+                    <label class="mm-label">Fornecedor</label>
+                    <input type="text" name="fornecedor" class="mm-input" required>
+                </div>
+                <div class="mm-form-group" style="grid-column: span 2;">
+                    <label class="mm-label">Observação</label>
+                    <input type="text" name="observacao" class="mm-input">
+                </div>
+            </div>
+            
+            <div class="mm-card mm-mt-4" style="background: var(--mm-bg-secondary);">
+                <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
+                    <span class="mm-font-medium">Pesos</span>
+                    <button type="button" class="mm-btn mm-btn-primary mm-btn-sm" onclick="S_addAnimal()">
+                        <i class="bi bi-plus"></i> Adicionar Peso
+                    </button>
+                </div>
+                <div class="mm-card-body" id="S_animals"></div>
+            </div>
+            
+            <div class="mm-grid mm-grid-cols-2 mm-gap-4 mm-mt-4">
+                <div class="mm-stat-box" style="background: rgba(0, 255, 136, 0.1); padding: var(--mm-space-4); border-radius: var(--mm-radius-lg);">
+                    <strong>Total líquido estimado:</strong> <span id="S_totalLiquido">0.00</span> kg
+                </div>
+            </div>
+            
+            <div class="mm-flex mm-justify-end mm-mt-4">
+                <button type="submit" id="S_saveAllBtn" class="mm-btn mm-btn-primary" disabled>
+                    <i class="bi bi-check-lg"></i> Salvar Recepção
+                </button>
+            </div>
+        </form>
     </div>
-  </div>
-  <div id="pesoFrangoRow" class="row g-3 mt-1" style="display:none">
-    <div class="col-md-3">
-      <label class="form-label">Peso do Frango (kg)</label>
-      <input type="number" step="0.01" name="peso_frango" class="form-control" oninput="updateTotal()">
+</div>
+
+<div class="mm-card mm-mb-6" style="border-left: 4px solid var(--mm-warning);">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <span style="margin-right: 0.5rem;">🐔</span> Frango
+        </h3>
     </div>
-  </div>
-  <div id="carriersSection" class="card border-2 mb-3">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <span>Entregador</span>
-      <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addCarrier()">Adicionar Entregador</button>
+    <div class="mm-card-body">
+        <form id="carnesFormFrango" method="post" action="{{ url_for('carnes.nova') }}" class="mm-form">
+            <input type="hidden" name="tipo" value="frango">
+            <input type="hidden" name="peso_frango" id="F_peso_total_hidden" value="0">
+            <div class="mm-form-row mm-grid mm-grid-cols-3 mm-gap-4">
+                <div class="mm-form-group">
+                    <label class="mm-label">Fornecedor</label>
+                    <input type="text" name="fornecedor" class="mm-input" required>
+                </div>
+                <div class="mm-form-group" style="grid-column: span 2;">
+                    <label class="mm-label">Observação</label>
+                    <input type="text" name="observacao" class="mm-input">
+                </div>
+            </div>
+            
+            <div class="mm-card mm-mt-4" style="background: var(--mm-bg-secondary);">
+                <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
+                    <span class="mm-font-medium">Pesos</span>
+                    <button type="button" class="mm-btn mm-btn-primary mm-btn-sm" onclick="F_addPeso()">
+                        <i class="bi bi-plus"></i> Adicionar Peso
+                    </button>
+                </div>
+                <div class="mm-card-body" id="F_pesos"></div>
+            </div>
+            
+            <div class="mm-grid mm-grid-cols-2 mm-gap-4 mm-mt-4">
+                <div class="mm-stat-box" style="background: rgba(0, 255, 136, 0.1); padding: var(--mm-space-4); border-radius: var(--mm-radius-lg);">
+                    <strong>Total de pesos:</strong> <span id="F_totalLiquido">0.00</span> kg
+                </div>
+            </div>
+            
+            <div class="mm-flex mm-justify-end mm-mt-4">
+                <button type="submit" id="F_saveAllBtn" class="mm-btn mm-btn-primary" disabled>
+                    <i class="bi bi-check-lg"></i> Salvar Recepção
+                </button>
+            </div>
+        </form>
     </div>
-    <div class="card-body">
-      <div id="carriers" class="mb-2"></div>
-    </div>
-  </div>
-  <div class="card border-2 mb-3">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <span>Romaneios e partes</span>
-      <button type="button" class="btn btn-outline-primary btn-sm" onclick="addAnimal()">Adicionar Romaneio</button>
-    </div>
-    <div class="card-body">
-      <div id="animals" class="mb-2"></div>
-    </div>
-  </div>
-  <hr>
-  <div class="row g-3 align-items-center">
-    <div class="col-md-4"><strong>Total líquido estimado:</strong> <span id="totalLiquido">0.00</span> kg</div>
-    <div class="col-md-4"><strong>Peso na Nota:</strong> <span id="pesoNotaEcho">0.00</span> kg</div>
-    <div class="col-md-4"><strong>Perda no transporte:</strong> <span id="perdaTransporte">0.00</span> kg</div>
-  </div>
-  <div class="mt-3 d-flex justify-content-end">
-    <button type="submit" id="saveAllBtn" class="btn btn-primary" disabled>Salvar Recepção</button>
-  </div>
-</form>
+</div>
 
 <script>
-let carrierCount = 0;
-function addCarrier(){
-  const wrap = document.getElementById('carriers');
-  const row = document.createElement('div');
-  row.className = 'row g-2 align-items-end mb-2';
-  row.innerHTML = `
-    <div class="col-md-5">
-      <label class="form-label">Nome</label>
-      <input type="text" name="carrier_nome" class="form-control" required>
-    </div>
-    <div class="col-md-3">
-      <label class="form-label">Peso (kg)</label>
-      <input type="number" step="0.01" name="carrier_peso" class="form-control" required>
-    </div>
-    <div class="col-md-2 text-end">
-      <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeCarrier(this)">Remover Entregador</button>
-    </div>
-  `;
-  wrap.appendChild(row);
-  carrierCount++;
-  updateTotal();
-}
-function removeCarrier(btn){
-  const row = btn.closest('.row');
-  if (row && row.parentNode) {
-    row.parentNode.removeChild(row);
-    updateTotal();
-  }
-}
-function getTipo(){
-  const s = document.querySelector('select[name="tipo"]');
-  return s ? (s.value || 'bovina') : 'bovina';
-}
-function addAnimal(){
-  const idx = document.querySelectorAll('.animal-block').length + 1;
-  const wrap = document.getElementById('animals');
-  const blk = document.createElement('div');
-  blk.className = 'animal-block border rounded p-3 mb-3';
-  const tipo = getTipo();
-  let parts = [];
-  if (tipo === 'suina') {
-    parts = [{cat:'carcaça',lado:'peso1'}];
-  } else {
-    parts = [
-      {cat:'dianteiro',lado:'1'},
-      {cat:'dianteiro',lado:'2'},
-      {cat:'traseiro',lado:'1'},
-      {cat:'traseiro',lado:'2'}
-    ];
-  }
-  blk.innerHTML = `
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <div><strong>Romaneio #${idx}</strong></div>
-      <div><button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteAnimalIfEmpty(this)">Excluir Romaneio</button></div>
-    </div>
-    <div class="row g-2">${parts.map((p)=>{
-      return `
-      <div class="col-md-3">
-        <div class="part-card border rounded p-2">
-          <div class="small text-muted mb-1">${(p.cat==='carcaça' && String(p.lado).toLowerCase().indexOf('peso')===0) ? (String(p.lado).toLowerCase()==='peso1' ? 'Primeiro peso' : ('Peso '+String(p.lado).slice(-1))) : ((p.lado==='1'||p.lado==='2') ? (p.cat.charAt(0).toUpperCase()+p.cat.slice(1)+' '+p.lado) : (p.cat+' — '+p.lado))}</div>
-          <input type="hidden" name="part_categoria" value="${p.cat}">
-          <input type="hidden" name="part_lado" value="${p.lado}">
-          <input type="hidden" name="animal_numero" value="${idx}">
-          <label class="form-label">Peso bruto (kg)</label>
-          <input type="number" step="0.01" name="part_peso_bruto" class="form-control" oninput="updateTotal()">
-          ${tipo === 'suina' ? `
-            <label class=\"form-label mt-2\">Tara da caixa (kg)</label>
-            <input type=\"number\" step=\"0.01\" name=\"part_tara\" class=\"form-control\" oninput=\"updateTotal()\">
-            <input type=\"hidden\" name=\"part_carrier\" value=\"-1\">
-          ` : `
-            <label class=\"form-label mt-2\">Entregador</label>
-            <select name=\"part_carrier\" class=\"form-select\" onchange=\"updateTotal()\">${carrierOptions()}</select>
-            <input type=\"hidden\" name=\"part_tara\" value=\"0\">
-          `}
-          <button type="button" class="btn btn-outline-success btn-sm mt-2" onclick="savePart(this)">Salvar parte</button>
-        </div>
-      </div>`;
-    }).join('')}</div>
-    ${tipo === 'suina' ? '<div class="mt-2"><button type="button" class="btn btn-outline-secondary btn-sm" onclick="addSuinaPeso(this)">Adicionar Peso</button></div>' : ''}
-  `;
-  wrap.appendChild(blk);
-  restorePartDraftsForBlock(blk);
-}
-function addSuinaPeso(btn){
-  const blk = btn.closest('.animal-block');
-  if (!blk) return;
-  const existing = Array.from(blk.querySelectorAll('input[name="part_lado"]'))
-    .filter(i => (i.value||'').toLowerCase().indexOf('peso')===0).length;
-  const next = existing + 1;
-  const cont = blk.querySelector('.row.g-2');
-  const animal = blk.querySelector('input[name="animal_numero"]').value;
-  const card = `
-    <div class="col-md-3">
-      <div class="part-card border rounded p-2">
-        <div class="small text-muted mb-1">${next === 1 ? 'Primeiro peso' : ('Peso '+next)}</div>
-        <input type="hidden" name="part_categoria" value="carcaça">
-        <input type="hidden" name="part_lado" value="peso${next}">
-        <input type="hidden" name="animal_numero" value="${animal}">
-        <label class="form-label">Peso bruto (kg)</label>
-        <input type="number" step="0.01" name="part_peso_bruto" class="form-control" oninput="updateTotal()">
-        <label class="form-label mt-2">Tara da caixa (kg)</label>
-        <input type="number" step="0.01" name="part_tara" class="form-control" oninput="updateTotal()">
-        <input type="hidden" name="part_carrier" value="-1">
-        <button type="button" class="btn btn-outline-success btn-sm mt-2" onclick="savePart(this)">Salvar parte</button>
-      </div>
-    </div>`;
-  cont.insertAdjacentHTML('beforeend', card);
-  updateTotal();
-  refreshAnimalDeleteStates();
-}
-function carrierOptions(){
-  const names = Array.from(document.querySelectorAll('input[name="carrier_nome"]')).map(i=>i.value.trim());
+// Bovina
+function B_carrierOptions(){
+  const names = Array.from(document.querySelectorAll('#carnesFormBovina input[name="carrier_nome"]')).map(i=>i.value.trim());
   let opts = '<option value="-1">—</option>';
   for(let i=0;i<names.length;i++){
     const n = names[i] || `Entregador ${i+1}`;
@@ -208,179 +248,391 @@ function carrierOptions(){
   }
   return opts;
 }
-function updateCarrierSelects(){
-  const selects = document.querySelectorAll('select[name="part_carrier"]');
-  selects.forEach(s=>{ const cur = s.value; s.innerHTML = carrierOptions(); s.value = cur; });
+function B_updateCarrierSelects(){
+  const selects = document.querySelectorAll('#carnesFormBovina select[name="part_carrier"]');
+  selects.forEach(s=>{ const cur = s.value; s.innerHTML = B_carrierOptions(); s.value = cur; });
 }
-function updateTotal(){
-  updateCarrierSelects();
-  const tipo = getTipo();
-  const weights = Array.from(document.querySelectorAll('input[name="carrier_peso"]')).map(i=>parseFloat(i.value||'0'));
-  let total = 0.0;
-  const parts = document.querySelectorAll('.animal-block input[name="part_peso_bruto"]');
-  const carriers = document.querySelectorAll('.animal-block select[name="part_carrier"]');
-  const taras = document.querySelectorAll('.animal-block input[name="part_tara"]');
-  if (tipo === 'frango') {
-    const pf = document.querySelector('input[name="peso_frango"]');
-    total = parseFloat(((pf && pf.value) || '0')) || 0.0;
-  } else {
-    for(let i=0;i<parts.length;i++){
-      const pb = parseFloat(parts[i].value||'0');
-      if (tipo === 'suina') {
-        const ta = parseFloat((taras[i] && taras[i].value) || '0');
-        total += Math.max(0, pb - ta);
-      } else {
-        const idx = parseInt((carriers[i] && carriers[i].value) || '-1');
-        const cw = (idx>=0 && idx<weights.length) ? weights[idx] : 0;
-        total += Math.max(0, pb - cw);
-      }
-    }
-  }
-  document.getElementById('totalLiquido').textContent = total.toFixed(2);
-  const pn = document.querySelector('input[name="peso_nota"]');
-  const pesoNota = parseFloat((pn && pn.value) ? pn.value : '0');
-  const perda = (tipo === 'bovina') ? Math.max(0, pesoNota - total) : 0.0;
-  const pnEcho = document.getElementById('pesoNotaEcho');
-  const perdaEl = document.getElementById('perdaTransporte');
-  if (pnEcho) pnEcho.textContent = (tipo === 'bovina' ? pesoNota.toFixed(2) : '0.00');
-  if (perdaEl) perdaEl.textContent = perda.toFixed(2);
-  updateSaveState();
-  refreshAnimalDeleteStates();
+function B_addCarrier(){
+  const wrap = document.getElementById('B_carriers');
+  const row = document.createElement('div');
+  row.className = 'mm-grid mm-grid-cols-3 mm-gap-4 mm-mb-4';
+  row.innerHTML = `
+    <div class="mm-form-group">
+      <label class="mm-label">Nome</label>
+      <input type="text" name="carrier_nome" class="mm-input" required>
+    </div>
+    <div class="mm-form-group">
+      <label class="mm-label">Peso (kg)</label>
+      <input type="number" step="0.01" name="carrier_peso" class="mm-input" required>
+    </div>
+    <div class="mm-form-group mm-flex mm-items-end">
+      <button type="button" class="mm-btn mm-btn-danger mm-btn-sm" onclick="this.closest('.mm-grid').remove(); B_updateTotal();">Remover</button>
+    </div>`;
+  wrap.appendChild(row);
+  B_updateTotal();
 }
-function partFields(container){
+function B_addAnimal(){
+  const idx = document.querySelectorAll('#B_animals .animal-block').length + 1;
+  const wrap = document.getElementById('B_animals');
+  const blk = document.createElement('div');
+  blk.className = 'animal-block mm-card mm-mb-4';
+  blk.style.background = 'var(--mm-bg-card)';
+  const parts = [
+    {cat:'dianteiro',lado:'1'},
+    {cat:'dianteiro',lado:'2'},
+    {cat:'traseiro',lado:'1'},
+    {cat:'traseiro',lado:'2'}
+  ];
+  blk.innerHTML = `
+    <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
+      <strong>Romaneio #${idx}</strong>
+      <button type="button" class="mm-btn mm-btn-danger mm-btn-sm" onclick="B_deleteAnimalIfEmpty(this)">Excluir Romaneio</button>
+    </div>
+    <div class="mm-card-body">
+      <div class="mm-grid mm-grid-cols-4 mm-gap-4">${parts.map((p)=>{
+        return `
+        <div class="part-card mm-card" style="background: var(--mm-bg-secondary); padding: var(--mm-space-3);">
+          <div class="mm-text-muted mm-mb-2" style="font-size: var(--mm-text-xs);">${(p.lado==='1'||p.lado==='2') ? (p.cat.charAt(0).toUpperCase()+p.cat.slice(1)+' '+p.lado) : (p.cat+' — '+p.lado)}</div>
+          <input type="hidden" name="part_categoria" value="${p.cat}">
+          <input type="hidden" name="part_lado" value="${p.lado}">
+          <input type="hidden" name="animal_numero" value="${idx}">
+          <div class="mm-form-group mm-mb-2">
+            <label class="mm-label">Peso bruto (kg)</label>
+            <input type="number" step="0.01" name="part_peso_bruto" class="mm-input" oninput="B_updateTotal()">
+          </div>
+          <div class="mm-form-group mm-mb-2">
+            <label class="mm-label">Entregador</label>
+            <select name="part_carrier" class="mm-input mm-select" onchange="B_updateTotal()">${B_carrierOptions()}</select>
+          </div>
+          <input type="hidden" name="part_tara" value="0">
+          <button type="button" class="mm-btn mm-btn-secondary mm-btn-sm" style="width: 100%;" onclick="B_savePart(this)">Salvar parte</button>
+        </div>`;
+      }).join('')}</div>
+    </div>`;
+  wrap.appendChild(blk);
+  B_restorePartDraftsForBlock(blk);
+}
+function B_partFields(container){
   const animal = container.querySelector('input[name="animal_numero"]').value;
   const cat = container.querySelector('input[name="part_categoria"]').value;
   const lado = container.querySelector('input[name="part_lado"]').value;
   const peso = container.querySelector('input[name="part_peso_bruto"]').value;
-  const tara = container.querySelector('input[name="part_tara"]') ? container.querySelector('input[name="part_tara"]').value : '';
-  const carrSel = container.querySelector('select[name="part_carrier"]');
-  const carrInp = container.querySelector('input[name="part_carrier"]');
-  const carrier = carrSel ? carrSel.value : (carrInp ? carrInp.value : '');
-  return {animal, cat, lado, peso, tara, carrier};
+  const sel = container.querySelector('select[name="part_carrier"]');
+  const carrier = sel ? sel.value : '-1';
+  return {animal, cat, lado, peso, carrier};
 }
-function partKey(f){
-  return `recepcao-part:${f.animal}:${f.cat}:${f.lado}`;
-}
-function savePart(btn){
-  const container = btn.closest('.part-card') || btn.closest('.border.rounded.p-2') || btn.closest('.border.p-2') || btn.closest('.border');
+function B_partKey(f){ return `recepcao-bov:${f.animal}:${f.cat}:${f.lado}`; }
+function B_savePart(btn){
+  const container = btn.closest('.part-card');
   if (!container) return;
-  const f = partFields(container);
-  const key = partKey(f);
-  try { localStorage.setItem(key, JSON.stringify(f)); } catch(e) {}
-  btn.disabled = true;
-  setTimeout(function(){ btn.disabled = false; }, 600);
+  const f = B_partFields(container);
+  try { localStorage.setItem(B_partKey(f), JSON.stringify(f)); } catch(e) {}
+  btn.disabled = true; setTimeout(function(){ btn.disabled = false; }, 600);
 }
-function restorePartDraftsForBlock(blk){
+function B_restorePartDraftsForBlock(blk){
   const cards = blk.querySelectorAll('.part-card');
   cards.forEach(function(card){
-    const f = partFields(card);
-    const key = partKey(f);
-    const raw = localStorage.getItem(key);
+    const f = B_partFields(card);
+    const raw = localStorage.getItem(B_partKey(f));
     if (!raw) return;
     try {
       const d = JSON.parse(raw);
       if (d.peso !== undefined) { const i = card.querySelector('input[name="part_peso_bruto"]'); if (i) i.value = d.peso; }
-      const t = card.querySelector('input[name="part_tara"]'); if (t && d.tara !== undefined) t.value = d.tara;
       const sel = card.querySelector('select[name="part_carrier"]'); if (sel && d.carrier !== undefined) sel.value = d.carrier;
     } catch(e) {}
   });
-  updateTotal();
+  B_updateTotal();
 }
-function updateSaveState(){
-  const btn = document.querySelector('#saveAllBtn');
-  if (!btn) return;
-  const blocks = document.querySelectorAll('.animal-block');
-  if (blocks.length === 0) { btn.disabled = true; return; }
-  let ok = true;
-  blocks.forEach(function(blk){
-    const inputs = blk.querySelectorAll('input[name="part_peso_bruto"]');
-    inputs.forEach(function(i){ if (!i.value || parseFloat(i.value) <= 0) ok = false; });
-  });
-  btn.disabled = !ok;
-}
-function isAnimalEmpty(blk){
+function B_isAnimalEmpty(blk){
   const pes = blk.querySelectorAll('input[name="part_peso_bruto"]');
   for (let i=0;i<pes.length;i++){ if ((pes[i].value||'').trim() !== '') return false; }
-  const tas = blk.querySelectorAll('input[name="part_tara"]');
-  for (let i=0;i<tas.length;i++){ if ((tas[i].value||'').trim() !== '') return false; }
   const sels = blk.querySelectorAll('select[name="part_carrier"]');
   for (let i=0;i<sels.length;i++){ if ((sels[i].value||'-1') !== '-1') return false; }
   return true;
 }
-function refreshAnimalDeleteStates(){
-  const btns = document.querySelectorAll('.animal-block .btn-outline-danger.btn-sm');
-  btns.forEach(function(b){
-    const blk = b.closest('.animal-block');
-    b.disabled = !isAnimalEmpty(blk);
-  });
+function B_refreshAnimalDeleteStates(){
+  const btns = document.querySelectorAll('#B_animals .mm-btn-danger');
+  btns.forEach(function(b){ const blk = b.closest('.animal-block'); if(blk) b.disabled = !B_isAnimalEmpty(blk); });
 }
-function deleteAnimalIfEmpty(btn){
-  const blk = btn.closest('.animal-block');
-  if (!blk) return;
-  if (isAnimalEmpty(blk)) {
-    blk.parentNode.removeChild(blk);
-    updateSaveState();
-    updateTotal();
+function B_deleteAnimalIfEmpty(btn){
+  const blk = btn.closest('.animal-block'); if (!blk) return;
+  if (B_isAnimalEmpty(blk)) { blk.parentNode.removeChild(blk); B_updateSaveState(); B_updateTotal(); }
+}
+function B_updateSaveState(){
+  const btn = document.querySelector('#B_saveAllBtn'); if (!btn) return;
+  const blocks = document.querySelectorAll('#B_animals .animal-block');
+  if (blocks.length === 0) { btn.disabled = true; return; }
+  let anyHasWeight = false;
+  blocks.forEach(function(blk){ const inputs = blk.querySelectorAll('input[name="part_peso_bruto"]'); inputs.forEach(function(i){ if (i.value && parseFloat(i.value) > 0) anyHasWeight = true; }); });
+  btn.disabled = !anyHasWeight;
+}
+function B_updateTotal(){
+  B_updateCarrierSelects();
+  const weights = Array.from(document.querySelectorAll('#carnesFormBovina input[name="carrier_peso"]')).map(i=>parseFloat(i.value||'0'));
+  let total = 0.0;
+  const parts = document.querySelectorAll('#B_animals input[name="part_peso_bruto"]');
+  const carriers = document.querySelectorAll('#B_animals select[name="part_carrier"]');
+  for(let i=0;i<parts.length;i++){
+    const pb = parseFloat(parts[i].value||'0');
+    const idx = parseInt((carriers[i] && carriers[i].value) || '-1');
+    const cw = (idx>=0 && idx<weights.length) ? weights[idx] : 0;
+    total += Math.max(0, pb - cw);
   }
+  document.getElementById('B_totalLiquido').textContent = total.toFixed(2);
+  const pn = document.querySelector('#carnesFormBovina input[name="peso_nota"]');
+  const pesoNota = parseFloat((pn && pn.value) ? pn.value : '0');
+  const perda = Math.max(0, pesoNota - total);
+  document.getElementById('B_pesoNotaEcho').textContent = pesoNota.toFixed(2);
+  document.getElementById('B_perdaTransporte').textContent = perda.toFixed(2);
+  B_updateSaveState();
+  B_refreshAnimalDeleteStates();
 }
-addCarrier();
-const tipoSelect = document.querySelector('select[name="tipo"]');
-function updateTipoVisibility(){
-  const s = document.querySelector('select[name="tipo"]');
-  const tipo = s ? s.value : 'bovina';
-  const isSuina = tipo === 'suina';
-  const isBovina = tipo === 'bovina';
-  const isFrango = tipo === 'frango';
-  const sec = document.getElementById('carriersSection');
-  const animalsCard = document.getElementById('animals') ? document.getElementById('animals').closest('.card') : null;
-  const pn = document.getElementById('pesoNotaRow');
-  const pf = document.getElementById('pesoFrangoRow');
-  if (sec) { sec.style.display = (isSuina || isFrango) ? 'none' : ''; }
-  if (animalsCard) { animalsCard.style.display = isFrango ? 'none' : ''; }
-  if (pn) { pn.style.display = isBovina ? '' : 'none'; }
-  if (pf) { pf.style.display = isFrango ? '' : 'none'; }
+B_addCarrier(); B_updateTotal(); B_updateSaveState(); B_refreshAnimalDeleteStates();
+
+// Suína
+function S_addAnimal(){
+  const idx = document.querySelectorAll('#S_animals .animal-block').length + 1;
+  const wrap = document.getElementById('S_animals');
+  const blk = document.createElement('div');
+  blk.className = 'animal-block mm-card mm-mb-4';
+  blk.style.background = 'var(--mm-bg-card)';
+  const parts = [{cat:'carcaça',lado:'peso1'}];
+  blk.innerHTML = `
+    <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
+      <strong>Peso #${idx}</strong>
+      <button type="button" class="mm-btn mm-btn-danger mm-btn-sm" onclick="S_deleteAnimalIfEmpty(this)">Excluir Peso</button>
+    </div>
+    <div class="mm-card-body">
+      <div class="mm-grid mm-grid-cols-4 mm-gap-4">${parts.map((p)=>{
+        return `
+        <div class="part-card mm-card" style="background: var(--mm-bg-secondary); padding: var(--mm-space-3);">
+          <div class="mm-text-muted mm-mb-2" style="font-size: var(--mm-text-xs);">${p.lado==='peso1' ? 'Primeiro peso' : ('Peso '+String(p.lado).slice(-1))}</div>
+          <input type="hidden" name="part_categoria" value="${p.cat}">
+          <input type="hidden" name="part_lado" value="${p.lado}">
+          <input type="hidden" name="animal_numero" value="${idx}">
+          <div class="mm-form-group mm-mb-2">
+            <label class="mm-label">Peso bruto (kg)</label>
+            <input type="number" step="0.01" name="part_peso_bruto" class="mm-input" oninput="S_updateTotal()">
+          </div>
+          <div class="mm-form-group mm-mb-2">
+            <label class="mm-label">Tara da caixa (kg)</label>
+            <input type="number" step="0.01" name="part_tara" class="mm-input" oninput="S_updateTotal()">
+          </div>
+          <input type="hidden" name="part_carrier" value="-1">
+          <button type="button" class="mm-btn mm-btn-secondary mm-btn-sm" style="width: 100%;" onclick="S_savePart(this)">Salvar parte</button>
+        </div>`;
+      }).join('')}</div>
+      <div class="mm-mt-4">
+        <button type="button" class="mm-btn mm-btn-outline mm-btn-sm" onclick="S_addSuinaPeso(this)">Adicionar Peso</button>
+      </div>
+    </div>`;
+  wrap.appendChild(blk);
+  S_restorePartDraftsForBlock(blk);
 }
-if (tipoSelect) { tipoSelect.addEventListener('change', function(){ document.getElementById('animals').innerHTML = ''; updateTipoVisibility(); updateTotal(); }); }
-updateTipoVisibility();
-updateSaveState();
-refreshAnimalDeleteStates();
+function S_addSuinaPeso(btn){
+  const blk = btn.closest('.animal-block'); if (!blk) return;
+  const existing = Array.from(blk.querySelectorAll('input[name="part_lado"]')).filter(i => (i.value||'').toLowerCase().indexOf('peso')===0).length;
+  const next = existing + 1;
+  const cont = blk.querySelector('.mm-grid');
+  const animal = blk.querySelector('input[name="animal_numero"]').value;
+  const card = `
+    <div class="part-card mm-card" style="background: var(--mm-bg-secondary); padding: var(--mm-space-3);">
+      <div class="mm-text-muted mm-mb-2" style="font-size: var(--mm-text-xs);">${next === 1 ? 'Primeiro peso' : ('Peso '+next)}</div>
+      <input type="hidden" name="part_categoria" value="carcaça">
+      <input type="hidden" name="part_lado" value="peso${next}">
+      <input type="hidden" name="animal_numero" value="${animal}">
+      <div class="mm-form-group mm-mb-2">
+        <label class="mm-label">Peso bruto (kg)</label>
+        <input type="number" step="0.01" name="part_peso_bruto" class="mm-input" oninput="S_updateTotal()">
+      </div>
+      <div class="mm-form-group mm-mb-2">
+        <label class="mm-label">Tara da caixa (kg)</label>
+        <input type="number" step="0.01" name="part_tara" class="mm-input" oninput="S_updateTotal()">
+      </div>
+      <input type="hidden" name="part_carrier" value="-1">
+      <button type="button" class="mm-btn mm-btn-secondary mm-btn-sm" style="width: 100%;" onclick="S_savePart(this)">Salvar parte</button>
+    </div>`;
+  cont.insertAdjacentHTML('beforeend', card);
+  S_updateTotal(); S_refreshAnimalDeleteStates();
+}
+function S_partFields(container){
+  const animal = container.querySelector('input[name="animal_numero"]').value;
+  const cat = container.querySelector('input[name="part_categoria"]').value;
+  const lado = container.querySelector('input[name="part_lado"]').value;
+  const peso = container.querySelector('input[name="part_peso_bruto"]').value;
+  const tara = container.querySelector('input[name="part_tara"]').value;
+  return {animal, cat, lado, peso, tara};
+}
+function S_partKey(f){ return `recepcao-sui:${f.animal}:${f.cat}:${f.lado}`; }
+function S_savePart(btn){ const c = btn.closest('.part-card'); if (!c) return; const f = S_partFields(c); try { localStorage.setItem(S_partKey(f), JSON.stringify(f)); } catch(e) {} btn.disabled = true; setTimeout(function(){ btn.disabled = false; }, 600); }
+function S_restorePartDraftsForBlock(blk){
+  const cards = blk.querySelectorAll('.part-card');
+  cards.forEach(function(card){
+    const f = S_partFields(card);
+    const raw = localStorage.getItem(S_partKey(f));
+    if (!raw) return;
+    try { const d = JSON.parse(raw); const i = card.querySelector('input[name="part_peso_bruto"]'); if (i && d.peso !== undefined) i.value = d.peso; const t = card.querySelector('input[name="part_tara"]'); if (t && d.tara !== undefined) t.value = d.tara; } catch(e) {}
+  });
+  S_updateTotal();
+}
+function S_isAnimalEmpty(blk){
+  const pes = blk.querySelectorAll('input[name="part_peso_bruto"]'); for (let i=0;i<pes.length;i++){ if ((pes[i].value||'').trim() !== '') return false; }
+  const tas = blk.querySelectorAll('input[name="part_tara"]'); for (let i=0;i<tas.length;i++){ if ((tas[i].value||'').trim() !== '') return false; }
+  return true;
+}
+function S_refreshAnimalDeleteStates(){ const btns = document.querySelectorAll('#S_animals .mm-btn-danger'); btns.forEach(function(b){ const blk = b.closest('.animal-block'); if(blk) b.disabled = !S_isAnimalEmpty(blk); }); }
+function S_deleteAnimalIfEmpty(btn){ const blk = btn.closest('.animal-block'); if (!blk) return; if (S_isAnimalEmpty(blk)) { blk.parentNode.removeChild(blk); S_updateSaveState(); S_updateTotal(); } }
+function S_updateSaveState(){ const btn = document.querySelector('#S_saveAllBtn'); if (!btn) return; const blocks = document.querySelectorAll('#S_animals .animal-block'); btn.disabled = blocks.length === 0; }
+function S_updateTotal(){
+  let total = 0.0;
+  const parts = document.querySelectorAll('#S_animals input[name="part_peso_bruto"]');
+  const taras = document.querySelectorAll('#S_animals input[name="part_tara"]');
+  for(let i=0;i<parts.length;i++){
+    const pb = parseFloat(parts[i].value||'0'); const ta = parseFloat((taras[i] && taras[i].value) || '0'); total += Math.max(0, pb - ta);
+  }
+  document.getElementById('S_totalLiquido').textContent = total.toFixed(2);
+  S_updateSaveState(); S_refreshAnimalDeleteStates();
+}
+S_updateTotal();
+
+// Frango
+function F_addPeso(){
+  const wrap = document.getElementById('F_pesos');
+  const row = document.createElement('div');
+  row.className = 'mm-grid mm-grid-cols-3 mm-gap-4 mm-mb-4';
+  row.innerHTML = `
+    <div class="mm-form-group">
+      <label class="mm-label">Peso (kg)</label>
+      <input type="number" step="0.01" name="frango_peso_item" class="mm-input" oninput="F_updateTotal()">
+    </div>
+    <div class="mm-form-group mm-flex mm-items-end">
+      <button type="button" class="mm-btn mm-btn-danger mm-btn-sm" onclick="F_removePeso(this)">Remover</button>
+    </div>`;
+  wrap.appendChild(row);
+  F_updateTotal();
+}
+function F_removePeso(btn){
+  const row = btn.closest('.mm-grid'); if (!row) return; row.remove(); F_updateTotal();
+}
+function F_updateTotal(){
+  const items = Array.from(document.querySelectorAll('#F_pesos input[name="frango_peso_item"]'));
+  let total = 0.0;
+  for (let i=0;i<items.length;i++){
+    const v = parseFloat(items[i].value||'0');
+    if (!isNaN(v) && v > 0) total += v;
+  }
+  document.getElementById('F_totalLiquido').textContent = total.toFixed(2);
+  const hidden = document.getElementById('F_peso_total_hidden');
+  if (hidden) hidden.value = total.toFixed(2);
+  document.getElementById('F_saveAllBtn').disabled = !(total > 0);
+}
+F_updateTotal();
 </script>
+
 {% else %}
-<div class="table-responsive">
-  <table class="table table-hover">
-    <thead class="table-dark">
-      <tr>
-        <th>Data</th>
-        <th>Fornecedor</th>
-        <th>Tipo</th>
-        <th>Partes</th>
-        <th>Total líquido (kg)</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for it in items %}
-      <tr>
-        <td>{{ it.r.data.strftime('%d/%m/%Y %H:%M') }}</td>
-        <td>{{ it.r.fornecedor }}</td>
-        <td>{{ it.r.tipo|capitalize }}</td>
-        <td>{{ it.count }}</td>
-        <td>{{ '%.2f'|format(it.total) }}</td>
-        <td class="d-flex gap-2">
-          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('carnes.relatorio', id=it.r.id) }}">Relatório</a>
-          {% if current_user.nivel == 'admin' %}
-          <form method="post" action="{{ url_for('carnes.excluir', id=it.r.id) }}" onsubmit="return confirm('Excluir esta recepção? Esta ação é irreversível.')">
-            <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
-          </form>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-      {% if items|length == 0 %}
-      <tr><td colspan="5" class="text-muted">Sem registros</td></tr>
-      {% endif %}
-    </tbody>
-  </table>
+
+<div class="mm-card">
+    <div class="mm-card-header mm-flex mm-items-center mm-justify-between" style="flex-wrap: wrap; gap: var(--mm-space-4);">
+        <h3 class="mm-card-title">
+            <i class="bi bi-list-ul me-2"></i>Recepções Registradas
+        </h3>
+        <form class="mm-flex mm-items-center mm-gap-4" method="get" action="{{ url_for('exportacao.exportar_relatorio_carnes_periodo') }}">
+            <div class="mm-flex mm-items-center mm-gap-2">
+                <span class="mm-text-muted">Tipo:</span>
+                <select name="tipo" class="mm-input mm-select" style="width: auto; min-width: 120px;">
+                    <option value="frango">Frango</option>
+                    <option value="suina">Suína</option>
+                    <option value="bovina">Bovina</option>
+                </select>
+            </div>
+            <input type="date" name="data" class="mm-input" style="width: auto;" value="{{ today_str }}">
+            <button type="submit" name="escopo" value="dia" class="mm-btn mm-btn-primary mm-btn-sm">Diário</button>
+            <button type="submit" name="escopo" value="semana" class="mm-btn mm-btn-outline mm-btn-sm">Semanal</button>
+        </form>
+    </div>
+    <div class="mm-card-body" style="padding: 0;">
+        <div class="mm-table-wrapper">
+            <table class="mm-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Fornecedor</th>
+                        <th>Tipo</th>
+                        <th class="text-center">Partes</th>
+                        <th class="text-end">Total (kg)</th>
+                        <th class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for it in items %}
+                    <tr>
+                        <td>{{ it.r.data.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td><strong>{{ it.r.fornecedor }}</strong></td>
+                        <td>
+                            {% if it.r.tipo == 'bovina' %}
+                            <span class="mm-badge mm-badge-danger">Bovina</span>
+                            {% elif it.r.tipo == 'suina' %}
+                            <span class="mm-badge mm-badge-warning">Suína</span>
+                            {% else %}
+                            <span class="mm-badge mm-badge-info">Frango</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">{{ it.count }}</td>
+                        <td class="text-end"><strong>{{ '%.2f'|format(it.total) }}</strong></td>
+                        <td class="text-center">
+                            <div class="mm-flex mm-items-center mm-justify-center mm-gap-2">
+                                <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('carnes.relatorio', id=it.r.id) }}">
+                                    <i class="bi bi-file-text"></i> Relatório
+                                </a>
+                                {% if current_user.nivel == 'admin' %}
+                                <form method="post" action="{{ url_for('carnes.excluir', id=it.r.id) }}" onsubmit="return confirm('Excluir esta recepção?')" style="display: inline;">
+                                    <button type="submit" class="mm-btn mm-btn-danger mm-btn-sm">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if items|length == 0 %}
+                    <tr>
+                        <td colspan="6">
+                            <div class="mm-empty-state" style="text-align: center; padding: var(--mm-space-8);">
+                                <div style="width: 60px; height: 60px; margin: 0 auto var(--mm-space-4); background: rgba(0, 255, 136, 0.1); border-radius: var(--mm-radius-full); display: flex; align-items: center; justify-content: center;">
+                                    <i class="bi bi-inbox" style="font-size: 1.5rem; color: var(--mm-primary);"></i>
+                                </div>
+                                <p class="mm-text-muted">Sem registros de recepção</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
+
 {% endif %}
+
+<style>
+.mm-kpi-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--mm-radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+.mm-mt-4 { margin-top: var(--mm-space-4); }
+.mm-mb-2 { margin-bottom: var(--mm-space-2); }
+.mm-mb-4 { margin-bottom: var(--mm-space-4); }
+.mm-mb-6 { margin-bottom: var(--mm-space-6); }
+.mm-justify-end { justify-content: flex-end; }
+.mm-justify-center { justify-content: center; }
+.text-center { text-align: center; }
+.text-end { text-align: right; }
+.me-2 { margin-right: 0.5rem; }
+</style>
 {% endblock %}

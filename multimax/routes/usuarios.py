@@ -1,16 +1,21 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_required, current_user
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 from .. import db
-from ..models import User, Produto, Historico, CleaningHistory, SystemLog, NotificationRead
+from ..models import User, Produto, Historico, CleaningHistory, SystemLog, NotificationRead, HourBankEntry, Collaborator, JobRole, LeaveCredit, LeaveAssignment, LeaveConversion, Shift, CleaningTask
 from datetime import datetime, timedelta, date
 from collections import OrderedDict
-from typing import TypedDict
+from typing import TypedDict, cast, Sequence
 import os
-import socket
-import base64
-from io import BytesIO
-import qrcode
+ 
+import threading
+import time
+import shutil
+import zipfile
+import tempfile
+import subprocess
+from pathlib import Path
+
 
 bp = Blueprint('usuarios', __name__)
 
@@ -27,13 +32,13 @@ def users():
         nivel = request.form.get('nivel', 'visualizador').strip()
         if not name or not password:
             flash('Nome e senha são obrigatórios.', 'warning')
-            return redirect(url_for('usuarios.users'))
+            return redirect(url_for('usuarios.gestao'))
         if username_input:
             base_username = ''.join(ch for ch in username_input.lower() if ch.isalnum()) or 'user'
             username = base_username
             if User.query.filter_by(username=username).first() is not None:
                 flash('Login já existe. Escolha outro.', 'danger')
-                return redirect(url_for('usuarios.users'))
+                return redirect(url_for('usuarios.gestao'))
         else:
             base_username = ''.join(ch for ch in name.lower() if ch.isalnum()) or 'user'
             username = base_username
@@ -59,167 +64,117 @@ def users():
         except Exception as e:
             db.session.rollback()
             flash(f'Erro ao criar usuário: {e}', 'danger')
-        return redirect(url_for('usuarios.users'))
-    all_users: list[User] = User.query.all()
-    senha_sugestao = '123456'
-    return render_template('users.html', users=all_users, active_page='users', senha_sugestao=senha_sugestao)
+        return redirect(url_for('usuarios.gestao'))
+    return redirect(url_for('usuarios.gestao'))
 
-@bp.route('/graficos')
+@bp.route('/gestao/vps/restart', methods=['POST'])
 @login_required
-def graficos():
-    q = request.args.get('q', '').strip()
-    produto_id = request.args.get('produto_id', type=int)
-    data_inicio_str = request.args.get('data_inicio', '').strip()
-    data_fim_str = request.args.get('data_fim', '').strip()
+def gestao_vps_restart():
+    if current_user.nivel != 'admin':
+        flash('Apenas Administradores podem reiniciar a VPS.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    secret_in = (request.form.get('secret_key') or '').strip()
+    secret_cfg = str(current_app.config.get('SECRET_KEY') or '').strip()
+    if not secret_in or secret_in != secret_cfg:
+        flash('Senha inválida para reiniciar a VPS.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    try:
+        cmd = (os.getenv('VPS_REBOOT_CMD') or 'sudo reboot').strip()
+        subprocess.Popen(cmd, shell=True)
+        flash('Reinício da VPS iniciado.', 'warning')
+    except Exception as e:
+        flash(f'Falha ao reiniciar VPS: {e}', 'danger')
+    return redirect(url_for('usuarios.gestao'))
 
-    produto: Produto | None = None
-    resultados: list[Produto] = []
-    if produto_id:
-        produto = Produto.query.get(produto_id)
-    elif q:
-        resultados = Produto.query.filter(
-            (Produto.codigo.contains(q)) | (Produto.nome.contains(q))
-        ).order_by(Produto.nome.asc()).all()
-        if len(resultados) == 1:
-            produto = resultados[0]
-
-    def parse_date_safe(s: str):
+@bp.route('/gestao/vps/upload', methods=['POST'])
+@login_required
+def gestao_vps_upload():
+    if current_user.nivel != 'admin':
+        flash('Apenas Administradores podem atualizar a VPS.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    secret_in = (request.form.get('secret_key') or '').strip()
+    secret_cfg = str(current_app.config.get('SECRET_KEY') or '').strip()
+    if not secret_in or secret_in != secret_cfg:
+        flash('Senha inválida para atualizar a VPS.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    file = request.files.get('zipfile')
+    if not file or not (file.filename or '').lower().endswith('.zip'):
+        flash('Selecione um arquivo .zip válido.', 'warning')
+        return redirect(url_for('usuarios.gestao'))
+    tmp_dir = tempfile.mkdtemp(prefix='mmx_up_')
+    zip_path = os.path.join(tmp_dir, 'update.zip')
+    try:
+        file.save(zip_path)
+        with zipfile.ZipFile(zip_path, 'r') as zf:
+            zf.extractall(tmp_dir)
+        root = Path(current_app.root_path).resolve()
+        extracted_root = Path(tmp_dir).resolve()
+        copied = 0
+        for p in extracted_root.rglob('*'):
+            if p.is_dir():
+                continue
+            rel = p.relative_to(extracted_root)
+            target = (root / rel).resolve()
+            try:
+                if str(target).startswith(str(root)):
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(str(p), str(target))
+                    copied += 1
+            except Exception:
+                pass
+        setup_script = (root / 'vps_setup.sh')
+        alt_setup_script = (root / 'scripts' / 'vps_setup.sh')
+        run_script = setup_script if setup_script.exists() else alt_setup_script
+        if run_script.exists():
+            try:
+                subprocess.Popen(['bash', str(run_script)], cwd=str(root))
+            except Exception:
+                pass
         try:
-            return datetime.strptime(s, '%Y-%m-%d').date()
+            cmd = (os.getenv('VPS_REBOOT_CMD') or 'sudo reboot').strip()
+            subprocess.Popen(cmd, shell=True)
         except Exception:
-            return None
+            pass
+        flash(f'Atualização aplicada ({copied} arquivos). VPS será reiniciada.', 'success')
+    except Exception as e:
+        flash(f'Falha ao aplicar atualização: {e}', 'danger')
+    finally:
+        try:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+        except Exception:
+            pass
+    return redirect(url_for('usuarios.gestao'))
 
-    data_inicio = parse_date_safe(data_inicio_str)
-    data_fim = parse_date_safe(data_fim_str)
-    if data_inicio and data_fim and data_inicio > data_fim:
-        data_inicio, data_fim = data_fim, data_inicio
+@bp.route('/gestao/restart', methods=['POST'])
+@login_required
+def gestao_restart():
+    if current_user.nivel != 'admin':
+        flash('Apenas Administradores podem reiniciar.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    secret_in = (request.form.get('secret_key') or '').strip()
+    secret_cfg = str(current_app.config.get('SECRET_KEY') or '').strip()
+    if not secret_in or secret_in != secret_cfg:
+        flash('Senha inválida para reinício do sistema.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    try:
+        cmd = (os.getenv('RESTART_CMD') or '').strip()
+        if cmd:
+            try:
+                subprocess.Popen(cmd, shell=True)
+            except Exception:
+                pass
+        def _do_exit():
+            time.sleep(1.0)
+            try:
+                os._exit(0)
+            except Exception:
+                pass
+        threading.Thread(target=_do_exit, daemon=True).start()
+        flash('Reiniciando MultiMax na VPS...', 'warning')
+    except Exception as e:
+        flash(f'Falha ao iniciar reinício: {e}', 'danger')
+    return redirect(url_for('home.index'))
 
-    def _fetch_hist(prod_id: int, start_date: date | None = None) -> list[Historico]:
-        query = Historico.query.filter_by(product_id=prod_id)
-        if start_date:
-            query = query.filter(Historico.data >= datetime.combine(start_date, datetime.min.time()))
-        return query.order_by(Historico.data.asc()).all()
-
-    class Bucket(TypedDict):
-        entrada: int
-        saida: int
-        label: str
-
-    def _agg_weekly(prod_id: int, weeks: int = 8):
-        end = date.today()
-        start = end - timedelta(days=7*weeks)
-        hist = _fetch_hist(prod_id, start)
-        buckets: OrderedDict[str, Bucket] = OrderedDict()
-        # Fill buckets for each week starting Monday
-        cursor = start - timedelta(days=start.weekday())
-        while cursor <= end:
-            key = f"{cursor.strftime('%Y-%m-%d')}"
-            buckets[key] = {'entrada': 0, 'saida': 0, 'label': f"Semana {cursor.strftime('%d/%m')}"}
-            cursor += timedelta(days=7)
-        for h in hist:
-            d = h.data.date()
-            monday = d - timedelta(days=d.weekday())
-            key = monday.strftime('%Y-%m-%d')
-            if key in buckets:
-                if h.action == 'entrada':
-                    buckets[key]['entrada'] += h.quantidade or 0
-                elif h.action == 'saida':
-                    buckets[key]['saida'] += h.quantidade or 0
-        labels = [v['label'] for v in buckets.values()]
-        entradas = [v['entrada'] for v in buckets.values()]
-        saidas = [v['saida'] for v in buckets.values()]
-        return {'labels': labels, 'entrada': entradas, 'saida': saidas}
-
-    def _agg_monthly(prod_id: int, months: int = 12):
-        today = date.today()
-        # Build month list
-        buckets: OrderedDict[str, Bucket] = OrderedDict()
-        y, m = today.year, today.month
-        for i in range(months-1, -1, -1):
-            yy = y
-            mm = m - i
-            while mm <= 0:
-                yy -= 1
-                mm += 12
-            key = f"{yy}-{mm:02d}"
-            buckets[key] = {'entrada': 0, 'saida': 0, 'label': f"{mm:02d}/{yy}"}
-        hist = _fetch_hist(prod_id)
-        for h in hist:
-            k = h.data.strftime('%Y-%m')
-            if k in buckets:
-                if h.action == 'entrada':
-                    buckets[k]['entrada'] += h.quantidade or 0
-                elif h.action == 'saida':
-                    buckets[k]['saida'] += h.quantidade or 0
-        labels = [v['label'] for v in buckets.values()]
-        entradas = [v['entrada'] for v in buckets.values()]
-        saidas = [v['saida'] for v in buckets.values()]
-        return {'labels': labels, 'entrada': entradas, 'saida': saidas}
-
-    def _agg_yearly(prod_id: int, years: int = 5):
-        this_year = date.today().year
-        buckets: OrderedDict[str, Bucket] = OrderedDict()
-        for yy in range(this_year - (years-1), this_year + 1):
-            key = str(yy)
-            buckets[key] = {'entrada': 0, 'saida': 0, 'label': key}
-        hist = _fetch_hist(prod_id)
-        for h in hist:
-            k = h.data.strftime('%Y')
-            if k in buckets:
-                if h.action == 'entrada':
-                    buckets[k]['entrada'] += h.quantidade or 0
-                elif h.action == 'saida':
-                    buckets[k]['saida'] += h.quantidade or 0
-        labels = [v['label'] for v in buckets.values()]
-        entradas = [v['entrada'] for v in buckets.values()]
-        saidas = [v['saida'] for v in buckets.values()]
-        return {'labels': labels, 'entrada': entradas, 'saida': saidas}
-
-    def _agg_custom(prod_id: int, di: date | None, df: date | None):
-        if not di or not df:
-            return {'labels': [], 'entrada': [], 'saida': []}
-        hist: list[Historico] = Historico.query.filter(
-            Historico.product_id == prod_id,
-            Historico.data >= datetime.combine(di, datetime.min.time()),
-            Historico.data <= datetime.combine(df, datetime.max.time())
-        ).order_by(Historico.data.asc()).all()
-        buckets: OrderedDict[str, Bucket] = OrderedDict()
-        cursor = di
-        while cursor <= df:
-            key = cursor.strftime('%Y-%m-%d')
-            buckets[key] = {'entrada': 0, 'saida': 0, 'label': cursor.strftime('%d/%m')}
-            cursor += timedelta(days=1)
-        for h in hist:
-            k = h.data.strftime('%Y-%m-%d')
-            if k in buckets:
-                if h.action == 'entrada':
-                    buckets[k]['entrada'] += h.quantidade or 0
-                elif h.action == 'saida':
-                    buckets[k]['saida'] += h.quantidade or 0
-        labels = [v['label'] for v in buckets.values()]
-        entradas = [v['entrada'] for v in buckets.values()]
-        saidas = [v['saida'] for v in buckets.values()]
-        return {'labels': labels, 'entrada': entradas, 'saida': saidas}
-
-    charts = None
-    if produto:
-        charts = {
-            'weekly': _agg_weekly(produto.id),
-            'monthly': _agg_monthly(produto.id),
-            'yearly': _agg_yearly(produto.id),
-            'custom': _agg_custom(produto.id, data_inicio, data_fim),
-        }
-
-    return render_template(
-        'graficos.html',
-        active_page='graficos',
-        q=q,
-        resultados=resultados,
-        produto=produto,
-        charts=charts,
-        data_inicio=data_inicio_str,
-        data_fim=data_fim_str,
-    )
 
 @bp.route('/users/<int:user_id>/senha', methods=['POST'])
 @login_required
@@ -245,7 +200,7 @@ def update_password(user_id):
     except Exception as e:
         db.session.rollback()
         flash(f'Erro ao atualizar senha: {e}', 'danger')
-    return redirect(url_for('usuarios.users'))
+    return redirect(url_for('usuarios.gestao'))
 
 @bp.route('/users/<int:user_id>/reset_senha', methods=['POST'])
 @login_required
@@ -280,7 +235,7 @@ def update_level(user_id):
     nivel = request.form.get('nivel', 'visualizador').strip()
     if nivel not in ('visualizador', 'operador', 'admin'):
         flash('Nível inválido.', 'warning')
-        return redirect(url_for('usuarios.users'))
+        return redirect(url_for('usuarios.gestao'))
     try:
         user.nivel = nivel
         log = SystemLog()
@@ -294,7 +249,7 @@ def update_level(user_id):
     except Exception as e:
         db.session.rollback()
         flash(f'Erro ao atualizar nível: {e}', 'danger')
-    return redirect(url_for('usuarios.users'))
+    return redirect(url_for('usuarios.gestao'))
 
 @bp.route('/users/<int:user_id>/excluir', methods=['POST'])
 @login_required
@@ -325,62 +280,16 @@ def excluir_user(user_id):
 @login_required
 def monitor():
     if current_user.nivel != 'admin':
-        flash('Acesso negado. Apenas Administradores podem acessar o Monitor.', 'danger')
+        flash('Acesso negado. Apenas Administradores.', 'danger')
         return redirect(url_for('estoque.index'))
-    port = int(os.getenv('PORT', '5000'))
-    ip = None
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('8.8.8.8', 80))
-        ip = s.getsockname()[0]
-        s.close()
-    except Exception:
-        ip = request.host.split(':')[0]
-    url = f"http://{ip}:{port}"
-    img = qrcode.make(url)
-    buf = BytesIO()
-    img.save(buf, 'PNG')
-    b64 = base64.b64encode(buf.getvalue()).decode('ascii')
-    hist_estoque = Historico.query.order_by(Historico.data.desc()).limit(50).all()
-    hist_limpeza = CleaningHistory.query.order_by(CleaningHistory.data_conclusao.desc()).limit(50).all()
-    hist_sistema = SystemLog.query.order_by(SystemLog.data.desc()).limit(50).all()
-    logs = []
-    for h in hist_estoque:
-        logs.append({
-            'data': h.data,
-            'origem': 'Estoque',
-            'evento': h.action,
-            'detalhes': h.details,
-            'usuario': h.usuario,
-            'produto': h.product_name,
-            'quantidade': h.quantidade,
-        })
-    for h in hist_limpeza:
-        logs.append({
-            'data': h.data_conclusao,
-            'origem': 'Limpeza',
-            'evento': 'conclusao',
-            'detalhes': h.observacao,
-            'usuario': h.usuario_conclusao,
-            'produto': h.nome_limpeza,
-            'quantidade': None,
-        })
-    for s in hist_sistema:
-        logs.append({
-            'data': s.data,
-            'origem': s.origem,
-            'evento': s.evento,
-            'detalhes': s.detalhes,
-            'usuario': s.usuario,
-            'produto': None,
-            'quantidade': None,
-        })
-    logs.sort(key=lambda x: x['data'], reverse=True)
-    return render_template('monitor.html', active_page='monitor', url=url, qr_base64=b64, logs=logs)
+    return redirect(url_for('usuarios.gestao'))
 
 @bp.route('/notifications/read')
 @login_required
 def notifications_read():
+    if current_user.nivel != 'admin':
+        flash('Apenas Administradores podem resolver notificações.', 'danger')
+        return redirect(url_for('home.index'))
     tipo = request.args.get('tipo')
     ref_id = request.args.get('id', type=int)
     nxt = request.args.get('next', url_for('estoque.index'))
@@ -421,3 +330,943 @@ def notifications_unread_all():
     except Exception:
         db.session.rollback()
     return redirect(nxt)
+
+@bp.route('/notifications/read_all')
+@login_required
+def notifications_read_all():
+    if current_user.nivel != 'admin':
+        flash('Apenas Administradores podem resolver notificações.', 'danger')
+        return redirect(url_for('home.index'))
+    nxt = request.args.get('next', url_for('home.index'))
+    try:
+        crit = (
+            Produto.query
+            .filter(Produto.estoque_minimo.isnot(None), Produto.estoque_minimo > 0, Produto.quantidade <= Produto.estoque_minimo)
+            .order_by(Produto.nome.asc())
+            .limit(100)
+            .all()
+        )
+        for p in crit:
+            if NotificationRead.query.filter_by(user_id=current_user.id, tipo='estoque', ref_id=p.id).first() is None:
+                nr = NotificationRead(); nr.user_id = current_user.id; nr.tipo = 'estoque'; nr.ref_id = p.id; db.session.add(nr)
+        from datetime import date as _date, timedelta as _td
+        horizon = _date.today() + _td(days=3)
+        tasks = (
+            CleaningTask.query
+            .filter(CleaningTask.proxima_data.isnot(None), CleaningTask.proxima_data <= horizon)
+            .order_by(CleaningTask.proxima_data.asc())
+            .limit(100)
+            .all()
+        )
+        for t in tasks:
+            if NotificationRead.query.filter_by(user_id=current_user.id, tipo='limpeza', ref_id=t.id).first() is None:
+                nr = NotificationRead(); nr.user_id = current_user.id; nr.tipo = 'limpeza'; nr.ref_id = t.id; db.session.add(nr)
+        db.session.commit()
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+    return redirect(nxt)
+@bp.route('/perfil', methods=['GET', 'POST'])
+@login_required
+def perfil():
+    if request.method == 'POST':
+        name = (request.form.get('name') or '').strip()
+        username_input = (request.form.get('username') or '').strip().lower()
+        if not name:
+            flash('Nome é obrigatório.', 'warning')
+            return redirect(url_for('usuarios.perfil'))
+        if not username_input:
+            flash('Login é obrigatório.', 'warning')
+            return redirect(url_for('usuarios.perfil'))
+        base_username = ''.join(ch for ch in username_input if ch.isalnum())
+        if not base_username:
+            flash('Login deve conter apenas letras e números.', 'warning')
+            return redirect(url_for('usuarios.perfil'))
+        if base_username != current_user.username:
+            if User.query.filter_by(username=base_username).first() is not None:
+                flash('Login já existe. Escolha outro.', 'danger')
+                return redirect(url_for('usuarios.perfil'))
+            current_user.username = base_username
+        current_user.name = name
+        try:
+            db.session.commit()
+            flash('Perfil atualizado.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao atualizar perfil: {e}', 'danger')
+        return redirect(url_for('usuarios.perfil'))
+    try:
+        from sqlalchemy import inspect, text
+        insp = inspect(db.engine)
+        cols_meta = [c['name'] for c in insp.get_columns('collaborator')]
+        if 'user_id' not in cols_meta:
+            db.session.execute(text('ALTER TABLE collaborator ADD COLUMN user_id INTEGER'))
+            db.session.commit()
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+    collab = None
+    entries = []
+    total = 0.0
+    residual_hours = 0.0
+    folga_balance = 0
+    folga_credits = []
+    folga_assigned = []
+    folga_conversions = []
+    try:
+        collab = Collaborator.query.filter_by(user_id=current_user.id).first()
+        if collab:
+            try:
+                from sqlalchemy import func
+                total_pre = db.session.query(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).filter(HourBankEntry.collaborator_id == collab.id).scalar() or 0.0
+                total_pre = float(total_pre)
+                auto_credits_pre = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == collab.id, LeaveCredit.origin == 'horas').scalar() or 0
+                auto_credits_pre = int(auto_credits_pre)
+                desired_pre = int(total_pre // 8.0) if total_pre > 0.0 else 0
+                missing_pre = max(0, desired_pre - auto_credits_pre)
+                if missing_pre > 0:
+                    from datetime import date as _date
+                    for _ in range(missing_pre):
+                        lc = LeaveCredit()
+                        lc.collaborator_id = collab.id
+                        lc.date = _date.today()
+                        lc.amount_days = 1
+                        lc.origin = 'horas'
+                        lc.notes = 'Reconciliação automática: crédito por 8h acumuladas'
+                        db.session.add(lc)
+                    for _ in range(missing_pre):
+                        adj = HourBankEntry()
+                        adj.collaborator_id = collab.id
+                        adj.date = _date.today()
+                        adj.hours = -8.0
+                        adj.reason = 'Reconciliação automática: -8h por +1 dia'
+                        db.session.add(adj)
+                    db.session.commit()
+            except Exception:
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+            entries = HourBankEntry.query.filter_by(collaborator_id=collab.id).order_by(HourBankEntry.date.desc()).limit(50).all()
+            try:
+                from sqlalchemy import func
+                total = db.session.query(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).filter(HourBankEntry.collaborator_id == collab.id).scalar() or 0.0
+                total = float(total)
+                if total >= 0.0:
+                    residual_hours = total % 8.0
+                else:
+                    residual_hours = - ((-total) % 8.0)
+            except Exception:
+                total = 0.0
+                residual_hours = 0.0
+            try:
+                from sqlalchemy import func
+                credits_sum = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == collab.id).scalar() or 0
+                assigned_sum = db.session.query(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).filter(LeaveAssignment.collaborator_id == collab.id).scalar() or 0
+                converted_sum = db.session.query(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).filter(LeaveConversion.collaborator_id == collab.id).scalar() or 0
+                folga_balance = int(credits_sum) - int(assigned_sum) - int(converted_sum)
+            except Exception:
+                folga_balance = 0
+            try:
+                folga_credits = LeaveCredit.query.filter_by(collaborator_id=collab.id).order_by(LeaveCredit.date.desc()).limit(50).all()
+            except Exception:
+                folga_credits = []
+            try:
+                folga_assigned = LeaveAssignment.query.filter_by(collaborator_id=collab.id).order_by(LeaveAssignment.date.desc()).limit(50).all()
+            except Exception:
+                folga_assigned = []
+            try:
+                folga_conversions = LeaveConversion.query.filter_by(collaborator_id=collab.id).order_by(LeaveConversion.date.desc()).limit(50).all()
+            except Exception:
+                folga_conversions = []
+    except Exception:
+        collab = None
+        entries = []
+        total = 0.0
+    return render_template('perfil.html', active_page='perfil', collab=collab, entries=entries, total=total, residual_hours=residual_hours, folga_balance=folga_balance, folga_credits=folga_credits, folga_assigned=folga_assigned, folga_conversions=folga_conversions)
+
+@bp.route('/perfil/senha', methods=['POST'])
+@login_required
+def perfil_senha():
+    senha_atual = request.form.get('senha_atual', '')
+    nova_senha = request.form.get('nova_senha', '')
+    confirmar = request.form.get('confirmar_senha', '')
+    if not nova_senha or len(nova_senha) < 6:
+        flash('Nova senha deve ter ao menos 6 caracteres.', 'warning')
+        return redirect(url_for('usuarios.perfil'))
+    if nova_senha != confirmar:
+        flash('Confirmação de senha não confere.', 'warning')
+        return redirect(url_for('usuarios.perfil'))
+    if not check_password_hash(current_user.password_hash or '', senha_atual):
+        flash('Senha atual inválida.', 'danger')
+        return redirect(url_for('usuarios.perfil'))
+    try:
+        current_user.password_hash = generate_password_hash(nova_senha)
+        db.session.commit()
+        flash('Senha atualizada com sucesso.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao atualizar senha: {e}', 'danger')
+    return redirect(url_for('usuarios.perfil'))
+
+@bp.route('/gestao', methods=['GET'])
+@login_required
+def gestao():
+    if current_user.nivel != 'admin':
+        flash('Acesso negado. Apenas Administradores.', 'danger')
+        return redirect(url_for('estoque.index'))
+    q = (request.args.get('q') or '').strip()
+    view = (request.args.get('view') or '').strip()
+    # QR removido
+    try:
+        from sqlalchemy import inspect, text
+        insp = inspect(db.engine)
+        cols_meta = [c['name'] for c in insp.get_columns('collaborator')]
+        changed = False
+        if 'name' not in cols_meta:
+            db.session.execute(text('ALTER TABLE collaborator ADD COLUMN name TEXT'))
+            changed = True
+            if 'nome' in cols_meta:
+                try:
+                    db.session.execute(text('UPDATE collaborator SET name = nome WHERE name IS NULL'))
+                except Exception:
+                    pass
+            else:
+                try:
+                    db.session.execute(text("UPDATE collaborator SET name = '' WHERE name IS NULL"))
+                except Exception:
+                    pass
+        if changed:
+            db.session.commit()
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+    try:
+        u_page = int(request.args.get('u_page', '1'))
+    except Exception:
+        u_page = 1
+    try:
+        l_page = int(request.args.get('l_page', '1'))
+    except Exception:
+        l_page = 1
+    if u_page < 1: u_page = 1
+    if l_page < 1: l_page = 1
+    hist_estoque = Historico.query.order_by(Historico.data.desc()).limit(50).all()
+    hist_limpeza = CleaningHistory.query.order_by(CleaningHistory.data_conclusao.desc()).limit(50).all()
+    hist_sistema = SystemLog.query.order_by(SystemLog.data.desc()).limit(50).all()
+    logs = []
+    for h in hist_estoque:
+        logs.append({'data': h.data, 'origem': 'Estoque', 'evento': h.action, 'detalhes': h.details, 'usuario': h.usuario, 'produto': h.product_name, 'quantidade': h.quantidade})
+    for h in hist_limpeza:
+        logs.append({'data': h.data_conclusao, 'origem': 'Limpeza', 'evento': 'conclusao', 'detalhes': h.observacao, 'usuario': h.usuario_conclusao, 'produto': h.nome_limpeza, 'quantidade': None})
+    for s in hist_sistema:
+        logs.append({'data': s.data, 'origem': s.origem, 'evento': s.evento, 'detalhes': s.detalhes, 'usuario': s.usuario, 'produto': None, 'quantidade': None})
+    logs.sort(key=lambda x: x['data'], reverse=True)
+    # Busca e paginação de usuários
+    uq = User.query
+    if q:
+        uq = uq.filter(User.name.ilike(f"%{q}%"))
+    all_users: list[User] = uq.order_by(User.username.asc()).all()
+    per_users = 5
+    total_users = len(all_users)
+    u_total_pages = max(1, (total_users + per_users - 1) // per_users)
+    if u_page > u_total_pages:
+        u_page = u_total_pages
+    u_start = (u_page - 1) * per_users
+    u_end = u_start + per_users
+    users_page = all_users[u_start:u_end]
+
+    # Paginação de logs
+    per_logs = 10
+    total_logs = len(logs)
+    l_total_pages = max(1, (total_logs + per_logs - 1) // per_logs)
+    if l_page > l_total_pages:
+        l_page = l_total_pages
+    l_start = (l_page - 1) * per_logs
+    l_end = l_start + per_logs
+    logs_page = logs[l_start:l_end]
+
+    # Registro de Acessos (pagina e filtra por usuário)
+    try:
+        acc_user = (request.args.get('acc_user') or '').strip()
+    except Exception:
+        acc_user = ''
+    try:
+        acc_page = int(request.args.get('acc_page', '1'))
+    except Exception:
+        acc_page = 1
+    if acc_page < 1:
+        acc_page = 1
+    aq = SystemLog.query.filter(SystemLog.origem == 'Acesso', SystemLog.evento == 'login')
+    if acc_user:
+        aq = aq.filter(SystemLog.usuario.ilike(f"%{acc_user}%"))
+    access_all = aq.order_by(SystemLog.data.desc()).all()
+    per_acc = 10
+    acc_total = len(access_all)
+    acc_total_pages = max(1, (acc_total + per_acc - 1) // per_acc)
+    if acc_page > acc_total_pages:
+        acc_page = acc_total_pages
+    acc_start = (acc_page - 1) * per_acc
+    acc_end = acc_start + per_acc
+    access_page = access_all[acc_start:acc_end]
+
+    senha_sugestao = '123456'
+    roles = JobRole.query.order_by(JobRole.name.asc()).all()
+    colaboradores = Collaborator.query.order_by(Collaborator.name.asc()).all()
+    bank_balances = {}
+    saldo_collab = None
+    saldo_hours = None
+    saldo_days = None
+    try:
+        from sqlalchemy import func
+        sums = db.session.query(HourBankEntry.collaborator_id, func.coalesce(func.sum(HourBankEntry.hours), 0.0)).group_by(HourBankEntry.collaborator_id).all()
+        for cid, total in sums:
+            bank_balances[int(cid)] = float(total or 0.0)
+        try:
+            scid = request.args.get('saldo_collaborator_id', type=int)
+        except Exception:
+            scid = None
+        if scid:
+            saldo_collab = Collaborator.query.get(scid)
+            if saldo_collab:
+                try:
+                    hsum_pre = db.session.query(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).filter(HourBankEntry.collaborator_id == scid).scalar() or 0.0
+                    hsum_pre = float(hsum_pre)
+                    auto_pre = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == scid, LeaveCredit.origin == 'horas').scalar() or 0
+                    auto_pre = int(auto_pre)
+                    desired_pre = int(hsum_pre // 8.0) if hsum_pre > 0.0 else 0
+                    missing_pre = max(0, desired_pre - auto_pre)
+                    if missing_pre > 0:
+                        from datetime import date as _date
+                        for _ in range(missing_pre):
+                            lc = LeaveCredit()
+                            lc.collaborator_id = scid
+                            lc.date = _date.today()
+                            lc.amount_days = 1
+                            lc.origin = 'horas'
+                            lc.notes = 'Reconciliação automática: crédito por 8h acumuladas'
+                            db.session.add(lc)
+                        for _ in range(missing_pre):
+                            adj = HourBankEntry()
+                            adj.collaborator_id = scid
+                            adj.date = _date.today()
+                            adj.hours = -8.0
+                            adj.reason = 'Reconciliação automática: -8h por +1 dia'
+                            db.session.add(adj)
+                        db.session.commit()
+                except Exception:
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
+                hsum = db.session.query(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).filter(HourBankEntry.collaborator_id == scid).scalar() or 0.0
+                hsum = float(hsum)
+                if hsum >= 0.0:
+                    saldo_hours = hsum % 8.0
+                else:
+                    saldo_hours = - ((-hsum) % 8.0)
+                credits_sum = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == scid).scalar() or 0
+                assigned_sum = db.session.query(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).filter(LeaveAssignment.collaborator_id == scid).scalar() or 0
+                converted_sum = db.session.query(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).filter(LeaveConversion.collaborator_id == scid).scalar() or 0
+                saldo_days = int(credits_sum) - int(assigned_sum) - int(converted_sum)
+    except Exception:
+        bank_balances = {}
+    recent_entries = []
+    try:
+        recent_entries = HourBankEntry.query.order_by(HourBankEntry.date.desc()).limit(50).all()
+    except Exception:
+        recent_entries = []
+    folgas = []
+    try:
+        from sqlalchemy import func
+        for c in colaboradores:
+            credits_sum = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == c.id).scalar() or 0
+            assigned_sum = db.session.query(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).filter(LeaveAssignment.collaborator_id == c.id).scalar() or 0
+            converted_sum = db.session.query(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).filter(LeaveConversion.collaborator_id == c.id).scalar() or 0
+            folgas.append({'collab': c, 'balance': int(credits_sum) - int(assigned_sum) - int(converted_sum)})
+    except Exception:
+        folgas = []
+    leave_credits = []
+    leave_assignments = []
+    try:
+        leave_credits = LeaveCredit.query.order_by(LeaveCredit.date.desc()).limit(50).all()
+        leave_assignments = LeaveAssignment.query.order_by(LeaveAssignment.date.desc()).limit(50).all()
+    except Exception:
+        leave_credits = []
+        leave_assignments = []
+    # VPS Storage
+    vps_storage = None
+    try:
+        root = str(current_app.root_path or os.getcwd())
+        du = shutil.disk_usage(root)
+        uptime_str = None
+        try:
+            with open('/proc/uptime', 'r') as f:
+                secs = float((f.read().split()[0] or '0').strip())
+            days = int(secs // 86400)
+            rem = secs % 86400
+            hours = int(rem // 3600)
+            minutes = int((rem % 3600) // 60)
+            uptime_str = f"{days}d {hours}h {minutes}m"
+        except Exception:
+            try:
+                out = subprocess.check_output(['uptime', '-p'], timeout=2)
+                uptime_str = (out.decode('utf-8', errors='ignore') or '').strip()
+            except Exception:
+                uptime_str = None
+        load_str = None
+        try:
+            import os as _os
+            la_fn = getattr(_os, 'getloadavg', None)
+            if callable(la_fn):
+                lv = cast(Sequence[float], la_fn())
+                try:
+                    a = float(lv[0]); b = float(lv[1]); c = float(lv[2])
+                    load_str = f"{a:.2f}, {b:.2f}, {c:.2f}"
+                except Exception:
+                    load_str = None
+            else:
+                try:
+                    with open('/proc/loadavg', 'r') as f:
+                        parts = f.read().split()
+                        it = iter(parts)
+                        a = next(it, None); b = next(it, None); c = next(it, None)
+                        if a is not None and b is not None and c is not None:
+                            try:
+                                aa = float(a); bb = float(b); cc = float(c)
+                                load_str = f"{aa:.2f}, {bb:.2f}, {cc:.2f}"
+                            except Exception:
+                                load_str = None
+                except Exception:
+                    load_str = None
+        except Exception:
+            load_str = None
+        def _fmt_bytes(n: int) -> str:
+            units = ['B','KB','MB','GB','TB','PB']
+            f = float(n)
+            for u in units:
+                if f < 1024.0:
+                    return f"{f:.1f} {u}"
+                f = f / 1024.0
+            return f"{f:.1f} EB"
+        vps_storage = {
+            'total': du.total,
+            'used': du.used,
+            'free': du.free,
+            'total_str': _fmt_bytes(du.total),
+            'used_str': _fmt_bytes(du.used),
+            'free_str': _fmt_bytes(du.free),
+            'used_pct': int((du.used / du.total) * 100) if du.total > 0 else 0
+            , 'uptime_str': uptime_str
+            , 'load_str': load_str
+        }
+    except Exception:
+        vps_storage = None
+    # Removido endereço de acesso (url/qr), mantendo somente dados necessários
+    return render_template(
+        'gestao.html',
+        active_page='gestao',
+        logs_page=logs_page,
+        l_page=l_page,
+        l_total_pages=l_total_pages,
+        users_page=users_page,
+        u_page=u_page,
+        u_total_pages=u_total_pages,
+        q=q,
+        view=view,
+        senha_sugestao=senha_sugestao,
+        roles=roles,
+        colaboradores=colaboradores,
+        folgas=folgas,
+        users=all_users,
+        bank_balances=bank_balances,
+        recent_entries=recent_entries,
+        access_page=access_page,
+        acc_page=acc_page,
+        acc_total_pages=acc_total_pages,
+        acc_user=acc_user
+        , saldo_collab=saldo_collab, saldo_hours=saldo_hours, saldo_days=saldo_days
+        , vps_storage=vps_storage
+        , leave_credits=leave_credits, leave_assignments=leave_assignments
+    )
+
+
+@bp.route('/gestao/colaboradores/criar', methods=['POST'])
+@login_required
+def gestao_colabs_criar():
+    if current_user.nivel != 'admin':
+        flash('Você não tem permissão para criar colaboradores.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    nome = request.form.get('name', '').strip()
+    cargo = request.form.get('role', '').strip()
+    try:
+        c = Collaborator()
+        c.name = nome
+        c.role = cargo
+        c.active = True
+        c.regular_team = (request.form.get('regular_team', '').strip() or None)
+        c.sunday_team = (request.form.get('sunday_team', '').strip() or None)
+        c.special_team = (request.form.get('special_team', '').strip() or None)
+        uid_str = (request.form.get('user_id') or '').strip()
+        try:
+            c.user_id = int(uid_str) if uid_str else None
+        except Exception:
+            c.user_id = None
+        db.session.add(c)
+        db.session.commit()
+        flash(f'Colaborador "{c.name}" criado.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao criar colaborador: {e}', 'danger')
+    return redirect(url_for('usuarios.gestao'))
+
+@bp.route('/gestao/colaboradores/<int:id>/editar', methods=['POST'])
+@login_required
+def gestao_colabs_editar(id: int):
+    if current_user.nivel != 'admin':
+        flash('Você não tem permissão para editar colaboradores.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    c = Collaborator.query.get_or_404(id)
+    try:
+        c.name = ((request.form.get('name') or c.name or '').strip()) or c.name
+        role_in = request.form.get('role')
+        c.role = ((role_in or c.role or '').strip()) or None
+        active_str = request.form.get('active', 'on') or 'on'
+        c.active = True if active_str.lower() in ('on', 'true', '1') else False
+        rt_in = request.form.get('regular_team') or (c.regular_team or '')
+        st_in = request.form.get('sunday_team') or (c.sunday_team or '')
+        xt_in = request.form.get('special_team') or (c.special_team or '')
+        c.regular_team = (rt_in.strip() or None) if (rt_in.strip() in ('1','2')) else None
+        c.sunday_team = (st_in.strip() or None) if (st_in.strip() in ('1','2')) else None
+        c.special_team = (xt_in.strip() or None) if (xt_in.strip() in ('1','2')) else None
+        uid_str = (request.form.get('user_id') or '').strip()
+        try:
+            c.user_id = int(uid_str) if uid_str else None
+        except Exception:
+            c.user_id = None
+        db.session.commit()
+        flash('Colaborador atualizado.', 'info')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao atualizar colaborador: {e}', 'danger')
+    return redirect(url_for('usuarios.gestao'))
+
+@bp.route('/gestao/colaboradores/<int:id>/excluir', methods=['POST'])
+@login_required
+def gestao_colabs_excluir(id: int):
+    if current_user.nivel != 'admin':
+        flash('Apenas Gerente pode excluir colaboradores.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    c = Collaborator.query.get_or_404(id)
+    try:
+        Shift.query.filter_by(collaborator_id=c.id).delete()
+        db.session.delete(c)
+        db.session.commit()
+        flash('Colaborador excluído.', 'danger')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir colaborador: {e}', 'danger')
+    return redirect(url_for('usuarios.gestao'))
+
+@bp.route('/gestao/usuarios/associar', methods=['POST'])
+@login_required
+def gestao_usuarios_associar():
+    if current_user.nivel != 'admin':
+        flash('Você não tem permissão para associar usuário a colaborador.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    try:
+        uid = int(request.form.get('user_id', '0'))
+    except Exception:
+        uid = 0
+    try:
+        cid = int(request.form.get('collaborator_id', '0'))
+    except Exception:
+        cid = 0
+    if uid <= 0:
+        flash('Usuário inválido.', 'warning')
+        return redirect(url_for('usuarios.gestao'))
+    try:
+        # Limpa associações anteriores para este usuário
+        try:
+            Collaborator.query.filter(Collaborator.user_id == uid).update({'user_id': None})
+        except Exception:
+            pass
+        if cid > 0:
+            c = Collaborator.query.get(cid)
+            if not c:
+                flash('Colaborador não encontrado.', 'warning')
+                return redirect(url_for('usuarios.gestao'))
+            c.user_id = uid
+            db.session.add(c)
+        db.session.commit()
+        flash('Associação atualizada.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao associar: {e}', 'danger')
+    return redirect(url_for('usuarios.gestao'))
+@bp.route('/gestao/colaboradores/horas/adicionar', methods=['POST'])
+@login_required
+def gestao_colabs_horas_adicionar():
+    if current_user.nivel != 'admin':
+        flash('Você não tem permissão para registrar horas.', 'danger')
+        return redirect(url_for('usuarios.gestao', view='colaboradores'))
+    cid_str = (request.form.get('collaborator_id', '').strip() or '')
+    date_str = (request.form.get('date', '').strip() or '')
+    hours_str = (request.form.get('hours', '0').strip() or '0')
+    reason = (request.form.get('reason', '').strip() or '')
+    try:
+        cid = int(cid_str)
+        d = datetime.strptime(date_str, '%Y-%m-%d').date()
+        h = float(hours_str)
+    except Exception:
+        flash('Dados inválidos para banco de horas.', 'warning')
+        return redirect(url_for('usuarios.gestao', view='colaboradores'))
+    try:
+        e = HourBankEntry()
+        e.collaborator_id = cid
+        e.date = d
+        e.hours = h
+        e.reason = reason
+        db.session.add(e)
+        db.session.commit()
+        try:
+            from sqlalchemy import func
+            total_hours = db.session.query(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).filter(HourBankEntry.collaborator_id == cid).scalar() or 0.0
+            total_hours = float(total_hours)
+            auto_credits = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == cid, LeaveCredit.origin == 'horas').scalar() or 0
+            auto_credits = int(auto_credits)
+            desired_credits = int(total_hours // 8.0)
+            missing = max(0, desired_credits - auto_credits)
+            if missing > 0:
+                from datetime import date as _date
+                for _ in range(missing):
+                    lc = LeaveCredit()
+                    lc.collaborator_id = cid
+                    lc.date = _date.today()
+                    lc.amount_days = 1
+                    lc.origin = 'horas'
+                    lc.notes = 'Crédito automático por 8h no banco de horas'
+                    db.session.add(lc)
+                for _ in range(missing):
+                    adj = HourBankEntry()
+                    adj.collaborator_id = cid
+                    adj.date = _date.today()
+                    adj.hours = -8.0
+                    adj.reason = 'Conversão automática: -8h por +1 dia de folga'
+                    db.session.add(adj)
+                db.session.commit()
+                flash(f'Horas registradas. Conversão automática aplicada: +{missing} dia(s) e -{missing*8}h no banco.', 'success')
+            else:
+                flash('Horas registradas.', 'success')
+        except Exception:
+            flash('Horas registradas.', 'success')
+    except Exception as ex:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        flash(f'Erro ao registrar horas: {ex}', 'danger')
+    return redirect(url_for('usuarios.gestao', view='colaboradores'))
+
+@bp.route('/gestao/colaboradores/horas/excluir/<int:id>', methods=['POST'])
+@login_required
+def gestao_colabs_horas_excluir(id: int):
+    if current_user.nivel != 'admin':
+        flash('Apenas Gerente pode excluir lançamentos.', 'danger')
+        return redirect(url_for('usuarios.gestao', view='colaboradores'))
+    e = HourBankEntry.query.get_or_404(id)
+    try:
+        cid = int(e.collaborator_id or 0)
+        db.session.delete(e)
+        db.session.commit()
+        try:
+            from sqlalchemy import func
+            total_hours = db.session.query(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).filter(HourBankEntry.collaborator_id == cid).scalar() or 0.0
+            total_hours = float(total_hours)
+            auto_credits = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == cid, LeaveCredit.origin == 'horas').scalar() or 0
+            auto_credits = int(auto_credits)
+            desired_credits = int(total_hours // 8.0)
+            if auto_credits > desired_credits:
+                excess = auto_credits - desired_credits
+                to_delete_credits = LeaveCredit.query.filter_by(collaborator_id=cid, origin='horas').order_by(LeaveCredit.date.desc(), LeaveCredit.id.desc()).limit(excess).all()
+                for lc in to_delete_credits:
+                    db.session.delete(lc)
+                to_delete_adjusts = (
+                    HourBankEntry.query
+                    .filter(HourBankEntry.collaborator_id == cid, HourBankEntry.hours == -8.0, HourBankEntry.reason.like('Conversão automática:%'))
+                    .order_by(HourBankEntry.date.desc(), HourBankEntry.id.desc())
+                    .limit(excess)
+                    .all()
+                )
+                for adj in to_delete_adjusts:
+                    db.session.delete(adj)
+                db.session.commit()
+                removed_adj = len(to_delete_adjusts)
+                if removed_adj < excess:
+                    missing_adj = excess - removed_adj
+                    from datetime import date as _date
+                    for _ in range(missing_adj):
+                        comp = HourBankEntry()
+                        comp.collaborator_id = cid
+                        comp.date = _date.today()
+                        comp.hours = +8.0
+                        comp.reason = 'Reversão automática: +8h pela exclusão de crédito por horas'
+                        db.session.add(comp)
+                    db.session.commit()
+                flash(f'Lançamento excluído. Conversões automáticas revertidas: -{excess} dia(s) e +{excess*8}h no banco.', 'warning')
+            elif auto_credits < desired_credits:
+                missing = desired_credits - auto_credits
+                from datetime import date as _date
+                for _ in range(missing):
+                    lc = LeaveCredit()
+                    lc.collaborator_id = cid
+                    lc.date = _date.today()
+                    lc.amount_days = 1
+                    lc.origin = 'horas'
+                    lc.notes = 'Crédito automático por 8h no banco de horas (ajuste pós-exclusão)'
+                    db.session.add(lc)
+                for _ in range(missing):
+                    adj = HourBankEntry()
+                    adj.collaborator_id = cid
+                    adj.date = _date.today()
+                    adj.hours = -8.0
+                    adj.reason = 'Conversão automática: -8h por +1 dia de folga (ajuste pós-exclusão)'
+                    db.session.add(adj)
+                db.session.commit()
+                flash(f'Lançamento excluído. Conversões automáticas ajustadas: +{missing} dia(s) e -{missing*8}h no banco.', 'info')
+            else:
+                flash('Lançamento excluído.', 'danger')
+        except Exception:
+            flash('Lançamento excluído.', 'danger')
+    except Exception as ex:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        flash(f'Erro ao excluir lançamento: {ex}', 'danger')
+    return redirect(url_for('usuarios.gestao', view='colaboradores'))
+
+@bp.route('/gestao/colaboradores/horas/editar/<int:id>', methods=['POST'])
+@login_required
+def gestao_colabs_horas_editar(id: int):
+    if current_user.nivel != 'admin':
+        flash('Apenas Gerente pode editar lançamentos.', 'danger')
+        return redirect(url_for('usuarios.gestao', view='colaboradores'))
+    e = HourBankEntry.query.get_or_404(id)
+    date_str = (request.form.get('date', '').strip() or '')
+    hours_str = (request.form.get('hours', '0').strip() or '0')
+    reason = (request.form.get('reason', '').strip() or '')
+    try:
+        if date_str:
+            e.date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        e.hours = float(hours_str)
+        e.reason = reason
+        db.session.commit()
+        flash('Lançamento de horas atualizado.', 'info')
+    except Exception as ex:
+        db.session.rollback()
+        flash(f'Erro ao editar lançamento: {ex}', 'danger')
+    return redirect(url_for('usuarios.gestao', view='colaboradores'))
+
+@bp.route('/gestao/colaboradores/folgas/credito/adicionar', methods=['POST'])
+@login_required
+def gestao_colabs_folga_credito_adicionar():
+    if current_user.nivel != 'admin':
+        flash('Você não tem permissão para registrar folgas.', 'danger')
+        return redirect(url_for('usuarios.gestao', view='folgas'))
+    cid_str = (request.form.get('collaborator_id', '').strip() or '')
+    date_str = (request.form.get('date', '').strip() or '')
+    days_str = (request.form.get('amount_days', '1').strip() or '1')
+    origin = (request.form.get('origin', 'manual').strip() or 'manual')
+    notes = (request.form.get('notes', '').strip() or '')
+    try:
+        cid = int(cid_str)
+        d = datetime.strptime(date_str, '%Y-%m-%d').date()
+        days = int(days_str)
+    except Exception:
+        flash('Dados inválidos para crédito de folga.', 'warning')
+        return redirect(url_for('usuarios.gestao', view='folgas'))
+    try:
+        lc = LeaveCredit()
+        lc.collaborator_id = cid
+        lc.date = d
+        lc.amount_days = days
+        lc.origin = origin
+        lc.notes = notes
+        db.session.add(lc)
+        db.session.commit()
+        flash(f'Crédito de {days} dia(s) de folga registrado.', 'success')
+    except Exception as ex:
+        db.session.rollback()
+        flash(f'Erro ao registrar crédito: {ex}', 'danger')
+    return redirect(url_for('usuarios.gestao', view='folgas'))
+
+@bp.route('/gestao/colaboradores/folgas/credito/editar/<int:id>', methods=['POST'])
+@login_required
+def gestao_colabs_folga_credito_editar(id: int):
+    if current_user.nivel != 'admin':
+        flash('Apenas Gerente pode editar créditos de folga.', 'danger')
+        return redirect(url_for('usuarios.gestao', view='folgas'))
+    lc = LeaveCredit.query.get_or_404(id)
+    date_str = (request.form.get('date', '').strip() or '')
+    days_str = (request.form.get('amount_days', '').strip() or '')
+    notes = (request.form.get('notes', '').strip() or '')
+    try:
+        if date_str:
+            lc.date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        if days_str:
+            lc.amount_days = int(days_str)
+        lc.notes = notes
+        db.session.commit()
+        flash('Crédito de folga atualizado.', 'info')
+    except Exception as ex:
+        db.session.rollback()
+        flash(f'Erro ao editar crédito: {ex}', 'danger')
+    return redirect(url_for('usuarios.gestao', view='folgas'))
+
+@bp.route('/gestao/colaboradores/folgas/credito/excluir/<int:id>', methods=['POST'])
+@login_required
+def gestao_colabs_folga_credito_excluir(id: int):
+    if current_user.nivel != 'admin':
+        flash('Apenas Gerente pode excluir créditos de folga.', 'danger')
+        return redirect(url_for('usuarios.gestao', view='folgas'))
+    lc = LeaveCredit.query.get_or_404(id)
+    try:
+        db.session.delete(lc)
+        db.session.commit()
+        flash('Crédito de folga excluído.', 'danger')
+    except Exception as ex:
+        db.session.rollback()
+        flash(f'Erro ao excluir crédito: {ex}', 'danger')
+    return redirect(url_for('usuarios.gestao', view='folgas'))
+
+@bp.route('/gestao/colaboradores/folgas/uso/adicionar', methods=['POST'])
+@login_required
+def gestao_colabs_folga_uso_adicionar():
+    if current_user.nivel != 'admin':
+        flash('Você não tem permissão para registrar uso de folgas.', 'danger')
+        return redirect(url_for('usuarios.gestao', view='folgas'))
+    cid_str = (request.form.get('collaborator_id', '').strip() or '')
+    date_str = (request.form.get('date', '').strip() or '')
+    days_str = (request.form.get('days_used', '1').strip() or '1')
+    notes = (request.form.get('notes', '').strip() or '')
+    try:
+        cid = int(cid_str)
+        d = datetime.strptime(date_str, '%Y-%m-%d').date()
+        days = int(days_str)
+    except Exception:
+        flash('Dados inválidos para uso de folga.', 'warning')
+        return redirect(url_for('usuarios.gestao', view='folgas'))
+    try:
+        la = LeaveAssignment()
+        la.collaborator_id = cid
+        la.date = d
+        la.days_used = days
+        la.notes = notes
+        db.session.add(la)
+        db.session.commit()
+        flash(f'Uso de {days} dia(s) de folga registrado.', 'success')
+    except Exception as ex:
+        db.session.rollback()
+        flash(f'Erro ao registrar uso: {ex}', 'danger')
+    return redirect(url_for('usuarios.gestao', view='folgas'))
+
+@bp.route('/gestao/colaboradores/folgas/uso/editar/<int:id>', methods=['POST'])
+@login_required
+def gestao_colabs_folga_uso_editar(id: int):
+    if current_user.nivel != 'admin':
+        flash('Apenas Gerente pode editar uso de folga.', 'danger')
+        return redirect(url_for('usuarios.gestao', view='folgas'))
+    la = LeaveAssignment.query.get_or_404(id)
+    date_str = (request.form.get('date', '').strip() or '')
+    days_str = (request.form.get('days_used', '').strip() or '')
+    notes = (request.form.get('notes', '').strip() or '')
+    try:
+        if date_str:
+            la.date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        if days_str:
+            la.days_used = int(days_str)
+        la.notes = notes
+        db.session.commit()
+        flash('Uso de folga atualizado.', 'info')
+    except Exception as ex:
+        db.session.rollback()
+        flash(f'Erro ao editar uso: {ex}', 'danger')
+    return redirect(url_for('usuarios.gestao', view='folgas'))
+
+@bp.route('/gestao/colaboradores/folgas/uso/excluir/<int:id>', methods=['POST'])
+@login_required
+def gestao_colabs_folga_uso_excluir(id: int):
+    if current_user.nivel != 'admin':
+        flash('Apenas Gerente pode excluir uso de folga.', 'danger')
+        return redirect(url_for('usuarios.gestao', view='folgas'))
+    la = LeaveAssignment.query.get_or_404(id)
+    try:
+        db.session.delete(la)
+        db.session.commit()
+        flash('Uso de folga excluído.', 'danger')
+    except Exception as ex:
+        db.session.rollback()
+        flash(f'Erro ao excluir uso: {ex}', 'danger')
+    return redirect(url_for('usuarios.gestao', view='folgas'))
+
+@bp.route('/gestao/roles', methods=['POST'])
+@login_required
+def gestao_role_criar():
+    if current_user.nivel != 'admin':
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    name = (request.form.get('name') or '').strip()
+    nivel = (request.form.get('nivel') or 'visualizador').strip()
+    if not name:
+        flash('Nome do cargo é obrigatório.', 'warning')
+        return redirect(url_for('usuarios.gestao'))
+    if nivel not in ('visualizador','operador','admin'):
+        flash('Tipo de permissão inválido.', 'warning')
+        return redirect(url_for('usuarios.gestao'))
+    if JobRole.query.filter_by(name=name).first() is not None:
+        flash('Cargo já existe.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    try:
+        r = JobRole(); r.name = name; r.nivel = nivel; db.session.add(r); db.session.commit()
+        flash('Cargo criado.', 'success')
+    except Exception as e:
+        db.session.rollback(); flash(f'Erro ao criar cargo: {e}', 'danger')
+    return redirect(url_for('usuarios.gestao'))
+
+@bp.route('/gestao/roles/<int:id>/editar', methods=['POST'])
+@login_required
+def gestao_role_editar(id: int):
+    if current_user.nivel != 'admin':
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    role = JobRole.query.get_or_404(id)
+    name = (request.form.get('name') or role.name).strip()
+    nivel = (request.form.get('nivel') or role.nivel).strip()
+    if nivel not in ('visualizador','operador','admin'):
+        flash('Tipo de permissão inválido.', 'warning')
+        return redirect(url_for('usuarios.gestao'))
+    try:
+        role.name = name; role.nivel = nivel; db.session.commit(); flash('Cargo atualizado.', 'info')
+    except Exception as e:
+        db.session.rollback(); flash(f'Erro ao atualizar cargo: {e}', 'danger')
+    return redirect(url_for('usuarios.gestao'))
+
+@bp.route('/gestao/roles/<int:id>/excluir', methods=['POST'])
+@login_required
+def gestao_role_excluir(id: int):
+    if current_user.nivel != 'admin':
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    role = JobRole.query.get_or_404(id)
+    try:
+        db.session.delete(role); db.session.commit(); flash('Cargo excluído.', 'danger')
+    except Exception as e:
+        db.session.rollback(); flash(f'Erro ao excluir cargo: {e}', 'danger')
+    return redirect(url_for('usuarios.gestao'))

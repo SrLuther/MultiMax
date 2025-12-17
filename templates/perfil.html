@@ -1,175 +1,511 @@
 {% extends 'base.html' %}
 {% block title %}Perfil — MultiMax{% endblock %}
+
+{% block breadcrumb %}
+<span class="mm-breadcrumb-separator">/</span>
+<span>Perfil</span>
+{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h3 class="mb-0">Perfil</h3>
-</div>
-
-<div class="row g-3">
-  {% if collab %}
-  <div class="col-12">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <div>Painel de Saldo</div>
-        <div class="d-flex gap-2 align-items-center">
-          <span class="badge text-bg-primary">Dias de folga: {{ folga_balance }}</span>
-          {% set hrs_cls = 'text-bg-secondary' %}
-          {% if residual_hours > 0 %}{% set hrs_cls = 'text-bg-success' %}{% elif residual_hours < 0 %}{% set hrs_cls = 'text-bg-danger' %}{% endif %}
-          <span class="badge {{ hrs_cls }}">Horas (residual): {{ '%.2f'|format(residual_hours) }}h</span>
-        </div>
-      </div>
-      <div class="card-body">
-        <div class="small text-muted">Regra: a cada 8h acumuladas vira +1 dia e as horas são reiniciadas.</div>
-      </div>
+<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
+    <div>
+        <h1 class="mm-page-title">Meu Perfil</h1>
+        <p class="mm-text-muted">Gerencie suas informações pessoais e segurança</p>
     </div>
-  </div>
-  {% endif %}
-  <div class="col-12 col-lg-6">
-    <form method="post" action="{{ url_for('usuarios.perfil') }}" class="bg-white p-3 rounded border" data-bs-theme="light">
-      <div class="mb-3">
-        <label class="form-label">Nome</label>
-        <input type="text" name="name" class="form-control" value="{{ current_user.name }}" required>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Login</label>
-        <input type="text" name="username" class="form-control" value="{{ current_user.username }}" required>
-        <div class="form-text">Somente letras e números.</div>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Nível</label>
-        <input type="text" class="form-control" value="{{ current_user.nivel | capitalize }}" disabled>
-      </div>
-      <div class="d-flex justify-content-end">
-        <button type="submit" class="btn btn-primary">Salvar Perfil</button>
-      </div>
-    </form>
-  </div>
-
-  <div class="col-12 col-lg-6">
-    <form method="post" action="{{ url_for('usuarios.perfil_senha') }}" class="bg-white p-3 rounded border" data-bs-theme="light">
-      <div class="mb-3">
-        <label class="form-label">Senha atual</label>
-        <input type="password" name="senha_atual" class="form-control" required>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Nova senha</label>
-        <input type="password" name="nova_senha" class="form-control" required>
-        <div class="form-text">Mínimo de 6 caracteres.</div>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Confirmar nova senha</label>
-        <input type="password" name="confirmar_senha" class="form-control" required>
-      </div>
-      <div class="d-flex justify-content-end">
-        <button type="submit" class="btn btn-outline-success">Atualizar Senha</button>
-      </div>
-    </form>
-  </div>
 </div>
+
 {% if collab %}
-  <div class="card mt-4">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <div>Banco de Horas — {{ collab.name }}{% if collab.role %} — {{ collab.role }}{% endif %}</div>
-    {% set cls = 'text-bg-secondary' %}
-    {% if residual_hours > 0 %}{% set cls = 'text-bg-success' %}{% elif residual_hours < 0 %}{% set cls = 'text-bg-danger' %}{% endif %}
-    <span class="badge {{ cls }}">{{ '%.2f'|format(residual_hours) }}h (residual)</span>
-  </div>
-  <div class="card-body">
-    <div class="table-responsive">
-      <table class="table table-sm table-hover align-middle">
-        <thead class="table-light">
-          <tr>
-            <th>Data</th>
-            <th class="text-end">Horas</th>
-            <th>Motivo</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for e in entries %}
-          <tr>
-            <td>{{ e.date.strftime('%d/%m/%Y') }}</td>
-            <td class="text-end">{{ '%.2f'|format(e.hours) }}h</td>
-            <td>{{ e.reason or '-' }}</td>
-          </tr>
-          {% else %}
-          <tr><td colspan="3" class="text-center text-muted">Sem lançamentos</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
- </div>
- <div class="card-footer text-muted">Para registrar horas, use a página Colaboradores.</div>
- </div>
-
- <div class="card mt-4">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <div>Folgas — {{ collab.name }}</div>
-    <span class="badge text-bg-primary">Saldo: {{ folga_balance }} dia(s)</span>
-  </div>
-  <div class="card-body">
-    <div class="row g-3">
-      <div class="col-12 col-lg-6">
-        <div class="table-responsive">
-          <table class="table table-sm table-hover align-middle">
-            <thead class="table-light"><tr><th>Data</th><th>Dias</th><th>Origem</th><th>Obs</th></tr></thead>
-            <tbody>
-              {% for c in folga_credits %}
-              <tr>
-                <td>{{ c.date.strftime('%d/%m/%Y') }}</td>
-                <td>{{ c.amount_days }}</td>
-                <td>{{ c.origin }}</td>
-                <td>{{ c.notes or '-' }}</td>
-              </tr>
-              {% else %}
-              <tr><td colspan="4" class="text-center text-muted">Sem créditos</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
+<div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--mm-info);">
+            <i class="bi bi-person-circle"></i>
         </div>
-      </div>
-      <div class="col-12 col-lg-6">
-        <div class="table-responsive">
-          <table class="table table-sm table-hover align-middle">
-            <thead class="table-light"><tr><th>Data Folga</th><th>Dias</th><th>Obs</th></tr></thead>
-            <tbody>
-              {% for a in folga_assigned %}
-              <tr>
-                <td>{{ a.date.strftime('%d/%m/%Y') }}</td>
-                <td>{{ a.days_used }}</td>
-                <td>{{ a.notes or '-' }}</td>
-              </tr>
-              {% else %}
-              <tr><td colspan="3" class="text-center text-muted">Sem folgas agendadas</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
+        <div class="mm-kpi-label">Colaborador</div>
+        <div class="mm-kpi-value" style="color: var(--mm-info); font-size: 1rem;">{{ collab.name }}</div>
+    </div>
+    
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-success);">
+            <i class="bi bi-calendar-check"></i>
         </div>
-      </div>
+        <div class="mm-kpi-label">Dias de Folga</div>
+        <div class="mm-kpi-value mm-text-success">{{ folga_balance }}</div>
     </div>
-
-    <div class="table-responsive mt-3">
-      <table class="table table-sm table-hover align-middle">
-        <thead class="table-light"><tr><th>Data</th><th>Dias</th><th>R$/dia</th><th>Valor pago</th><th>Obs</th></tr></thead>
-        <tbody>
-          {% for v in folga_conversions %}
-          <tr>
-            <td>{{ v.date.strftime('%d/%m/%Y') }}</td>
-            <td>{{ v.amount_days }}</td>
-            <td>R$ {{ '%.2f'|format(v.rate_per_day) }}</td>
-            <td>R$ {{ '%.2f'|format(v.amount_paid) }}</td>
-            <td>{{ v.notes or '-' }}</td>
-          </tr>
-          {% else %}
-          <tr><td colspan="5" class="text-center text-muted">Sem conversões</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: {% if residual_hours >= 0 %}rgba(34, 197, 94, 0.15){% else %}rgba(239, 68, 68, 0.15){% endif %}; color: {% if residual_hours >= 0 %}var(--mm-success){% else %}var(--mm-danger){% endif %};">
+            <i class="bi bi-clock-history"></i>
+        </div>
+        <div class="mm-kpi-label">Horas (residual)</div>
+        <div class="mm-kpi-value" style="color: {% if residual_hours >= 0 %}var(--mm-success){% else %}var(--mm-danger){% endif %};">{{ '%.2f'|format(residual_hours) }}h</div>
     </div>
-  </div>
- </div>
+    
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(var(--mm-primary-rgb), 0.15); color: var(--mm-primary);">
+            <i class="bi bi-shield-check"></i>
+        </div>
+        <div class="mm-kpi-label">Nível</div>
+        <div class="mm-kpi-value mm-text-primary" style="font-size: 1rem;">{{ current_user.nivel | capitalize }}</div>
+    </div>
+</div>
 {% else %}
-<div class="alert alert-info mt-4">
-  Vincule seu usuário a um colaborador na página <a class="alert-link" href="{{ url_for('usuarios.gestao') }}">Gestão &rsaquo; Colaboradores</a> para ver seu banco de horas.
- </div>
+<div class="mm-grid mm-grid-cols-2 mm-gap-4 mm-mb-6">
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--mm-info);">
+            <i class="bi bi-person-circle"></i>
+        </div>
+        <div class="mm-kpi-label">Usuário</div>
+        <div class="mm-kpi-value" style="color: var(--mm-info); font-size: 1rem;">{{ current_user.name }}</div>
+    </div>
+    
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(var(--mm-primary-rgb), 0.15); color: var(--mm-primary);">
+            <i class="bi bi-shield-check"></i>
+        </div>
+        <div class="mm-kpi-label">Nível</div>
+        <div class="mm-kpi-value mm-text-primary" style="font-size: 1rem;">{{ current_user.nivel | capitalize }}</div>
+    </div>
+</div>
 {% endif %}
+
+<div class="mm-grid mm-grid-cols-2 mm-gap-6 mm-mb-6">
+    <div class="mm-card">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title">
+                <i class="bi bi-person mm-text-primary"></i>
+                Dados Pessoais
+            </h3>
+        </div>
+        <div class="mm-card-body">
+            <form method="post" action="{{ url_for('usuarios.perfil') }}">
+                <div class="mm-form-group mm-mb-4">
+                    <label class="mm-label">Nome</label>
+                    <input type="text" name="name" class="mm-input" value="{{ current_user.name }}" required>
+                </div>
+                <div class="mm-form-group mm-mb-4">
+                    <label class="mm-label">Login</label>
+                    <input type="text" name="username" class="mm-input" value="{{ current_user.username }}" required>
+                    <span class="mm-form-hint">Somente letras e números.</span>
+                </div>
+                <div class="mm-form-group mm-mb-4">
+                    <label class="mm-label">Nível de Acesso</label>
+                    <input type="text" class="mm-input" value="{{ current_user.nivel | capitalize }}" disabled>
+                </div>
+                <div class="mm-flex mm-justify-end">
+                    <button type="submit" class="mm-btn mm-btn-primary">
+                        <i class="bi bi-save"></i>
+                        Salvar Perfil
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="mm-card">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title">
+                <i class="bi bi-key mm-text-warning"></i>
+                Alterar Senha
+            </h3>
+        </div>
+        <div class="mm-card-body">
+            <form method="post" action="{{ url_for('usuarios.perfil_senha') }}">
+                <div class="mm-form-group mm-mb-4">
+                    <label class="mm-label">Senha Atual</label>
+                    <input type="password" name="senha_atual" class="mm-input" required>
+                </div>
+                <div class="mm-form-group mm-mb-4">
+                    <label class="mm-label">Nova Senha</label>
+                    <input type="password" name="nova_senha" class="mm-input" required>
+                    <span class="mm-form-hint">Mínimo de 6 caracteres.</span>
+                </div>
+                <div class="mm-form-group mm-mb-4">
+                    <label class="mm-label">Confirmar Nova Senha</label>
+                    <input type="password" name="confirmar_senha" class="mm-input" required>
+                </div>
+                <div class="mm-flex mm-justify-end">
+                    <button type="submit" class="mm-btn mm-btn-success">
+                        <i class="bi bi-shield-lock"></i>
+                        Atualizar Senha
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% if collab %}
+<div class="mm-card mm-mb-6">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <i class="bi bi-clock-history mm-text-primary"></i>
+            Banco de Horas — {{ collab.name }}{% if collab.role %} — {{ collab.role }}{% endif %}
+        </h3>
+        {% set hrs_cls = 'mm-badge' %}
+        {% if residual_hours > 0 %}{% set hrs_cls = 'mm-badge mm-badge-success' %}{% elif residual_hours < 0 %}{% set hrs_cls = 'mm-badge mm-badge-danger' %}{% endif %}
+        <span class="{{ hrs_cls }}">
+            <i class="bi bi-clock"></i>
+            {{ '%.2f'|format(residual_hours) }}h (residual)
+        </span>
+    </div>
+    <div class="mm-card-body">
+        <div class="mm-info-box mm-mb-4">
+            <i class="bi bi-info-circle"></i>
+            <span>Regra: a cada 8h acumuladas vira +1 dia de folga e as horas são reiniciadas.</span>
+        </div>
+        <div class="mm-table-wrapper">
+            <table class="mm-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th style="text-align: right;">Horas</th>
+                        <th>Motivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in entries %}
+                    <tr>
+                        <td>{{ e.date.strftime('%d/%m/%Y') }}</td>
+                        <td style="text-align: right;">
+                            {% if e.hours > 0 %}
+                            <span class="mm-badge mm-badge-success">+{{ '%.2f'|format(e.hours) }}h</span>
+                            {% elif e.hours < 0 %}
+                            <span class="mm-badge mm-badge-danger">{{ '%.2f'|format(e.hours) }}h</span>
+                            {% else %}
+                            <span class="mm-badge">{{ '%.2f'|format(e.hours) }}h</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ e.reason or '-' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="mm-empty-cell">
+                            <div class="mm-empty-inline">
+                                <i class="bi bi-clock-history"></i>
+                                <span>Sem lançamentos</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="mm-card-footer">
+        <i class="bi bi-info-circle"></i>
+        Para registrar horas, acesse a página <a href="{{ url_for('usuarios.gestao') }}" class="mm-link">Gestão &rsaquo; Colaboradores</a>.
+    </div>
+</div>
+
+<div class="mm-card mm-mb-6">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <i class="bi bi-calendar-check mm-text-success"></i>
+            Folgas — {{ collab.name }}
+        </h3>
+        <span class="mm-badge mm-badge-primary">
+            <i class="bi bi-calendar-day"></i>
+            Saldo: {{ folga_balance }} dia(s)
+        </span>
+    </div>
+    <div class="mm-card-body">
+        <div class="mm-grid mm-grid-cols-2 mm-gap-6">
+            <div>
+                <h4 class="mm-section-title mm-mb-4">
+                    <i class="bi bi-plus-circle mm-text-success"></i>
+                    Créditos de Folga
+                </h4>
+                <div class="mm-table-wrapper">
+                    <table class="mm-table">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th style="text-align: center;">Dias</th>
+                                <th>Origem</th>
+                                <th>Obs</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in folga_credits %}
+                            <tr>
+                                <td>{{ c.date.strftime('%d/%m/%Y') }}</td>
+                                <td style="text-align: center;">
+                                    <span class="mm-badge mm-badge-success">+{{ c.amount_days }}</span>
+                                </td>
+                                <td>
+                                    {% if c.origin == 'horas' %}
+                                    <span class="mm-badge mm-badge-info">Banco de Horas</span>
+                                    {% elif c.origin == 'bonus' %}
+                                    <span class="mm-badge mm-badge-warning">Bônus</span>
+                                    {% else %}
+                                    <span class="mm-badge">{{ c.origin }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ c.notes or '-' }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="mm-empty-cell">
+                                    <div class="mm-empty-inline">
+                                        <i class="bi bi-calendar-plus"></i>
+                                        <span>Sem créditos</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div>
+                <h4 class="mm-section-title mm-mb-4">
+                    <i class="bi bi-calendar-minus mm-text-danger"></i>
+                    Folgas Usadas
+                </h4>
+                <div class="mm-table-wrapper">
+                    <table class="mm-table">
+                        <thead>
+                            <tr>
+                                <th>Data Folga</th>
+                                <th style="text-align: center;">Dias</th>
+                                <th>Obs</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for a in folga_assigned %}
+                            <tr>
+                                <td>{{ a.date.strftime('%d/%m/%Y') }}</td>
+                                <td style="text-align: center;">
+                                    <span class="mm-badge mm-badge-danger">-{{ a.days_used }}</span>
+                                </td>
+                                <td>{{ a.reason or '-' }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="mm-empty-cell">
+                                    <div class="mm-empty-inline">
+                                        <i class="bi bi-calendar-x"></i>
+                                        <span>Sem folgas usadas</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        {% if folga_conversions %}
+        <hr class="mm-divider">
+        <h4 class="mm-section-title mm-mb-4">
+            <i class="bi bi-cash-coin mm-text-warning"></i>
+            Conversões em Dinheiro
+        </h4>
+        <div class="mm-table-wrapper">
+            <table class="mm-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th style="text-align: center;">Dias</th>
+                        <th style="text-align: right;">R$/dia</th>
+                        <th style="text-align: right;">Valor Pago</th>
+                        <th>Obs</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in folga_conversions %}
+                    <tr>
+                        <td>{{ v.date.strftime('%d/%m/%Y') }}</td>
+                        <td style="text-align: center;">
+                            <span class="mm-badge mm-badge-warning">{{ v.amount_days }}</span>
+                        </td>
+                        <td style="text-align: right;">R$ {{ '%.2f'|format(v.rate_per_day) }}</td>
+                        <td style="text-align: right;"><strong>R$ {{ '%.2f'|format(v.amount_paid) }}</strong></td>
+                        <td>{{ v.notes or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<div class="mm-card mm-mb-6">
+    <div class="mm-card-body">
+        <div class="mm-alert mm-alert-info">
+            <i class="bi bi-info-circle"></i>
+            <div>
+                <strong>Colaborador não vinculado</strong>
+                <p class="mm-mb-0">Vincule seu usuário a um colaborador na página <a href="{{ url_for('usuarios.gestao') }}" class="mm-link">Gestão &rsaquo; Colaboradores</a> para ver seu banco de horas e folgas.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+.mm-page-header {
+    margin-bottom: var(--mm-space-6);
+}
+
+.mm-page-title {
+    font-size: var(--mm-text-2xl);
+    font-weight: var(--mm-font-bold);
+    color: var(--mm-text-primary);
+    margin: 0 0 var(--mm-space-1) 0;
+}
+
+.mm-kpi-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mm-space-3);
+}
+
+.mm-kpi-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--mm-radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.mm-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mm-space-2);
+}
+
+.mm-form-hint {
+    font-size: var(--mm-text-sm);
+    color: var(--mm-text-muted);
+}
+
+.mm-info-box {
+    display: flex;
+    align-items: center;
+    gap: var(--mm-space-2);
+    padding: var(--mm-space-3) var(--mm-space-4);
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: var(--mm-radius-md);
+    font-size: var(--mm-text-sm);
+    color: var(--mm-text-secondary);
+}
+
+.mm-info-box i {
+    color: var(--mm-info);
+}
+
+.mm-section-title {
+    font-size: var(--mm-text-base);
+    font-weight: var(--mm-font-semibold);
+    color: var(--mm-text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--mm-space-2);
+    margin: 0;
+}
+
+.mm-card-footer {
+    padding: var(--mm-space-4);
+    background: var(--mm-bg-secondary);
+    border-top: 1px solid var(--mm-border);
+    font-size: var(--mm-text-sm);
+    color: var(--mm-text-muted);
+    display: flex;
+    align-items: center;
+    gap: var(--mm-space-2);
+}
+
+.mm-link {
+    color: var(--mm-primary);
+    text-decoration: none;
+    font-weight: var(--mm-font-medium);
+}
+
+.mm-link:hover {
+    text-decoration: underline;
+}
+
+.mm-divider {
+    border: none;
+    border-top: 1px solid var(--mm-border);
+    margin: var(--mm-space-6) 0;
+}
+
+.mm-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--mm-space-3);
+    padding: var(--mm-space-4);
+    border-radius: var(--mm-radius-lg);
+}
+
+.mm-alert-info {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.mm-alert-info > i {
+    color: var(--mm-info);
+    font-size: 1.25rem;
+    margin-top: 2px;
+}
+
+.mm-alert p {
+    margin-top: var(--mm-space-1);
+    font-size: var(--mm-text-sm);
+    color: var(--mm-text-secondary);
+}
+
+.mm-empty-inline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--mm-space-2);
+    color: var(--mm-text-muted);
+    padding: var(--mm-space-4);
+}
+
+.mm-empty-inline i {
+    font-size: 1.25rem;
+}
+
+.mm-empty-cell {
+    text-align: center;
+    padding: var(--mm-space-8) !important;
+}
+
+.mm-mb-0 {
+    margin-bottom: 0;
+}
+
+.mm-mb-4 {
+    margin-bottom: var(--mm-space-4);
+}
+
+.mm-justify-end {
+    justify-content: flex-end;
+}
+
+@media (max-width: 1024px) {
+    .mm-grid-cols-2 {
+        grid-template-columns: 1fr;
+    }
+    
+    .mm-grid-cols-4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .mm-grid-cols-4 {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
 {% endblock %}

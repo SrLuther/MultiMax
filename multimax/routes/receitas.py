@@ -1,9 +1,23 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_required
 from .. import db
-from ..models import Recipe, RecipeIngredient
+from ..models import Recipe, RecipeIngredient, Produto
 
 bp = Blueprint('receitas', __name__, url_prefix='/receitas')
+
+def _calcular_custo_receita(receita_id):
+    ingredientes = RecipeIngredient.query.filter_by(recipe_id=receita_id).all()
+    custo_total = 0.0
+    for ing in ingredientes:
+        if ing.produto_id:
+            produto = Produto.query.get(ing.produto_id)
+            if produto and produto.preco_custo:
+                custo_ing = (ing.quantidade_kg or 0) * produto.preco_custo
+                ing.custo_unitario = custo_ing
+                custo_total += custo_ing
+        elif ing.custo_unitario:
+            custo_total += ing.custo_unitario
+    return custo_total
 
 @bp.route('/', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
@@ -23,6 +37,8 @@ def index():
         db.session.flush()
         nomes = request.form.getlist('ing_nome[]')
         qtds = request.form.getlist('ing_qtd[]')
+        produto_ids = request.form.getlist('ing_produto_id[]')
+        qtds_kg = request.form.getlist('ing_qtd_kg[]')
         for i in range(0, max(len(nomes), len(qtds))):
             n = (nomes[i] if i < len(nomes) else '').strip()
             q = (qtds[i] if i < len(qtds) else '').strip()
@@ -32,6 +48,20 @@ def index():
             it.recipe_id = r.id
             it.nome = n
             it.quantidade = q
+            if i < len(produto_ids) and produto_ids[i]:
+                try:
+                    it.produto_id = int(produto_ids[i])
+                except:
+                    pass
+            if i < len(qtds_kg) and qtds_kg[i]:
+                try:
+                    it.quantidade_kg = float(qtds_kg[i].replace(',', '.'))
+                except:
+                    pass
+            if it.produto_id:
+                produto = Produto.query.get(it.produto_id)
+                if produto and produto.preco_custo:
+                    it.custo_unitario = (it.quantidade_kg or 0) * produto.preco_custo
             db.session.add(it)
         db.session.commit()
         flash('Receita cadastrada com sucesso.', 'success')
@@ -47,11 +77,14 @@ def index():
     receitas_pag = query.paginate(page=page, per_page=per_page, error_out=False)
     selecionada = None
     ingredientes = []
+    custo_total = 0.0
     if rid:
         selecionada = Recipe.query.get(rid)
         if selecionada:
             ingredientes = RecipeIngredient.query.filter_by(recipe_id=selecionada.id).order_by(RecipeIngredient.id.asc()).all()
-    return render_template('receitas.html', active_page='receitas', receitas=receitas_pag.items, receitas_pag=receitas_pag, selecionada=selecionada, ingredientes=ingredientes, q=q)
+            custo_total = _calcular_custo_receita(selecionada.id)
+    produtos = Produto.query.order_by(Produto.nome.asc()).all()
+    return render_template('receitas.html', active_page='receitas', receitas=receitas_pag.items, receitas_pag=receitas_pag, selecionada=selecionada, ingredientes=ingredientes, q=q, produtos=produtos, custo_total=custo_total)
 
 @bp.route('/editar/<int:id>', methods=['POST'], strict_slashes=False)
 @login_required
@@ -70,6 +103,8 @@ def editar(id: int):
         RecipeIngredient.query.filter_by(recipe_id=r.id).delete()
         nomes = request.form.getlist('ing_nome[]')
         qtds = request.form.getlist('ing_qtd[]')
+        produto_ids = request.form.getlist('ing_produto_id[]')
+        qtds_kg = request.form.getlist('ing_qtd_kg[]')
         for i in range(0, max(len(nomes), len(qtds))):
             n = (nomes[i] if i < len(nomes) else '').strip()
             q = (qtds[i] if i < len(qtds) else '').strip()
@@ -79,6 +114,20 @@ def editar(id: int):
             it.recipe_id = r.id
             it.nome = n
             it.quantidade = q
+            if i < len(produto_ids) and produto_ids[i]:
+                try:
+                    it.produto_id = int(produto_ids[i])
+                except:
+                    pass
+            if i < len(qtds_kg) and qtds_kg[i]:
+                try:
+                    it.quantidade_kg = float(qtds_kg[i].replace(',', '.'))
+                except:
+                    pass
+            if it.produto_id:
+                produto = Produto.query.get(it.produto_id)
+                if produto and produto.preco_custo:
+                    it.custo_unitario = (it.quantidade_kg or 0) * produto.preco_custo
             db.session.add(it)
         db.session.commit()
         flash('Receita atualizada.', 'success')
@@ -96,7 +145,7 @@ def duplicar(id: int):
     r = Recipe.query.get_or_404(id)
     try:
         novo = Recipe()
-        novo.nome = f"{r.nome} (cópia)"
+        novo.nome = f"{r.nome} (copia)"
         novo.embalagem = r.embalagem
         novo.preparo = r.preparo
         db.session.add(novo)
@@ -107,6 +156,9 @@ def duplicar(id: int):
             ni.recipe_id = novo.id
             ni.nome = ing.nome
             ni.quantidade = ing.quantidade
+            ni.produto_id = ing.produto_id
+            ni.quantidade_kg = ing.quantidade_kg
+            ni.custo_unitario = ing.custo_unitario
             db.session.add(ni)
         db.session.commit()
         flash('Receita duplicada.', 'success')
@@ -131,7 +183,7 @@ def excluir(id: int):
         RecipeIngredient.query.filter_by(recipe_id=r.id).delete()
         db.session.delete(r)
         db.session.commit()
-        flash('Receita excluída.', 'danger')
+        flash('Receita excluida.', 'danger')
     except Exception as e:
         try:
             db.session.rollback()
