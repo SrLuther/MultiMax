@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block title %}{{ fornecedor.nome }} — MultiMax{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-4">
+    <div class="card shadow-sm mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>Dados do Fornecedor</strong>
+        <a href="{{ url_for('fornecedores.index') }}" class="btn btn-sm btn-outline-secondary">Voltar</a>
+      </div>
+      <div class="card-body">
+        <h5 class="card-title">{{ fornecedor.nome }}</h5>
+        <p class="mb-1"><strong>Status:</strong> 
+          {% if fornecedor.ativo %}
+          <span class="badge bg-success">Ativo</span>
+          {% else %}
+          <span class="badge bg-secondary">Inativo</span>
+          {% endif %}
+        </p>
+        {% if fornecedor.cnpj %}
+        <p class="mb-1"><strong>CNPJ:</strong> {{ fornecedor.cnpj }}</p>
+        {% endif %}
+        {% if fornecedor.telefone %}
+        <p class="mb-1"><strong>Telefone:</strong> {{ fornecedor.telefone }}</p>
+        {% endif %}
+        {% if fornecedor.email %}
+        <p class="mb-1"><strong>Email:</strong> <a href="mailto:{{ fornecedor.email }}">{{ fornecedor.email }}</a></p>
+        {% endif %}
+        {% if fornecedor.endereco %}
+        <p class="mb-1"><strong>Endereço:</strong> {{ fornecedor.endereco }}</p>
+        {% endif %}
+        {% if fornecedor.observacao %}
+        <hr>
+        <p class="mb-0"><strong>Observações:</strong></p>
+        <p class="text-muted">{{ fornecedor.observacao }}</p>
+        {% endif %}
+        {% if fornecedor.created_at %}
+        <hr>
+        <p class="small text-muted mb-0">Cadastrado em {{ fornecedor.created_at.strftime('%d/%m/%Y às %H:%M') }}</p>
+        {% endif %}
+      </div>
+      {% if current_user.nivel in ('operador','admin') %}
+      <div class="card-footer">
+        <a href="{{ url_for('fornecedores.editar', id=fornecedor.id) }}" class="btn btn-primary btn-sm">Editar</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-header">
+        <strong>Produtos deste Fornecedor</strong>
+        <span class="badge bg-primary">{{ produtos|length }}</span>
+      </div>
+      <div class="card-body p-0">
+        {% if produtos %}
+        <div class="table-responsive">
+          <table class="table table-striped mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Código</th>
+                <th>Nome</th>
+                <th>Estoque</th>
+                <th>Mínimo</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in produtos %}
+              <tr>
+                <td>{{ p.codigo }}</td>
+                <td>{{ p.nome }}</td>
+                <td>
+                  {% if p.quantidade <= p.estoque_minimo and p.estoque_minimo > 0 %}
+                  <span class="text-danger fw-bold">{{ p.quantidade }}</span>
+                  {% else %}
+                  {{ p.quantidade }}
+                  {% endif %}
+                </td>
+                <td>{{ p.estoque_minimo }}</td>
+                <td>
+                  <a href="{{ url_for('estoque.editar', id=p.id) }}" class="btn btn-outline-info btn-sm">Ver</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="p-3 text-center text-muted">
+          Nenhum produto vinculado a este fornecedor.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

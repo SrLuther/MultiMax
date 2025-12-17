@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}QR Code - {{ produto.nome }}{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span><strong>QR Code do Produto</strong></span>
+          <a href="{{ url_for('estoque.lista_produtos') }}" class="btn btn-sm btn-outline-secondary">Voltar</a>
+        </div>
+        <div class="card-body text-center">
+          <h5 class="mb-3">{{ produto.nome }}</h5>
+          <p class="text-muted mb-3">Código: <strong>{{ produto.codigo }}</strong></p>
+          <div class="mb-3">
+            <img src="{{ url_for('estoque.qrcode_produto', id=produto.id) }}" alt="QR Code" class="img-fluid border rounded" style="max-width: 250px;">
+          </div>
+          <p class="small text-muted mb-3">Escaneie este código para identificar o produto rapidamente</p>
+          <div class="d-flex justify-content-center gap-2">
+            <a href="{{ url_for('estoque.qrcode_produto', id=produto.id) }}" download="qrcode_{{ produto.codigo }}.png" class="btn btn-primary">
+              <span class="me-1">📥</span> Baixar QR Code
+            </a>
+            <button class="btn btn-outline-secondary" onclick="window.print()">
+              <span class="me-1">🖨️</span> Imprimir
+            </button>
+          </div>
+        </div>
+        <div class="card-footer bg-light">
+          <div class="row text-center small">
+            <div class="col-4">
+              <strong>Estoque</strong><br>{{ produto.quantidade }}
+            </div>
+            <div class="col-4">
+              <strong>Mínimo</strong><br>{{ produto.estoque_minimo }}
+            </div>
+            <div class="col-4">
+              <strong>Status</strong><br>
+              {% if produto.quantidade <= produto.estoque_minimo and produto.estoque_minimo > 0 %}
+              <span class="badge bg-danger">Baixo</span>
+              {% else %}
+              <span class="badge bg-success">OK</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  @media print {
+    .btn, .card-header a, nav, .navbar, footer {
+      display: none !important;
+    }
+    .card {
+      border: none !important;
+      box-shadow: none !important;
+    }
+  }
+</style>
+{% endblock %}

@@ -1,333 +1,1109 @@
 {% extends 'base.html' %}
-{% block title %}MultiMax{% endblock %}
+{% block title %}Escalas — MultiMax{% endblock %}
+
+{% block breadcrumb %}
+<span class="mm-breadcrumb-separator">/</span>
+<span>Escalas</span>
+{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h3 class="mb-0">Rodízio de Equipes</h3>
-  <div></div>
-</div>
-
-{% if current_user.nivel in ('operador','admin') %}
-<div class="card mb-3">
-  <div class="card-header">Configurar semana atual</div>
-  <div class="card-body">
-    <form method="post" action="{{ url_for('colaboradores.rodizio_atualizar') }}" class="row g-2">
-      <div class="col-md-3">
-        <label class="form-label">Equipe Abertura (esta semana)</label>
-        <select name="abertura_equipe" class="form-select">
-          <option value="1" {% if ref_open == '1' %}selected{% endif %}>Equipe 1</option>
-          <option value="2" {% if ref_open == '2' %}selected{% endif %}>Equipe 2</option>
-        </select>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Equipe Fechamento (esta semana)</label>
-        <select name="fechamento_equipe" class="form-select">
-          {% set other = '2' if ref_open == '1' else '1' %}
-          <option value="1" {% if other == '1' %}selected{% endif %}>Equipe 1</option>
-          <option value="2" {% if other == '2' %}selected{% endif %}>Equipe 2</option>
-        </select>
-      </div>
-      <div class="col-md-6 d-flex align-items-end justify-content-end">
-        <button class="btn btn-primary" type="submit">Atualizar Semana</button>
-      </div>
-    </form>
-  </div>
-</div>
-<div class="card mb-3">
-  <div class="card-header">Gerar Rodízio (5 semanas)</div>
-  <div class="card-body">
-    <form method="post" action="{{ url_for('colaboradores.rodizio_gerar') }}" class="row g-2">
-      <div class="col-md-6">
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="limparCheck" name="limpar">
-          <label class="form-check-label" for="limparCheck">Limpar escalas existentes no período</label>
-        </div>
-      </div>
-      <div class="col-md-6 d-flex align-items-end justify-content-end">
-        <button class="btn btn-success" type="submit">Gerar Rodízio</button>
-      </div>
-    </form>
-  </div>
-</div>
-<div class="card mb-3">
-  <div class="card-header">Configurar Domingos</div>
-  <div class="card-body">
-    <form method="post" action="{{ url_for('colaboradores.domingo_configurar') }}" class="row g-2">
-      <div class="col-md-4">
-        <label class="form-label">Equipe de Domingo (5h–13h)</label>
-        <select name="domingo_team" class="form-select">
-          <option value="1" {% if domingo_team == '1' %}selected{% endif %}>Equipe 1</option>
-          <option value="2" {% if domingo_team == '2' %}selected{% endif %}>Equipe 2</option>
-        </select>
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Domingo de referência</label>
-        <input type="date" class="form-control" name="domingo_data" value="{{ domingo_ref_date }}">
-      </div>
-      <div class="col-md-4 d-flex align-items-end justify-content-end">
-        <button class="btn btn-primary" type="submit">Salvar Configuração</button>
-      </div>
-    </form>
-  </div>
-</div>
-<div class="card mb-3">
-  <div class="card-header">Registrar Crédito de Folga</div>
-  <div class="card-body">
-    <form method="post" action="{{ url_for('colaboradores.folga_credito_registrar') }}" class="row g-2">
-      <div class="col-md-4">
-        <label class="form-label">Colaborador</label>
-        <select name="collaborator_id" class="form-select" required>
-          {% for c in colaboradores %}
-            <option value="{{ c.id }}">{{ c.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Data</label>
-        <input type="date" class="form-control" name="date" required>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Dias (+)</label>
-        <input type="number" class="form-control" name="amount" min="1" value="1" required>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Observação</label>
-        <input type="text" class="form-control" name="notes" placeholder="Motivo">
-      </div>
-      <div class="col-12 d-flex align-items-end justify-content-end">
-        <button class="btn btn-success" type="submit">Registrar Crédito</button>
-      </div>
-    </form>
-  </div>
-</div>
-{% endif %}
-
-<div class="table-responsive-sm">
-  <table class="table table-striped table-hover align-middle">
-    <thead class="table-dark">
-      <tr>
-        <th>Semana</th>
-        <th>Período</th>
-        <th>Abertura</th>
-        <th>Fechamento</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for w in weeks %}
-      <tr>
-        <td>{{ loop.index }}</td>
-        <td>{{ w.start.strftime('%d/%m') }} - {{ w.end.strftime('%d/%m') }}</td>
-        <td><span class="badge text-bg-primary">{{ w.open }}</span></td>
-        <td><span class="badge text-bg-info">{{ w.close }}</span></td>
-      </tr>
-      {% endfor %}
-      {% if weeks|length == 0 %}
-      <tr><td colspan="4" class="text-center text-muted">Sem dados de rodízio</td></tr>
-      {% endif %}
-    </tbody>
-  </table>
-</div>
-
-<div class="card mt-3">
-  <div class="card-header">Calendário do Sistema</div>
-  <div class="card-body">
-    <div id="calendar" style="min-height: 600px"></div>
-    <script id="events-data" type="application/json">{{ events|tojson|safe }}</script>
-    <style>
-      .fc-daygrid-event.dot-event { background: transparent !important; border: 0 !important; padding: 2px !important; }
-      .fc-daygrid-event.dot-event .fc-event-main { padding: 0 !important; }
-      .fc-daygrid-event.dot-event .fc-event-main > * { margin: 0 !important; }
-      .fc .fc-toolbar-title { font-weight: 700; font-size: 1.25rem; }
-      .fc .fc-button { border-radius: 16px; background: #f4f4f5; color: #111; border: 0; }
-      .fc .fc-button:hover { background: #e9e9ea; }
-      .fc .fc-button:focus { box-shadow: none; }
-      .fc-daygrid-day.fc-day-today .fc-daygrid-day-number { background: #ff3b30; color: #fff; border-radius: 12px; padding: 2px 6px; }
-      .fc .fc-timegrid-now-indicator-line { border-color: #ff3b30; }
-      .fc .fc-timegrid-now-indicator-arrow { border-top-color: #ff3b30; }
-      .fc-list-day { background: transparent !important; }
-      .fc-list-day-cushion { padding: 8px 12px; }
-      .fc-list-day .fc-list-day-text { font-size: 1rem; font-weight: 600; color: #111; }
-      .fc-list-day .fc-list-day-side-text { color: #6c757d; }
-      .fc-list-event-time { width: 80px; font-weight: 600; color: #111; }
-      .fc-list-event-title a { color: #111; }
-      .fc-list-event:hover { background: #f7f7f8; }
-      .fc .fc-col-header-cell-cushion { font-weight: 600; }
-    </style>
-  </div>
-  <div class="card-footer">
-    <div class="d-flex flex-wrap gap-3 align-items-center">
-      <span style="display:inline-flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;border-radius:50%;background:#0d6efd;display:inline-block"></span>Equipe Abertura</span>
-      <span style="display:inline-flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;border-radius:50%;background:#0b5ed7;display:inline-block"></span>Equipe Fechamento</span>
-      <span style="display:inline-flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;border-radius:50%;background:#fd7e14;display:inline-block"></span>Domingo (5h–13h)</span>
+<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
+    <div>
+        <h1 class="mm-page-title">Escalas de Trabalho</h1>
+        <p class="mm-text-muted">Grade semanal, turnos e calendario</p>
     </div>
-  </div>
+    <div class="mm-flex mm-gap-2">
+        <button class="mm-btn mm-btn-outline" onclick="window.print()">
+            <i class="bi bi-printer"></i> Imprimir
+        </button>
+        {% if current_user.nivel in ('operador', 'admin') %}
+        <button class="mm-btn mm-btn-primary" data-bs-toggle="modal" data-bs-target="#modalTurno">
+            <i class="bi bi-plus-lg"></i> Atribuir Turno
+        </button>
+        {% endif %}
+    </div>
 </div>
+
+<div class="mm-tabs mm-mb-6">
+    <button class="mm-tab active" data-tab="grade">
+        <i class="bi bi-grid-3x3"></i> Grade Semanal
+    </button>
+    <button class="mm-tab" data-tab="calendario">
+        <i class="bi bi-calendar3"></i> Calendario
+    </button>
+    <button class="mm-tab" data-tab="feriados">
+        <i class="bi bi-calendar-heart"></i> Feriados
+    </button>
+    <button class="mm-tab" data-tab="config">
+        <i class="bi bi-gear"></i> Configuracoes
+    </button>
+</div>
+
+<div id="tab-grade" class="mm-tab-content active">
+    <div class="mm-card mm-mb-6">
+        <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
+            <h3 class="mm-card-title">
+                <i class="bi bi-calendar-week me-2"></i>
+                Semana: {{ semana_inicio.strftime('%d/%m') }} a {{ semana_fim.strftime('%d/%m/%Y') }}
+            </h3>
+            <div class="mm-flex mm-gap-2">
+                <a href="{{ url_for('colaboradores.escala', semana=semana_anterior) }}" class="mm-btn mm-btn-outline mm-btn-sm">
+                    <i class="bi bi-chevron-left"></i> Anterior
+                </a>
+                <a href="{{ url_for('colaboradores.escala') }}" class="mm-btn mm-btn-outline mm-btn-sm">Hoje</a>
+                <a href="{{ url_for('colaboradores.escala', semana=semana_proxima) }}" class="mm-btn mm-btn-outline mm-btn-sm">
+                    Proxima <i class="bi bi-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+        <div class="mm-card-body" style="overflow-x: auto;">
+            <table class="mm-table mm-schedule-grid">
+                <thead>
+                    <tr>
+                        <th style="min-width: 150px;">Colaborador</th>
+                        {% for dia in dias_semana %}
+                        <th class="text-center {% if dia.is_today %}mm-today{% endif %}" style="min-width: 120px;">
+                            <div class="mm-dia-header">
+                                <span class="mm-dia-nome">{{ dia.nome }}</span>
+                                <span class="mm-dia-data">{{ dia.data.strftime('%d/%m') }}</span>
+                            </div>
+                        </th>
+                        {% endfor %}
+                        <th class="text-center" style="min-width: 80px;">Horas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for colab in colaboradores %}
+                    <tr>
+                        <td>
+                            <div class="mm-colab-cell">
+                                <div class="mm-avatar-sm">{{ colab.name[:2].upper() if colab.name else '?' }}</div>
+                                <div>
+                                    <div class="mm-colab-nome">{{ colab.name or 'Sem nome' }}</div>
+                                    <div class="mm-colab-cargo">{{ colab.role or '-' }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        {% for dia in dias_semana %}
+                        {% set turno = turnos_map.get((colab.id, dia.data.isoformat())) %}
+                        <td class="text-center mm-turno-cell {% if dia.is_today %}mm-today{% endif %}">
+                            {% if turno %}
+                            <div class="mm-turno-badge mm-turno-{{ turno.turno|lower|replace(' ', '-') }}" 
+                                 title="{{ turno.observacao or '' }}"
+                                 {% if current_user.nivel in ('operador', 'admin') %}
+                                 onclick="editarTurno({{ turno.id }}, {{ colab.id }}, '{{ dia.data.isoformat() }}', '{{ turno.turno }}', '{{ turno.observacao or '' }}')"
+                                 style="cursor: pointer;"
+                                 {% endif %}>
+                                {{ turno.turno }}
+                            </div>
+                            {% else %}
+                            {% if current_user.nivel in ('operador', 'admin') %}
+                            <button class="mm-btn-add-turno" onclick="abrirModalTurno({{ colab.id }}, '{{ dia.data.isoformat() }}')">
+                                <i class="bi bi-plus"></i>
+                            </button>
+                            {% else %}
+                            <span class="mm-text-muted">-</span>
+                            {% endif %}
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                        <td class="text-center">
+                            <span class="mm-horas-total">{{ horas_semana.get(colab.id, 0) }}h</span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="{{ dias_semana|length + 2 }}" class="text-center mm-text-muted py-4">
+                            Nenhum colaborador ativo cadastrado
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
+        <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-primary);">
+            <div class="mm-flex mm-items-center mm-justify-between">
+                <div>
+                    <div class="mm-kpi-label">Colaboradores Ativos</div>
+                    <div class="mm-kpi-value" style="color: var(--mm-primary);">{{ colaboradores|length }}</div>
+                </div>
+                <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-primary);">
+                    <i class="bi bi-people"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-info);">
+            <div class="mm-flex mm-items-center mm-justify-between">
+                <div>
+                    <div class="mm-kpi-label">Turnos na Semana</div>
+                    <div class="mm-kpi-value" style="color: var(--mm-info);">{{ total_turnos_semana }}</div>
+                </div>
+                <div class="mm-kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--mm-info);">
+                    <i class="bi bi-calendar-check"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mm-card mm-kpi-card" style="border-left: 4px solid #fd7e14;">
+            <div class="mm-flex mm-items-center mm-justify-between">
+                <div>
+                    <div class="mm-kpi-label">Equipe Domingo</div>
+                    <div class="mm-kpi-value" style="color: #fd7e14;">Equipe {{ domingo_team }}</div>
+                </div>
+                <div class="mm-kpi-icon" style="background: rgba(253, 126, 20, 0.15); color: #fd7e14;">
+                    <i class="bi bi-calendar-week"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-success);">
+            <div class="mm-flex mm-items-center mm-justify-between">
+                <div>
+                    <div class="mm-kpi-label">Feriados</div>
+                    <div class="mm-kpi-value" style="color: var(--mm-success);">{{ feriados|length }}</div>
+                </div>
+                <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-success);">
+                    <i class="bi bi-calendar-heart"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mm-card">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title"><i class="bi bi-clock-history me-2"></i>Proximas 5 Semanas - Rodizio</h3>
+        </div>
+        <div class="mm-card-body">
+            <div class="mm-table-wrapper">
+                <table class="mm-table">
+                    <thead>
+                        <tr>
+                            <th>Semana</th>
+                            <th>Abertura (5h)</th>
+                            <th>Fechamento (13h)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for w in weeks %}
+                        <tr>
+                            <td>{{ w.start.strftime('%d/%m') }} - {{ w.end.strftime('%d/%m') }}</td>
+                            <td><span class="mm-badge mm-badge-success">{{ w.open }}</span></td>
+                            <td><span class="mm-badge mm-badge-info">{{ w.close }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="tab-calendario" class="mm-tab-content">
+    <div class="mm-card">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title">
+                <i class="bi bi-calendar-range mm-text-primary"></i>
+                Calendario do Sistema
+            </h3>
+        </div>
+        <div class="mm-card-body">
+            <div id="calendar" class="mm-calendar-container"></div>
+            <script id="events-data" type="application/json">{{ events|tojson|safe }}</script>
+        </div>
+        <div class="mm-card-footer">
+            <div class="mm-legend">
+                <div class="mm-legend-item">
+                    <span class="mm-legend-dot" style="background: #3b82f6;"></span>
+                    <span>Manha</span>
+                </div>
+                <div class="mm-legend-item">
+                    <span class="mm-legend-dot" style="background: #f59e0b;"></span>
+                    <span>Tarde</span>
+                </div>
+                <div class="mm-legend-item">
+                    <span class="mm-legend-dot" style="background: #8b5cf6;"></span>
+                    <span>Noite</span>
+                </div>
+                <div class="mm-legend-item">
+                    <span class="mm-legend-dot" style="background: #fd7e14;"></span>
+                    <span>Domingo (5h-13h)</span>
+                </div>
+                <div class="mm-legend-item">
+                    <span class="mm-legend-dot" style="background: #20c997;"></span>
+                    <span>Feriado</span>
+                </div>
+                <div class="mm-legend-item">
+                    <span class="mm-legend-dot" style="background: #6f42c1;"></span>
+                    <span>Folga</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="tab-feriados" class="mm-tab-content">
+    <div class="mm-card">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title">
+                <i class="bi bi-calendar-heart mm-text-primary"></i>
+                Configurar Feriados
+            </h3>
+        </div>
+        <div class="mm-card-body">
+            {% if current_user.nivel == 'admin' %}
+            <form class="mm-feriado-form mm-mb-6" method="post" action="{{ url_for('colaboradores.feriado_criar') }}">
+                <div class="mm-form-row">
+                    <div class="mm-form-group">
+                        <label class="mm-label">Data</label>
+                        <input type="date" name="date" class="mm-input" required>
+                    </div>
+                    <div class="mm-form-group" style="flex: 2;">
+                        <label class="mm-label">Nome do Feriado</label>
+                        <input type="text" name="name" class="mm-input" placeholder="ex.: Natal" required>
+                    </div>
+                    <div class="mm-form-group">
+                        <label class="mm-label">Tipo</label>
+                        <select name="kind" class="mm-input mm-select">
+                            <option value="facultativo" selected>Ponto Facultativo</option>
+                            <option value="nacional">Feriado Nacional</option>
+                            <option value="municipal">Feriado Municipal</option>
+                            <option value="estadual">Feriado Estadual</option>
+                        </select>
+                    </div>
+                    <div class="mm-form-group" style="align-self: end;">
+                        <button class="mm-btn mm-btn-primary" type="submit">
+                            <i class="bi bi-plus-lg"></i> Adicionar
+                        </button>
+                    </div>
+                </div>
+            </form>
+            {% endif %}
+            
+            <div class="mm-table-wrapper">
+                <table class="mm-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Nome</th>
+                            <th>Tipo</th>
+                            <th style="text-align: right;">Acoes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for h in feriados %}
+                        <tr>
+                            <td>
+                                <span class="mm-date-cell">
+                                    <i class="bi bi-calendar3"></i>
+                                    {{ h.date.strftime('%d/%m/%Y') }}
+                                </span>
+                            </td>
+                            <td>{{ h.name }}</td>
+                            <td>
+                                {% if h.kind == 'nacional' %}
+                                <span class="mm-badge mm-badge-success">Nacional</span>
+                                {% elif h.kind == 'estadual' %}
+                                <span class="mm-badge mm-badge-info">Estadual</span>
+                                {% elif h.kind == 'municipal' or h.kind and 'municipal' in h.kind %}
+                                <span class="mm-badge mm-badge-primary">Municipal</span>
+                                {% else %}
+                                <span class="mm-badge" style="background: rgba(148, 163, 184, 0.15); color: var(--mm-text-muted);">Facultativo</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: right;">
+                                {% if current_user.nivel == 'admin' %}
+                                <form method="post" action="{{ url_for('colaboradores.feriado_excluir', id=h.id) }}" class="mm-inline-form" onsubmit="return confirm('Excluir feriado {{ h.name }}?')">
+                                    <button class="mm-btn mm-btn-danger mm-btn-sm" type="submit">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="mm-empty-cell">
+                                <div class="mm-empty-state-inline">
+                                    <i class="bi bi-calendar-x"></i>
+                                    <span>Sem feriados cadastrados</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="tab-config" class="mm-tab-content">
+    {% if current_user.nivel in ('operador', 'admin') %}
+    <div class="mm-card mm-mb-6">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title">
+                <i class="bi bi-magic mm-text-primary"></i>
+                Geracao Automatica de Escala
+            </h3>
+        </div>
+        <div class="mm-card-body">
+            <div class="mm-alert mm-alert-info mm-mb-4">
+                <i class="bi bi-info-circle"></i>
+                <div>
+                    <strong>Como funciona:</strong> A escala e gerada automaticamente com base na rotacao semanal das equipes.
+                    <ul class="mm-mt-2" style="margin-left: 1rem;">
+                        <li><strong>Abertura (Eq. {{ ref_open }}):</strong> 2 pessoas 05:00-15:00, 1 pessoa 06:00-16:00</li>
+                        <li><strong>Fechamento (Eq. {{ '2' if ref_open == '1' else '1' }}):</strong> 3 pessoas 09:30-19:30</li>
+                        <li><strong>Domingo:</strong> 2 pessoas 05:00-13:00 (+1 folga +1h extra), 1 pessoa 06:00-13:00 (+1 folga)</li>
+                    </ul>
+                </div>
+            </div>
+            <form method="post" action="{{ url_for('colaboradores.gerar_escala_automatica') }}" class="mm-config-form">
+                <input type="hidden" name="semana" value="{{ semana_inicio.strftime('%Y-%m-%d') }}">
+                <div class="mm-form-row">
+                    <div class="mm-form-group">
+                        <label class="mm-label">Semana</label>
+                        <input type="text" class="mm-input" readonly value="{{ semana_inicio.strftime('%d/%m') }} a {{ semana_fim.strftime('%d/%m/%Y') }}">
+                    </div>
+                    <div class="mm-form-group">
+                        <label class="mm-form-check">
+                            <input type="checkbox" name="incluir_domingo" class="mm-checkbox">
+                            <span>Incluir Domingo</span>
+                        </label>
+                    </div>
+                    <div class="mm-form-group" style="align-self: end;">
+                        <button class="mm-btn mm-btn-primary" type="submit">
+                            <i class="bi bi-magic"></i> Gerar Escala
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="mm-card mm-mb-6">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title">
+                <i class="bi bi-people mm-text-primary"></i>
+                Configuracao de Equipes
+            </h3>
+        </div>
+        <div class="mm-card-body">
+            <div class="mm-grid mm-grid-cols-2 mm-gap-6">
+                <div>
+                    <h4 class="mm-text-lg mm-font-semibold mm-mb-3" style="color: #22c55e;">
+                        <i class="bi bi-1-circle-fill me-2"></i>Equipe 1
+                    </h4>
+                    <div class="mm-team-list">
+                        {% for c in colaboradores if c.regular_team == '1' %}
+                        <div class="mm-team-member">
+                            <span class="mm-position-badge">P{{ c.team_position or 1 }}</span>
+                            <span class="mm-member-name">{{ c.name }}</span>
+                            <form method="post" action="{{ url_for('colaboradores.equipe_configurar') }}" class="mm-inline-form">
+                                <input type="hidden" name="collaborator_id" value="{{ c.id }}">
+                                <select name="position" class="mm-select-sm" onchange="this.form.submit()">
+                                    <option value="1" {% if c.team_position == 1 %}selected{% endif %}>P1 (5h)</option>
+                                    <option value="2" {% if c.team_position == 2 %}selected{% endif %}>P2 (5h)</option>
+                                    <option value="3" {% if c.team_position == 3 %}selected{% endif %}>P3 (6h)</option>
+                                </select>
+                                <input type="hidden" name="team" value="1">
+                            </form>
+                        </div>
+                        {% else %}
+                        <p class="mm-text-muted">Nenhum colaborador na Equipe 1</p>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div>
+                    <h4 class="mm-text-lg mm-font-semibold mm-mb-3" style="color: #3b82f6;">
+                        <i class="bi bi-2-circle-fill me-2"></i>Equipe 2
+                    </h4>
+                    <div class="mm-team-list">
+                        {% for c in colaboradores if c.regular_team == '2' %}
+                        <div class="mm-team-member">
+                            <span class="mm-position-badge">P{{ c.team_position or 1 }}</span>
+                            <span class="mm-member-name">{{ c.name }}</span>
+                            <form method="post" action="{{ url_for('colaboradores.equipe_configurar') }}" class="mm-inline-form">
+                                <input type="hidden" name="collaborator_id" value="{{ c.id }}">
+                                <select name="position" class="mm-select-sm" onchange="this.form.submit()">
+                                    <option value="1" {% if c.team_position == 1 %}selected{% endif %}>P1 (5h)</option>
+                                    <option value="2" {% if c.team_position == 2 %}selected{% endif %}>P2 (5h)</option>
+                                    <option value="3" {% if c.team_position == 3 %}selected{% endif %}>P3 (6h)</option>
+                                </select>
+                                <input type="hidden" name="team" value="2">
+                            </form>
+                        </div>
+                        {% else %}
+                        <p class="mm-text-muted">Nenhum colaborador na Equipe 2</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <hr class="mm-divider mm-my-4">
+            
+            <div>
+                <h4 class="mm-text-md mm-font-semibold mm-mb-3">
+                    <i class="bi bi-person-plus me-2"></i>Atribuir Colaborador a Equipe
+                </h4>
+                <form method="post" action="{{ url_for('colaboradores.equipe_configurar') }}" class="mm-config-form">
+                    <div class="mm-form-row">
+                        <div class="mm-form-group">
+                            <label class="mm-label">Colaborador</label>
+                            <select name="collaborator_id" class="mm-select" required>
+                                <option value="">Selecione...</option>
+                                {% for c in colaboradores %}
+                                <option value="{{ c.id }}">{{ c.name }} {% if c.regular_team %}(Eq. {{ c.regular_team }}){% endif %}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mm-form-group">
+                            <label class="mm-label">Equipe</label>
+                            <select name="team" class="mm-select" required>
+                                <option value="1">Equipe 1</option>
+                                <option value="2">Equipe 2</option>
+                            </select>
+                        </div>
+                        <div class="mm-form-group">
+                            <label class="mm-label">Posicao</label>
+                            <select name="position" class="mm-select" required>
+                                <option value="1">P1 - Entrada 5h</option>
+                                <option value="2">P2 - Entrada 5h</option>
+                                <option value="3">P3 - Entrada 6h</option>
+                            </select>
+                        </div>
+                        <div class="mm-form-group" style="align-self: end;">
+                            <button class="mm-btn mm-btn-primary" type="submit">
+                                <i class="bi bi-check-lg"></i> Salvar
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if current_user.nivel == 'admin' %}
+    <div class="mm-card mm-mb-6">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title">
+                <i class="bi bi-gear mm-text-primary"></i>
+                Configurar Domingos
+            </h3>
+        </div>
+        <div class="mm-card-body">
+            <form method="post" action="{{ url_for('colaboradores.domingo_configurar') }}" class="mm-config-form">
+                <div class="mm-form-row">
+                    <div class="mm-form-group">
+                        <label class="mm-label">Equipe de Domingo (5h-13h)</label>
+                        <select name="domingo_team" class="mm-input mm-select">
+                            <option value="1" {% if domingo_team == '1' %}selected{% endif %}>Equipe 1</option>
+                            <option value="2" {% if domingo_team == '2' %}selected{% endif %}>Equipe 2</option>
+                        </select>
+                    </div>
+                    <div class="mm-form-group">
+                        <label class="mm-label">Domingo de Referencia</label>
+                        <input type="date" class="mm-input" name="domingo_data" value="{{ domingo_ref_date }}">
+                    </div>
+                    <div class="mm-form-group" style="align-self: end;">
+                        <button class="mm-btn mm-btn-primary" type="submit">
+                            <i class="bi bi-save"></i> Salvar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="mm-card mm-mb-6">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title">
+                <i class="bi bi-trash mm-text-danger"></i>
+                Limpar Escala da Semana
+            </h3>
+        </div>
+        <div class="mm-card-body">
+            <form method="post" action="{{ url_for('colaboradores.limpar_escala_semana') }}" onsubmit="return confirm('Tem certeza que deseja limpar os turnos da semana?')">
+                <input type="hidden" name="semana" value="{{ semana_inicio.strftime('%Y-%m-%d') }}">
+                <div class="mm-form-row">
+                    <div class="mm-form-group">
+                        <label class="mm-label">Semana</label>
+                        <input type="text" class="mm-input" readonly value="{{ semana_inicio.strftime('%d/%m') }} a {{ semana_fim.strftime('%d/%m/%Y') }}">
+                    </div>
+                    <div class="mm-form-group">
+                        <label class="mm-form-check">
+                            <input type="checkbox" name="apenas_automaticos" class="mm-checkbox" checked>
+                            <span>Apenas turnos gerados automaticamente</span>
+                        </label>
+                    </div>
+                    <div class="mm-form-group" style="align-self: end;">
+                        <button class="mm-btn mm-btn-danger" type="submit">
+                            <i class="bi bi-trash"></i> Limpar Semana
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="mm-card">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title">
+                <i class="bi bi-clock mm-text-primary"></i>
+                Horarios dos Turnos
+            </h3>
+        </div>
+        <div class="mm-card-body">
+            <div class="mm-grid mm-grid-cols-2 mm-gap-6">
+                <div>
+                    <h4 class="mm-text-md mm-font-semibold mm-mb-3" style="color: #22c55e;">Abertura</h4>
+                    <div class="mm-turno-info mm-mb-2">
+                        <div class="mm-turno-badge" style="background: #22c55e; display: inline-block; margin-bottom: 8px;">P1/P2 (5h)</div>
+                        <p class="mm-text-muted">05:00-11:00 | Almoco 13:00-15:00</p>
+                    </div>
+                    <div class="mm-turno-info">
+                        <div class="mm-turno-badge" style="background: #16a34a; display: inline-block; margin-bottom: 8px;">P3 (6h)</div>
+                        <p class="mm-text-muted">06:00-11:00 | Almoco 13:00-16:00</p>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="mm-text-md mm-font-semibold mm-mb-3" style="color: #3b82f6;">Fechamento</h4>
+                    <div class="mm-turno-info">
+                        <div class="mm-turno-badge" style="background: #3b82f6; display: inline-block; margin-bottom: 8px;">Todos</div>
+                        <p class="mm-text-muted">09:30-13:00 | Almoco 15:00-19:30</p>
+                    </div>
+                </div>
+            </div>
+            <hr class="mm-divider mm-my-4">
+            <div>
+                <h4 class="mm-text-md mm-font-semibold mm-mb-3" style="color: #fd7e14;">Domingo</h4>
+                <div class="mm-grid mm-grid-cols-2 mm-gap-4">
+                    <div class="mm-turno-info">
+                        <div class="mm-turno-badge" style="background: #fd7e14; display: inline-block; margin-bottom: 8px;">P1/P2 (5h)</div>
+                        <p class="mm-text-muted">05:00-13:00 <strong>(+1 folga +1h extra)</strong></p>
+                    </div>
+                    <div class="mm-turno-info">
+                        <div class="mm-turno-badge" style="background: #ea580c; display: inline-block; margin-bottom: 8px;">P3 (6h)</div>
+                        <p class="mm-text-muted">06:00-13:00 <strong>(+1 folga)</strong></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalTurno" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="background: var(--mm-bg-primary); border: 1px solid var(--mm-border); border-radius: var(--mm-radius-lg);">
+            <form method="post" action="{{ url_for('colaboradores.turno_atribuir') }}" id="formTurno">
+                <input type="hidden" name="turno_id" id="turnoId" value="">
+                <div class="modal-header" style="border-bottom: 1px solid var(--mm-border);">
+                    <h5 class="modal-title">
+                        <i class="bi bi-calendar-plus me-2" style="color: var(--mm-primary);"></i>
+                        <span id="modalTurnoTitle">Atribuir Turno</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Colaborador *</label>
+                        <select name="collaborator_id" id="turnoColaborador" class="mm-select" required>
+                            <option value="">Selecione...</option>
+                            {% for c in colaboradores %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Data *</label>
+                        <input type="date" name="data" id="turnoData" class="mm-input" required>
+                    </div>
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Turno *</label>
+                        <select name="turno" id="turnoTipo" class="mm-select" required>
+                            <option value="">Selecione...</option>
+                            <option value="Manha">Manha (05:00 - 13:20)</option>
+                            <option value="Tarde">Tarde (13:00 - 21:20)</option>
+                            <option value="Noite">Noite (17:00 - 21:00)</option>
+                            <option value="Folga">Folga</option>
+                        </select>
+                    </div>
+                    <div class="mm-form-group">
+                        <label class="mm-label">Observacao</label>
+                        <input type="text" name="observacao" id="turnoObs" class="mm-input" placeholder="Opcional...">
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid var(--mm-border);">
+                    <button type="button" class="mm-btn mm-btn-outline" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="mm-btn mm-btn-danger" id="btnExcluirTurno" style="display: none;" onclick="excluirTurno()">
+                        <i class="bi bi-trash"></i> Excluir
+                    </button>
+                    <button type="submit" class="mm-btn mm-btn-primary">
+                        <i class="bi bi-check-lg"></i> Salvar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.mm-tabs {
+    display: flex;
+    gap: var(--mm-space-2);
+    border-bottom: 1px solid var(--mm-border);
+    padding-bottom: var(--mm-space-2);
+}
+
+.mm-tab {
+    padding: var(--mm-space-2) var(--mm-space-4);
+    background: transparent;
+    border: none;
+    color: var(--mm-text-secondary);
+    font-size: var(--mm-text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: var(--mm-radius);
+    transition: all var(--mm-transition);
+    display: flex;
+    align-items: center;
+    gap: var(--mm-space-2);
+}
+
+.mm-tab:hover {
+    background: var(--mm-bg-secondary);
+    color: var(--mm-text-primary);
+}
+
+.mm-tab.active {
+    background: var(--mm-primary);
+    color: #0f172a;
+}
+
+.mm-tab-content {
+    display: none;
+}
+
+.mm-tab-content.active {
+    display: block;
+}
+
+.mm-schedule-grid {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.mm-schedule-grid th,
+.mm-schedule-grid td {
+    border: 1px solid var(--mm-border);
+}
+
+.mm-dia-header {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.mm-dia-nome {
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.mm-dia-data {
+    font-size: var(--mm-text-xs);
+    color: var(--mm-text-muted);
+}
+
+.mm-today {
+    background: rgba(34, 197, 94, 0.1) !important;
+}
+
+.mm-colab-cell {
+    display: flex;
+    align-items: center;
+    gap: var(--mm-space-3);
+}
+
+.mm-avatar-sm {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--mm-radius-full);
+    background: linear-gradient(135deg, var(--mm-primary), #10b981);
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--mm-text-xs);
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.mm-colab-nome {
+    font-weight: 600;
+    color: var(--mm-text-primary);
+}
+
+.mm-colab-cargo {
+    font-size: var(--mm-text-xs);
+    color: var(--mm-text-muted);
+}
+
+.mm-turno-cell {
+    padding: var(--mm-space-2) !important;
+    vertical-align: middle;
+}
+
+.mm-turno-badge {
+    display: inline-block;
+    padding: var(--mm-space-1) var(--mm-space-3);
+    border-radius: var(--mm-radius);
+    font-size: var(--mm-text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.mm-turno-manha {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+}
+
+.mm-turno-tarde {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+}
+
+.mm-turno-noite {
+    background: rgba(139, 92, 246, 0.2);
+    color: #8b5cf6;
+}
+
+.mm-turno-folga {
+    background: rgba(107, 114, 128, 0.2);
+    color: #6b7280;
+}
+
+.mm-btn-add-turno {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--mm-radius);
+    border: 1px dashed var(--mm-border);
+    background: transparent;
+    color: var(--mm-text-muted);
+    cursor: pointer;
+    transition: all var(--mm-transition);
+}
+
+.mm-btn-add-turno:hover {
+    border-color: var(--mm-primary);
+    color: var(--mm-primary);
+    background: rgba(34, 197, 94, 0.1);
+}
+
+.mm-horas-total {
+    font-weight: 700;
+    color: var(--mm-primary);
+}
+
+.mm-kpi-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mm-space-2);
+}
+
+.mm-kpi-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--mm-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.mm-form-row {
+    display: flex;
+    gap: var(--mm-space-4);
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.mm-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mm-space-2);
+    flex: 1;
+    min-width: 150px;
+}
+
+.mm-date-cell {
+    display: flex;
+    align-items: center;
+    gap: var(--mm-space-2);
+}
+
+.mm-inline-form {
+    display: inline-block;
+}
+
+.mm-team-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mm-space-2);
+}
+
+.mm-team-member {
+    display: flex;
+    align-items: center;
+    gap: var(--mm-space-3);
+    padding: var(--mm-space-2) var(--mm-space-3);
+    background: var(--mm-bg-secondary);
+    border-radius: var(--mm-radius);
+    border: 1px solid var(--mm-border);
+}
+
+.mm-position-badge {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--mm-primary);
+    color: #0f172a;
+    border-radius: var(--mm-radius-full);
+    font-size: var(--mm-text-xs);
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.mm-member-name {
+    flex: 1;
+    font-weight: 500;
+    color: var(--mm-text-primary);
+}
+
+.mm-select-sm {
+    padding: var(--mm-space-1) var(--mm-space-2);
+    font-size: var(--mm-text-xs);
+    background: var(--mm-bg-primary);
+    border: 1px solid var(--mm-border);
+    border-radius: var(--mm-radius);
+    color: var(--mm-text-primary);
+}
+
+.mm-alert {
+    display: flex;
+    gap: var(--mm-space-3);
+    padding: var(--mm-space-4);
+    border-radius: var(--mm-radius);
+    border: 1px solid;
+}
+
+.mm-alert-info {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: #93c5fd;
+}
+
+.mm-alert i {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.mm-divider {
+    border: none;
+    border-top: 1px solid var(--mm-border);
+}
+
+.mm-form-check {
+    display: flex;
+    align-items: center;
+    gap: var(--mm-space-2);
+    cursor: pointer;
+}
+
+.mm-checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--mm-primary);
+}
+
+.mm-turno-abertura-5h, .mm-turno-abertura {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+}
+
+.mm-turno-abertura-6h {
+    background: rgba(22, 163, 74, 0.2);
+    color: #16a34a;
+}
+
+.mm-turno-fechamento {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+}
+
+.mm-turno-domingo-5h, .mm-turno-domingo-6h, .mm-turno-domingo {
+    background: rgba(253, 126, 20, 0.2);
+    color: #fd7e14;
+}
+
+.mm-empty-cell {
+    text-align: center;
+    padding: var(--mm-space-8) !important;
+}
+
+.mm-empty-state-inline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--mm-space-2);
+    color: var(--mm-text-muted);
+}
+
+.mm-card-footer {
+    padding: var(--mm-space-4) var(--mm-space-6);
+    border-top: 1px solid var(--mm-border);
+    background: var(--mm-bg-secondary);
+    border-radius: 0 0 var(--mm-radius-xl) var(--mm-radius-xl);
+}
+
+.mm-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mm-space-4);
+}
+
+.mm-legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--mm-space-2);
+    font-size: var(--mm-text-sm);
+    color: var(--mm-text-secondary);
+}
+
+.mm-legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: var(--mm-radius-full);
+    flex-shrink: 0;
+}
+
+.mm-calendar-container {
+    min-height: 500px;
+}
+
+.mm-turno-info {
+    text-align: center;
+    padding: var(--mm-space-4);
+    background: var(--mm-bg-secondary);
+    border-radius: var(--mm-radius);
+}
+
+@media print {
+    .mm-tabs, .mm-btn, .modal, .mm-page-header > div:last-child {
+        display: none !important;
+    }
+    .mm-tab-content {
+        display: block !important;
+    }
+    #tab-calendario, #tab-feriados, #tab-config {
+        display: none !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .mm-tabs {
+        flex-wrap: wrap;
+    }
+    .mm-form-row {
+        flex-direction: column;
+    }
+    .mm-grid-cols-4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+</style>
 
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
 <script>
-  (function(){
-    var l = {
-      code: 'pt-br',
-      week: { dow: 0, doy: 4 },
-      buttonText: { prev: 'Anterior', next: 'Próximo', today: 'Hoje', year: 'Ano', month: 'Mês', week: 'Semana', day: 'Dia', list: 'Lista' },
-      weekText: 'Sm',
-      allDayText: 'dia inteiro',
-      moreLinkText: 'mais',
-      noEventsText: 'Sem eventos para mostrar'
-    };
-    try {
-      if (window.FullCalendar && Array.isArray(FullCalendar.globalLocales)) {
-        FullCalendar.globalLocales.push(l);
-      } else {
-        window.FullCalendar = window.FullCalendar || {};
-        FullCalendar.globalLocales = FullCalendar.globalLocales || [];
-        FullCalendar.globalLocales.push(l);
-      }
-    } catch(e) {}
-  })();
-</script>
-<script>
-  (function(){
+document.querySelectorAll('.mm-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('.mm-tab').forEach(function(t) { t.classList.remove('active'); });
+        document.querySelectorAll('.mm-tab-content').forEach(function(c) { c.classList.remove('active'); });
+        this.classList.add('active');
+        var tabId = 'tab-' + this.getAttribute('data-tab');
+        document.getElementById(tabId).classList.add('active');
+        if (tabId === 'tab-calendario' && !window.calendarInitialized) {
+            initCalendar();
+            window.calendarInitialized = true;
+        }
+    });
+});
+
+function initCalendar() {
     var el = document.getElementById('calendar');
+    if (!el) return;
     var events = JSON.parse((document.getElementById('events-data')?.textContent) || '[]');
-    events = (events || []).map(function(e){ return {
-      title: e.title,
-      start: e.start,
-      end: e.end || null,
-      color: e.color || '#0d6efd',
-      url: e.url || null,
-      kind: e.kind || null,
-      team: e.team || null,
-      classNames: (e.kind === 'rodizio-open' || e.kind === 'rodizio-close' || e.kind === 'rodizio-sunday') ? ['dot-event'] : [],
-    }; });
-    var hasPtBr = (window.FullCalendar && Array.isArray(FullCalendar.globalLocales) && FullCalendar.globalLocales.some(function(l){ return l.code === 'pt-br'; }));
     var calendar = new FullCalendar.Calendar(el, {
-      initialView: 'dayGridMonth',
-      locale: hasPtBr ? 'pt-br' : 'en',
-      height: 'auto',
-      firstDay: 0,
-      nowIndicator: true,
-      slotMinTime: '05:00:00',
-      slotMaxTime: '20:00:00',
-      scrollTime: '06:00:00',
-      dayHeaders: true,
-      dayHeaderFormat: { weekday: 'short' },
-      views: {
-        dayGridMonth: { dayHeaderFormat: { weekday: 'short' } },
-        timeGridWeek: { dayHeaderFormat: { weekday: 'short' } },
-        timeGridDay: { dayHeaderFormat: { weekday: 'short' } }
-      },
-      dayMaxEvents: 2,
-      moreLinkClick: 'popover',
-      headerToolbar: {
-        left: 'prev,next today',
-        center: 'title',
-        right: 'viewsMenu'
-      },
-      customButtons: {
-        viewsMenu: {
-          text: 'Visualizações ▾',
-          click: function(){
-            var menu = el.querySelector('#fc-views-menu');
-            if(menu){ menu.classList.toggle('show'); }
-          }
-        }
-      },
-      buttonText: {
-        today: 'Hoje',
-        month: 'Mês',
-        week: 'Semana',
-        day: 'Dia',
-        list: 'Lista',
-        listDay: 'Dia (lista)',
-        listMonth: 'Mês (lista)'
-      },
-      events: events,
-      eventContent: function(arg){
-        var kind = arg.event && arg.event.extendedProps && arg.event.extendedProps.kind;
-        if (kind === 'rodizio-open' || kind === 'rodizio-close' || kind === 'rodizio-sunday') {
-          var bg = arg.event.backgroundColor || arg.event.borderColor || (arg.backgroundColor || null) || '#0d6efd';
-          var num = (arg.event && arg.event.extendedProps && arg.event.extendedProps.team) || null;
-          if (!num) {
-            try {
-              var m = (arg.event.title || '').match(/'(\d)'/);
-              if (m) num = m[1];
-            } catch (e) {}
-          }
-          var dot = document.createElement('span');
-          dot.style.display = 'inline-flex';
-          dot.style.width = '24px';
-          dot.style.height = '24px';
-          dot.style.borderRadius = '50%';
-          dot.style.backgroundColor = bg;
-          dot.style.justifyContent = 'center';
-          dot.style.alignItems = 'center';
-          dot.style.color = '#fff';
-          dot.style.fontSize = '13px';
-          dot.style.fontWeight = '600';
-          dot.style.border = '2px solid #fff';
-          dot.style.boxShadow = '0 0 0 1px rgba(0,0,0,0.1)';
-          dot.textContent = num ? String(num) : '';
-          return { domNodes: [dot] };
-        }
-        return null;
-      },
-      eventDidMount: function(info){
-        var kind = info.event && info.event.extendedProps && info.event.extendedProps.kind;
-        if (kind === 'rodizio-open' || kind === 'rodizio-close' || kind === 'rodizio-sunday') {
-          info.el.style.background = 'transparent';
-          info.el.style.border = '0';
-          info.el.style.padding = '2px';
-          info.el.style.display = 'inline-flex';
-          info.el.style.justifyContent = 'center';
-          info.el.style.alignItems = 'center';
-          info.el.style.width = 'auto';
-        }
-      },
-      dateClick: function(info){
-        calendar.changeView('timeGridDay', info.dateStr);
-      },
-      eventClick: function(info){
-        if(info.event && info.event.url){
-          info.jsEvent.preventDefault();
-          window.location.href = info.event.url;
-        }
-      }
+        initialView: 'dayGridMonth',
+        locale: 'pt-br',
+        height: 'auto',
+        firstDay: 0,
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek'
+        },
+        buttonText: {
+            today: 'Hoje',
+            month: 'Mes',
+            week: 'Semana'
+        },
+        events: events,
+        displayEventTime: false
     });
     calendar.render();
-    (function(){
-      var btn = el.querySelector('.fc-viewsMenu-button');
-      if(!btn) return;
-      var parent = btn.parentElement;
-      if(parent) parent.style.position = 'relative';
-      if(el.querySelector('#fc-views-menu')) return;
-      var menu = document.createElement('div');
-      menu.id = 'fc-views-menu';
-      menu.className = 'dropdown-menu';
-      menu.style.minWidth = '180px';
-      menu.style.position = 'absolute';
-      menu.style.right = '0';
-      menu.style.top = 'calc(100% + 4px)';
-      menu.innerHTML = [
-        {label: 'Mês', view: 'dayGridMonth'},
-        {label: 'Semana', view: 'timeGridWeek'},
-        {label: 'Dia', view: 'timeGridDay'},
-        {label: 'Lista (Dia)', view: 'listDay'},
-        {label: 'Lista (Mês)', view: 'listMonth'},
-      ].map(function(it){ return '<button type="button" class="dropdown-item" data-view="'+it.view+'">'+it.label+'</button>'; }).join('');
-      parent.appendChild(menu);
-      menu.querySelectorAll('[data-view]').forEach(function(item){
-        item.addEventListener('click', function(ev){
-          var v = ev.currentTarget.getAttribute('data-view');
-          if(v){ calendar.changeView(v); }
-          menu.classList.remove('show');
-        });
-      });
-      document.addEventListener('click', function(e){
-        if(!parent.contains(e.target)){
-          menu.classList.remove('show');
-        }
-      });
-    })();
-  })();
+}
+
+function abrirModalTurno(colaboradorId, data) {
+    document.getElementById('turnoId').value = '';
+    document.getElementById('turnoColaborador').value = colaboradorId;
+    document.getElementById('turnoData').value = data;
+    document.getElementById('turnoTipo').value = '';
+    document.getElementById('turnoObs').value = '';
+    document.getElementById('modalTurnoTitle').textContent = 'Atribuir Turno';
+    document.getElementById('btnExcluirTurno').style.display = 'none';
+    var modal = new bootstrap.Modal(document.getElementById('modalTurno'));
+    modal.show();
+}
+
+function editarTurno(turnoId, colaboradorId, data, turno, obs) {
+    document.getElementById('turnoId').value = turnoId;
+    document.getElementById('turnoColaborador').value = colaboradorId;
+    document.getElementById('turnoData').value = data;
+    document.getElementById('turnoTipo').value = turno;
+    document.getElementById('turnoObs').value = obs;
+    document.getElementById('modalTurnoTitle').textContent = 'Editar Turno';
+    document.getElementById('btnExcluirTurno').style.display = 'inline-block';
+    var modal = new bootstrap.Modal(document.getElementById('modalTurno'));
+    modal.show();
+}
+
+function excluirTurno() {
+    var turnoId = document.getElementById('turnoId').value;
+    if (turnoId && confirm('Excluir este turno?')) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ url_for("colaboradores.turno_excluir", id=0) }}'.replace('/0/', '/' + turnoId + '/');
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
 </script>
 {% endblock %}

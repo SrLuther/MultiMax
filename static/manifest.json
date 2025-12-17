@@ -2,11 +2,17 @@
   "id": "/?app=multimax",
   "name": "MultiMax — Gestão Amora",
   "short_name": "MultiMax",
+  "description": "Sistema de gestão completo para seu negócio. Controle estoque, fornecedores, escalas e muito mais.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0d6efd",
-  "theme_color": "#0d6efd",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#00ff88",
+  "categories": ["business", "productivity", "utilities"],
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/static/icons/icon-192.png",
@@ -32,5 +38,33 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "Estoque",
+      "short_name": "Estoque",
+      "description": "Ver estoque de produtos",
+      "url": "/estoque",
+      "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Cronograma",
+      "short_name": "Limpeza",
+      "description": "Ver cronograma de limpeza",
+      "url": "/cronograma",
+      "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Relatórios",
+      "short_name": "Relatórios",
+      "description": "Acessar relatórios",
+      "url": "/relatorios",
+      "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "related_applications": [],
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  }
 }

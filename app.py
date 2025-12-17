@@ -7,10 +7,12 @@ from multimax import create_app
 app = create_app()
 
 def _start_keepalive():
-    enabled = os.getenv('KEEPALIVE_ENABLED', 'true').lower() == 'true'
+    enabled = os.getenv('KEEPALIVE_ENABLED', 'false').lower() == 'true'
     if not enabled:
         return
-    url = os.getenv('KEEPALIVE_URL', 'https://multimax.onrender.com/login')
+    url = (os.getenv('KEEPALIVE_URL') or '').strip()
+    if not url:
+        return
     interval = int(os.getenv('KEEPALIVE_INTERVAL', '300'))
     def _loop():
         while True:
