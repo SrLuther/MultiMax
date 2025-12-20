@@ -623,6 +623,9 @@ def gestao():
     saldo_collab = None
     saldo_hours = None
     saldo_days = None
+    saldo_entries: list[dict] = []
+    saldo_start = None
+    saldo_end = None
     try:
         from sqlalchemy import func
         sums = db.session.query(HourBankEntry.collaborator_id, func.coalesce(func.sum(HourBankEntry.hours), 0.0)).group_by(HourBankEntry.collaborator_id).all()
@@ -632,6 +635,18 @@ def gestao():
             scid = request.args.get('saldo_collaborator_id', type=int)
         except Exception:
             scid = None
+        try:
+            ds = (request.args.get('saldo_start') or '').strip()
+            de = (request.args.get('saldo_end') or '').strip()
+            if ds:
+                saldo_start = datetime.strptime(ds, '%Y-%m-%d').date()
+            if de:
+                saldo_end = datetime.strptime(de, '%Y-%m-%d').date()
+            if saldo_start and saldo_end and saldo_start > saldo_end:
+                saldo_start, saldo_end = saldo_end, saldo_start
+        except Exception:
+            saldo_start = None
+            saldo_end = None
         if scid:
             saldo_collab = Collaborator.query.get(scid)
             if saldo_collab:
@@ -675,6 +690,60 @@ def gestao():
                 assigned_sum = db.session.query(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).filter(LeaveAssignment.collaborator_id == scid).scalar() or 0
                 converted_sum = db.session.query(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).filter(LeaveConversion.collaborator_id == scid).scalar() or 0
                 saldo_days = int(credits_sum) - int(assigned_sum) - int(converted_sum)
+                try:
+                    qh = HourBankEntry.query.filter(HourBankEntry.collaborator_id == scid)
+                    qc = LeaveCredit.query.filter(LeaveCredit.collaborator_id == scid)
+                    qa = LeaveAssignment.query.filter(LeaveAssignment.collaborator_id == scid)
+                    if saldo_start:
+                        qh = qh.filter(HourBankEntry.date >= saldo_start)
+                        qc = qc.filter(LeaveCredit.date >= saldo_start)
+                        qa = qa.filter(LeaveAssignment.date >= saldo_start)
+                    if saldo_end:
+                        qh = qh.filter(HourBankEntry.date <= saldo_end)
+                        qc = qc.filter(LeaveCredit.date <= saldo_end)
+                        qa = qa.filter(LeaveAssignment.date <= saldo_end)
+                    hs = qh.order_by(HourBankEntry.date.asc()).all()
+                    cs = qc.order_by(LeaveCredit.date.asc()).all()
+                    asg = qa.order_by(LeaveAssignment.date.asc()).all()
+                    for e in hs:
+                        try:
+                            saldo_entries.append({
+                                'date': e.date,
+                                'type': 'hora',
+                                'label': 'Horas registradas',
+                                'amount': float(e.hours or 0.0),
+                                'unit': 'h',
+                                'reason': e.reason or ''
+                            })
+                        except Exception:
+                            pass
+                    for c in cs:
+                        try:
+                            saldo_entries.append({
+                                'date': c.date,
+                                'type': 'credito',
+                                'label': 'Direito a folga',
+                                'amount': int(c.amount_days or 0),
+                                'unit': 'dia(s)',
+                                'reason': (c.origin or c.notes or '')
+                            })
+                        except Exception:
+                            pass
+                    for a in asg:
+                        try:
+                            saldo_entries.append({
+                                'date': a.date,
+                                'type': 'folga',
+                                'label': 'Folga utilizada',
+                                'amount': int(a.days_used or 0),
+                                'unit': 'dia(s)',
+                                'reason': a.notes or ''
+                            })
+                        except Exception:
+                            pass
+                    saldo_entries.sort(key=lambda it: (it.get('date') or datetime.now().date()))
+                except Exception:
+                    saldo_entries = []
     except Exception:
         bank_balances = {}
     recent_entries = []
@@ -792,6 +861,7 @@ def gestao():
         acc_total_pages=acc_total_pages,
         acc_user=acc_user
         , saldo_collab=saldo_collab, saldo_hours=saldo_hours, saldo_days=saldo_days
+        , saldo_entries=saldo_entries, saldo_start=saldo_start, saldo_end=saldo_end
         , vps_storage=vps_storage
         , leave_credits=leave_credits, leave_assignments=leave_assignments
     )

@@ -81,6 +81,8 @@
                 <option value="{{ c.id }}" {% if saldo_collab and saldo_collab.id == c.id %}selected{% endif %}>{{ c.name }}</option>
                 {% endfor %}
             </select>
+            <input type="date" name="saldo_start" class="mm-input" value="{{ saldo_start.strftime('%Y-%m-%d') if saldo_start else '' }}">
+            <input type="date" name="saldo_end" class="mm-input" value="{{ saldo_end.strftime('%Y-%m-%d') if saldo_end else '' }}">
             <button type="submit" class="mm-btn mm-btn-outline">
                 <i class="bi bi-search"></i>
                 Buscar
@@ -107,6 +109,53 @@
                 <i class="bi bi-info-circle"></i>
                 Regra: a cada 8h acumuladas vira +1 dia e as horas são reiniciadas.
             </div>
+        </div>
+        <div class="mm-table-wrapper mm-mt-4">
+            <table class="mm-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th style="text-align: right;">Quantidade</th>
+                        <th>Motivo/Origem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in saldo_entries %}
+                    <tr>
+                        <td>{{ e.date.strftime('%d/%m/%Y') if e.date else '-' }}</td>
+                        <td>
+                            {% if e.type == 'hora' %}
+                            <span class="mm-badge">Horas</span>
+                            {% elif e.type == 'credito' %}
+                            <span class="mm-badge mm-badge-primary">Direito a Folga</span>
+                            {% elif e.type == 'folga' %}
+                            <span class="mm-badge mm-badge-warning">Folga Utilizada</span>
+                            {% else %}
+                            <span class="mm-badge">-</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right;">
+                            {% if e.unit == 'h' %}
+                            {{ '%.2f'|format(e.amount or 0.0) }}h
+                            {% else %}
+                            {{ e.amount or 0 }} dia(s)
+                            {% endif %}
+                        </td>
+                        <td>{{ e.reason or '-' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="mm-empty-cell">
+                            <div class="mm-empty-inline">
+                                <i class="bi bi-info-circle"></i>
+                                <span>Nenhum registro no período selecionado</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
         {% else %}
         <div class="mm-empty-inline">
