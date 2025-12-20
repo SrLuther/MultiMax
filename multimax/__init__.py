@@ -441,6 +441,19 @@ def create_app():
         if is_sqlite:
             try:
                 from sqlalchemy import text
+                res = db.session.execute(text('PRAGMA table_info("user")'))
+                cols = [row[1] for row in res]
+                if 'voice_enabled' not in cols:
+                    db.session.execute(text('ALTER TABLE "user" ADD COLUMN voice_enabled INTEGER DEFAULT 0'))
+                    db.session.commit()
+            except Exception:
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+        if is_sqlite:
+            try:
+                from sqlalchemy import text
                 res = db.session.execute(text('PRAGMA table_info(cleaning_task)'))
                 cols = [row[1] for row in res]
                 if 'observacao' not in cols:
@@ -454,6 +467,40 @@ def create_app():
                     db.session.commit()
                 if 'ativo' not in cols:
                     db.session.execute(text('ALTER TABLE cleaning_task ADD COLUMN ativo INTEGER DEFAULT 1'))
+                    db.session.commit()
+            except Exception:
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+        if is_sqlite:
+            try:
+                from sqlalchemy import text
+                res = db.session.execute(text('PRAGMA table_info(cleaning_history)'))
+                cols = [row[1] for row in res]
+                if 'task_id' not in cols:
+                    db.session.execute(text('ALTER TABLE cleaning_history ADD COLUMN task_id INTEGER'))
+                    db.session.commit()
+                if 'data_conclusao' not in cols:
+                    db.session.execute(text('ALTER TABLE cleaning_history ADD COLUMN data_conclusao TEXT'))
+                    db.session.commit()
+                if 'nome_limpeza' not in cols:
+                    db.session.execute(text('ALTER TABLE cleaning_history ADD COLUMN nome_limpeza TEXT'))
+                    db.session.commit()
+                if 'observacao' not in cols:
+                    db.session.execute(text('ALTER TABLE cleaning_history ADD COLUMN observacao TEXT'))
+                    db.session.commit()
+                if 'designados' not in cols:
+                    db.session.execute(text('ALTER TABLE cleaning_history ADD COLUMN designados TEXT'))
+                    db.session.commit()
+                if 'usuario_conclusao' not in cols:
+                    db.session.execute(text('ALTER TABLE cleaning_history ADD COLUMN usuario_conclusao TEXT'))
+                    db.session.commit()
+                if 'duracao_minutos' not in cols:
+                    db.session.execute(text('ALTER TABLE cleaning_history ADD COLUMN duracao_minutos INTEGER'))
+                    db.session.commit()
+                if 'qualidade' not in cols:
+                    db.session.execute(text('ALTER TABLE cleaning_history ADD COLUMN qualidade INTEGER DEFAULT 5'))
                     db.session.commit()
             except Exception:
                 try:
@@ -722,6 +769,9 @@ def create_app():
                 from sqlalchemy import text
                 res = db.session.execute(text('PRAGMA table_info(collaborator)'))
                 cols = [row[1] for row in res]
+                if 'user_id' not in cols:
+                    db.session.execute(text('ALTER TABLE collaborator ADD COLUMN user_id INTEGER'))
+                    db.session.commit()
                 if 'regular_team' not in cols:
                     db.session.execute(text('ALTER TABLE collaborator ADD COLUMN regular_team TEXT'))
                     db.session.commit()
@@ -730,6 +780,15 @@ def create_app():
                     db.session.commit()
                 if 'special_team' not in cols:
                     db.session.execute(text('ALTER TABLE collaborator ADD COLUMN special_team TEXT'))
+                    db.session.commit()
+                if 'team_position' not in cols:
+                    db.session.execute(text('ALTER TABLE collaborator ADD COLUMN team_position INTEGER DEFAULT 1'))
+                    db.session.commit()
+                if 'telefone' not in cols:
+                    db.session.execute(text('ALTER TABLE collaborator ADD COLUMN telefone TEXT'))
+                    db.session.commit()
+                if 'data_admissao' not in cols:
+                    db.session.execute(text('ALTER TABLE collaborator ADD COLUMN data_admissao TEXT'))
                     db.session.commit()
             except Exception:
                 try:

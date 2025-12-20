@@ -9,6 +9,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.Text)
     nivel = db.Column(db.String(20), default='visualizador')
+    voice_enabled = db.Column(db.Boolean, default=False)
 
 class Produto(db.Model):
     id = db.Column(db.Integer, primary_key=True)

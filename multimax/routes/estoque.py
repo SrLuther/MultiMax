@@ -1,13 +1,16 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, Response, send_file
 from flask_login import login_required, current_user
 from .. import db
-from ..models import Produto, Historico, Fornecedor
+from ..models import Produto, Historico, Fornecedor, User
 from ..services.notificacao_service import registrar_evento
 from typing import cast
 from datetime import datetime, timedelta, date
 from collections import OrderedDict
 import io
 import qrcode  # type: ignore
+from qrcode.constants import ERROR_CORRECT_L  # type: ignore
+import re
+from flask import jsonify
 
 bp = Blueprint('estoque', __name__)
 
@@ -596,7 +599,7 @@ def qrcode_produto(id: int):
     produto = Produto.query.get_or_404(id)
     qr = qrcode.QRCode(
         version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        error_correction=ERROR_CORRECT_L,
         box_size=10,
         border=4,
     )
@@ -605,7 +608,7 @@ def qrcode_produto(id: int):
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
     buf = io.BytesIO()
-    img.save(buf, format='PNG')
+    img.save(buf)
     buf.seek(0)
     return send_file(buf, mimetype='image/png', download_name=f'qrcode_{produto.codigo}.png')
 
@@ -614,3 +617,150 @@ def qrcode_produto(id: int):
 def qrcode_view(id: int):
     produto = Produto.query.get_or_404(id)
     return render_template('qrcode_produto.html', produto=produto, active_page='index')
+
+@bp.route('/voz/check', methods=['GET'])
+@login_required
+def voz_check():
+    try:
+        u = User.query.get(current_user.id)
+        ok = bool(getattr(u, 'voice_enabled', False)) or (current_user.nivel in ('admin',))
+        return jsonify({'allowed': ok, 'usuario': current_user.name or current_user.username})
+    except Exception:
+        return jsonify({'allowed': False}), 200
+
+def _pt_num_to_int(s: str) -> int | None:
+    try:
+        s2 = s.strip().lower()
+        m = {
+            'um': 1, 'uma': 1, 'dois': 2, 'duas': 2, 'tres': 3, 'três': 3,
+            'quatro': 4, 'cinco': 5, 'seis': 6, 'sete': 7, 'oito': 8, 'nove': 9, 'dez': 10
+        }
+        if s2.isdigit():
+            return int(s2)
+        return m.get(s2)
+    except Exception:
+        return None
+
+def _find_prod_by_name(name: str) -> Produto | None:
+    try:
+        n = (name or '').strip()
+        if not n:
+            return None
+        return Produto.query.filter(Produto.nome.ilike(n)).first()
+    except Exception:
+        return None
+
+@bp.route('/voz/apply', methods=['POST'])
+@login_required
+def voz_apply():
+    try:
+        u = User.query.get(current_user.id)
+        allowed = bool(getattr(u, 'voice_enabled', False)) or (current_user.nivel in ('admin',))
+        if not allowed:
+            return jsonify({'ok': False, 'msg': 'Sem permissão'}), 403
+        data = request.get_json(silent=True) or {}
+        acao = (data.get('acao') or '').strip().lower()
+        qtd_val = data.get('qtd')
+        qtd = None
+        if isinstance(qtd_val, (int, float, str)):
+            try:
+                qtd = int(qtd_val)
+            except Exception:
+                qtd = None
+        item = (data.get('item') or '').strip()
+        if not (acao and qtd and item):
+            texto = str(data.get('texto') or '')
+            texto = texto.strip().lower()
+            add_re = re.search(r'(adiciona|acrescenta|adicione|adicionou)\s+(\w+)\s+(?:de\s+)?(.+)', texto)
+            sub_re = re.search(r'(remova|subtraia|retire)\s+(\w+)\s+(?:de\s+)?(.+)', texto)
+            acao = None
+            qtd = None
+            item = None
+            if add_re:
+                acao = 'adicionar'
+                qtd = _pt_num_to_int(add_re.group(2)) or 0
+                item = add_re.group(3).strip()
+            elif sub_re:
+                acao = 'remover'
+                qtd = _pt_num_to_int(sub_re.group(2)) or 0
+                item = sub_re.group(3).strip()
+            else:
+                return jsonify({'ok': False, 'msg': 'Não entendi'}), 200
+        if not item or not qtd or qtd <= 0:
+            return jsonify({'ok': False, 'msg': 'Dados insuficientes'}), 200
+        qtd_int = int(qtd)
+        prod = _find_prod_by_name(item)
+        created = False
+        if not prod and acao == 'adicionar':
+            prod = Produto()
+            prod.nome = item
+            prod.codigo = f"AV-{int(datetime.now().timestamp())}"
+            prod.quantidade = 0
+            prod.estoque_minimo = 0
+            prod.categoria = 'AV'
+            db.session.add(prod)
+            db.session.commit()
+            created = True
+        if not prod:
+            return jsonify({'ok': False, 'msg': 'Produto não encontrado'}), 404
+        if acao == 'adicionar':
+            new_q = int(prod.quantidade or 0) + qtd_int
+            prod.quantidade = new_q
+            h = Historico()
+            h.product_id = prod.id
+            h.product_name = prod.nome
+            h.action = 'entrada'
+            h.quantidade = qtd_int
+            h.details = 'Voz'
+            h.usuario = current_user.username
+            db.session.add(h)
+            db.session.commit()
+            return jsonify({'ok': True, 'msg': f'Feito, agora tem {new_q}.', 'produto': prod.nome, 'quantidade': new_q, 'created': created})
+        else:
+            new_q = max(0, int(prod.quantidade or 0) - qtd_int)
+            prod.quantidade = new_q
+            h = Historico()
+            h.product_id = prod.id
+            h.product_name = prod.nome
+            h.action = 'saida'
+            h.quantidade = qtd_int
+            h.details = 'Voz'
+            h.usuario = current_user.username
+            db.session.add(h)
+            db.session.commit()
+            return jsonify({'ok': True, 'msg': f'Feito, agora tem {new_q}.', 'produto': prod.nome, 'quantidade': new_q})
+    except Exception as e:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        return jsonify({'ok': False, 'msg': str(e)}), 500
+
+@bp.route('/voz/parse', methods=['POST'])
+@login_required
+def voz_parse():
+    try:
+        u = User.query.get(current_user.id)
+        allowed = bool(getattr(u, 'voice_enabled', False)) or (current_user.nivel in ('admin',))
+        if not allowed:
+            return jsonify({'ok': False, 'msg': 'Sem permissão'}), 403
+        data = request.get_json(silent=True) or {}
+        texto = str(data.get('texto') or '')
+        texto = texto.strip().lower()
+        add_re = re.search(r'(adiciona|acrescenta|adicione|adicionou)\s+(\w+)\s+(?:de\s+)?(.+)', texto)
+        sub_re = re.search(r'(remova|subtraia|retire)\s+(\w+)\s+(?:de\s+)?(.+)', texto)
+        if add_re:
+            qtd = _pt_num_to_int(add_re.group(2)) or 0
+            item = add_re.group(3).strip()
+            if not item or qtd <= 0:
+                return jsonify({'ok': False, 'msg': 'Dados insuficientes'}), 200
+            return jsonify({'ok': True, 'acao': 'adicionar', 'qtd': int(qtd), 'item': item})
+        if sub_re:
+            qtd = _pt_num_to_int(sub_re.group(2)) or 0
+            item = sub_re.group(3).strip()
+            if not item or qtd <= 0:
+                return jsonify({'ok': False, 'msg': 'Dados insuficientes'}), 200
+            return jsonify({'ok': True, 'acao': 'remover', 'qtd': int(qtd), 'item': item})
+        return jsonify({'ok': False, 'msg': 'Não entendi'}), 200
+    except Exception as e:
+        return jsonify({'ok': False, 'msg': str(e)}), 500

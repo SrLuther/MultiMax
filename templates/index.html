@@ -27,6 +27,10 @@
                 <i class="bi bi-arrow-left-right"></i>
                 Movimentar
             </button>
+            <button class="mm-btn mm-btn-outline" id="btnVozEstoque">
+                <i class="bi bi-mic"></i>
+                Falar com voz
+            </button>
             {% endif %}
             <a class="mm-btn mm-btn-outline" href="{{ url_for('exportacao.exportar') }}" data-pdf-export>
                 <i class="bi bi-file-earmark-pdf"></i>
@@ -247,7 +251,7 @@
                             <td><span class="mm-badge mm-badge-{{ status }}">{{ p.codigo }}</span></td>
                             <td>{{ p.nome }}</td>
                             <td style="text-align: right;">
-                                <strong style="color: var(--mm-{{ status }});">{{ p.quantidade }}</strong>
+                                <strong class="mm-text-{{ status }}">{{ p.quantidade }}</strong>
                             </td>
                             <td style="text-align: right;" class="mm-text-muted">{{ p.estoque_minimo }}</td>
                             <td style="text-align: center;">
@@ -355,6 +359,194 @@
     </div>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var btn = document.getElementById('btnVozEstoque');
+  if (!btn) return;
+  var synth = window.speechSynthesis;
+  var Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var recog = Recognition ? new Recognition() : null;
+  var vozAtiva = false;
+  var needPrompt = true;
+  var failCount = 0;
+  var micReady = false;
+  function speak(txt) {
+    return new Promise(function(resolve) {
+      var u = new SpeechSynthesisUtterance(txt);
+      u.lang = 'pt-BR';
+      u.onend = function(){ resolve(); };
+      u.onerror = function(){ resolve(); };
+      synth.speak(u);
+    });
+  }
+  async function ensureMic() {
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      micReady = true;
+    } catch(_) {
+      micReady = false;
+      recog = null;
+    }
+  }
+  async function waitSilent(ms) {
+    var t = typeof ms === 'number' ? ms : 2000;
+    var start = Date.now();
+    while (synth.speaking) {
+      if ((Date.now() - start) > t) break;
+      await new Promise(r => setTimeout(r, 50));
+    }
+  }
+  async function checkPerm() {
+    var r = await fetch('{{ url_for("estoque.voz_check") }}');
+    var j = await r.json();
+    return j;
+  }
+  async function applyTexto(t) {
+    var r = await fetch('{{ url_for("estoque.voz_apply") }}', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({texto: t})
+    });
+    return await r.json();
+  }
+  async function parseTexto(t) {
+    var r = await fetch('{{ url_for("estoque.voz_parse") }}', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({texto: t})
+    });
+    return await r.json();
+  }
+  async function listenOnce() {
+    if (!vozAtiva) return '';
+    if (!recog || !micReady) {
+      var t = prompt('Diga o que deseja (digite):');
+      return t || '';
+    }
+    await waitSilent(2500);
+    recog.lang = 'pt-BR';
+    recog.interimResults = false;
+    recog.continuous = false;
+    recog.maxAlternatives = 1;
+    var done = false;
+    return await new Promise(function(resolve) {
+      var tm = setTimeout(function(){
+        if (done) return;
+        done = true;
+        try { recog.stop(); } catch(_) {}
+        resolve('');
+      }, 8000);
+      recog.onresult = function(e) {
+        try {
+          var t = e.results[0][0].transcript || '';
+          if (!done) { done = true; try { clearTimeout(tm); } catch(_) {} resolve(t); }
+        } catch(_) { if (!done) { done = true; try { clearTimeout(tm); } catch(_) {} resolve(''); } }
+      };
+      recog.onerror = function(ev) {
+        try { clearTimeout(tm); } catch(_) {}
+        if (!done) {
+          done = true;
+          var err = (ev && ev.error) ? String(ev.error) : '';
+          if (err.includes('not-allowed') || err.includes('service-not-allowed')) {
+            recog = null;
+            micReady = false;
+            var t = prompt('Permissão negada. Digite o que deseja:') || '';
+            resolve(t);
+          } else {
+            resolve('');
+          }
+        }
+      };
+      recog.onend = function() {
+        try { clearTimeout(tm); } catch(_) {}
+        if (!done) { done = true; resolve(''); }
+      };
+      try { recog.start(); } catch(_) { if (!done) { done = true; resolve(''); } }
+    });
+  }
+  async function loop() {
+    var j = await checkPerm();
+    if (!j.allowed) {
+      await speak('Sem permissão');
+      return;
+    }
+    var nome = j.usuario || 'usuário';
+    while (vozAtiva) {
+      if (needPrompt) {
+        await speak('Olá, ' + nome + ', o que você deseja?');
+        await new Promise(r => setTimeout(r, 300));
+      }
+      var txt = await listenOnce();
+      if (!vozAtiva) break;
+      if (!txt) {
+        await speak('Não entendi, repita por favor');
+        failCount += 1;
+        needPrompt = (failCount >= 2);
+        if (needPrompt) failCount = 0;
+        continue;
+      }
+      failCount = 0;
+      needPrompt = false;
+      var lower = String(txt).toLowerCase();
+      var parsed = await parseTexto(lower);
+      if (!parsed.ok && parsed.msg === 'Não entendi') {
+        await speak('Não entendi, repita por favor');
+        needPrompt = false;
+        continue;
+      }
+      if (!parsed.ok) {
+        await speak(parsed.msg || 'Falha');
+        needPrompt = false;
+        continue;
+      }
+      await speak('Você deseja ' + (parsed.acao === 'adicionar' ? 'adicionar' : 'remover') + ' ' + parsed.qtd + ' ' + parsed.item + '?');
+      await new Promise(r => setTimeout(r, 400));
+      var confirmTxt = await listenOnce();
+      var conf = String(confirmTxt || '').toLowerCase();
+      var okWords = ['sim','tá bom','ta bom','ok','certo','isso'];
+      var isOk = okWords.some(function(w){ return conf.includes(w); });
+      if (!isOk) {
+        await speak('Tudo bem, o que você deseja?');
+        needPrompt = true;
+        continue;
+      }
+      var res = await fetch('{{ url_for("estoque.voz_apply") }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({acao: parsed.acao, qtd: parsed.qtd, item: parsed.item})
+      }).then(function(r){ return r.json(); });
+      if (!res.ok && res.msg === 'Não entendi') {
+        await speak('Não entendi, repita por favor');
+        needPrompt = false;
+        continue;
+      }
+      if (!res.ok) {
+        await speak(res.msg || 'Falha');
+        needPrompt = false;
+        continue;
+      }
+      await speak(res.msg || 'Feito');
+      needPrompt = true;
+    }
+  }
+  btn.addEventListener('click', function() {
+    if (vozAtiva) {
+      vozAtiva = false;
+      try { synth.cancel(); } catch(_) {}
+      if (recog) { try { recog.stop(); } catch(_) {} }
+      return;
+    }
+    vozAtiva = true;
+    needPrompt = true;
+    failCount = 0;
+    ensureMic().then(function(){
+      loop().finally(function(){ vozAtiva = false; });
+    }).catch(function(){
+      loop().finally(function(){ vozAtiva = false; });
+    });
+  });
+});
+</script>
 {% if current_user.nivel in ('operador','admin') %}
 <div class="modal fade" id="addProdutoModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
