@@ -234,22 +234,22 @@ def importar_produtos():
                 
                 try:
                     quantidade = int(row[2]) if row[2] else 0
-                except:
+                except Exception:
                     quantidade = 0
                 
                 try:
                     estoque_minimo = int(row[3]) if row[3] else 0
-                except:
+                except Exception:
                     estoque_minimo = 0
                 
                 try:
                     preco_custo = float(row[4]) if row[4] else 0.0
-                except:
+                except Exception:
                     preco_custo = 0.0
                 
                 try:
                     preco_venda = float(row[5]) if row[5] else 0.0
-                except:
+                except Exception:
                     preco_venda = 0.0
                 
                 produto = Produto.query.filter_by(codigo=codigo).first()

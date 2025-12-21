@@ -1,8 +1,6 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
-from flask_login import login_required, current_user
-from datetime import datetime, date, timedelta
-from zoneinfo import ZoneInfo
-from .. import db
+from flask import Blueprint, render_template, request, current_app
+from flask_login import login_required
+from datetime import date, timedelta
 from ..models import Produto
 
 bp = Blueprint('validade', __name__, url_prefix='/validade')

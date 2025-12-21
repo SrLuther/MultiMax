@@ -9,7 +9,14 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.Text)
     nivel = db.Column(db.String(20), default='visualizador')
-    voice_enabled = db.Column(db.Boolean, default=False)
+    
+    @property
+    def collaborator_name(self):
+        try:
+            collab = Collaborator.query.filter_by(user_id=self.id).first()
+            return collab.name if collab else None
+        except Exception:
+            return None
 
 class Produto(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -288,6 +295,8 @@ class TemperatureLog(db.Model):
     usuario = db.Column(db.String(100))
     observacao = db.Column(db.String(255))
     alerta = db.Column(db.Boolean, default=False)
+    
+    fotos = db.relationship('TemperaturePhoto', backref='temperature_log', lazy=True, cascade='all, delete-orphan')
 
 class TemperatureLocation(db.Model):
     __tablename__ = 'temperature_location'
@@ -336,3 +345,129 @@ class PurchaseOrderItem(db.Model):
     unidade = db.Column(db.String(20), default='un')
     preco_unitario = db.Column(db.Float, default=0.0)
     subtotal = db.Column(db.Float, default=0.0)
+
+
+class UserLogin(db.Model):
+    __tablename__ = 'user_login'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    username = db.Column(db.String(80))
+    ip_address = db.Column(db.String(50))
+    user_agent = db.Column(db.String(255))
+    login_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+    
+    user = db.relationship('User', backref='logins', lazy=True)
+
+
+class Vacation(db.Model):
+    __tablename__ = 'vacation'
+    id = db.Column(db.Integer, primary_key=True)
+    collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'), nullable=False)
+    data_inicio = db.Column(db.Date, nullable=False)
+    data_fim = db.Column(db.Date, nullable=False)
+    observacao = db.Column(db.String(255))
+    criado_por = db.Column(db.String(100))
+    criado_em = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+    ativo = db.Column(db.Boolean, default=True)
+    
+    collaborator = db.relationship('Collaborator', backref='vacations', lazy=True)
+
+
+class MedicalCertificate(db.Model):
+    __tablename__ = 'medical_certificate'
+    id = db.Column(db.Integer, primary_key=True)
+    collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'), nullable=False)
+    data_inicio = db.Column(db.Date, nullable=False)
+    data_fim = db.Column(db.Date, nullable=False)
+    dias = db.Column(db.Integer, default=1)
+    motivo = db.Column(db.String(255))
+    foto_atestado = db.Column(db.String(255))
+    cid = db.Column(db.String(20))
+    medico = db.Column(db.String(100))
+    criado_por = db.Column(db.String(100))
+    criado_em = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+    
+    collaborator = db.relationship('Collaborator', backref='medical_certificates', lazy=True)
+
+
+class TemperaturePhoto(db.Model):
+    __tablename__ = 'temperature_photo'
+    id = db.Column(db.Integer, primary_key=True)
+    temperature_log_id = db.Column(db.Integer, db.ForeignKey('temperature_log.id'), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)
+    uploaded_by = db.Column(db.String(100))
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+
+
+class IngredientCatalog(db.Model):
+    __tablename__ = 'ingredient_catalog'
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False, unique=True)
+    categoria = db.Column(db.String(50))
+    unidade_padrao = db.Column(db.String(20), default='kg')
+    ativo = db.Column(db.Boolean, default=True)
+    criado_em = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+
+
+class CustomSchedule(db.Model):
+    __tablename__ = 'custom_schedule'
+    id = db.Column(db.Integer, primary_key=True)
+    data = db.Column(db.Date, nullable=False)
+    collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'), nullable=False)
+    turno_original = db.Column(db.String(50))
+    turno_novo = db.Column(db.String(50))
+    motivo = db.Column(db.String(255))
+    substituto_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'), nullable=True)
+    criado_por = db.Column(db.String(100))
+    criado_em = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+    
+    collaborator = db.relationship('Collaborator', foreign_keys=[collaborator_id], backref='custom_schedules')
+    substituto = db.relationship('Collaborator', foreign_keys=[substituto_id])
+
+
+class HelpArticle(db.Model):
+    __tablename__ = 'help_article'
+    id = db.Column(db.Integer, primary_key=True)
+    titulo = db.Column(db.String(200), nullable=False)
+    conteudo = db.Column(db.Text, nullable=False)
+    categoria = db.Column(db.String(50), default='Geral')
+    ordem = db.Column(db.Integer, default=0)
+    ativo = db.Column(db.Boolean, default=True)
+    votos_util = db.Column(db.Integer, default=0)
+    votos_nao_util = db.Column(db.Integer, default=0)
+    criado_por = db.Column(db.String(100))
+    criado_em = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+    atualizado_em = db.Column(db.DateTime(timezone=True), onupdate=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+    
+    votes = db.relationship('ArticleVote', backref='article', lazy=True, cascade='all, delete-orphan')
+
+
+class ArticleVote(db.Model):
+    __tablename__ = 'article_vote'
+    id = db.Column(db.Integer, primary_key=True)
+    article_id = db.Column(db.Integer, db.ForeignKey('help_article.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    util = db.Column(db.Boolean, nullable=False)
+    voted_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+
+
+class Suggestion(db.Model):
+    __tablename__ = 'suggestion'
+    id = db.Column(db.Integer, primary_key=True)
+    titulo = db.Column(db.String(200), nullable=False)
+    descricao = db.Column(db.Text, nullable=False)
+    categoria = db.Column(db.String(50), default='Melhoria')
+    status = db.Column(db.String(20), default='pendente')
+    votos = db.Column(db.Integer, default=0)
+    criado_por = db.Column(db.String(100))
+    criado_em = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+    
+    votes = db.relationship('SuggestionVote', backref='suggestion', lazy=True, cascade='all, delete-orphan')
+
+
+class SuggestionVote(db.Model):
+    __tablename__ = 'suggestion_vote'
+    id = db.Column(db.Integer, primary_key=True)
+    suggestion_id = db.Column(db.Integer, db.ForeignKey('suggestion.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    voted_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))

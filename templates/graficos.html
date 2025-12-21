@@ -5,7 +5,7 @@
   <h3 class="mb-0">Gráficos por Produto</h3>
   <a class="btn btn-outline-secondary" href="{{ url_for('usuarios.graficos') }}">Limpar</a>
   {% if produto %}
-  <a class="btn btn-outline-danger ms-2" href="{{ url_for('exportacao.exportar_graficos_produto', id=produto.id, data_inicio=data_inicio, data_fim=data_fim) }}">
+  <a class="btn btn-outline-danger ms-2" href="{{ url_for('exportacao.exportar_graficos_produto', id=produto.id, data_inicio=data_inicio, data_fim=data_fim) }}" data-pdf-export>
     Exportar PDF
   </a>
   {% endif %}

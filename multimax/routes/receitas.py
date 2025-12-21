@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_required
 from .. import db
-from ..models import Recipe, RecipeIngredient, Produto
+from ..models import Recipe, RecipeIngredient, Produto, IngredientCatalog
 
 bp = Blueprint('receitas', __name__, url_prefix='/receitas')
 
@@ -51,12 +51,12 @@ def index():
             if i < len(produto_ids) and produto_ids[i]:
                 try:
                     it.produto_id = int(produto_ids[i])
-                except:
+                except Exception:
                     pass
             if i < len(qtds_kg) and qtds_kg[i]:
                 try:
                     it.quantidade_kg = float(qtds_kg[i].replace(',', '.'))
-                except:
+                except Exception:
                     pass
             if it.produto_id:
                 produto = Produto.query.get(it.produto_id)
@@ -117,12 +117,12 @@ def editar(id: int):
             if i < len(produto_ids) and produto_ids[i]:
                 try:
                     it.produto_id = int(produto_ids[i])
-                except:
+                except Exception:
                     pass
             if i < len(qtds_kg) and qtds_kg[i]:
                 try:
                     it.quantidade_kg = float(qtds_kg[i].replace(',', '.'))
-                except:
+                except Exception:
                     pass
             if it.produto_id:
                 produto = Produto.query.get(it.produto_id)
@@ -193,3 +193,103 @@ def excluir(id: int):
     q = (request.form.get('q') or '').strip()
     page = request.form.get('page', '1').strip()
     return redirect(url_for('receitas.index', q=q or None, page=page))
+
+
+@bp.route('/catalogo', methods=['GET', 'POST'], strict_slashes=False)
+@login_required
+def catalogo():
+    if request.method == 'POST':
+        nome = (request.form.get('nome') or '').strip()
+        categoria = (request.form.get('categoria') or '').strip()
+        unidade = (request.form.get('unidade_padrao') or 'kg').strip()
+        
+        if not nome:
+            flash('Informe o nome do ingrediente.', 'warning')
+            return redirect(url_for('receitas.catalogo'))
+        
+        existente = IngredientCatalog.query.filter_by(nome=nome).first()
+        if existente:
+            flash('Ingrediente já cadastrado.', 'warning')
+            return redirect(url_for('receitas.catalogo'))
+        
+        try:
+            ing = IngredientCatalog()
+            ing.nome = nome
+            ing.categoria = categoria
+            ing.unidade_padrao = unidade
+            db.session.add(ing)
+            db.session.commit()
+            flash('Ingrediente cadastrado!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro: {e}', 'danger')
+        
+        return redirect(url_for('receitas.catalogo'))
+    
+    q = (request.args.get('q') or '').strip()
+    cat = (request.args.get('categoria') or '').strip()
+    
+    query = IngredientCatalog.query.filter_by(ativo=True)
+    if q:
+        query = query.filter(IngredientCatalog.nome.ilike(f'%{q}%'))
+    if cat:
+        query = query.filter_by(categoria=cat)
+    
+    ingredientes = query.order_by(IngredientCatalog.nome.asc()).all()
+    
+    categorias = db.session.query(IngredientCatalog.categoria).filter(
+        IngredientCatalog.ativo.is_(True),
+        IngredientCatalog.categoria.isnot(None),
+        IngredientCatalog.categoria != ''
+    ).distinct().all()
+    categorias = [c[0] for c in categorias]
+    
+    return render_template('receitas_catalogo.html', 
+        active_page='receitas',
+        ingredientes=ingredientes, 
+        q=q, 
+        categoria_atual=cat,
+        categorias=categorias)
+
+
+@bp.route('/catalogo/editar/<int:id>', methods=['POST'], strict_slashes=False)
+@login_required
+def catalogo_editar(id: int):
+    ing = IngredientCatalog.query.get_or_404(id)
+    nome = (request.form.get('nome') or ing.nome).strip()
+    categoria = (request.form.get('categoria') or '').strip()
+    unidade = (request.form.get('unidade_padrao') or 'kg').strip()
+    
+    try:
+        ing.nome = nome
+        ing.categoria = categoria
+        ing.unidade_padrao = unidade
+        db.session.commit()
+        flash('Ingrediente atualizado.', 'info')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro: {e}', 'danger')
+    
+    return redirect(url_for('receitas.catalogo'))
+
+
+@bp.route('/catalogo/excluir/<int:id>', methods=['POST'], strict_slashes=False)
+@login_required
+def catalogo_excluir(id: int):
+    ing = IngredientCatalog.query.get_or_404(id)
+    try:
+        ing.ativo = False
+        db.session.commit()
+        flash('Ingrediente removido do catálogo.', 'info')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro: {e}', 'danger')
+    
+    return redirect(url_for('receitas.catalogo'))
+
+
+@bp.route('/catalogo/api', methods=['GET'], strict_slashes=False)
+@login_required
+def catalogo_api():
+    ingredientes = IngredientCatalog.query.filter_by(ativo=True).order_by(IngredientCatalog.nome.asc()).all()
+    return [{'id': i.id, 'nome': i.nome, 'categoria': i.categoria, 'unidade': i.unidade_padrao} for i in ingredientes]

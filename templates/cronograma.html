@@ -95,7 +95,7 @@
                     {% endif %}
                 </div>
                 <div class="mm-historico-actions">
-                    <a href="{{ url_for('exportacao.exportar_historico_limpeza_pdf', id=h.id) }}" class="mm-btn mm-btn-outline mm-btn-sm" title="Exportar PDF">
+                    <a href="{{ url_for('exportacao.exportar_historico_limpeza_pdf', id=h.id) }}" class="mm-btn mm-btn-outline mm-btn-sm" title="Exportar PDF" data-pdf-export>
                         <i class="bi bi-file-pdf"></i>
                     </a>
                     {% if current_user.nivel == 'admin' %}

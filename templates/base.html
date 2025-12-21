@@ -2,7 +2,9 @@
 <html lang="pt-BR" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     <meta name="description" content="MultiMax - Sistema de gestão completo para seu negócio">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
@@ -16,11 +18,11 @@
     <title>{% block title %}MultiMax{% endblock %}</title>
     {% block head %}{% endblock %}
 </head>
-<body>
+<body class="mm-safe-area">
     <a href="#main-content" class="mm-skip-link">Pular para o conteúdo principal</a>
     <aside class="mm-sidebar" id="sidebar" role="navigation" aria-label="Menu principal">
         <div class="mm-sidebar-header">
-            <img src="{{ url_for('static', filename='icons/logo-user.png') }}" alt="Logo MultiMax" class="mm-sidebar-logo">
+            <img src="{{ url_for('static', filename='icons/logo-user.png') }}" alt="Logo MultiMax" class="mm-sidebar-logo" loading="lazy">
             <div class="mm-sidebar-brand">
                 MultiMax
                 <span>Gestão Amora</span>
@@ -111,6 +113,10 @@
         
         <div class="mm-sidebar-footer">
             {% if current_user.is_authenticated %}
+            <a href="{{ url_for('ajuda.ajuda') }}" class="mm-nav-item {% if 'ajuda' in request.endpoint %}active{% endif %}">
+                <i class="bi bi-question-circle mm-nav-icon"></i>
+                <span class="mm-nav-text">Ajuda</span>
+            </a>
             <a href="{{ url_for('usuarios.perfil') }}" class="mm-nav-item">
                 <i class="bi bi-person-circle mm-nav-icon"></i>
                 <span class="mm-nav-text">{{ current_user.nome or current_user.username }}</span>
@@ -190,7 +196,10 @@
                 <i class="bi bi-moon" id="themeIcon" aria-hidden="true"></i>
             </button>
             {% if current_user.is_authenticated %}
-            <span class="mm-badge mm-badge-primary d-none d-md-inline-flex" aria-label="Nível de acesso">{{ current_user.nivel|capitalize }}</span>
+            <span class="mm-user-name d-none d-md-inline-flex" aria-label="Usuário">
+                <i class="bi bi-person-circle"></i>
+                {{ current_user.collaborator_name or current_user.name }}
+            </span>
             {% endif %}
         </div>
     </header>
@@ -490,6 +499,56 @@
             loadNotifications();
             setInterval(loadNotifications, 60000);
         }
+    </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('a[data-pdf-export]').forEach(function(link) {
+            var href = link.getAttribute('href');
+            var group = document.createElement('div');
+            group.className = 'mm-flex mm-gap-2';
+            var btnView = document.createElement('a');
+            btnView.className = 'mm-btn mm-btn-outline';
+            btnView.innerHTML = '<i class="bi bi-eye"></i> Visualizar';
+            btnView.href = '#';
+            btnView.addEventListener('click', function(e) {
+                e.preventDefault();
+                var url = href + (href.indexOf('?') >= 0 ? '&' : '?') + 'mode=view';
+                window.open(url, '_blank', 'noopener,noreferrer');
+            });
+            var btnPrint = document.createElement('a');
+            btnPrint.className = 'mm-btn mm-btn-outline';
+            btnPrint.innerHTML = '<i class="bi bi-printer"></i> Imprimir';
+            btnPrint.href = '#';
+            btnPrint.addEventListener('click', function(e) {
+                e.preventDefault();
+                var url = href + (href.indexOf('?') >= 0 ? '&' : '?') + 'mode=view';
+                var iframe = document.createElement('iframe');
+                iframe.style.position = 'fixed';
+                iframe.style.right = '0';
+                iframe.style.bottom = '0';
+                iframe.style.width = '0';
+                iframe.style.height = '0';
+                iframe.style.border = '0';
+                iframe.src = url;
+                iframe.onload = function() {
+                    try {
+                        iframe.contentWindow.focus();
+                        iframe.contentWindow.print();
+                    } catch (err) {}
+                    setTimeout(function(){ iframe.remove(); }, 3000);
+                };
+                document.body.appendChild(iframe);
+            });
+            var btnDownload = document.createElement('a');
+            btnDownload.className = 'mm-btn mm-btn-outline';
+            btnDownload.innerHTML = '<i class="bi bi-download"></i> Download';
+            btnDownload.href = href + (href.indexOf('?') >= 0 ? '&' : '?') + 'mode=download';
+            group.appendChild(btnView);
+            group.appendChild(btnPrint);
+            group.appendChild(btnDownload);
+            link.replaceWith(group);
+        });
+    });
     </script>
     
     <style>
@@ -909,6 +968,38 @@
                 }
             });
         }
+    </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.mm-table[data-sortable="true"]').forEach(function(table) {
+            var tbody = table.querySelector('tbody');
+            var headers = table.querySelectorAll('thead th');
+            var dir = {};
+            headers.forEach(function(th, idx) {
+                th.setAttribute('tabindex', '0');
+                th.setAttribute('role', 'button');
+                th.addEventListener('click', function() { sortBy(idx); });
+                th.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sortBy(idx); } });
+            });
+            function sortBy(colIndex) {
+                var rows = Array.from(tbody.querySelectorAll('tr'));
+                var asc = !(dir[colIndex] === 'asc');
+                rows.sort(function(a, b) {
+                    var ta = (a.children[colIndex].textContent || '').trim().toLowerCase();
+                    var tb = (b.children[colIndex].textContent || '').trim().toLowerCase();
+                    var na = parseFloat(ta.replace(',', '.'));
+                    var nb = parseFloat(tb.replace(',', '.'));
+                    var isNum = !isNaN(na) && !isNaN(nb);
+                    if (isNum) return asc ? na - nb : nb - na;
+                    return asc ? ta.localeCompare(tb) : tb.localeCompare(ta);
+                });
+                rows.forEach(function(r){ tbody.appendChild(r); });
+                dir[colIndex] = asc ? 'asc' : 'desc';
+                headers.forEach(function(h){ h.removeAttribute('aria-sort'); });
+                headers[colIndex].setAttribute('aria-sort', asc ? 'ascending' : 'descending');
+            }
+        });
+    });
     </script>
     {% block scripts %}{% endblock %}
 </body>

@@ -48,7 +48,7 @@
     </div>
 </div>
 
-<div class="mm-nav-tabs mm-mb-6">
+<div class="mm-nav-tabs mm-mb-6" style="flex-wrap: wrap;">
     <a class="mm-nav-tab" href="#gerenciar-usuarios">
         <i class="bi bi-people"></i> Usuários
     </a>
@@ -64,6 +64,12 @@
     <a class="mm-nav-tab" href="#folgas">
         <i class="bi bi-calendar-check"></i> Folgas
     </a>
+    <a class="mm-nav-tab" href="#ferias">
+        <i class="bi bi-sun"></i> Férias
+    </a>
+    <a class="mm-nav-tab" href="#atestados">
+        <i class="bi bi-file-medical"></i> Atestados
+    </a>
 </div>
 
 <div class="mm-card mm-mb-6">
@@ -75,14 +81,15 @@
         <form method="get" action="{{ url_for('usuarios.gestao') }}" class="mm-flex mm-gap-2 mm-items-center">
             <input type="hidden" name="u_page" value="{{ u_page }}">
             <input type="hidden" name="l_page" value="{{ l_page }}">
+            <input type="hidden" name="view" value="">
             <select name="saldo_collaborator_id" class="mm-input mm-select" style="min-width: 220px;">
                 <option value="">— selecionar colaborador —</option>
                 {% for c in colaboradores %}
                 <option value="{{ c.id }}" {% if saldo_collab and saldo_collab.id == c.id %}selected{% endif %}>{{ c.name }}</option>
                 {% endfor %}
             </select>
-            <input type="date" name="saldo_start" class="mm-input" value="{{ saldo_start.strftime('%Y-%m-%d') if saldo_start else '' }}">
-            <input type="date" name="saldo_end" class="mm-input" value="{{ saldo_end.strftime('%Y-%m-%d') if saldo_end else '' }}">
+            <input type="date" name="saldo_start" class="mm-input" value="{{ saldo_start and saldo_start.strftime('%Y-%m-%d') or '' }}">
+            <input type="date" name="saldo_end" class="mm-input" value="{{ saldo_end and saldo_end.strftime('%Y-%m-%d') or '' }}">
             <button type="submit" class="mm-btn mm-btn-outline">
                 <i class="bi bi-search"></i>
                 Buscar
@@ -114,41 +121,43 @@
             <table class="mm-table">
                 <thead>
                     <tr>
-                        <th>Data</th>
                         <th>Tipo</th>
-                        <th style="text-align: right;">Quantidade</th>
-                        <th>Motivo/Origem</th>
+                        <th>Data</th>
+                        <th style="text-align: center;">Valor</th>
+                        <th>Motivo</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for e in saldo_entries %}
+                    {% for it in saldo_items %}
                     <tr>
-                        <td>{{ e.date.strftime('%d/%m/%Y') if e.date else '-' }}</td>
                         <td>
-                            {% if e.type == 'hora' %}
-                            <span class="mm-badge">Horas</span>
-                            {% elif e.type == 'credito' %}
-                            <span class="mm-badge mm-badge-primary">Direito a Folga</span>
-                            {% elif e.type == 'folga' %}
-                            <span class="mm-badge mm-badge-warning">Folga Utilizada</span>
+                            {% if it.tipo == 'horas' %}
+                            <span class="mm-badge mm-badge-info">Horas</span>
+                            {% elif it.tipo == 'credito' %}
+                            <span class="mm-badge mm-badge-success">Crédito</span>
                             {% else %}
-                            <span class="mm-badge">-</span>
+                            <span class="mm-badge mm-badge-danger">Uso</span>
                             {% endif %}
                         </td>
-                        <td style="text-align: right;">
-                            {% if e.unit == 'h' %}
-                            {{ '%.2f'|format(e.amount or 0.0) }}h
+                        <td>{{ it.date.strftime('%d/%m/%Y') }}</td>
+                        <td style="text-align: center;">
+                            {% if it.unit == 'h' %}
+                            {{ '%.2f'|format(it.amount) }}h
                             {% else %}
-                            {{ e.amount or 0 }} dia(s)
+                            {% if it.amount >= 0 %}
+                            <span class="mm-badge mm-badge-success">+{{ it.amount }}</span>
+                            {% else %}
+                            <span class="mm-badge mm-badge-danger">{{ it.amount }}</span>
+                            {% endif %}
                             {% endif %}
                         </td>
-                        <td>{{ e.reason or '-' }}</td>
+                        <td>{{ it.motivo or '-' }}</td>
                     </tr>
                     {% else %}
                     <tr>
                         <td colspan="4" class="mm-empty-cell">
                             <div class="mm-empty-inline">
-                                <i class="bi bi-info-circle"></i>
+                                <i class="bi bi-list"></i>
                                 <span>Nenhum registro no período selecionado</span>
                             </div>
                         </td>
@@ -584,6 +593,20 @@
             <i class="bi bi-clock-history mm-text-primary"></i>
             Banco de Horas
         </h3>
+        <form method="get" action="{{ url_for('usuarios.gestao') }}" class="mm-flex mm-gap-2 mm-items-center">
+            <input type="hidden" name="view" value="banco">
+            <input type="hidden" name="bh_page" value="1">
+            <select name="bh_collaborator_id" class="mm-input mm-select" style="min-width: 220px;">
+                <option value="">— filtrar colaborador —</option>
+                {% for c in colaboradores %}
+                <option value="{{ c.id }}" {% if bh_collab_id and bh_collab_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="mm-btn mm-btn-outline">
+                <i class="bi bi-search"></i>
+                Filtrar
+            </button>
+        </form>
     </div>
     <div class="mm-card-body">
         <div class="mm-table-wrapper">
@@ -599,7 +622,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for c in colaboradores %}
+                    {% for c in colaboradores_page %}
                     <tr>
                         <td><strong>{{ c.name }}</strong></td>
                         <td>{{ c.role or '-' }}</td>
@@ -648,6 +671,19 @@
                 </tbody>
             </table>
         </div>
+        <div class="mm-pagination">
+            <div class="mm-flex mm-items-center mm-justify-between">
+                <div>Pagina {{ bh_page }} de {{ bh_total_pages }}</div>
+                <div class="mm-flex mm-gap-2">
+                    {% if bh_page > 1 %}
+                    <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('usuarios.gestao', view='banco', bh_page=bh_page-1, bh_collaborator_id=bh_collab_id) }}"><i class="bi bi-chevron-left"></i> Anterior</a>
+                    {% endif %}
+                    {% if bh_page < bh_total_pages %}
+                    <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('usuarios.gestao', view='banco', bh_page=bh_page+1, bh_collaborator_id=bh_collab_id) }}">Próxima <i class="bi bi-chevron-right"></i></a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endif %}
@@ -665,6 +701,22 @@
             <i class="bi bi-plus-circle mm-text-success"></i>
             Créditos de Folga
         </h4>
+        <form method="get" action="{{ url_for('usuarios.gestao') }}" class="mm-form-row mm-mb-4">
+            <input type="hidden" name="view" value="folgas">
+            <input type="hidden" name="lc_page" value="1">
+            <div class="mm-form-group">
+                <label class="mm-label">Filtrar por colaborador</label>
+                <select name="lc_collaborator_id" class="mm-input mm-select">
+                    <option value="">— todos —</option>
+                    {% for c in colaboradores %}
+                    <option value="{{ c.id }}" {% if lc_collab_id and lc_collab_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mm-form-group" style="align-self: end;">
+                <button class="mm-btn mm-btn-outline" type="submit"><i class="bi bi-search"></i> Filtrar</button>
+            </div>
+        </form>
         <form method="post" action="{{ url_for('usuarios.gestao_colabs_folga_credito_adicionar') }}" class="mm-form-row mm-mb-6">
             <div class="mm-form-group">
                 <label class="mm-label">Colaborador</label>
@@ -715,7 +767,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for lc in leave_credits %}
+                    {% for lc in leave_credits_page %}
                     {% set col = colaboradores|selectattr('id', 'equalto', lc.collaborator_id)|list|first %}
                     <tr>
                         <td>{{ lc.date.strftime('%d/%m/%Y') }}</td>
@@ -759,6 +811,19 @@
                 </tbody>
             </table>
         </div>
+        <div class="mm-pagination mm-mb-6">
+            <div class="mm-flex mm-items-center mm-justify-between">
+                <div>Pagina {{ lc_page }} de {{ lc_total_pages }}</div>
+                <div class="mm-flex mm-gap-2">
+                    {% if lc_page > 1 %}
+                    <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('usuarios.gestao', view='folgas', lc_page=lc_page-1, lc_collaborator_id=lc_collab_id) }}"><i class="bi bi-chevron-left"></i> Anterior</a>
+                    {% endif %}
+                    {% if lc_page < lc_total_pages %}
+                    <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('usuarios.gestao', view='folgas', lc_page=lc_page+1, lc_collaborator_id=lc_collab_id) }}">Próxima <i class="bi bi-chevron-right"></i></a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
         
         <hr class="mm-divider mm-mb-6">
         
@@ -766,6 +831,22 @@
             <i class="bi bi-calendar-minus mm-text-danger"></i>
             Uso de Folgas
         </h4>
+        <form method="get" action="{{ url_for('usuarios.gestao') }}" class="mm-form-row mm-mb-4">
+            <input type="hidden" name="view" value="folgas">
+            <input type="hidden" name="la_page" value="1">
+            <div class="mm-form-group">
+                <label class="mm-label">Filtrar por colaborador</label>
+                <select name="la_collaborator_id" class="mm-input mm-select">
+                    <option value="">— todos —</option>
+                    {% for c in colaboradores %}
+                    <option value="{{ c.id }}" {% if la_collab_id and la_collab_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mm-form-group" style="align-self: end;">
+                <button class="mm-btn mm-btn-outline" type="submit"><i class="bi bi-search"></i> Filtrar</button>
+            </div>
+        </form>
         <form method="post" action="{{ url_for('usuarios.gestao_colabs_folga_uso_adicionar') }}" class="mm-form-row mm-mb-6">
             <div class="mm-form-group">
                 <label class="mm-label">Colaborador</label>
@@ -784,8 +865,8 @@
                 <input type="number" name="days_used" class="mm-input" min="1" value="1" required>
             </div>
             <div class="mm-form-group" style="flex: 2;">
-                <label class="mm-label">Motivo</label>
-                <input type="text" name="reason" class="mm-input" placeholder="Motivo da folga (opcional)">
+                <label class="mm-label">Observações</label>
+                <input type="text" name="notes" class="mm-input" placeholder="Observações (opcional)">
             </div>
             <div class="mm-form-group" style="align-self: end;">
                 <button class="mm-btn mm-btn-primary" type="submit">
@@ -802,12 +883,12 @@
                         <th>Data</th>
                         <th>Colaborador</th>
                         <th style="text-align: center;">Dias Usados</th>
-                        <th>Motivo</th>
+                        <th>Observações</th>
                         <th style="text-align: right;">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for la in leave_assignments %}
+                    {% for la in leave_assignments_page %}
                     {% set col = colaboradores|selectattr('id', 'equalto', la.collaborator_id)|list|first %}
                     <tr>
                         <td>{{ la.date.strftime('%d/%m/%Y') }}</td>
@@ -815,7 +896,7 @@
                         <td style="text-align: center;">
                             <span class="mm-badge mm-badge-danger">-{{ la.days_used }}</span>
                         </td>
-                        <td>{{ la.reason or '-' }}</td>
+                        <td>{{ la.notes or '-' }}</td>
                         <td style="text-align: right;">
                             <div class="mm-flex mm-gap-2" style="justify-content: flex-end;">
                                 <button class="mm-btn mm-btn-outline mm-btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#modalEditUso{{ la.id }}">
@@ -842,10 +923,23 @@
                 </tbody>
             </table>
         </div>
+        <div class="mm-pagination">
+            <div class="mm-flex mm-items-center mm-justify-between">
+                <div>Pagina {{ la_page }} de {{ la_total_pages }}</div>
+                <div class="mm-flex mm-gap-2">
+                    {% if la_page > 1 %}
+                    <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('usuarios.gestao', view='folgas', la_page=la_page-1, la_collaborator_id=la_collab_id) }}"><i class="bi bi-chevron-left"></i> Anterior</a>
+                    {% endif %}
+                    {% if la_page < la_total_pages %}
+                    <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('usuarios.gestao', view='folgas', la_page=la_page+1, la_collaborator_id=la_collab_id) }}">Próxima <i class="bi bi-chevron-right"></i></a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-{% for lc in leave_credits %}
+{% for lc in leave_credits_page %}
 <div class="modal fade" id="modalEditCredito{{ lc.id }}" tabindex="-1">
     <div class="modal-dialog">
         <form method="post" action="{{ url_for('usuarios.gestao_colabs_folga_credito_editar', id=lc.id) }}">
@@ -886,7 +980,7 @@
 </div>
 {% endfor %}
 
-{% for la in leave_assignments %}
+{% for la in leave_assignments_page %}
 <div class="modal fade" id="modalEditUso{{ la.id }}" tabindex="-1">
     <div class="modal-dialog">
         <form method="post" action="{{ url_for('usuarios.gestao_colabs_folga_uso_editar', id=la.id) }}">
@@ -905,8 +999,8 @@
                         <input type="number" name="days_used" class="mm-input" min="1" value="{{ la.days_used }}" required>
                     </div>
                     <div class="mm-form-group">
-                        <label class="mm-label">Motivo</label>
-                        <input type="text" name="reason" class="mm-input" value="{{ la.reason or '' }}">
+                        <label class="mm-label">Observações</label>
+                        <input type="text" name="notes" class="mm-input" value="{{ la.notes or '' }}">
                     </div>
                 </div>
                 <div class="modal-footer mm-modal-footer">
@@ -919,6 +1013,244 @@
 </div>
 {% endfor %}
 {% endif %}
+
+<div class="mm-card mm-mb-6" id="ferias">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <i class="bi bi-sun mm-text-warning"></i>
+            Gestão de Férias
+        </h3>
+        <form method="get" action="{{ url_for('usuarios.gestao') }}" class="mm-flex mm-gap-2 mm-items-center">
+            <input type="hidden" name="view" value="ferias">
+            <input type="hidden" name="ferias_page" value="1">
+            <select name="ferias_collaborator_id" class="mm-input mm-select" style="min-width: 220px;">
+                <option value="">— filtrar colaborador —</option>
+                {% for c in colaboradores %}
+                <option value="{{ c.id }}" {% if ferias_collab_id and ferias_collab_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="mm-btn mm-btn-outline"><i class="bi bi-search"></i> Filtrar</button>
+        </form>
+    </div>
+    <div class="mm-card-body">
+        <form method="post" action="{{ url_for('usuarios.gestao_ferias_adicionar') }}" class="mm-form-row mm-mb-6">
+            <div class="mm-form-group">
+                <label class="mm-label">Colaborador</label>
+                <select name="collaborator_id" class="mm-input mm-select" required>
+                    {% for c in colaboradores %}
+                    <option value="{{ c.id }}">{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mm-form-group">
+                <label class="mm-label">Data Início</label>
+                <input type="date" name="data_inicio" class="mm-input" required>
+            </div>
+            <div class="mm-form-group">
+                <label class="mm-label">Data Fim</label>
+                <input type="date" name="data_fim" class="mm-input" required>
+            </div>
+            <div class="mm-form-group" style="flex: 2;">
+                <label class="mm-label">Observação</label>
+                <input type="text" name="observacao" class="mm-input" placeholder="Observação (opcional)">
+            </div>
+            <div class="mm-form-group" style="align-self: end;">
+                <button class="mm-btn mm-btn-primary" type="submit">
+                    <i class="bi bi-plus-lg"></i>
+                    Registrar Férias
+                </button>
+            </div>
+        </form>
+        
+        <div class="mm-table-wrapper">
+            <table class="mm-table">
+                <thead>
+                    <tr>
+                        <th>Colaborador</th>
+                        <th>Data Início</th>
+                        <th>Data Fim</th>
+                        <th style="text-align: center;">Dias</th>
+                        <th>Observação</th>
+                        <th style="text-align: right;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in ferias_page_items %}
+                    {% set col = colaboradores|selectattr('id', 'equalto', f.collaborator_id)|list|first %}
+                    <tr>
+                        <td>{{ col and col.name or ('ID ' ~ f.collaborator_id) }}</td>
+                        <td>{{ f.data_inicio.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ f.data_fim.strftime('%d/%m/%Y') }}</td>
+                        <td style="text-align: center;">
+                            <span class="mm-badge mm-badge-warning">{{ (f.data_fim - f.data_inicio).days + 1 }} dias</span>
+                        </td>
+                        <td>{{ f.observacao or '-' }}</td>
+                        <td style="text-align: right;">
+                            <form method="post" action="{{ url_for('usuarios.gestao_ferias_excluir', id=f.id) }}" class="mm-inline-form" onsubmit="return confirm('Excluir férias?')">
+                                <button class="mm-btn mm-btn-danger mm-btn-sm" type="submit">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="mm-empty-cell">
+                            <div class="mm-empty-inline">
+                                <i class="bi bi-sun"></i>
+                                <span>Nenhuma férias registrada</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mm-pagination">
+            <div class="mm-flex mm-items-center mm-justify-between">
+                <div>Pagina {{ ferias_page }} de {{ ferias_total_pages }}</div>
+                <div class="mm-flex mm-gap-2">
+                    {% if ferias_page > 1 %}
+                    <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('usuarios.gestao', view='ferias', ferias_page=ferias_page-1, ferias_collaborator_id=ferias_collab_id) }}"><i class="bi bi-chevron-left"></i> Anterior</a>
+                    {% endif %}
+                    {% if ferias_page < ferias_total_pages %}
+                    <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('usuarios.gestao', view='ferias', ferias_page=ferias_page+1, ferias_collaborator_id=ferias_collab_id) }}">Próxima <i class="bi bi-chevron-right"></i></a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mm-card mm-mb-6" id="atestados">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <i class="bi bi-file-medical mm-text-info"></i>
+            Atestados Médicos
+        </h3>
+        <form method="get" action="{{ url_for('usuarios.gestao') }}" class="mm-flex mm-gap-2 mm-items-center">
+            <input type="hidden" name="view" value="atestados">
+            <input type="hidden" name="at_page" value="1">
+            <select name="at_collaborator_id" class="mm-input mm-select" style="min-width: 220px;">
+                <option value="">— filtrar colaborador —</option>
+                {% for c in colaboradores %}
+                <option value="{{ c.id }}" {% if at_collab_id and at_collab_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="mm-btn mm-btn-outline"><i class="bi bi-search"></i> Filtrar</button>
+        </form>
+    </div>
+    <div class="mm-card-body">
+        <form method="post" action="{{ url_for('usuarios.gestao_atestado_adicionar') }}" enctype="multipart/form-data" class="mm-form-row mm-mb-6" style="flex-wrap: wrap;">
+            <div class="mm-form-group">
+                <label class="mm-label">Colaborador</label>
+                <select name="collaborator_id" class="mm-input mm-select" required>
+                    {% for c in colaboradores %}
+                    <option value="{{ c.id }}">{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mm-form-group">
+                <label class="mm-label">Data Início</label>
+                <input type="date" name="data_inicio" class="mm-input" required>
+            </div>
+            <div class="mm-form-group">
+                <label class="mm-label">Data Fim</label>
+                <input type="date" name="data_fim" class="mm-input" required>
+            </div>
+            <div class="mm-form-group">
+                <label class="mm-label">CID (opcional)</label>
+                <input type="text" name="cid" class="mm-input" placeholder="Ex: J00">
+            </div>
+            <div class="mm-form-group">
+                <label class="mm-label">Médico (opcional)</label>
+                <input type="text" name="medico" class="mm-input" placeholder="Nome do médico">
+            </div>
+            <div class="mm-form-group" style="flex: 2;">
+                <label class="mm-label">Motivo</label>
+                <input type="text" name="motivo" class="mm-input" placeholder="Motivo do afastamento">
+            </div>
+            <div class="mm-form-group">
+                <label class="mm-label">Foto do Atestado</label>
+                <input type="file" name="foto_atestado" class="mm-input" accept="image/*">
+            </div>
+            <div class="mm-form-group" style="align-self: end;">
+                <button class="mm-btn mm-btn-primary" type="submit">
+                    <i class="bi bi-plus-lg"></i>
+                    Registrar Atestado
+                </button>
+            </div>
+        </form>
+        
+        <div class="mm-table-wrapper">
+            <table class="mm-table">
+                <thead>
+                    <tr>
+                        <th>Colaborador</th>
+                        <th>Período</th>
+                        <th style="text-align: center;">Dias</th>
+                        <th>Motivo</th>
+                        <th>CID</th>
+                        <th>Foto</th>
+                        <th style="text-align: right;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in atestados_page %}
+                    {% set col = colaboradores|selectattr('id', 'equalto', a.collaborator_id)|list|first %}
+                    <tr>
+                        <td>{{ col and col.name or ('ID ' ~ a.collaborator_id) }}</td>
+                        <td>{{ a.data_inicio.strftime('%d/%m') }} - {{ a.data_fim.strftime('%d/%m/%Y') }}</td>
+                        <td style="text-align: center;">
+                            <span class="mm-badge mm-badge-info">{{ a.dias }} dias</span>
+                        </td>
+                        <td>{{ a.motivo or '-' }}</td>
+                        <td>{{ a.cid or '-' }}</td>
+                        <td>
+                            {% if a.foto_atestado %}
+                            <a href="{{ url_for('static', filename='uploads/atestados/' ~ a.foto_atestado) }}" target="_blank" class="mm-btn mm-btn-outline mm-btn-sm">
+                                <i class="bi bi-image"></i> Ver
+                            </a>
+                            {% else %}
+                            <span class="mm-text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right;">
+                            <form method="post" action="{{ url_for('usuarios.gestao_atestado_excluir', id=a.id) }}" class="mm-inline-form" onsubmit="return confirm('Excluir atestado?')">
+                                <button class="mm-btn mm-btn-danger mm-btn-sm" type="submit">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="mm-empty-cell">
+                            <div class="mm-empty-inline">
+                                <i class="bi bi-file-medical"></i>
+                                <span>Nenhum atestado registrado</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mm-pagination">
+            <div class="mm-flex mm-items-center mm-justify-between">
+                <div>Pagina {{ at_page }} de {{ at_total_pages }}</div>
+                <div class="mm-flex mm-gap-2">
+                    {% if at_page > 1 %}
+                    <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('usuarios.gestao', view='atestados', at_page=at_page-1, at_collaborator_id=at_collab_id) }}"><i class="bi bi-chevron-left"></i> Anterior</a>
+                    {% endif %}
+                    {% if at_page < at_total_pages %}
+                    <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('usuarios.gestao', view='atestados', at_page=at_page+1, at_collaborator_id=at_collab_id) }}">Próxima <i class="bi bi-chevron-right"></i></a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <style>
 .mm-page-header {

@@ -427,7 +427,7 @@ def concluir_completo():
                 dt = datetime.strptime(data_str, '%Y-%m-%d').replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
                 hist.data_conclusao = dt
                 tarefa.ultima_data = dt.date()
-            except:
+            except Exception:
                 tarefa.ultima_data = date.today()
         else:
             tarefa.ultima_data = date.today()

@@ -17,7 +17,6 @@ from reportlab.pdfbase.pdfmetrics import stringWidth
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import importlib
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
  
@@ -154,12 +153,14 @@ def _premium_footer(canvas, doc, section_name='Documento'):
     canvas.setFont(_font_normal(), 8)
     page_text = f"Pagina {canvas.getPageNumber()}"
     canvas.drawString(0.6 * inch, 0.2 * inch, page_text)
-    center_text = f"MultiMax | {section_name}"
-    tw_center = stringWidth(center_text, _font_normal(), 8)
-    canvas.drawString(w / 2.0 - tw_center / 2.0, 0.2 * inch, center_text)
     date_text = _now_br().strftime('%d/%m/%Y %H:%M')
     tw_date = stringWidth(date_text, _font_normal(), 8)
     canvas.drawString(w - 0.6 * inch - tw_date, 0.2 * inch, date_text)
+    canvas.setFillColor(colors.HexColor('#0f172a'))
+    site_text = "www.multimax.tec.br"
+    canvas.setFont(_font_normal(), 10)
+    tw_site = stringWidth(site_text, _font_normal(), 10)
+    canvas.drawString(w / 2.0 - tw_site / 2.0, 1.0 * cm, site_text)
     canvas.restoreState()
 
 def _draw_cards_bg(canvas, doc, first_page: bool):
@@ -197,6 +198,15 @@ def _finalize_pdf(pdf_buffer: BytesIO) -> BytesIO:
     pdf_buffer.seek(0)
     return BytesIO(pdf_buffer.read())
 
+def _send_pdf(pdf_io: BytesIO, filename: str):
+    mode = (request.args.get('mode') or '').strip().lower()
+    if mode in ('view', 'print'):
+        as_attach = False
+    else:
+        v = (request.args.get('download') or '1').strip().lower()
+        as_attach = v not in ('0', 'false', 'no')
+    return send_file(pdf_io, as_attachment=as_attach, download_name=filename, mimetype='application/pdf')
+
 def _template_has_footer() -> bool:
     try:
         v = os.getenv('PDF_TEMPLATE_HAS_FOOTER', '0').strip().lower()
@@ -205,7 +215,7 @@ def _template_has_footer() -> bool:
         return False
 
 class InfoCard(Flowable):
-    def __init__(self, inner: Any, padding: float = 12, radius: float = 12, stroke_color: str = '#e2e8f0', accent_color: str = None):
+    def __init__(self, inner: Any, padding: float = 12, radius: float = 12, stroke_color: str = '#e2e8f0', accent_color: str | None = None):
         super().__init__()
         self.inner = inner
         self.padding = padding
@@ -323,7 +333,7 @@ def exportar_receita_pdf(id: int):
             _premium_footer(canvas, doc, 'Receita')
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
         final_io = _finalize_pdf(pdf_buffer)
-        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        return _send_pdf(final_io, filename)
     except Exception as e:
         flash(f'Erro ao gerar PDF da Receita: {e}', 'danger')
         return redirect(url_for('receitas.index', id=id))
@@ -376,7 +386,7 @@ def exportar_cronograma_pdf():
             _premium_footer(canvas, doc, 'Cronograma de Limpeza')
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
         final_io = _finalize_pdf(pdf_buffer)
-        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        return _send_pdf(final_io, filename)
     except Exception as e:
         flash(f'Erro ao gerar PDF do Cronograma: {e}', 'danger')
         return redirect(url_for('cronograma.cronograma'))
@@ -423,7 +433,7 @@ def exportar_tarefa_pdf(id):
             _premium_footer(canvas, doc, 'Tarefa de Limpeza')
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
         final_io = _finalize_pdf(pdf_buffer)
-        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        return _send_pdf(final_io, filename)
     except Exception as e:
         flash(f'Erro ao gerar PDF da Tarefa: {e}', 'danger')
         return redirect(url_for('cronograma.cronograma'))
@@ -454,7 +464,7 @@ def exportar_historico_limpeza_pdf(id):
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
         final_io = _finalize_pdf(pdf_buffer)
         filename = f"historico_{id}.pdf"
-        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        return _send_pdf(final_io, filename)
     except Exception as e:
         flash(f'Erro ao gerar PDF do histórico: {e}', 'danger')
         return redirect(url_for('cronograma.cronograma'))
@@ -562,7 +572,7 @@ def exportar():
             _premium_footer(canvas, doc, 'Relatório de Estoque')
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
         final_io = _finalize_pdf(pdf_buffer)
-        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        return _send_pdf(final_io, filename)
     except Exception as e:
         flash(f'Erro ao gerar PDF do Estoque: {e}', 'danger')
         return redirect(url_for('estoque.index'))
@@ -754,7 +764,7 @@ def exportar_graficos_produto(id):
             _premium_footer(canvas, doc, 'Relatório de Movimentação')
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
         final_io = _finalize_pdf(pdf_buffer)
-        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        return _send_pdf(final_io, filename)
     except Exception as e:
         flash(f'Erro ao gerar PDF de Gráficos: {e}', 'danger')
         return redirect(url_for('usuarios.graficos'))
@@ -952,7 +962,7 @@ def exportar_relatorio_carnes_pdf(id):
         final_io = _finalize_pdf(pdf_buffer)
         ref = r.reference_code or f"R{r.id:04d}"
         filename = f"{ref}_CARNE.pdf"
-        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        return _send_pdf(final_io, filename)
     except Exception as e:
         flash(f'Erro ao gerar PDF de Carnes: {e}', 'danger')
         return redirect(url_for('carnes.relatorio', id=id))
@@ -1079,7 +1089,7 @@ def exportar_relatorio_carnes_periodo():
             _premium_footer(canvas, doc, 'Relatório de Carnes — Período')
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
         final_io = _finalize_pdf(pdf_buffer)
-        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        return _send_pdf(final_io, filename)
     except Exception as e:
         flash(f'Erro ao gerar PDF de Carnes (período): {e}', 'danger')
         return redirect(url_for('carnes.index'))
@@ -1112,7 +1122,7 @@ def exportar_exemplo_pdf():
             _premium_footer(canvas, doc, 'Exemplo')
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
         final_io = _finalize_pdf(pdf_buffer)
-        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        return _send_pdf(final_io, filename)
     except Exception as e:
         flash(f'Erro ao gerar PDF de Exemplo: {e}', 'danger')
         return redirect(url_for('home.index'))
