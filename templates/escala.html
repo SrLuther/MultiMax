@@ -123,6 +123,43 @@
         </div>
     </div>
 
+    {% if conflicts and conflicts|length > 0 %}
+    <div class="mm-card mm-mb-6 mm-card-highlight" style="border-left-color: var(--mm-danger);">
+        <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
+            <h3 class="mm-card-title">
+                <i class="bi bi-exclamation-triangle mm-text-danger"></i>
+                Conflitos de Agenda
+            </h3>
+            <span class="mm-badge mm-badge-danger">{{ conflicts|length }} conflito(s)</span>
+        </div>
+        <div class="mm-card-body">
+            <div class="mm-table-wrapper">
+                <table class="mm-table">
+                    <thead>
+                        <tr>
+                            <th>Colaborador</th>
+                            <th>Data</th>
+                            <th>Tipo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in conflicts[:20] %}
+                        <tr>
+                            <td>{{ c.name }}</td>
+                            <td>{{ c.date.strftime('%d/%m/%Y') }}</td>
+                            <td><span class="mm-badge mm-badge-danger">{{ c.type }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="mm-info-box mm-mt-4">
+                <i class="bi bi-info-circle"></i>
+                <span>Edite os turnos ou ajuste folgas/férias/atestados para resolver os conflitos.</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
     <div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
         <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-primary);">
             <div class="mm-flex mm-items-center mm-justify-between">

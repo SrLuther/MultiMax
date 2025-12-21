@@ -1,9 +1,7 @@
 from flask import Blueprint, render_template, jsonify
 from flask_login import login_required, current_user
-from .. import db
 from ..models import Produto, Historico
-from datetime import datetime, timedelta, date
-from collections import defaultdict
+from datetime import datetime, timedelta
 
 bp = Blueprint('previsao', __name__, url_prefix='/previsao')
 

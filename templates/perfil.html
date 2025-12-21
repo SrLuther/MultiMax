@@ -12,7 +12,76 @@
         <h1 class="mm-page-title">Meu Perfil</h1>
         <p class="mm-text-muted">Gerencie suas informações pessoais e segurança</p>
     </div>
+    <button class="mm-btn mm-btn-primary" onclick="openEditModal()">
+        <i class="bi bi-pencil-square"></i>
+        Atualizar Dados
+    </button>
 </div>
+
+{% if is_on_medical or is_on_vacation or is_on_break %}
+<div class="mm-card mm-mb-6">
+    <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
+        <h3 class="mm-card-title">
+            {% if is_on_medical %}
+            <i class="bi bi-file-medical mm-text-danger"></i>
+            Afastamento — Atestado Médico
+            {% elif is_on_vacation %}
+            <i class="bi bi-airplane mm-text-warning"></i>
+            Afastamento — Férias
+            {% else %}
+            <i class="bi bi-emoji-sunglasses mm-text-info"></i>
+            Afastamento — Folga
+            {% endif %}
+        </h3>
+    </div>
+    <div class="mm-card-body">
+        <div class="mm-flex mm-items-center mm-justify-between mm-gap-4 mm-flex-wrap">
+            <div>
+                {% if is_on_medical %}
+                <h4 class="mm-section-title">Você está de Atestado Médico</h4>
+                <p>Retorno previsto: {{ medical_end_date }}</p>
+                {% elif is_on_vacation %}
+                <h4 class="mm-section-title">Você está de Férias</h4>
+                <p>Retorno previsto: {{ vacation_end_date }}{% if vacation_return_hour %} às {{ vacation_return_hour }}{% endif %}</p>
+                {% else %}
+                <h4 class="mm-section-title">Você está de Folga</h4>
+                <p>Termina hoje</p>
+                {% endif %}
+            </div>
+            <div class="mm-countdown" id="statusCountdown" data-end="{% if is_on_medical %}{{ medical_end_timestamp }}{% elif is_on_vacation %}{{ vacation_end_timestamp }}{% else %}{{ break_end_timestamp }}{% endif %}">
+                <div class="mm-countdown-item">
+                    <span class="mm-countdown-value" id="countDays">--</span>
+                    <span class="mm-countdown-label">dias</span>
+                </div>
+                <div class="mm-countdown-item">
+                    <span class="mm-countdown-value" id="countHours">--</span>
+                    <span class="mm-countdown-label">horas</span>
+                </div>
+                <div class="mm-countdown-item">
+                    <span class="mm-countdown-value" id="countMinutes">--</span>
+                    <span class="mm-countdown-label">min</span>
+                </div>
+                <div class="mm-countdown-item">
+                    <span class="mm-countdown-value" id="countSeconds">--</span>
+                    <span class="mm-countdown-label">seg</span>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+    <div class="mm-card mm-mb-6">
+        <div class="mm-card-body mm-flex mm-items-center mm-gap-4" style="flex-wrap: wrap;">
+            <div class="mm-info-box">
+                <i class="bi bi-info-circle"></i>
+                <span>Próximo turno: {% if next_shift_date %}{{ next_shift_date.strftime('%d/%m/%Y') }}{% else %}-{% endif %}{% if next_shift_hour %} às {{ next_shift_hour }}{% endif %}</span>
+            </div>
+            <div class="mm-info-box">
+                <i class="bi bi-clock-history"></i>
+                <span>Horas residuais no banco: {{ '%.2f'|format(residual_hours) }}h</span>
+            </div>
+        </div>
+    </div>
+{% endif %}
 
 {% if collab %}
 <div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
@@ -33,11 +102,11 @@
     </div>
     
     <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: {% if residual_hours >= 0 %}rgba(34, 197, 94, 0.15){% else %}rgba(239, 68, 68, 0.15){% endif %}; color: {% if residual_hours >= 0 %}var(--mm-success){% else %}var(--mm-danger){% endif %};">
+        <div class="mm-kpi-icon {% if residual_hours >= 0 %}mm-kpi-icon-pos mm-text-success{% else %}mm-kpi-icon-neg mm-text-danger{% endif %}">
             <i class="bi bi-clock-history"></i>
         </div>
         <div class="mm-kpi-label">Horas (residual)</div>
-        <div class="mm-kpi-value" style="color: {% if residual_hours >= 0 %}var(--mm-success){% else %}var(--mm-danger){% endif %};">{{ '%.2f'|format(residual_hours) }}h</div>
+        <div class="mm-kpi-value {% if residual_hours >= 0 %}mm-text-success{% else %}mm-text-danger{% endif %}">{{ '%.2f'|format(residual_hours) }}h</div>
     </div>
     
     <div class="mm-card mm-kpi-card">
@@ -68,68 +137,95 @@
 </div>
 {% endif %}
 
-<div class="mm-grid mm-grid-cols-2 mm-gap-6 mm-mb-6">
-    <div class="mm-card">
-        <div class="mm-card-header">
-            <h3 class="mm-card-title">
-                <i class="bi bi-person mm-text-primary"></i>
-                Dados Pessoais
-            </h3>
-        </div>
-        <div class="mm-card-body">
-            <form method="post" action="{{ url_for('usuarios.perfil') }}">
-                <div class="mm-form-group mm-mb-4">
-                    <label class="mm-label">Nome</label>
-                    <input type="text" name="name" class="mm-input" value="{{ current_user.name }}" required>
-                </div>
-                <div class="mm-form-group mm-mb-4">
-                    <label class="mm-label">Login</label>
-                    <input type="text" name="username" class="mm-input" value="{{ current_user.username }}" required>
-                    <span class="mm-form-hint">Somente letras e números.</span>
-                </div>
-                <div class="mm-form-group mm-mb-4">
-                    <label class="mm-label">Nível de Acesso</label>
-                    <input type="text" class="mm-input" value="{{ current_user.nivel | capitalize }}" disabled>
-                </div>
-                <div class="mm-flex mm-justify-end">
-                    <button type="submit" class="mm-btn mm-btn-primary">
-                        <i class="bi bi-save"></i>
-                        Salvar Perfil
-                    </button>
-                </div>
-            </form>
+<div class="mm-card mm-mb-6">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <i class="bi bi-person-badge mm-text-primary"></i>
+            Informações da Conta
+        </h3>
+    </div>
+    <div class="mm-card-body">
+        <div class="mm-grid mm-grid-cols-3 mm-gap-4">
+            <div class="mm-info-item">
+                <span class="mm-info-label">Nome</span>
+                <span class="mm-info-value">{{ current_user.name }}</span>
+            </div>
+            <div class="mm-info-item">
+                <span class="mm-info-label">Login</span>
+                <span class="mm-info-value">{{ current_user.username }}</span>
+            </div>
+            <div class="mm-info-item">
+                <span class="mm-info-label">Nível de Acesso</span>
+                <span class="mm-info-value">{{ current_user.nivel | capitalize }}</span>
+            </div>
         </div>
     </div>
+</div>
 
-    <div class="mm-card">
-        <div class="mm-card-header">
-            <h3 class="mm-card-title">
-                <i class="bi bi-key mm-text-warning"></i>
-                Alterar Senha
+<div class="mm-modal-overlay" id="editModal" onclick="closeEditModal(event)">
+    <div class="mm-modal" onclick="event.stopPropagation()">
+        <div class="mm-modal-header">
+            <h3 class="mm-modal-title">
+                <i class="bi bi-pencil-square"></i>
+                Atualizar Dados
             </h3>
+            <button class="mm-modal-close" onclick="closeEditModal()">
+                <i class="bi bi-x-lg"></i>
+            </button>
         </div>
-        <div class="mm-card-body">
-            <form method="post" action="{{ url_for('usuarios.perfil_senha') }}">
-                <div class="mm-form-group mm-mb-4">
-                    <label class="mm-label">Senha Atual</label>
-                    <input type="password" name="senha_atual" class="mm-input" required>
-                </div>
-                <div class="mm-form-group mm-mb-4">
-                    <label class="mm-label">Nova Senha</label>
-                    <input type="password" name="nova_senha" class="mm-input" required>
-                    <span class="mm-form-hint">Mínimo de 6 caracteres.</span>
-                </div>
-                <div class="mm-form-group mm-mb-4">
-                    <label class="mm-label">Confirmar Nova Senha</label>
-                    <input type="password" name="confirmar_senha" class="mm-input" required>
-                </div>
-                <div class="mm-flex mm-justify-end">
-                    <button type="submit" class="mm-btn mm-btn-success">
-                        <i class="bi bi-shield-lock"></i>
-                        Atualizar Senha
-                    </button>
-                </div>
-            </form>
+        <div class="mm-modal-body">
+            <div class="mm-modal-tabs">
+                <button class="mm-modal-tab active" onclick="switchTab('dados')">
+                    <i class="bi bi-person"></i> Dados Pessoais
+                </button>
+                <button class="mm-modal-tab" onclick="switchTab('senha')">
+                    <i class="bi bi-key"></i> Alterar Senha
+                </button>
+            </div>
+            
+            <div id="tab-dados" class="mm-modal-tab-content active">
+                <form method="post" action="{{ url_for('usuarios.perfil') }}">
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Nome</label>
+                        <input type="text" name="name" class="mm-input" value="{{ current_user.name }}" required>
+                    </div>
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Login</label>
+                        <input type="text" name="username" class="mm-input" value="{{ current_user.username }}" required>
+                        <span class="mm-form-hint">Somente letras e números.</span>
+                    </div>
+                    <div class="mm-flex mm-justify-end mm-gap-3">
+                        <button type="button" class="mm-btn mm-btn-outline" onclick="closeEditModal()">Cancelar</button>
+                        <button type="submit" class="mm-btn mm-btn-primary">
+                            <i class="bi bi-save"></i> Salvar
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <div id="tab-senha" class="mm-modal-tab-content">
+                <form method="post" action="{{ url_for('usuarios.perfil_senha') }}">
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Senha Atual</label>
+                        <input type="password" name="senha_atual" class="mm-input" required>
+                    </div>
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Nova Senha</label>
+                        <input type="password" name="nova_senha" class="mm-input" required>
+                        <span class="mm-form-hint">Mínimo de 6 caracteres.</span>
+                    </div>
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Confirmar Nova Senha</label>
+                        <input type="password" name="confirmar_senha" class="mm-input" required>
+                    </div>
+                    <div class="mm-flex mm-justify-end mm-gap-3">
+                        <button type="button" class="mm-btn mm-btn-outline" onclick="closeEditModal()">Cancelar</button>
+                        <button type="submit" class="mm-btn mm-btn-success">
+                            <i class="bi bi-shield-lock"></i> Atualizar Senha
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -374,6 +470,15 @@
     font-size: 1.5rem;
 }
 
+.mm-kpi-icon-pos {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--mm-success);
+}
+.mm-kpi-icon-neg {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--mm-danger);
+}
+
 .mm-form-group {
     display: flex;
     flex-direction: column;
@@ -488,6 +593,240 @@
     margin-bottom: var(--mm-space-4);
 }
 
+.mm-gap-3 {
+    gap: var(--mm-space-3);
+}
+
+.mm-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mm-space-1);
+    padding: var(--mm-space-4);
+    background: var(--mm-bg-secondary);
+    border-radius: var(--mm-radius-md);
+    border: 1px solid var(--mm-border);
+}
+
+.mm-info-item .mm-info-label {
+    font-size: var(--mm-text-sm);
+    color: var(--mm-text-muted);
+    font-weight: var(--mm-font-medium);
+}
+
+.mm-info-item .mm-info-value {
+    font-size: var(--mm-text-lg);
+    color: var(--mm-text-primary);
+    font-weight: var(--mm-font-semibold);
+}
+
+.mm-status-banner {
+    display: flex;
+    align-items: center;
+    gap: var(--mm-space-5);
+    padding: var(--mm-space-5) var(--mm-space-6);
+    border-radius: var(--mm-radius-xl);
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.mm-status-folga {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.25));
+    border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.mm-status-ferias {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.25));
+    border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.mm-status-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+}
+
+.mm-status-folga .mm-status-icon {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--mm-success);
+}
+
+.mm-status-ferias .mm-status-icon {
+    background: rgba(59, 130, 246, 0.2);
+    color: var(--mm-info);
+}
+
+.mm-status-content h3 {
+    font-size: var(--mm-text-xl);
+    font-weight: var(--mm-font-bold);
+    margin: 0 0 var(--mm-space-1) 0;
+}
+
+.mm-status-folga .mm-status-content h3 { color: var(--mm-success); }
+.mm-status-ferias .mm-status-content h3 { color: var(--mm-info); }
+
+.mm-status-content p {
+    margin: 0 0 var(--mm-space-3) 0;
+    color: var(--mm-text-secondary);
+}
+
+.mm-countdown {
+    display: flex;
+    gap: var(--mm-space-4);
+}
+
+.mm-countdown-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--mm-space-3) var(--mm-space-4);
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--mm-radius-md);
+    min-width: 70px;
+}
+
+.mm-countdown-value {
+    font-size: var(--mm-text-2xl);
+    font-weight: var(--mm-font-bold);
+    color: var(--mm-text-primary);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.mm-countdown-label {
+    font-size: var(--mm-text-xs);
+    color: var(--mm-text-muted);
+    text-transform: uppercase;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.1); }
+    50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.2); }
+}
+
+.mm-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.mm-modal-overlay.active {
+    display: flex;
+}
+
+.mm-modal {
+    background: var(--mm-bg-card);
+    border: 1px solid var(--mm-border);
+    border-radius: var(--mm-radius-xl);
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: modal-in 0.2s ease-out;
+}
+
+@keyframes modal-in {
+    from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.mm-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--mm-space-4) var(--mm-space-5);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.05));
+    border-bottom: 1px solid var(--mm-border);
+}
+
+.mm-modal-title {
+    font-size: var(--mm-text-lg);
+    font-weight: var(--mm-font-semibold);
+    color: var(--mm-text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--mm-space-2);
+}
+
+.mm-modal-title i {
+    color: var(--mm-primary);
+}
+
+.mm-modal-close {
+    background: transparent;
+    border: none;
+    color: var(--mm-text-muted);
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: var(--mm-space-2);
+    border-radius: var(--mm-radius-md);
+    transition: all 0.2s;
+}
+
+.mm-modal-close:hover {
+    background: var(--mm-bg-secondary);
+    color: var(--mm-text-primary);
+}
+
+.mm-modal-body {
+    padding: var(--mm-space-5);
+}
+
+.mm-modal-tabs {
+    display: flex;
+    gap: var(--mm-space-2);
+    margin-bottom: var(--mm-space-5);
+    padding-bottom: var(--mm-space-4);
+    border-bottom: 1px solid var(--mm-border);
+}
+
+.mm-modal-tab {
+    flex: 1;
+    padding: var(--mm-space-3);
+    background: transparent;
+    border: 1px solid var(--mm-border);
+    border-radius: var(--mm-radius-md);
+    color: var(--mm-text-muted);
+    font-size: var(--mm-text-sm);
+    font-weight: var(--mm-font-medium);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--mm-space-2);
+}
+
+.mm-modal-tab:hover {
+    background: var(--mm-bg-secondary);
+    color: var(--mm-text-primary);
+}
+
+.mm-modal-tab.active {
+    background: var(--mm-primary);
+    border-color: var(--mm-primary);
+    color: white;
+}
+
+.mm-modal-tab-content {
+    display: none;
+}
+
+.mm-modal-tab-content.active {
+    display: block;
+}
+
 .mm-justify-end {
     justify-content: flex-end;
 }
@@ -506,6 +845,73 @@
     .mm-grid-cols-4 {
         grid-template-columns: 1fr;
     }
+    .mm-countdown {
+        flex-wrap: wrap;
+    }
+    .mm-countdown-item {
+        min-width: 60px;
+    }
+    .mm-grid-cols-3 {
+        grid-template-columns: 1fr;
+    }
 }
 </style>
+
+<script>
+function openEditModal() {
+    document.getElementById('editModal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeEditModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('editModal').classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+function switchTab(tabName) {
+    document.querySelectorAll('.mm-modal-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.mm-modal-tab-content').forEach(c => c.classList.remove('active'));
+    
+    event.target.closest('.mm-modal-tab').classList.add('active');
+    document.getElementById('tab-' + tabName).classList.add('active');
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeEditModal();
+});
+
+(function() {
+    const countdown = document.getElementById('statusCountdown') || document.getElementById('vacationCountdown');
+    if (!countdown) return;
+    
+    const endTimestamp = parseInt(countdown.dataset.end) * 1000;
+    
+    function updateCountdown() {
+        const now = Date.now();
+        const diff = endTimestamp - now;
+        
+        if (diff <= 0) {
+            document.getElementById('countDays').textContent = '0';
+            document.getElementById('countHours').textContent = '0';
+            document.getElementById('countMinutes').textContent = '0';
+            document.getElementById('countSeconds').textContent = '0';
+            return;
+        }
+        
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        
+        document.getElementById('countDays').textContent = days;
+        document.getElementById('countHours').textContent = hours.toString().padStart(2, '0');
+        document.getElementById('countMinutes').textContent = minutes.toString().padStart(2, '0');
+        document.getElementById('countSeconds').textContent = seconds.toString().padStart(2, '0');
+    }
+    
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+})();
+</script>
 {% endblock %}

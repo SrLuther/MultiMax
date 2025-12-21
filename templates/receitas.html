@@ -7,10 +7,16 @@
         <h1 class="mm-page-title">Receitas</h1>
         <p class="mm-text-muted">Gestao de receitas e formulacoes de produtos</p>
     </div>
-    <button class="mm-btn mm-btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovaReceita">
-        <i class="bi bi-plus-lg"></i>
-        Nova Receita
-    </button>
+    <div class="mm-flex mm-gap-2">
+        <a href="{{ url_for('receitas.catalogo') }}" class="mm-btn mm-btn-outline">
+            <i class="bi bi-box"></i>
+            Catálogo de Ingredientes
+        </a>
+        <button class="mm-btn mm-btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovaReceita">
+            <i class="bi bi-plus-lg"></i>
+            Nova Receita
+        </button>
+    </div>
 </div>
 
 <div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">

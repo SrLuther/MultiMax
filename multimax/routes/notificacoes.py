@@ -1,8 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
-from .. import db
 from ..models import EventoDoDia, NotificacaoDiaria, NotificacaoPersonalizada
-from ..services.notificacao_service import enviar_relatorio_diario, criar_mensagem_personalizada, registrar_evento, gerar_relatorio
+from ..services.notificacao_service import enviar_relatorio_diario, criar_mensagem_personalizada, gerar_relatorio
 from datetime import date
 
 bp = Blueprint('notificacoes', __name__, url_prefix='/notificacoes')

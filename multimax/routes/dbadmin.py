@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 import os
 import shutil
 import time
+from ..models import UserLogin
 
 bp = Blueprint('dbadmin', __name__, url_prefix='/db')
 
@@ -25,7 +26,8 @@ def _list_backups():
                 sz = os.path.getsize(path)
                 mt = os.path.getmtime(path)
             except Exception:
-                sz = 0; mt = 0
+                sz = 0
+                mt = 0
             try:
                 from datetime import datetime
                 mt_str = datetime.fromtimestamp(mt).strftime('%d/%m/%Y %H:%M:%S') if mt else '-'
@@ -65,7 +67,29 @@ def index():
     start = (page - 1) * per_page
     end = start + per_page
     backups_page = backups[start:end]
-    return render_template('db.html', active_page='dbadmin', is_sqlite=is_sqlite, backups=backups_page, page=page, total_pages=total_pages, daily_backup=daily)
+    try:
+        login_page = int(request.args.get('login_page', '1'))
+    except Exception:
+        login_page = 1
+    if login_page < 1:
+        login_page = 1
+    try:
+        logins_pag = UserLogin.query.order_by(UserLogin.login_at.desc()).paginate(page=login_page, per_page=10, error_out=False)
+        logins = list(logins_pag.items or [])
+    except Exception:
+        logins_pag = None
+        logins = []
+    return render_template(
+        'db.html',
+        active_page='dbadmin',
+        is_sqlite=is_sqlite,
+        backups=backups_page,
+        page=page,
+        total_pages=total_pages,
+        daily_backup=daily,
+        logins=logins,
+        logins_pag=logins_pag
+    )
 
 @bp.route('/backup', methods=['POST'], strict_slashes=False)
 @login_required

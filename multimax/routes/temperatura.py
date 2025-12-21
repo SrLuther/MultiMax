@@ -1,9 +1,11 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+from werkzeug.utils import secure_filename
+import os
 from .. import db
-from ..models import TemperatureLog, TemperatureLocation
+from ..models import TemperatureLog, TemperatureLocation, TemperaturePhoto
 
 bp = Blueprint('temperatura', __name__, url_prefix='/temperatura')
 
@@ -35,7 +37,7 @@ def index():
         except ValueError:
             pass
     if apenas_alertas:
-        query = query.filter(TemperatureLog.alerta == True)
+        query = query.filter(TemperatureLog.alerta.is_(True))
     
     query = query.order_by(TemperatureLog.data_registro.desc())
     per_page = int(current_app.config.get('PER_PAGE', 10))
@@ -102,6 +104,22 @@ def registrar():
     reg.data_registro = _now()
     
     db.session.add(reg)
+    db.session.flush()
+    
+    foto = request.files.get('foto')
+    if foto and foto.filename:
+        upload_folder = os.path.join('static', 'uploads', 'temperatura')
+        os.makedirs(upload_folder, exist_ok=True)
+        filename = secure_filename(f'{reg.id}_{_now().strftime("%Y%m%d%H%M%S")}_{foto.filename}')
+        filepath = os.path.join(upload_folder, filename)
+        foto.save(filepath)
+        
+        photo = TemperaturePhoto()
+        photo.temperature_log_id = reg.id
+        photo.filename = filename
+        photo.uploaded_by = current_user.username
+        db.session.add(photo)
+    
     db.session.commit()
     
     if alerta:
@@ -218,3 +236,17 @@ def excluir_local(id: int):
         flash(f'Erro ao excluir: {e}', 'danger')
     
     return redirect(url_for('temperatura.locais'))
+
+@bp.route('/fotos/<int:id>', methods=['GET'], strict_slashes=False)
+@login_required
+def get_fotos(id: int):
+    reg = TemperatureLog.query.get_or_404(id)
+    fotos_data = []
+    for foto in reg.fotos:
+        fotos_data.append({
+            'id': foto.id,
+            'filename': foto.filename,
+            'created_at': foto.created_at.strftime('%d/%m/%Y %H:%M:%S') if foto.created_at else '-',
+            'uploaded_by': foto.uploaded_by or '-'
+        })
+    return jsonify({'fotos': fotos_data})

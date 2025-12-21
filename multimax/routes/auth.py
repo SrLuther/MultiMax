@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_user, login_required, logout_user, current_user
 from werkzeug.security import check_password_hash
-from ..models import User, SystemLog
+from ..models import User, SystemLog, UserLogin
 from .. import db
 
 bp = Blueprint('auth', __name__)
@@ -23,6 +23,24 @@ def login():
                 log.detalhes = 'Acesso ao sistema'
                 log.usuario = user.name
                 db.session.add(log)
+                # registrar histórico de login (todos os usuários)
+                try:
+                    ip = request.remote_addr or request.environ.get('HTTP_X_FORWARDED_FOR') or ''
+                except Exception:
+                    ip = ''
+                try:
+                    ua = request.headers.get('User-Agent', '')
+                except Exception:
+                    ua = ''
+                try:
+                    ul = UserLogin()
+                    ul.user_id = user.id
+                    ul.username = user.username
+                    ul.ip_address = ip
+                    ul.user_agent = ua
+                    db.session.add(ul)
+                except Exception:
+                    pass
                 db.session.commit()
             except Exception:
                 try:

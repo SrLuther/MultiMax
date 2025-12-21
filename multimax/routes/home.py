@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify
+from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import current_user
 from datetime import datetime, date, timedelta
 from sqlalchemy import func
@@ -523,7 +523,9 @@ def update_changelog():
     try:
         s = AppSettingModel.query.filter_by(key='changelog_text').first()
         if not s:
-            s = AppSettingModel(); s.key = 'changelog_text'; db.session.add(s)
+            s = AppSettingModel()
+            s.key = 'changelog_text'
+            db.session.add(s)
         s.value = txt
         db.session.commit()
         flash('Changelog atualizado.', 'success')

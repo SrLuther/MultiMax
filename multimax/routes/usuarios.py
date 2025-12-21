@@ -2,10 +2,9 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from .. import db
-from ..models import User, Produto, Historico, CleaningHistory, SystemLog, NotificationRead, HourBankEntry, Collaborator, JobRole, LeaveCredit, LeaveAssignment, LeaveConversion, Shift, CleaningTask
-from datetime import datetime, timedelta, date
-from collections import OrderedDict
-from typing import TypedDict, cast, Sequence
+from ..models import User, Produto, Historico, CleaningHistory, SystemLog, NotificationRead, HourBankEntry, Collaborator, JobRole, LeaveCredit, LeaveAssignment, LeaveConversion, Shift, CleaningTask, Vacation, MedicalCertificate
+from datetime import datetime
+from typing import cast, Sequence
 import os
  
 import threading
@@ -348,7 +347,11 @@ def notifications_read_all():
         )
         for p in crit:
             if NotificationRead.query.filter_by(user_id=current_user.id, tipo='estoque', ref_id=p.id).first() is None:
-                nr = NotificationRead(); nr.user_id = current_user.id; nr.tipo = 'estoque'; nr.ref_id = p.id; db.session.add(nr)
+                nr = NotificationRead()
+                nr.user_id = current_user.id
+                nr.tipo = 'estoque'
+                nr.ref_id = p.id
+                db.session.add(nr)
         from datetime import date as _date, timedelta as _td
         horizon = _date.today() + _td(days=3)
         tasks = (
@@ -360,7 +363,11 @@ def notifications_read_all():
         )
         for t in tasks:
             if NotificationRead.query.filter_by(user_id=current_user.id, tipo='limpeza', ref_id=t.id).first() is None:
-                nr = NotificationRead(); nr.user_id = current_user.id; nr.tipo = 'limpeza'; nr.ref_id = t.id; db.session.add(nr)
+                nr = NotificationRead()
+                nr.user_id = current_user.id
+                nr.tipo = 'limpeza'
+                nr.ref_id = t.id
+                db.session.add(nr)
         db.session.commit()
     except Exception:
         try:
@@ -487,7 +494,139 @@ def perfil():
         collab = None
         entries = []
         total = 0.0
-    return render_template('perfil.html', active_page='perfil', collab=collab, entries=entries, total=total, residual_hours=residual_hours, folga_balance=folga_balance, folga_credits=folga_credits, folga_assigned=folga_assigned, folga_conversions=folga_conversions)
+    
+    is_on_break = False
+    is_on_vacation = False
+    vacation_end_date = None
+    vacation_end_timestamp = 0
+    vacation_return_hour = '05:00'
+    is_on_medical = False
+    medical_end_timestamp = 0
+    medical_end_date = None
+    break_end_timestamp = 0
+    next_shift_date = None
+    next_shift_hour = None
+    
+    if collab:
+        from datetime import date as _date, datetime as _dt, timedelta as _td
+        today = _date.today()
+        
+        try:
+            today_shift = Shift.query.filter_by(
+                collaborator_id=collab.id,
+                date=today
+            ).first()
+            if today_shift and ((today_shift.shift_type or '').lower() == 'folga' or (today_shift.turno or '').lower() == 'folga'):
+                is_on_break = True
+                end_dt = _dt.combine(today, _dt.min.time().replace(hour=23, minute=59, second=59))
+                break_end_timestamp = int(end_dt.timestamp())
+        except Exception:
+            pass
+        try:
+            ns = Shift.query.filter(
+                Shift.collaborator_id == collab.id,
+                Shift.date >= today,
+                Shift.shift_type != 'folga'
+            ).order_by(Shift.date.asc()).first()
+            if ns:
+                next_shift_date = ns.date
+                if ns.start_dt:
+                    next_shift_hour = ns.start_dt.strftime('%H:%M')
+                else:
+                    st = (ns.shift_type or '').lower()
+                    if st.startswith('abertura'):
+                        next_shift_hour = '05:00'
+                    elif st == 'fechamento':
+                        next_shift_hour = '09:30'
+                    elif st.startswith('domingo'):
+                        next_shift_hour = '05:00'
+                    else:
+                        next_shift_hour = '05:00'
+        except Exception:
+            pass
+        if not is_on_break:
+            try:
+                la_list = LeaveAssignment.query.filter(
+                    LeaveAssignment.collaborator_id == collab.id,
+                    LeaveAssignment.date <= today
+                ).order_by(LeaveAssignment.date.desc()).limit(5).all()
+                for la in (la_list or []):
+                    days = max(1, int(la.days_used or 1))
+                    end_date = la.date + _td(days=days - 1)
+                    if end_date >= today:
+                        is_on_break = True
+                        end_dt = _dt.combine(end_date, _dt.min.time().replace(hour=23, minute=59, second=59))
+                        break_end_timestamp = int(end_dt.timestamp())
+                        break
+            except Exception:
+                pass
+        
+        try:
+            vacation = Vacation.query.filter(
+                Vacation.collaborator_id == collab.id,
+                Vacation.data_inicio <= today,
+                Vacation.data_fim >= today
+            ).first()
+            if vacation:
+                is_on_vacation = True
+                vacation_end_date = vacation.data_fim.strftime('%d/%m/%Y')
+                
+                return_date = vacation.data_fim + _td(days=1)
+                
+                try:
+                    next_shift = Shift.query.filter(
+                        Shift.collaborator_id == collab.id,
+                        Shift.date >= return_date,
+                        Shift.shift_type != 'folga'
+                    ).order_by(Shift.date.asc()).first()
+                    
+                    if next_shift:
+                        return_date = next_shift.date
+                        if next_shift.start_dt:
+                            try:
+                                vacation_return_hour = next_shift.start_dt.strftime('%H:%M')
+                            except Exception:
+                                vacation_return_hour = '05:00'
+                        else:
+                            st = (next_shift.shift_type or '').lower()
+                            if st.startswith('abertura'):
+                                vacation_return_hour = '05:00'
+                            elif st == 'fechamento':
+                                vacation_return_hour = '09:30'
+                            elif st.startswith('domingo'):
+                                vacation_return_hour = '05:00'
+                            else:
+                                vacation_return_hour = '05:00'
+                except Exception:
+                    pass
+                
+                try:
+                    hour_parts = vacation_return_hour.split(':')
+                    return_hour = int(hour_parts[0]) if hour_parts else 5
+                    return_min = int(hour_parts[1]) if len(hour_parts) > 1 else 0
+                except Exception:
+                    return_hour, return_min = 5, 0
+                
+                return_datetime = _dt.combine(return_date, _dt.min.time().replace(hour=return_hour, minute=return_min))
+                vacation_end_timestamp = int(return_datetime.timestamp())
+        except Exception:
+            pass
+        
+        try:
+            mc = MedicalCertificate.query.filter(
+                MedicalCertificate.collaborator_id == collab.id,
+                MedicalCertificate.data_inicio <= today,
+                MedicalCertificate.data_fim >= today
+            ).order_by(MedicalCertificate.data_fim.desc()).first()
+            if mc:
+                is_on_medical = True
+                medical_end_date = mc.data_fim.strftime('%d/%m/%Y')
+                med_end_dt = _dt.combine(mc.data_fim, _dt.min.time().replace(hour=23, minute=59, second=59))
+                medical_end_timestamp = int(med_end_dt.timestamp())
+        except Exception:
+            pass
+    
+    return render_template('perfil.html', active_page='perfil', collab=collab, entries=entries, total=total, residual_hours=residual_hours, folga_balance=folga_balance, folga_credits=folga_credits, folga_assigned=folga_assigned, folga_conversions=folga_conversions, is_on_break=is_on_break, is_on_vacation=is_on_vacation, vacation_end_date=vacation_end_date, vacation_end_timestamp=vacation_end_timestamp, vacation_return_hour=vacation_return_hour, is_on_medical=is_on_medical, medical_end_timestamp=medical_end_timestamp, medical_end_date=medical_end_date, break_end_timestamp=break_end_timestamp, next_shift_date=next_shift_date, next_shift_hour=next_shift_hour)
 
 @bp.route('/perfil/senha', methods=['POST'])
 @login_required
@@ -542,6 +681,89 @@ def gestao():
                     pass
         if changed:
             db.session.commit()
+        # Garantir colunas necessárias em tabelas de gestão
+        try:
+            # leave_assignment: notes
+            la_cols = [c['name'] for c in insp.get_columns('leave_assignment')]
+            la_changed = False
+            if 'notes' not in la_cols:
+                db.session.execute(text('ALTER TABLE leave_assignment ADD COLUMN notes TEXT'))
+                la_changed = True
+            if la_changed:
+                db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+        try:
+            # leave_credit: origin, notes
+            lc_cols = [c['name'] for c in insp.get_columns('leave_credit')]
+            lc_changed = False
+            if 'origin' not in lc_cols:
+                db.session.execute(text('ALTER TABLE leave_credit ADD COLUMN origin TEXT'))
+                lc_changed = True
+            if 'notes' not in lc_cols:
+                db.session.execute(text('ALTER TABLE leave_credit ADD COLUMN notes TEXT'))
+                lc_changed = True
+            if lc_changed:
+                db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+        try:
+            # hour_bank_entry: reason
+            hb_cols = [c['name'] for c in insp.get_columns('hour_bank_entry')]
+            hb_changed = False
+            if 'reason' not in hb_cols:
+                db.session.execute(text('ALTER TABLE hour_bank_entry ADD COLUMN reason TEXT'))
+                hb_changed = True
+            if hb_changed:
+                db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+        try:
+            # vacation: observacao
+            vac_cols = [c['name'] for c in insp.get_columns('vacation')]
+            vac_changed = False
+            if 'observacao' not in vac_cols:
+                db.session.execute(text('ALTER TABLE vacation ADD COLUMN observacao TEXT'))
+                vac_changed = True
+            if vac_changed:
+                db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+        try:
+            # medical_certificate: motivo, cid, medico, foto_atestado
+            mc_cols = [c['name'] for c in insp.get_columns('medical_certificate')]
+            mc_changed = False
+            if 'motivo' not in mc_cols:
+                db.session.execute(text('ALTER TABLE medical_certificate ADD COLUMN motivo TEXT'))
+                mc_changed = True
+            if 'cid' not in mc_cols:
+                db.session.execute(text('ALTER TABLE medical_certificate ADD COLUMN cid TEXT'))
+                mc_changed = True
+            if 'medico' not in mc_cols:
+                db.session.execute(text('ALTER TABLE medical_certificate ADD COLUMN medico TEXT'))
+                mc_changed = True
+            if 'foto_atestado' not in mc_cols:
+                db.session.execute(text('ALTER TABLE medical_certificate ADD COLUMN foto_atestado TEXT'))
+                mc_changed = True
+            if mc_changed:
+                db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
     except Exception:
         try:
             db.session.rollback()
@@ -555,8 +777,10 @@ def gestao():
         l_page = int(request.args.get('l_page', '1'))
     except Exception:
         l_page = 1
-    if u_page < 1: u_page = 1
-    if l_page < 1: l_page = 1
+    if u_page < 1:
+        u_page = 1
+    if l_page < 1:
+        l_page = 1
     hist_estoque = Historico.query.order_by(Historico.data.desc()).limit(50).all()
     hist_limpeza = CleaningHistory.query.order_by(CleaningHistory.data_conclusao.desc()).limit(50).all()
     hist_sistema = SystemLog.query.order_by(SystemLog.data.desc()).limit(50).all()
@@ -623,7 +847,7 @@ def gestao():
     saldo_collab = None
     saldo_hours = None
     saldo_days = None
-    saldo_entries: list[dict] = []
+    saldo_items = []
     saldo_start = None
     saldo_end = None
     try:
@@ -636,14 +860,17 @@ def gestao():
         except Exception:
             scid = None
         try:
-            ds = (request.args.get('saldo_start') or '').strip()
-            de = (request.args.get('saldo_end') or '').strip()
-            if ds:
-                saldo_start = datetime.strptime(ds, '%Y-%m-%d').date()
-            if de:
-                saldo_end = datetime.strptime(de, '%Y-%m-%d').date()
-            if saldo_start and saldo_end and saldo_start > saldo_end:
-                saldo_start, saldo_end = saldo_end, saldo_start
+            raw_start = request.args.get('saldo_start', '') or ''
+            raw_end = request.args.get('saldo_end', '') or ''
+            from datetime import datetime as _dt2
+            if isinstance(raw_start, str) and raw_start.strip():
+                saldo_start = _dt2.strptime(raw_start.strip(), '%Y-%m-%d').date()
+            else:
+                saldo_start = None
+            if isinstance(raw_end, str) and raw_end.strip():
+                saldo_end = _dt2.strptime(raw_end.strip(), '%Y-%m-%d').date()
+            else:
+                saldo_end = None
         except Exception:
             saldo_start = None
             saldo_end = None
@@ -691,59 +918,54 @@ def gestao():
                 converted_sum = db.session.query(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).filter(LeaveConversion.collaborator_id == scid).scalar() or 0
                 saldo_days = int(credits_sum) - int(assigned_sum) - int(converted_sum)
                 try:
-                    qh = HourBankEntry.query.filter(HourBankEntry.collaborator_id == scid)
-                    qc = LeaveCredit.query.filter(LeaveCredit.collaborator_id == scid)
-                    qa = LeaveAssignment.query.filter(LeaveAssignment.collaborator_id == scid)
-                    if saldo_start:
-                        qh = qh.filter(HourBankEntry.date >= saldo_start)
-                        qc = qc.filter(LeaveCredit.date >= saldo_start)
-                        qa = qa.filter(LeaveAssignment.date >= saldo_start)
-                    if saldo_end:
-                        qh = qh.filter(HourBankEntry.date <= saldo_end)
-                        qc = qc.filter(LeaveCredit.date <= saldo_end)
-                        qa = qa.filter(LeaveAssignment.date <= saldo_end)
-                    hs = qh.order_by(HourBankEntry.date.asc()).all()
-                    cs = qc.order_by(LeaveCredit.date.asc()).all()
-                    asg = qa.order_by(LeaveAssignment.date.asc()).all()
-                    for e in hs:
-                        try:
-                            saldo_entries.append({
-                                'date': e.date,
-                                'type': 'hora',
-                                'label': 'Horas registradas',
-                                'amount': float(e.hours or 0.0),
-                                'unit': 'h',
-                                'reason': e.reason or ''
-                            })
-                        except Exception:
-                            pass
-                    for c in cs:
-                        try:
-                            saldo_entries.append({
-                                'date': c.date,
-                                'type': 'credito',
-                                'label': 'Direito a folga',
-                                'amount': int(c.amount_days or 0),
-                                'unit': 'dia(s)',
-                                'reason': (c.origin or c.notes or '')
-                            })
-                        except Exception:
-                            pass
-                    for a in asg:
-                        try:
-                            saldo_entries.append({
-                                'date': a.date,
-                                'type': 'folga',
-                                'label': 'Folga utilizada',
-                                'amount': int(a.days_used or 0),
-                                'unit': 'dia(s)',
-                                'reason': a.notes or ''
-                            })
-                        except Exception:
-                            pass
-                    saldo_entries.sort(key=lambda it: (it.get('date') or datetime.now().date()))
+                    # Detalhamento por período
+                    hq = HourBankEntry.query.filter(HourBankEntry.collaborator_id == scid)
+                    cq = LeaveCredit.query.filter(LeaveCredit.collaborator_id == scid)
+                    aq = LeaveAssignment.query.filter(LeaveAssignment.collaborator_id == scid)
+                    if saldo_start and saldo_end:
+                        hq = hq.filter(HourBankEntry.date.between(saldo_start, saldo_end))
+                        cq = cq.filter(LeaveCredit.date.between(saldo_start, saldo_end))
+                        aq = aq.filter(LeaveAssignment.date.between(saldo_start, saldo_end))
+                    elif saldo_start:
+                        hq = hq.filter(HourBankEntry.date >= saldo_start)
+                        cq = cq.filter(LeaveCredit.date >= saldo_start)
+                        aq = aq.filter(LeaveAssignment.date >= saldo_start)
+                    elif saldo_end:
+                        hq = hq.filter(HourBankEntry.date <= saldo_end)
+                        cq = cq.filter(LeaveCredit.date <= saldo_end)
+                        aq = aq.filter(LeaveAssignment.date <= saldo_end)
+                    h_list = hq.order_by(HourBankEntry.date.desc()).all()
+                    c_list = cq.order_by(LeaveCredit.date.desc()).all()
+                    a_list = aq.order_by(LeaveAssignment.date.desc()).all()
+                    # Unificar itens
+                    for e in h_list:
+                        saldo_items.append({
+                            'tipo': 'horas',
+                            'date': e.date,
+                            'amount': float(e.hours or 0.0),
+                            'unit': 'h',
+                            'motivo': e.reason or ''
+                        })
+                    for c in c_list:
+                        saldo_items.append({
+                            'tipo': 'credito',
+                            'date': c.date,
+                            'amount': int(c.amount_days or 0),
+                            'unit': 'dia',
+                            'motivo': (c.origin or 'manual')
+                                + ((' — ' + (c.notes or '')) if c.notes else '')
+                        })
+                    for a in a_list:
+                        saldo_items.append({
+                            'tipo': 'uso',
+                            'date': a.date,
+                            'amount': -int(a.days_used or 0),
+                            'unit': 'dia',
+                            'motivo': a.notes or ''
+                        })
+                    saldo_items.sort(key=lambda x: x['date'], reverse=True)
                 except Exception:
-                    saldo_entries = []
+                    saldo_items = []
     except Exception:
         bank_balances = {}
     recent_entries = []
@@ -761,14 +983,71 @@ def gestao():
             folgas.append({'collab': c, 'balance': int(credits_sum) - int(assigned_sum) - int(converted_sum)})
     except Exception:
         folgas = []
-    leave_credits = []
-    leave_assignments = []
+    # Paginação e filtros por colaborador
+    per_page = 10
+    # Banco de Horas (lista de colaboradores)
     try:
-        leave_credits = LeaveCredit.query.order_by(LeaveCredit.date.desc()).limit(50).all()
-        leave_assignments = LeaveAssignment.query.order_by(LeaveAssignment.date.desc()).limit(50).all()
+        bh_collab_id = request.args.get('bh_collaborator_id', type=int)
     except Exception:
-        leave_credits = []
-        leave_assignments = []
+        bh_collab_id = None
+    try:
+        bh_page = int(request.args.get('bh_page', '1'))
+    except Exception:
+        bh_page = 1
+    if bh_page < 1:
+        bh_page = 1
+    bh_q = Collaborator.query.order_by(Collaborator.name.asc())
+    if bh_collab_id:
+        bh_q = bh_q.filter(Collaborator.id == bh_collab_id)
+    bh_all = bh_q.all()
+    bh_total_pages = max(1, (len(bh_all) + per_page - 1) // per_page)
+    if bh_page > bh_total_pages:
+        bh_page = bh_total_pages
+    bh_start = (bh_page - 1) * per_page
+    bh_end = bh_start + per_page
+    colaboradores_page = bh_all[bh_start:bh_end]
+    # Créditos de Folga
+    try:
+        lc_collab_id = request.args.get('lc_collaborator_id', type=int)
+    except Exception:
+        lc_collab_id = None
+    try:
+        lc_page = int(request.args.get('lc_page', '1'))
+    except Exception:
+        lc_page = 1
+    if lc_page < 1:
+        lc_page = 1
+    lc_q = LeaveCredit.query.order_by(LeaveCredit.date.desc())
+    if lc_collab_id:
+        lc_q = lc_q.filter(LeaveCredit.collaborator_id == lc_collab_id)
+    leave_credits_all = lc_q.all()
+    lc_total_pages = max(1, (len(leave_credits_all) + per_page - 1) // per_page)
+    if lc_page > lc_total_pages:
+        lc_page = lc_total_pages
+    lc_start = (lc_page - 1) * per_page
+    lc_end = lc_start + per_page
+    leave_credits_page = leave_credits_all[lc_start:lc_end]
+    # Uso de Folgas
+    try:
+        la_collab_id = request.args.get('la_collaborator_id', type=int)
+    except Exception:
+        la_collab_id = None
+    try:
+        la_page = int(request.args.get('la_page', '1'))
+    except Exception:
+        la_page = 1
+    if la_page < 1:
+        la_page = 1
+    la_q = LeaveAssignment.query.order_by(LeaveAssignment.date.desc())
+    if la_collab_id:
+        la_q = la_q.filter(LeaveAssignment.collaborator_id == la_collab_id)
+    leave_assignments_all = la_q.all()
+    la_total_pages = max(1, (len(leave_assignments_all) + per_page - 1) // per_page)
+    if la_page > la_total_pages:
+        la_page = la_total_pages
+    la_start = (la_page - 1) * per_page
+    la_end = la_start + per_page
+    leave_assignments_page = leave_assignments_all[la_start:la_end]
     # VPS Storage
     vps_storage = None
     try:
@@ -796,7 +1075,9 @@ def gestao():
             if callable(la_fn):
                 lv = cast(Sequence[float], la_fn())
                 try:
-                    a = float(lv[0]); b = float(lv[1]); c = float(lv[2])
+                    a = float(lv[0])
+                    b = float(lv[1])
+                    c = float(lv[2])
                     load_str = f"{a:.2f}, {b:.2f}, {c:.2f}"
                 except Exception:
                     load_str = None
@@ -805,10 +1086,14 @@ def gestao():
                     with open('/proc/loadavg', 'r') as f:
                         parts = f.read().split()
                         it = iter(parts)
-                        a = next(it, None); b = next(it, None); c = next(it, None)
+                        a = next(it, None)
+                        b = next(it, None)
+                        c = next(it, None)
                         if a is not None and b is not None and c is not None:
                             try:
-                                aa = float(a); bb = float(b); cc = float(c)
+                                aa = float(a)
+                                bb = float(b)
+                                cc = float(c)
                                 load_str = f"{aa:.2f}, {bb:.2f}, {cc:.2f}"
                             except Exception:
                                 load_str = None
@@ -838,6 +1123,49 @@ def gestao():
     except Exception:
         vps_storage = None
     # Removido endereço de acesso (url/qr), mantendo somente dados necessários
+    # Férias
+    try:
+        ferias_collab_id = request.args.get('ferias_collaborator_id', type=int)
+    except Exception:
+        ferias_collab_id = None
+    try:
+        ferias_page = int(request.args.get('ferias_page', '1'))
+    except Exception:
+        ferias_page = 1
+    if ferias_page < 1:
+        ferias_page = 1
+    ferias_q = Vacation.query.order_by(Vacation.data_inicio.desc())
+    if ferias_collab_id:
+        ferias_q = ferias_q.filter(Vacation.collaborator_id == ferias_collab_id)
+    ferias_all = ferias_q.all()
+    ferias_total_pages = max(1, (len(ferias_all) + per_page - 1) // per_page)
+    if ferias_page > ferias_total_pages:
+        ferias_page = ferias_total_pages
+    ferias_start = (ferias_page - 1) * per_page
+    ferias_end = ferias_start + per_page
+    ferias_page_items = ferias_all[ferias_start:ferias_end]
+    # Atestados
+    try:
+        at_collab_id = request.args.get('at_collaborator_id', type=int)
+    except Exception:
+        at_collab_id = None
+    try:
+        at_page = int(request.args.get('at_page', '1'))
+    except Exception:
+        at_page = 1
+    if at_page < 1:
+        at_page = 1
+    at_q = MedicalCertificate.query.order_by(MedicalCertificate.data_inicio.desc())
+    if at_collab_id:
+        at_q = at_q.filter(MedicalCertificate.collaborator_id == at_collab_id)
+    atestados_all = at_q.all()
+    at_total_pages = max(1, (len(atestados_all) + per_page - 1) // per_page)
+    if at_page > at_total_pages:
+        at_page = at_total_pages
+    at_start = (at_page - 1) * per_page
+    at_end = at_start + per_page
+    atestados_page = atestados_all[at_start:at_end]
+    
     return render_template(
         'gestao.html',
         active_page='gestao',
@@ -860,10 +1188,13 @@ def gestao():
         acc_page=acc_page,
         acc_total_pages=acc_total_pages,
         acc_user=acc_user
-        , saldo_collab=saldo_collab, saldo_hours=saldo_hours, saldo_days=saldo_days
-        , saldo_entries=saldo_entries, saldo_start=saldo_start, saldo_end=saldo_end
+        , saldo_collab=saldo_collab, saldo_hours=saldo_hours, saldo_days=saldo_days, saldo_items=saldo_items, saldo_start=saldo_start, saldo_end=saldo_end
         , vps_storage=vps_storage
-        , leave_credits=leave_credits, leave_assignments=leave_assignments
+        , colaboradores_page=colaboradores_page, bh_page=bh_page, bh_total_pages=bh_total_pages, bh_collab_id=bh_collab_id
+        , leave_credits_page=leave_credits_page, lc_page=lc_page, lc_total_pages=lc_total_pages, lc_collab_id=lc_collab_id
+        , leave_assignments_page=leave_assignments_page, la_page=la_page, la_total_pages=la_total_pages, la_collab_id=la_collab_id
+        , ferias_page_items=ferias_page_items, ferias_page=ferias_page, ferias_total_pages=ferias_total_pages, ferias_collab_id=ferias_collab_id
+        , atestados_page=atestados_page, at_page=at_page, at_total_pages=at_total_pages, at_collab_id=at_collab_id
     )
 
 
@@ -1304,10 +1635,15 @@ def gestao_role_criar():
         flash('Cargo já existe.', 'danger')
         return redirect(url_for('usuarios.gestao'))
     try:
-        r = JobRole(); r.name = name; r.nivel = nivel; db.session.add(r); db.session.commit()
+        r = JobRole()
+        r.name = name
+        r.nivel = nivel
+        db.session.add(r)
+        db.session.commit()
         flash('Cargo criado.', 'success')
     except Exception as e:
-        db.session.rollback(); flash(f'Erro ao criar cargo: {e}', 'danger')
+        db.session.rollback()
+        flash(f'Erro ao criar cargo: {e}', 'danger')
     return redirect(url_for('usuarios.gestao'))
 
 @bp.route('/gestao/roles/<int:id>/editar', methods=['POST'])
@@ -1323,9 +1659,13 @@ def gestao_role_editar(id: int):
         flash('Tipo de permissão inválido.', 'warning')
         return redirect(url_for('usuarios.gestao'))
     try:
-        role.name = name; role.nivel = nivel; db.session.commit(); flash('Cargo atualizado.', 'info')
+        role.name = name
+        role.nivel = nivel
+        db.session.commit()
+        flash('Cargo atualizado.', 'info')
     except Exception as e:
-        db.session.rollback(); flash(f'Erro ao atualizar cargo: {e}', 'danger')
+        db.session.rollback()
+        flash(f'Erro ao atualizar cargo: {e}', 'danger')
     return redirect(url_for('usuarios.gestao'))
 
 @bp.route('/gestao/roles/<int:id>/excluir', methods=['POST'])
@@ -1336,7 +1676,164 @@ def gestao_role_excluir(id: int):
         return redirect(url_for('usuarios.gestao'))
     role = JobRole.query.get_or_404(id)
     try:
-        db.session.delete(role); db.session.commit(); flash('Cargo excluído.', 'danger')
+        db.session.delete(role)
+        db.session.commit()
+        flash('Cargo excluído.', 'danger')
     except Exception as e:
-        db.session.rollback(); flash(f'Erro ao excluir cargo: {e}', 'danger')
+        db.session.rollback()
+        flash(f'Erro ao excluir cargo: {e}', 'danger')
     return redirect(url_for('usuarios.gestao'))
+
+
+@bp.route('/gestao/ferias/adicionar', methods=['POST'])
+@login_required
+def gestao_ferias_adicionar():
+    if current_user.nivel != 'admin':
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    try:
+        cid_str = (request.form.get('collaborator_id') or '').strip()
+        di_str = (request.form.get('data_inicio') or '').strip()
+        df_str = (request.form.get('data_fim') or '').strip()
+        if not cid_str or not di_str or not df_str:
+            flash('Dados obrigatórios ausentes.', 'warning')
+            return redirect(url_for('usuarios.gestao') + '#ferias')
+        cid = int(cid_str)
+        data_inicio = datetime.strptime(di_str, '%Y-%m-%d').date()
+        data_fim = datetime.strptime(df_str, '%Y-%m-%d').date()
+        observacao = request.form.get('observacao', '').strip()
+        
+        if data_fim < data_inicio:
+            flash('Data final deve ser maior ou igual à data inicial.', 'warning')
+            return redirect(url_for('usuarios.gestao') + '#ferias')
+        
+        v = Vacation()
+        v.collaborator_id = cid
+        v.data_inicio = data_inicio
+        v.data_fim = data_fim
+        v.observacao = observacao
+        v.criado_por = current_user.name
+        db.session.add(v)
+        db.session.commit()
+        flash('Férias registradas com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao registrar férias: {e}', 'danger')
+    return redirect(url_for('usuarios.gestao') + '#ferias')
+
+
+@bp.route('/gestao/ferias/<int:id>/excluir', methods=['POST'])
+@login_required
+def gestao_ferias_excluir(id: int):
+    if current_user.nivel != 'admin':
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    v = Vacation.query.get_or_404(id)
+    try:
+        db.session.delete(v)
+        db.session.commit()
+        flash('Férias excluídas.', 'info')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir: {e}', 'danger')
+    return redirect(url_for('usuarios.gestao') + '#ferias')
+
+
+ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'}
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
+
+
+@bp.route('/gestao/atestado/adicionar', methods=['POST'])
+@login_required
+def gestao_atestado_adicionar():
+    if current_user.nivel != 'admin':
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    try:
+        import os
+        from werkzeug.utils import secure_filename
+        
+        cid_str = (request.form.get('collaborator_id') or '').strip()
+        di_str = (request.form.get('data_inicio') or '').strip()
+        df_str = (request.form.get('data_fim') or '').strip()
+        if not cid_str or not di_str or not df_str:
+            flash('Dados obrigatórios ausentes.', 'warning')
+            return redirect(url_for('usuarios.gestao') + '#atestados')
+        cid = int(cid_str)
+        data_inicio = datetime.strptime(di_str, '%Y-%m-%d').date()
+        data_fim = datetime.strptime(df_str, '%Y-%m-%d').date()
+        motivo = request.form.get('motivo', '').strip()
+        cid_code = request.form.get('cid', '').strip()
+        medico = request.form.get('medico', '').strip()
+        
+        if data_fim < data_inicio:
+            flash('Data final deve ser maior ou igual à data inicial.', 'warning')
+            return redirect(url_for('usuarios.gestao') + '#atestados')
+        
+        dias = (data_fim - data_inicio).days + 1
+        
+        foto_filename = None
+        if 'foto_atestado' in request.files:
+            foto = request.files['foto_atestado']
+            if foto and foto.filename:
+                if not allowed_file(foto.filename):
+                    flash('Tipo de arquivo não permitido. Use imagens (PNG, JPG, JPEG, GIF).', 'warning')
+                    return redirect(url_for('usuarios.gestao') + '#atestados')
+                
+                foto.seek(0, 2)
+                size = foto.tell()
+                foto.seek(0)
+                if size > MAX_UPLOAD_SIZE:
+                    flash('Arquivo muito grande. Máximo 10MB.', 'warning')
+                    return redirect(url_for('usuarios.gestao') + '#atestados')
+                
+                upload_dir = os.path.join('static', 'uploads', 'atestados')
+                os.makedirs(upload_dir, exist_ok=True)
+                safe_name = secure_filename(foto.filename)
+                ext = safe_name.rsplit('.', 1)[1].lower() if '.' in safe_name else 'jpg'
+                foto_filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{cid}.{ext}"
+                foto.save(os.path.join(upload_dir, foto_filename))
+        
+        m = MedicalCertificate()
+        m.collaborator_id = cid
+        m.data_inicio = data_inicio
+        m.data_fim = data_fim
+        m.dias = dias
+        m.motivo = motivo
+        m.cid = cid_code
+        m.medico = medico
+        m.foto_atestado = foto_filename
+        m.criado_por = current_user.name
+        db.session.add(m)
+        db.session.commit()
+        flash('Atestado registrado com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao registrar atestado: {e}', 'danger')
+    return redirect(url_for('usuarios.gestao') + '#atestados')
+
+
+@bp.route('/gestao/atestado/<int:id>/excluir', methods=['POST'])
+@login_required
+def gestao_atestado_excluir(id: int):
+    if current_user.nivel != 'admin':
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    m = MedicalCertificate.query.get_or_404(id)
+    try:
+        if m.foto_atestado:
+            import os
+            path = os.path.join('static', 'uploads', 'atestados', m.foto_atestado)
+            if os.path.exists(path):
+                os.remove(path)
+        db.session.delete(m)
+        db.session.commit()
+        flash('Atestado excluído.', 'info')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir: {e}', 'danger')
+    return redirect(url_for('usuarios.gestao') + '#atestados')

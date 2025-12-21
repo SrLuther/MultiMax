@@ -2,13 +2,27 @@ from flask import Blueprint, jsonify, request, g
 from flask_login import current_user
 from functools import wraps
 from datetime import date, datetime, timedelta
-import os
 import hashlib
-import secrets
 from .. import db
 from ..models import Produto, Historico, Fornecedor, User, CleaningTask, NotificationRead, Collaborator, Recipe
 
 bp = Blueprint('api', __name__, url_prefix='/api/v1')
+
+cache = {}
+CACHE_TTL = 30
+
+def _cache_get(key: str):
+    v = cache.get(key)
+    if not v:
+        return None
+    data, exp = v
+    if datetime.now() < exp:
+        return data
+    cache.pop(key, None)
+    return None
+
+def _cache_set(key: str, value, ttl: int = CACHE_TTL):
+    cache[key] = (value, datetime.now() + timedelta(seconds=ttl))
 
 def verify_api_key():
     api_key = request.headers.get('X-API-Key') or request.args.get('api_key')
@@ -296,12 +310,15 @@ def listar_historico():
 @bp.route('/estoque/baixo', methods=['GET'])
 @api_auth_required
 def produtos_estoque_baixo():
+    key = 'produtos_estoque_baixo'
+    cached = _cache_get(key)
+    if cached is not None:
+        return jsonify(cached)
     produtos = Produto.query.filter(
         Produto.quantidade <= Produto.estoque_minimo,
         Produto.estoque_minimo > 0
     ).order_by(Produto.nome.asc()).all()
-    
-    return jsonify({
+    data = {
         'produtos': [{
             'id': p.id,
             'codigo': p.codigo,
@@ -310,7 +327,9 @@ def produtos_estoque_baixo():
             'estoque_minimo': p.estoque_minimo
         } for p in produtos],
         'total': len(produtos)
-    })
+    }
+    _cache_set(key, data)
+    return jsonify(data)
 
 @bp.route('/notifications', methods=['GET'])
 def get_notifications():

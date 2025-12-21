@@ -140,6 +140,7 @@ def create_app():
     from .routes.validade import bp as validade_bp
     from .routes.pedidos import bp as pedidos_bp
     from .routes.perdas import bp as perdas_bp
+    from .routes.ajuda import bp as ajuda_bp
     notif_enabled = (os.getenv('NOTIFICACOES_ENABLED', 'false') or 'false').lower() == 'true'
     notificacoes_bp = None
     if notif_enabled:
@@ -170,6 +171,7 @@ def create_app():
     app.register_blueprint(validade_bp)
     app.register_blueprint(pedidos_bp)
     app.register_blueprint(perdas_bp)
+    app.register_blueprint(ajuda_bp)
     if notificacoes_bp:
         app.register_blueprint(notificacoes_bp)
     if dbadmin_bp:
@@ -207,12 +209,62 @@ def create_app():
         try:
             from sqlalchemy import text
             from flask import url_for
+            from datetime import datetime
             uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
             ok = False
             err = ''
+            db_version = '-'
+            db_size = '-'
+            tables_count = 0
+            uptime = '-'
             try:
                 db.session.execute(text('select 1'))
                 ok = True
+                if 'postgresql' in uri.lower():
+                    try:
+                        result = db.session.execute(text("SELECT version()")).fetchone()
+                        if result:
+                            ver = str(result[0])
+                            db_version = ver.split(',')[0] if ',' in ver else ver[:50]
+                    except Exception:
+                        pass
+                    try:
+                        result = db.session.execute(text("SELECT pg_database_size(current_database())")).fetchone()
+                        if result:
+                            size_bytes = result[0]
+                            if size_bytes > 1024*1024*1024:
+                                db_size = f"{size_bytes/1024/1024/1024:.2f} GB"
+                            elif size_bytes > 1024*1024:
+                                db_size = f"{size_bytes/1024/1024:.2f} MB"
+                            else:
+                                db_size = f"{size_bytes/1024:.2f} KB"
+                    except Exception:
+                        pass
+                    try:
+                        result = db.session.execute(text("SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public'")).fetchone()
+                        if result:
+                            tables_count = result[0]
+                    except Exception:
+                        pass
+                elif 'sqlite' in uri.lower():
+                    db_version = 'SQLite 3'
+                    try:
+                        import os
+                        db_path = uri.replace('sqlite:///', '')
+                        if os.path.exists(db_path):
+                            size_bytes = os.path.getsize(db_path)
+                            if size_bytes > 1024*1024:
+                                db_size = f"{size_bytes/1024/1024:.2f} MB"
+                            else:
+                                db_size = f"{size_bytes/1024:.2f} KB"
+                    except Exception:
+                        pass
+                    try:
+                        result = db.session.execute(text("SELECT count(*) FROM sqlite_master WHERE type='table'")).fetchone()
+                        if result:
+                            tables_count = result[0]
+                    except Exception:
+                        pass
             except Exception as e:
                 err = str(e)
                 try:
@@ -221,49 +273,255 @@ def create_app():
                     pass
             driver, host = _extract_driver_host(uri)
             status_code = 200 if ok else 503
-            title = 'Conexão ao Banco de Dados'
-            msg = 'Conexão funcionando normalmente.' if ok else 'Falha na conexão com o banco de dados.'
-            badge = 'OK' if ok else 'Erro'
-            color = '#198754' if ok else '#dc3545'
+            pulse_animation = '@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }' if ok else ''
             html = f"""<!DOCTYPE html>
-            <html lang=\"pt-br\">
-            <head>
-              <meta charset=\"UTF-8\">
-              <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
-              <title>{title}</title>
-              <style>
-                body {{ font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#f8f9fa; margin:0; padding:0; }}
-                .card {{ max-width: 720px; margin: 40px auto; background:#fff; border-radius:12px; box-shadow: 0 6px 18px rgba(0,0,0,.08); overflow:hidden; }}
-                .header {{ background:#0d6efd; color:#fff; padding:16px 24px; font-weight:600; }}
-                .body {{ padding:20px 24px; color:#212529; }}
-                .badge {{ display:inline-block; padding:6px 10px; border-radius:999px; background:{color}; color:#fff; font-size:12px; margin-left:8px; vertical-align:middle; }}
-                .kv {{ margin:12px 0; }}
-                .kv span {{ display:inline-block; min-width:120px; color:#6c757d; }}
-                .footer {{ padding:16px 24px; background:#f1f3f5; display:flex; justify-content:flex-end; gap:12px; }}
-                .btn {{ display:inline-block; padding:10px 14px; border-radius:8px; text-decoration:none; }}
-                .btn-primary {{ background:#0d6efd; color:#fff; }}
-                .btn-secondary {{ background:#6c757d; color:#fff; }}
-              </style>
-            </head>
-            <body>
-              <div class=\"card\">
-                <div class=\"header\">{title}<span class=\"badge\">{badge}</span></div>
-                <div class=\"body\">
-                  <div style=\"font-size:16px; margin-bottom:12px;\">{msg}</div>
-                  <div class=\"kv\"><span>Servidor</span>{host or '-'}
-                  </div>
-                  <div class=\"kv\"><span>Driver</span>{driver or '-'}
-                  </div>
-                  <div class=\"kv\"><span>Detalhes</span>{err or '-'}
-                  </div>
-                </div>
-                <div class=\"footer\">
-                  <a class=\"btn btn-secondary\" href=\"{url_for('home.index')}\">Voltar</a>
-                  <a class=\"btn btn-primary\" href=\"{url_for('home.index')}\">Ir para Home</a>
-                </div>
-              </div>
-            </body>
-            </html>"""
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Status do Banco de Dados</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {{
+      --mm-bg: #0a0a0a;
+      --mm-surface: #111111;
+      --mm-surface-2: #1a1a1a;
+      --mm-surface-3: #222222;
+      --mm-border: rgba(255, 255, 255, 0.06);
+      --mm-border-glow: rgba(16, 185, 129, 0.3);
+      --mm-text: #f5f5f5;
+      --mm-text-muted: #888888;
+      --mm-primary: #3b82f6;
+      --mm-success: #10b981;
+      --mm-danger: #ef4444;
+      --mm-warning: #f59e0b;
+      --mm-cyan: #06b6d4;
+      --mm-purple: #8b5cf6;
+    }}
+    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+    body {{
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--mm-bg);
+      color: var(--mm-text);
+      padding: 20px;
+      min-height: 100vh;
+    }}
+    {pulse_animation}
+    .db-container {{
+      max-width: 100%;
+    }}
+    .db-header {{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--mm-border);
+    }}
+    .db-title {{
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }}
+    .db-title-icon {{
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: {'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.1))' if ok else 'linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(185, 28, 28, 0.1))'};
+      border: 1px solid {'rgba(16, 185, 129, 0.3)' if ok else 'rgba(239, 68, 68, 0.3)'};
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: {'var(--mm-success)' if ok else 'var(--mm-danger)'};
+    }}
+    .db-title h1 {{
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }}
+    .db-title p {{
+      font-size: 12px;
+      color: var(--mm-text-muted);
+    }}
+    .db-status-badge {{
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 50px;
+      font-size: 13px;
+      font-weight: 600;
+      background: {'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.08))' if ok else 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(185, 28, 28, 0.08))'};
+      border: 1px solid {'rgba(16, 185, 129, 0.3)' if ok else 'rgba(239, 68, 68, 0.3)'};
+      color: {'var(--mm-success)' if ok else 'var(--mm-danger)'};
+    }}
+    .db-status-dot {{
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: {'var(--mm-success)' if ok else 'var(--mm-danger)'};
+      {'animation: pulse 2s infinite;' if ok else ''}
+    }}
+    .db-kpi-grid {{
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }}
+    .db-kpi-card {{
+      background: var(--mm-surface);
+      border: 1px solid var(--mm-border);
+      border-radius: 12px;
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+    }}
+    .db-kpi-card::before {{
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+    }}
+    .db-kpi-card.kpi-status::before {{ background: {'var(--mm-success)' if ok else 'var(--mm-danger)'}; }}
+    .db-kpi-card.kpi-version::before {{ background: var(--mm-primary); }}
+    .db-kpi-card.kpi-size::before {{ background: var(--mm-cyan); }}
+    .db-kpi-card.kpi-tables::before {{ background: var(--mm-purple); }}
+    .db-kpi-icon {{
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      margin-bottom: 12px;
+    }}
+    .kpi-status .db-kpi-icon {{ background: {'rgba(16, 185, 129, 0.15)' if ok else 'rgba(239, 68, 68, 0.15)'}; color: {'var(--mm-success)' if ok else 'var(--mm-danger)'}; }}
+    .kpi-version .db-kpi-icon {{ background: rgba(59, 130, 246, 0.15); color: var(--mm-primary); }}
+    .kpi-size .db-kpi-icon {{ background: rgba(6, 182, 212, 0.15); color: var(--mm-cyan); }}
+    .kpi-tables .db-kpi-icon {{ background: rgba(139, 92, 246, 0.15); color: var(--mm-purple); }}
+    .db-kpi-label {{
+      font-size: 11px;
+      color: var(--mm-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }}
+    .db-kpi-value {{
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--mm-text);
+    }}
+    .db-info-section {{
+      background: var(--mm-surface);
+      border: 1px solid var(--mm-border);
+      border-radius: 12px;
+      overflow: hidden;
+    }}
+    .db-info-header {{
+      padding: 14px 16px;
+      background: var(--mm-surface-2);
+      border-bottom: 1px solid var(--mm-border);
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }}
+    .db-info-header i {{ color: var(--mm-primary); }}
+    .db-info-row {{
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--mm-border);
+    }}
+    .db-info-row:last-child {{ border-bottom: none; }}
+    .db-info-label {{
+      min-width: 100px;
+      font-size: 12px;
+      color: var(--mm-text-muted);
+      font-weight: 500;
+    }}
+    .db-info-value {{
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--mm-text);
+      word-break: break-all;
+    }}
+    .db-info-value.success {{ color: var(--mm-success); }}
+    .db-info-value.error {{ color: var(--mm-danger); }}
+    @media (max-width: 600px) {{
+      .db-kpi-grid {{ grid-template-columns: repeat(2, 1fr); }}
+      .db-header {{ flex-direction: column; gap: 12px; align-items: flex-start; }}
+    }}
+  </style>
+</head>
+<body>
+  <div class="db-container">
+    <div class="db-header">
+      <div class="db-title">
+        <div class="db-title-icon">
+          <i class="bi bi-database{'-fill' if ok else '-x'}"></i>
+        </div>
+        <div>
+          <h1>Conexao ao Banco de Dados</h1>
+          <p>Diagnostico em tempo real</p>
+        </div>
+      </div>
+      <div class="db-status-badge">
+        <span class="db-status-dot"></span>
+        {'Conectado' if ok else 'Desconectado'}
+      </div>
+    </div>
+    
+    <div class="db-kpi-grid">
+      <div class="db-kpi-card kpi-status">
+        <div class="db-kpi-icon"><i class="bi bi-{'check-circle' if ok else 'x-circle'}"></i></div>
+        <div class="db-kpi-label">Status</div>
+        <div class="db-kpi-value">{'Online' if ok else 'Offline'}</div>
+      </div>
+      <div class="db-kpi-card kpi-version">
+        <div class="db-kpi-icon"><i class="bi bi-tag"></i></div>
+        <div class="db-kpi-label">Versao</div>
+        <div class="db-kpi-value">{db_version[:20] if len(db_version) > 20 else db_version}</div>
+      </div>
+      <div class="db-kpi-card kpi-size">
+        <div class="db-kpi-icon"><i class="bi bi-hdd"></i></div>
+        <div class="db-kpi-label">Tamanho</div>
+        <div class="db-kpi-value">{db_size}</div>
+      </div>
+      <div class="db-kpi-card kpi-tables">
+        <div class="db-kpi-icon"><i class="bi bi-table"></i></div>
+        <div class="db-kpi-label">Tabelas</div>
+        <div class="db-kpi-value">{tables_count}</div>
+      </div>
+    </div>
+    
+    <div class="db-info-section">
+      <div class="db-info-header">
+        <i class="bi bi-gear"></i>
+        Detalhes da Conexao
+      </div>
+      <div class="db-info-row">
+        <span class="db-info-label">Servidor</span>
+        <span class="db-info-value">{host or 'localhost'}</span>
+      </div>
+      <div class="db-info-row">
+        <span class="db-info-label">Driver</span>
+        <span class="db-info-value">{driver or 'SQLite'}</span>
+      </div>
+      <div class="db-info-row">
+        <span class="db-info-label">Status</span>
+        <span class="db-info-value {'success' if ok else 'error'}">{err if err else ('Conexao funcionando normalmente' if ok else 'Falha na conexao')}</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>"""
             return html, status_code
         except Exception as e:
             return f"erro={e}", 500
@@ -370,7 +628,9 @@ def create_app():
     with app.app_context():
         try:
             from .models import AppSetting
-            import subprocess, json, urllib.request
+            import subprocess
+            import json
+            import urllib.request
             ver = app.config.get('APP_VERSION_RESOLVED', 'dev')
             base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.dirname(__file__)))
             commits = []
@@ -429,6 +689,22 @@ def create_app():
         is_sqlite = isinstance(uri, str) and uri.startswith('sqlite:')
         if is_sqlite:
             db.create_all()
+            try:
+                from sqlalchemy import text
+                db.session.execute(text('CREATE INDEX IF NOT EXISTS idx_produto_nome ON produto (nome)'))
+                db.session.execute(text('CREATE INDEX IF NOT EXISTS idx_produto_codigo ON produto (codigo)'))
+                db.session.execute(text('CREATE INDEX IF NOT EXISTS idx_produto_quantidade ON produto (quantidade)'))
+                db.session.execute(text('CREATE INDEX IF NOT EXISTS idx_produto_minimo ON produto (estoque_minimo)'))
+                db.session.execute(text('CREATE INDEX IF NOT EXISTS idx_historico_product ON historico (product_id)'))
+                db.session.execute(text('CREATE INDEX IF NOT EXISTS idx_historico_data ON historico (data)'))
+                db.session.execute(text('CREATE INDEX IF NOT EXISTS idx_historico_action ON historico (action)'))
+                db.session.execute(text('CREATE INDEX IF NOT EXISTS idx_fornecedor_nome ON fornecedor (nome)'))
+                db.session.commit()
+            except Exception:
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
         db_ok = True
         if not is_sqlite:
             try:
@@ -438,138 +714,6 @@ def create_app():
                 db_ok = False
         app.config['DB_OK'] = db_ok
         app.config['DB_IS_SQLITE'] = is_sqlite
-        if is_sqlite:
-            try:
-                from sqlalchemy import text
-                res = db.session.execute(text('PRAGMA table_info("user")'))
-                cols = [row[1] for row in res]
-                if 'voice_enabled' not in cols:
-                    db.session.execute(text('ALTER TABLE "user" ADD COLUMN voice_enabled INTEGER DEFAULT 0'))
-                    db.session.commit()
-            except Exception:
-                try:
-                    db.session.rollback()
-                except Exception:
-                    pass
-        if is_sqlite:
-            try:
-                from sqlalchemy import text
-                res = db.session.execute(text('PRAGMA table_info(cleaning_task)'))
-                cols = [row[1] for row in res]
-                if 'observacao' not in cols:
-                    db.session.execute(text('ALTER TABLE cleaning_task ADD COLUMN observacao TEXT'))
-                    db.session.commit()
-                if 'designados' not in cols:
-                    db.session.execute(text('ALTER TABLE cleaning_task ADD COLUMN designados TEXT'))
-                    db.session.commit()
-                if 'prioridade' not in cols:
-                    db.session.execute(text('ALTER TABLE cleaning_task ADD COLUMN prioridade INTEGER DEFAULT 1'))
-                    db.session.commit()
-                if 'ativo' not in cols:
-                    db.session.execute(text('ALTER TABLE cleaning_task ADD COLUMN ativo INTEGER DEFAULT 1'))
-                    db.session.commit()
-            except Exception:
-                try:
-                    db.session.rollback()
-                except Exception:
-                    pass
-        if is_sqlite:
-            try:
-                from sqlalchemy import text
-                res = db.session.execute(text('PRAGMA table_info(cleaning_history)'))
-                cols = [row[1] for row in res]
-                if 'task_id' not in cols:
-                    db.session.execute(text('ALTER TABLE cleaning_history ADD COLUMN task_id INTEGER'))
-                    db.session.commit()
-                if 'data_conclusao' not in cols:
-                    db.session.execute(text('ALTER TABLE cleaning_history ADD COLUMN data_conclusao TEXT'))
-                    db.session.commit()
-                if 'nome_limpeza' not in cols:
-                    db.session.execute(text('ALTER TABLE cleaning_history ADD COLUMN nome_limpeza TEXT'))
-                    db.session.commit()
-                if 'observacao' not in cols:
-                    db.session.execute(text('ALTER TABLE cleaning_history ADD COLUMN observacao TEXT'))
-                    db.session.commit()
-                if 'designados' not in cols:
-                    db.session.execute(text('ALTER TABLE cleaning_history ADD COLUMN designados TEXT'))
-                    db.session.commit()
-                if 'usuario_conclusao' not in cols:
-                    db.session.execute(text('ALTER TABLE cleaning_history ADD COLUMN usuario_conclusao TEXT'))
-                    db.session.commit()
-                if 'duracao_minutos' not in cols:
-                    db.session.execute(text('ALTER TABLE cleaning_history ADD COLUMN duracao_minutos INTEGER'))
-                    db.session.commit()
-                if 'qualidade' not in cols:
-                    db.session.execute(text('ALTER TABLE cleaning_history ADD COLUMN qualidade INTEGER DEFAULT 5'))
-                    db.session.commit()
-            except Exception:
-                try:
-                    db.session.rollback()
-                except Exception:
-                    pass
-        if is_sqlite:
-            try:
-                from sqlalchemy import text
-                res = db.session.execute(text('PRAGMA table_info(recipe)'))
-                cols = [row[1] for row in res]
-                if 'rendimento' not in cols:
-                    db.session.execute(text('ALTER TABLE recipe ADD COLUMN rendimento TEXT'))
-                    db.session.commit()
-                if 'tempo_preparo' not in cols:
-                    db.session.execute(text('ALTER TABLE recipe ADD COLUMN tempo_preparo INTEGER'))
-                    db.session.commit()
-            except Exception:
-                try:
-                    db.session.rollback()
-                except Exception:
-                    pass
-        if is_sqlite:
-            try:
-                from sqlalchemy import text
-                res = db.session.execute(text('PRAGMA table_info(recipe_ingredient)'))
-                cols = [row[1] for row in res]
-                if 'quantidade_kg' not in cols:
-                    db.session.execute(text('ALTER TABLE recipe_ingredient ADD COLUMN quantidade_kg REAL DEFAULT 0'))
-                    db.session.commit()
-                if 'custo_unitario' not in cols:
-                    db.session.execute(text('ALTER TABLE recipe_ingredient ADD COLUMN custo_unitario REAL DEFAULT 0'))
-                    db.session.commit()
-            except Exception:
-                try:
-                    db.session.rollback()
-                except Exception:
-                    pass
-        if is_sqlite:
-            try:
-                from sqlalchemy import text
-                res = db.session.execute(text('PRAGMA table_info(produto)'))
-                cols = [row[1] for row in res]
-                if 'data_validade' not in cols:
-                    db.session.execute(text('ALTER TABLE produto ADD COLUMN data_validade TEXT'))
-                    db.session.commit()
-                if 'lote' not in cols:
-                    db.session.execute(text('ALTER TABLE produto ADD COLUMN lote TEXT'))
-                    db.session.commit()
-                if 'fornecedor_id' not in cols:
-                    db.session.execute(text('ALTER TABLE produto ADD COLUMN fornecedor_id INTEGER'))
-                    db.session.commit()
-                if 'categoria' not in cols:
-                    db.session.execute(text('ALTER TABLE produto ADD COLUMN categoria TEXT'))
-                    db.session.commit()
-                if 'unidade' not in cols:
-                    db.session.execute(text("ALTER TABLE produto ADD COLUMN unidade TEXT DEFAULT 'un'"))
-                    db.session.commit()
-                if 'localizacao' not in cols:
-                    db.session.execute(text('ALTER TABLE produto ADD COLUMN localizacao TEXT'))
-                    db.session.commit()
-                if 'ativo' not in cols:
-                    db.session.execute(text('ALTER TABLE produto ADD COLUMN ativo INTEGER DEFAULT 1'))
-                    db.session.commit()
-            except Exception:
-                try:
-                    db.session.rollback()
-                except Exception:
-                    pass
         try:
             from sqlalchemy import inspect
             insp = inspect(db.engine)
@@ -632,6 +776,11 @@ def create_app():
                     db.session.execute(text('create index if not exists idx_notif_user_ref on notification_read (user_id, ref_id)'))
                     db.session.execute(text('create index if not exists idx_cleaningtask_proxima on cleaning_task (proxima_data)'))
                     db.session.execute(text('create index if not exists idx_shift_collab_date on shift (collaborator_id, date)'))
+                    db.session.execute(text('create index if not exists idx_produto_codigo on produto (codigo)'))
+                    db.session.execute(text('create index if not exists idx_produto_quantidade on produto (quantidade)'))
+                    db.session.execute(text('create index if not exists idx_produto_minimo on produto (estoque_minimo)'))
+                    db.session.execute(text('create index if not exists idx_historico_action on historico (action)'))
+                    db.session.execute(text('create index if not exists idx_fornecedor_nome on fornecedor (nome)'))
                     db.session.commit()
                 except Exception:
                     try:
@@ -769,9 +918,6 @@ def create_app():
                 from sqlalchemy import text
                 res = db.session.execute(text('PRAGMA table_info(collaborator)'))
                 cols = [row[1] for row in res]
-                if 'user_id' not in cols:
-                    db.session.execute(text('ALTER TABLE collaborator ADD COLUMN user_id INTEGER'))
-                    db.session.commit()
                 if 'regular_team' not in cols:
                     db.session.execute(text('ALTER TABLE collaborator ADD COLUMN regular_team TEXT'))
                     db.session.commit()
@@ -780,15 +926,6 @@ def create_app():
                     db.session.commit()
                 if 'special_team' not in cols:
                     db.session.execute(text('ALTER TABLE collaborator ADD COLUMN special_team TEXT'))
-                    db.session.commit()
-                if 'team_position' not in cols:
-                    db.session.execute(text('ALTER TABLE collaborator ADD COLUMN team_position INTEGER DEFAULT 1'))
-                    db.session.commit()
-                if 'telefone' not in cols:
-                    db.session.execute(text('ALTER TABLE collaborator ADD COLUMN telefone TEXT'))
-                    db.session.commit()
-                if 'data_admissao' not in cols:
-                    db.session.execute(text('ALTER TABLE collaborator ADD COLUMN data_admissao TEXT'))
                     db.session.commit()
             except Exception:
                 try:
@@ -807,19 +944,14 @@ def create_app():
                 if 'end_dt' not in cols:
                     db.session.execute(text('ALTER TABLE shift ADD COLUMN end_dt TEXT'))
                     db.session.commit()
-            except Exception:
-                try:
-                    db.session.rollback()
-                except Exception:
-                    pass
-
-        if is_sqlite:
-            try:
-                from sqlalchemy import text
-                res = db.session.execute(text('PRAGMA table_info(cleaning_task)'))
-                cols = [row[1] for row in res]
-                if 'prioridade' not in cols:
-                    db.session.execute(text('ALTER TABLE cleaning_task ADD COLUMN prioridade INTEGER DEFAULT 1'))
+                if 'shift_type' not in cols:
+                    db.session.execute(text('ALTER TABLE shift ADD COLUMN shift_type TEXT'))
+                    db.session.commit()
+                if 'auto_generated' not in cols:
+                    db.session.execute(text('ALTER TABLE shift ADD COLUMN auto_generated INTEGER'))
+                    db.session.commit()
+                if 'is_sunday_holiday' not in cols:
+                    db.session.execute(text('ALTER TABLE shift ADD COLUMN is_sunday_holiday INTEGER'))
                     db.session.commit()
             except Exception:
                 try:

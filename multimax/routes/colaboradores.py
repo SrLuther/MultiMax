@@ -1,12 +1,11 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from .. import db
-from ..models import Collaborator, Shift, AppSetting, User, Holiday
-from ..models import LeaveAssignment
+from ..models import Collaborator as CollaboratorModel, Shift, AppSetting, Holiday, LeaveAssignment, Vacation as VacationModel, MedicalCertificate
 from ..models import HourBankEntry
-from ..models import LeaveCredit, LeaveAssignment, LeaveConversion
+from ..models import LeaveCredit, LeaveConversion
 from ..services.notificacao_service import registrar_evento
-from datetime import datetime, date, time
+from datetime import datetime, date
 from zoneinfo import ZoneInfo
 
 bp = Blueprint('colaboradores', __name__)
@@ -41,7 +40,7 @@ def escala():
             db.session.rollback()
         except Exception:
             pass
-    cols = Collaborator.query.filter_by(active=True).order_by(Collaborator.name.asc()).all()
+    cols = CollaboratorModel.query.filter_by(active=True).order_by(CollaboratorModel.name.asc()).all()
     today = date.today()
     
     semana_param = request.args.get('semana', '')
@@ -49,7 +48,7 @@ def escala():
         try:
             semana_inicio = datetime.strptime(semana_param, '%Y-%m-%d').date()
             semana_inicio = semana_inicio - timedelta(days=semana_inicio.weekday())
-        except:
+        except Exception:
             semana_inicio = today - timedelta(days=today.weekday())
     else:
         semana_inicio = today - timedelta(days=today.weekday())
@@ -160,6 +159,51 @@ def escala():
         domingo_team = '1'
         domingo_ref_date = ''
     events = []
+    conflicts = []
+    try:
+        name_by_id = {c.id: c.name for c in cols}
+        for t in turnos_semana:
+            cid = t.collaborator_id
+            d = t.date
+            nm = name_by_id.get(cid) or f"ID {cid}"
+            # Folga agendada
+            try:
+                las = LeaveAssignment.query.filter(
+                    LeaveAssignment.collaborator_id == cid,
+                    LeaveAssignment.date <= d
+                ).order_by(LeaveAssignment.date.desc()).limit(3).all()
+                for la in las or []:
+                    days = max(1, int(la.days_used or 1))
+                    end_date = la.date + timedelta(days=days - 1)
+                    if end_date >= d:
+                        conflicts.append({'type': 'Folga', 'name': nm, 'date': d})
+                        break
+            except Exception:
+                pass
+            # Férias
+            try:
+                vac = VacationModel.query.filter(
+                    VacationModel.collaborator_id == cid,
+                    VacationModel.data_inicio <= d,
+                    VacationModel.data_fim >= d
+                ).first()
+                if vac:
+                    conflicts.append({'type': 'Férias', 'name': nm, 'date': d})
+            except Exception:
+                pass
+            # Atestado
+            try:
+                mc = MedicalCertificate.query.filter(
+                    MedicalCertificate.collaborator_id == cid,
+                    MedicalCertificate.data_inicio <= d,
+                    MedicalCertificate.data_fim >= d
+                ).first()
+                if mc:
+                    conflicts.append({'type': 'Atestado', 'name': nm, 'date': d})
+            except Exception:
+                pass
+    except Exception:
+        conflicts = []
     try:
         from datetime import timedelta
         base_team = domingo_team if domingo_team in ('1','2') else '1'
@@ -204,7 +248,11 @@ def escala():
                 h.name = nm
                 h.kind = 'municipal-Umbaúba'
             else:
-                hh = Holiday(); hh.date = dt; hh.name = nm; hh.kind = 'municipal-Umbaúba'; db.session.add(hh)
+                hh = Holiday()
+                hh.date = dt
+                hh.name = nm
+                hh.kind = 'municipal-Umbaúba'
+                db.session.add(hh)
         db.session.commit()
     except Exception:
         try:
@@ -249,7 +297,11 @@ def escala():
                 h.name = nm
                 h.kind = 'nacional'
             else:
-                hh = Holiday(); hh.date = dt; hh.name = nm; hh.kind = 'nacional'; db.session.add(hh)
+                hh = Holiday()
+                hh.date = dt
+                hh.name = nm
+                hh.kind = 'nacional'
+                db.session.add(hh)
         db.session.commit()
     except Exception:
         try:
@@ -332,7 +384,8 @@ def escala():
         dias_semana=dias_semana,
         turnos_map=turnos_map,
         horas_semana=horas_semana,
-        total_turnos_semana=total_turnos_semana
+        total_turnos_semana=total_turnos_semana,
+        conflicts=conflicts
     )
 @bp.route('/escala/domingo/configurar', methods=['POST'], strict_slashes=False)
 @login_required
@@ -453,7 +506,7 @@ def turno_atribuir():
     
     try:
         data_turno = datetime.strptime(data_str, '%Y-%m-%d').date()
-    except:
+    except Exception:
         flash('Data invalida.', 'warning')
         return redirect(url_for('colaboradores.escala'))
     
@@ -527,7 +580,7 @@ def equipe_configurar():
         return redirect(url_for('colaboradores.escala'))
     
     try:
-        colab = Collaborator.query.get(collaborator_id)
+        colab = CollaboratorModel.query.get(collaborator_id)
         if colab:
             colab.regular_team = team
             colab.team_position = position
@@ -548,7 +601,6 @@ def gerar_escala_automatica():
         return redirect(url_for('colaboradores.escala'))
     
     from datetime import timedelta as td
-    from zoneinfo import ZoneInfo
     
     semana_str = request.form.get('semana', '').strip()
     incluir_domingo = request.form.get('incluir_domingo') == 'on'
@@ -560,7 +612,7 @@ def gerar_escala_automatica():
         else:
             today = date.today()
             semana_inicio = today - td(days=today.weekday())
-    except:
+    except Exception:
         flash('Data invalida.', 'warning')
         return redirect(url_for('colaboradores.escala'))
     
@@ -571,7 +623,7 @@ def gerar_escala_automatica():
     if ref_monday_setting and ref_monday_setting.value:
         try:
             ref_monday = datetime.strptime(ref_monday_setting.value.strip(), '%Y-%m-%d').date()
-        except:
+        except Exception:
             pass
     if not ref_monday:
         ref_monday = semana_inicio
@@ -587,8 +639,8 @@ def gerar_escala_automatica():
         open_team = open_ref
     close_team = '2' if open_team == '1' else '1'
     
-    equipe_abertura = Collaborator.query.filter_by(active=True, regular_team=open_team).order_by(Collaborator.team_position.asc()).all()
-    equipe_fechamento = Collaborator.query.filter_by(active=True, regular_team=close_team).order_by(Collaborator.team_position.asc()).all()
+    equipe_abertura = CollaboratorModel.query.filter_by(active=True, regular_team=open_team).order_by(CollaboratorModel.team_position.asc()).all()
+    equipe_fechamento = CollaboratorModel.query.filter_by(active=True, regular_team=close_team).order_by(CollaboratorModel.team_position.asc()).all()
     
     if len(equipe_abertura) < 3 or len(equipe_fechamento) < 3:
         flash(f'Equipes incompletas. Abertura: {len(equipe_abertura)}/3, Fechamento: {len(equipe_fechamento)}/3. Configure as equipes primeiro.', 'warning')
@@ -658,7 +710,7 @@ def gerar_escala_automatica():
             if sun_ref_setting and sun_ref_setting.value:
                 try:
                     ref_sun = datetime.strptime(sun_ref_setting.value.strip(), '%Y-%m-%d').date()
-                except:
+                except Exception:
                     pass
             
             if ref_sun:
@@ -666,7 +718,7 @@ def gerar_escala_automatica():
                 if weeks_diff_sun % 2 == 1:
                     domingo_team = '2' if domingo_team == '1' else '1'
             
-            equipe_domingo = Collaborator.query.filter_by(active=True, regular_team=domingo_team).order_by(Collaborator.team_position.asc()).all()[:3]
+            equipe_domingo = CollaboratorModel.query.filter_by(active=True, regular_team=domingo_team).order_by(CollaboratorModel.team_position.asc()).all()[:3]
             
             for i, colab in enumerate(equipe_domingo):
                 existing = Shift.query.filter_by(collaborator_id=colab.id, date=domingo).first()
@@ -746,7 +798,7 @@ def limpar_escala_semana():
         else:
             today = date.today()
             semana_inicio = today - td(days=today.weekday())
-    except:
+    except Exception:
         flash('Data invalida.', 'warning')
         return redirect(url_for('colaboradores.escala'))
     
@@ -755,7 +807,7 @@ def limpar_escala_semana():
     try:
         query = Shift.query.filter(Shift.date >= semana_inicio, Shift.date <= semana_fim)
         if apenas_automaticos:
-            query = query.filter(Shift.auto_generated == True)
+            query = query.filter(Shift.auto_generated.is_(True))
         
         shifts_to_delete = query.all()
         count = len(shifts_to_delete)
@@ -909,6 +961,17 @@ def folga_agendar():
         flash('Dados inválidos para agendamento.', 'warning')
         return redirect(url_for('usuarios.gestao'))
     try:
+        from sqlalchemy import func
+        credits_sum = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == cid).scalar() or 0
+        assigned_sum = db.session.query(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).filter(LeaveAssignment.collaborator_id == cid).scalar() or 0
+        converted_sum = db.session.query(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).filter(LeaveConversion.collaborator_id == cid).scalar() or 0
+        folga_balance = int(credits_sum) - int(assigned_sum) - int(converted_sum)
+        if folga_balance < days:
+            flash(f'Saldo de folga insuficiente ({folga_balance} dia(s)). Reduza os dias ou converta em dinheiro.', 'warning')
+            return redirect(url_for('usuarios.gestao') + '#folgas')
+    except Exception:
+        pass
+    try:
         la = LeaveAssignment()
         la.collaborator_id = cid
         la.date = d
@@ -917,7 +980,7 @@ def folga_agendar():
         db.session.add(la)
         db.session.commit()
         try:
-            col = Collaborator.query.get(cid)
+            col = CollaboratorModel.query.get(cid)
             nome = col.name if col and col.name else f'ID {cid}'
         except Exception:
             nome = f'ID {cid}'
