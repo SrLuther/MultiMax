@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% block title %}Relatório de Perdas — MultiMax{% endblock %}
+{% block content %}
+
+<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
+    <div>
+        <h1 class="mm-page-title">Relatório de Perdas</h1>
+        <p class="mm-text-muted">Análise detalhada de desperdícios</p>
+    </div>
+    <a href="{{ url_for('perdas.index') }}" class="mm-btn mm-btn-outline">
+        <i class="bi bi-arrow-left"></i>
+        Voltar
+    </a>
+</div>
+
+<div class="mm-grid mm-grid-cols-2 mm-gap-6 mm-mb-6">
+    <div class="mm-card">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title"><i class="bi bi-pie-chart me-2"></i>Por Motivo</h3>
+        </div>
+        <div class="mm-card-body">
+            {% if por_motivo and por_motivo|length > 0 %}
+            <div class="mm-table-wrapper">
+                <table class="mm-table">
+                    <thead>
+                        <tr>
+                            <th>Motivo</th>
+                            <th>Quantidade</th>
+                            <th>Custo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in por_motivo %}
+                        <tr>
+                            <td><strong>{{ motivos_dict.get(r[0], r[0]|capitalize) }}</strong></td>
+                            <td>{{ r[1] }}</td>
+                            <td style="color: var(--mm-danger); font-weight: 600;">R$ {{ '%.2f'|format(r[2] or 0) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="mm-text-muted">Sem dados disponíveis.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="mm-card">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title"><i class="bi bi-box me-2"></i>Top 10 Produtos</h3>
+        </div>
+        <div class="mm-card-body">
+            {% if por_produto and por_produto|length > 0 %}
+            <div class="mm-table-wrapper">
+                <table class="mm-table">
+                    <thead>
+                        <tr>
+                            <th>Produto</th>
+                            <th>Ocorrências</th>
+                            <th>Custo Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in por_produto %}
+                        <tr>
+                            <td><strong>{{ r[0] }}</strong></td>
+                            <td>{{ r[1] }}</td>
+                            <td style="color: var(--mm-danger); font-weight: 600;">R$ {{ '%.2f'|format(r[2] or 0) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="mm-text-muted">Sem dados disponíveis.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="mm-card">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title"><i class="bi bi-graph-down me-2"></i>Últimos 30 Dias</h3>
+    </div>
+    <div class="mm-card-body">
+        {% if ultimos_30_dias and ultimos_30_dias|length > 0 %}
+        <div style="display: flex; align-items: flex-end; gap: 4px; height: 150px; padding: var(--mm-space-4) 0;">
+            {% set max_custo = namespace(value=0) %}
+            {% for d in ultimos_30_dias %}
+                {% if d.custo > max_custo.value %}
+                    {% set max_custo.value = d.custo %}
+                {% endif %}
+            {% endfor %}
+            {% for d in ultimos_30_dias %}
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                <div style="width: 100%; background: {% if d.custo > 0 %}var(--mm-danger){% else %}var(--mm-bg-tertiary){% endif %}; border-radius: 2px 2px 0 0; height: {{ (d.custo / (max_custo.value if max_custo.value > 0 else 1) * 100)|int }}px; min-height: 2px;" title="{{ d.data.strftime('%d/%m') }}: R$ {{ '%.2f'|format(d.custo) }}"></div>
+            </div>
+            {% endfor %}
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: var(--mm-text-xs); color: var(--mm-text-muted);">
+            <span>{{ ultimos_30_dias[0].data.strftime('%d/%m') }}</span>
+            <span>{{ ultimos_30_dias[-1].data.strftime('%d/%m') }}</span>
+        </div>
+        {% else %}
+        <p class="mm-text-muted">Sem dados disponíveis.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

@@ -46,6 +46,7 @@
         <th>Nome</th>
         <th>Estoque</th>
         <th>Mínimo</th>
+        <th class="text-center">QR Code</th>
         <th class="text-center">Ações</th>
       </tr>
     </thead>
@@ -56,6 +57,11 @@
         <td>{{ p.nome }}</td>
         <td>{{ p.quantidade }}</td>
         <td>{{ p.estoque_minimo }}</td>
+        <td class="text-center">
+          <a class="btn btn-outline-dark btn-sm" href="{{ url_for('estoque.qrcode_view', id=p.id) }}" title="Ver QR Code">
+            <span>📱</span>
+          </a>
+        </td>
         <td class="text-center">
           {% if current_user.nivel in ('operador','admin') %}
           <a class="btn btn-outline-info btn-sm" href="{{ url_for('estoque.editar', id=p.id) }}">EDITAR</a>

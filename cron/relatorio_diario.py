@@ -1,6 +1,5 @@
 import os
-from datetime import datetime
-from multimax import create_app, db
+from multimax import create_app
 from multimax.services.notificacao_service import enviar_relatorio_diario
 
 def main():

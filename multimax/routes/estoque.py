@@ -1,11 +1,14 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
 from flask_login import login_required, current_user
 from .. import db
-from ..models import Produto, Historico
+from ..models import Produto, Historico, Fornecedor
 from ..services.notificacao_service import registrar_evento
 from typing import cast
 from datetime import datetime, timedelta, date
 from collections import OrderedDict
+import io
+import qrcode  # type: ignore
+from qrcode.constants import ERROR_CORRECT_L  # type: ignore
 
 bp = Blueprint('estoque', __name__)
 
@@ -428,6 +431,8 @@ def editar(id: int):
             novo_minimo = int(request.form.get('estoque_minimo', str(produto.estoque_minimo)))
             ajuste_str = request.form.get('ajuste', '0')
             detalhes = (request.form.get('detalhes') or '').strip()
+            data_validade_str = request.form.get('data_validade', '').strip()
+            lote = request.form.get('lote', '').strip()
             try:
                 ajuste = int(ajuste_str)
             except Exception:
@@ -437,6 +442,22 @@ def editar(id: int):
             if novo_minimo < 0:
                 novo_minimo = 0
             produto.estoque_minimo = novo_minimo
+            if data_validade_str:
+                try:
+                    produto.data_validade = datetime.strptime(data_validade_str, '%Y-%m-%d').date()
+                except Exception:
+                    pass
+            else:
+                produto.data_validade = None
+            produto.lote = lote if lote else None
+            fornecedor_id_str = request.form.get('fornecedor_id', '').strip()
+            if fornecedor_id_str:
+                try:
+                    produto.fornecedor_id = int(fornecedor_id_str)
+                except ValueError:
+                    produto.fornecedor_id = None
+            else:
+                produto.fornecedor_id = None
             if ajuste != 0:
                 if ajuste < 0 and produto.quantidade < abs(ajuste):
                     flash(f'Ajuste de {-ajuste} excede estoque atual ({produto.quantidade}).', 'warning')
@@ -464,7 +485,12 @@ def editar(id: int):
             db.session.rollback()
             flash(f'Erro ao editar produto: {e}', 'danger')
         return redirect(url_for('estoque.index'))
-    return render_template('editar_produto.html', produto=produto, active_page='index')
+    fornecedores = Fornecedor.query.filter_by(ativo=True).order_by(Fornecedor.nome.asc()).all()
+    if produto.fornecedor_id:
+        fornecedor_atual = Fornecedor.query.get(produto.fornecedor_id)
+        if fornecedor_atual and fornecedor_atual not in fornecedores:
+            fornecedores = [fornecedor_atual] + fornecedores
+    return render_template('editar_produto.html', produto=produto, fornecedores=fornecedores, active_page='index', today=date.today())
 
 @bp.route('/excluir/<int:id>')
 @login_required
@@ -564,3 +590,28 @@ def gerenciar():
         return redirect(url_for('estoque.index'))
     flash('Operação inválida.', 'danger')
     return redirect(url_for('estoque.index'))
+
+@bp.route('/produtos/<int:id>/qrcode')
+@login_required
+def qrcode_produto(id: int):
+    produto = Produto.query.get_or_404(id)
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr_data = f"MULTIMAX|{produto.codigo}|{produto.nome}|{produto.id}"
+    qr.add_data(qr_data)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buf = io.BytesIO()
+    img.save(buf)
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png', download_name=f'qrcode_{produto.codigo}.png')
+
+@bp.route('/produtos/<int:id>/qrcode/view')
+@login_required
+def qrcode_view(id: int):
+    produto = Produto.query.get_or_404(id)
+    return render_template('qrcode_produto.html', produto=produto, active_page='index')

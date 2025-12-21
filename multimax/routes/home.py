@@ -1,11 +1,103 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import current_user
-from datetime import datetime
+from datetime import datetime, date, timedelta
+from sqlalchemy import func
 from .. import db
 from ..models import Historico as HistoricoModel, CleaningTask, CleaningHistory, MeatReception, SystemLog, AppSetting as AppSettingModel, Holiday, Produto, NotificationRead
-from ..models import LeaveCredit
+from ..models import LeaveCredit, Collaborator
 
 bp = Blueprint('home', __name__, url_prefix='/home')
+
+def get_dashboard_metrics():
+    """Retorna métricas para o dashboard"""
+    metrics = {
+        'total_produtos': 0,
+        'produtos_baixo_estoque': 0,
+        'valor_total_estoque': 0,
+        'tarefas_atrasadas': 0,
+        'tarefas_proximas': 0,
+        'movimentacoes_hoje': 0,
+        'colaboradores_ativos': 0,
+        'entradas_mes': 0,
+        'saidas_mes': 0,
+    }
+    try:
+        metrics['total_produtos'] = Produto.query.count()
+        metrics['produtos_baixo_estoque'] = Produto.query.filter(
+            Produto.estoque_minimo > 0,
+            Produto.quantidade <= Produto.estoque_minimo
+        ).count()
+        valor = db.session.query(func.sum(Produto.quantidade * Produto.preco_custo)).scalar()
+        metrics['valor_total_estoque'] = valor or 0
+        today = date.today()
+        metrics['tarefas_atrasadas'] = CleaningTask.query.filter(CleaningTask.proxima_data < today).count()
+        horizon = today + timedelta(days=7)
+        metrics['tarefas_proximas'] = CleaningTask.query.filter(
+            CleaningTask.proxima_data >= today,
+            CleaningTask.proxima_data <= horizon
+        ).count()
+        inicio_hoje = datetime.combine(today, datetime.min.time())
+        metrics['movimentacoes_hoje'] = HistoricoModel.query.filter(HistoricoModel.data >= inicio_hoje).count()
+        metrics['colaboradores_ativos'] = Collaborator.query.filter_by(active=True).count()
+        inicio_mes = date(today.year, today.month, 1)
+        inicio_mes_dt = datetime.combine(inicio_mes, datetime.min.time())
+        entradas = db.session.query(func.sum(HistoricoModel.quantidade)).filter(
+            HistoricoModel.data >= inicio_mes_dt,
+            func.lower(HistoricoModel.action) == 'entrada'
+        ).scalar()
+        saidas = db.session.query(func.sum(HistoricoModel.quantidade)).filter(
+            HistoricoModel.data >= inicio_mes_dt,
+            func.lower(HistoricoModel.action) == 'saida'
+        ).scalar()
+        metrics['entradas_mes'] = entradas or 0
+        metrics['saidas_mes'] = saidas or 0
+    except Exception:
+        pass
+    return metrics
+
+def get_stock_chart_data():
+    """Retorna dados para o gráfico de movimentações dos últimos 7 dias"""
+    data = {'labels': [], 'entradas': [], 'saidas': []}
+    try:
+        today = date.today()
+        for i in range(6, -1, -1):
+            d = today - timedelta(days=i)
+            inicio = datetime.combine(d, datetime.min.time())
+            fim = datetime.combine(d, datetime.max.time())
+            entradas = db.session.query(func.sum(HistoricoModel.quantidade)).filter(
+                HistoricoModel.data >= inicio,
+                HistoricoModel.data <= fim,
+                func.lower(HistoricoModel.action) == 'entrada'
+            ).scalar() or 0
+            saidas = db.session.query(func.sum(HistoricoModel.quantidade)).filter(
+                HistoricoModel.data >= inicio,
+                HistoricoModel.data <= fim,
+                func.lower(HistoricoModel.action) == 'saida'
+            ).scalar() or 0
+            data['labels'].append(d.strftime('%d/%m'))
+            data['entradas'].append(int(entradas))
+            data['saidas'].append(int(saidas))
+    except Exception:
+        pass
+    return data
+
+def get_low_stock_products():
+    """Retorna produtos com estoque baixo para o gráfico"""
+    products = []
+    try:
+        low = Produto.query.filter(
+            Produto.estoque_minimo > 0,
+            Produto.quantidade <= Produto.estoque_minimo
+        ).order_by(Produto.quantidade.asc()).limit(10).all()
+        for p in low:
+            products.append({
+                'nome': p.nome[:20] + '...' if len(p.nome) > 20 else p.nome,
+                'quantidade': p.quantidade,
+                'minimo': p.estoque_minimo
+            })
+    except Exception:
+        pass
+    return products
 
 @bp.after_app_request
 def _home_no_cache(response):
@@ -390,7 +482,10 @@ def index():
             'emoji': '🚩',
             'url': url_for('colaboradores.escala'),
         })
-    return render_template('home.html', active_page='home', events=events, mural_html=mural_html, mural_text=mural_text, notifications=notifications, next_holiday=next_holiday, db_diag=db_diag)
+    metrics = get_dashboard_metrics()
+    chart_data = get_stock_chart_data()
+    low_stock = get_low_stock_products()
+    return render_template('home.html', active_page='home', events=events, mural_html=mural_html, mural_text=mural_text, notifications=notifications, next_holiday=next_holiday, db_diag=db_diag, metrics=metrics, chart_data=chart_data, low_stock=low_stock)
 
 @bp.route('/mural', methods=['POST'], strict_slashes=False)
 def update_mural():
@@ -428,7 +523,9 @@ def update_changelog():
     try:
         s = AppSettingModel.query.filter_by(key='changelog_text').first()
         if not s:
-            s = AppSettingModel(); s.key = 'changelog_text'; db.session.add(s)
+            s = AppSettingModel()
+            s.key = 'changelog_text'
+            db.session.add(s)
         s.value = txt
         db.session.commit()
         flash('Changelog atualizado.', 'success')

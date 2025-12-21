@@ -17,7 +17,6 @@ from reportlab.pdfbase.pdfmetrics import stringWidth
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import importlib
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
  
@@ -63,72 +62,120 @@ def _now_br() -> datetime:
     except Exception:
         return datetime.now()
 
+PDF_PRIMARY = '#00ff88'
+PDF_PRIMARY_DARK = '#00cc6a'
+PDF_SECONDARY = '#198754'
+PDF_DARK_BG = '#0f172a'
+PDF_DARK_SECONDARY = '#1e293b'
+PDF_TEXT_MUTED = '#64748b'
+PDF_BORDER = '#334155'
+PDF_SUCCESS = '#22c55e'
+PDF_WARNING = '#f59e0b'
+PDF_DANGER = '#ef4444'
+
 def _brand_header(canvas, doc, content_type=None):
     canvas.saveState()
-    header_h = 0.85 * inch
+    header_h = 1.0 * inch
     y = doc.pagesize[1] - header_h
     w = doc.pagesize[0]
-    steps = 24
-    color_a = (0x27, 0x3b, 0x31)  # #273b31
-    color_b = (0x14, 0x2e, 0x22)  # #142e22
-    color_c = (0x0d, 0x77, 0x42)  # #0d7742
+    steps = 32
+    color_start = (0x0f, 0x17, 0x2a)
+    color_mid = (0x1e, 0x29, 0x3b)
+    color_end = (0x0f, 0x17, 0x2a)
     for i in range(steps):
         t = i / max(steps - 1, 1)
         if t < 0.5:
             k = t / 0.5
-            r = int(color_a[0] + (color_b[0] - color_a[0]) * k)
-            g = int(color_a[1] + (color_b[1] - color_a[1]) * k)
-            b = int(color_a[2] + (color_b[2] - color_a[2]) * k)
+            r = int(color_start[0] + (color_mid[0] - color_start[0]) * k)
+            g = int(color_start[1] + (color_mid[1] - color_start[1]) * k)
+            b = int(color_start[2] + (color_mid[2] - color_start[2]) * k)
         else:
             k = (t - 0.5) / 0.5
-            r = int(color_b[0] + (color_c[0] - color_b[0]) * k)
-            g = int(color_b[1] + (color_c[1] - color_b[1]) * k)
-            b = int(color_b[2] + (color_c[2] - color_b[2]) * k)
+            r = int(color_mid[0] + (color_end[0] - color_mid[0]) * k)
+            g = int(color_mid[1] + (color_end[1] - color_mid[1]) * k)
+            b = int(color_mid[2] + (color_end[2] - color_mid[2]) * k)
         canvas.setFillColor(colors.HexColor(f'#{r:02x}{g:02x}{b:02x}'))
         band_y = y + (header_h * (i / steps))
-        canvas.rect(0, band_y, w, header_h / steps + 0.8, fill=True, stroke=False)
-    logo_h = 1.2 * cm
+        canvas.rect(0, band_y, w, header_h / steps + 1, fill=True, stroke=False)
+    canvas.setStrokeColor(colors.HexColor(PDF_PRIMARY))
+    canvas.setLineWidth(3)
+    canvas.line(0, y, w, y)
+    logo_h = 1.3 * cm
     logo_w = logo_h
     try:
         root = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), '..'))
         logo_path = os.path.join(root, 'static', 'icons', 'logo-user.png')
         if os.path.exists(logo_path):
-            canvas.drawImage(ImageReader(logo_path), 0.8 * cm, y + (header_h - logo_h) / 2, width=logo_w, height=logo_h, preserveAspectRatio=True, mask='auto')
+            canvas.drawImage(ImageReader(logo_path), 0.7 * cm, y + (header_h - logo_h) / 2, width=logo_w, height=logo_h, preserveAspectRatio=True, mask='auto')
     except Exception:
         pass
     title_main = 'MultiMax'
-    title_sub = 'Gestão Amora'
-    canvas.setFillColor(colors.white)
-    canvas.setFont(_font_bold(), 16)
-    tw_main = stringWidth(title_main, _font_bold(), 16)
-    canvas.setFont(_font_normal(), 10)
-    tw_sub = stringWidth(title_sub, _font_normal(), 10)
-    total_tw = tw_main + 6 + tw_sub
+    title_sub = 'Gestao Amora'
+    canvas.setFillColor(colors.HexColor(PDF_PRIMARY))
+    canvas.setFont(_font_bold(), 20)
+    tw_main = stringWidth(title_main, _font_bold(), 20)
+    canvas.setFont(_font_normal(), 11)
+    tw_sub = stringWidth(title_sub, _font_normal(), 11)
+    total_tw = tw_main + 8 + tw_sub
     cx = w / 2.0 - total_tw / 2.0
-    ty = y + header_h / 2 - 6
-    canvas.setFont(_font_bold(), 16)
-    canvas.drawString(cx, ty, title_main)
-    canvas.setFont(_font_normal(), 10)
-    canvas.drawString(cx + tw_main + 6, ty + 1, title_sub)
+    ty = y + header_h / 2
     if content_type:
-        ct_font = _font_normal()
-        ct_size = 10
+        ty += 6
+    canvas.setFont(_font_bold(), 20)
+    canvas.drawString(cx, ty, title_main)
+    canvas.setFillColor(colors.HexColor('#cbd5e1'))
+    canvas.setFont(_font_normal(), 11)
+    canvas.drawString(cx + tw_main + 8, ty + 2, title_sub)
+    if content_type:
+        ct_font = _font_bold()
+        ct_size = 12
         tw_ct = stringWidth(str(content_type), ct_font, ct_size)
         cx_ct = w / 2.0 - tw_ct / 2.0
+        canvas.setFillColor(colors.white)
         canvas.setFont(ct_font, ct_size)
-        canvas.drawString(cx_ct, ty - 14, str(content_type))
+        canvas.drawString(cx_ct, ty - 18, str(content_type))
+    canvas.restoreState()
+
+def _premium_footer(canvas, doc, section_name='Documento'):
+    canvas.saveState()
+    footer_h = 0.5 * inch
+    w = doc.pagesize[0]
+    for i in range(16):
+        t = i / 15.0
+        alpha = int(0x0f + (0x1e - 0x0f) * t)
+        canvas.setFillColor(colors.HexColor(f'#{alpha:02x}{0x17 + int((0x29 - 0x17) * t):02x}{0x2a + int((0x3b - 0x2a) * t):02x}'))
+        band_h = footer_h / 16
+        canvas.rect(0, footer_h - (i + 1) * band_h, w, band_h + 0.5, fill=True, stroke=False)
+    canvas.setStrokeColor(colors.HexColor(PDF_PRIMARY))
+    canvas.setLineWidth(2)
+    canvas.line(0, footer_h, w, footer_h)
+    canvas.setFillColor(colors.HexColor('#94a3b8'))
+    canvas.setFont(_font_normal(), 8)
+    page_text = f"Pagina {canvas.getPageNumber()}"
+    canvas.drawString(0.6 * inch, 0.2 * inch, page_text)
+    date_text = _now_br().strftime('%d/%m/%Y %H:%M')
+    tw_date = stringWidth(date_text, _font_normal(), 8)
+    canvas.drawString(w - 0.6 * inch - tw_date, 0.2 * inch, date_text)
+    canvas.setFillColor(colors.HexColor('#0f172a'))
+    site_text = "www.multimax.tec.br"
+    canvas.setFont(_font_normal(), 10)
+    tw_site = stringWidth(site_text, _font_normal(), 10)
+    canvas.drawString(w / 2.0 - tw_site / 2.0, 1.0 * cm, site_text)
     canvas.restoreState()
 
 def _draw_cards_bg(canvas, doc, first_page: bool):
     canvas.saveState()
-    x = doc.leftMargin
-    top = doc.pagesize[1] - doc.topMargin
-    bottom = doc.bottomMargin
-    w = doc.width
-    canvas.setFillColor(colors.white)
-    canvas.setStrokeColor(colors.HexColor('#dee2e6'))
+    x = doc.leftMargin - 4
+    top = doc.pagesize[1] - doc.topMargin + 8
+    bottom = doc.bottomMargin - 4
+    w = doc.width + 8
+    canvas.setFillColor(colors.HexColor('#f8fafc'))
+    canvas.setStrokeColor(colors.HexColor('#e2e8f0'))
     canvas.setLineWidth(1)
-    canvas.roundRect(x, bottom, w, top - bottom, 10, stroke=True, fill=True)
+    canvas.roundRect(x, bottom, w, top - bottom, 12, stroke=True, fill=True)
+    canvas.setStrokeColor(colors.HexColor(PDF_PRIMARY))
+    canvas.setLineWidth(0.5)
+    canvas.line(x + 12, top - 1, x + w - 12, top - 1)
     canvas.restoreState()
 
 def _get_pdf_template_path() -> str:
@@ -151,6 +198,15 @@ def _finalize_pdf(pdf_buffer: BytesIO) -> BytesIO:
     pdf_buffer.seek(0)
     return BytesIO(pdf_buffer.read())
 
+def _send_pdf(pdf_io: BytesIO, filename: str):
+    mode = (request.args.get('mode') or '').strip().lower()
+    if mode in ('view', 'print'):
+        as_attach = False
+    else:
+        v = (request.args.get('download') or '1').strip().lower()
+        as_attach = v not in ('0', 'false', 'no')
+    return send_file(pdf_io, as_attachment=as_attach, download_name=filename, mimetype='application/pdf')
+
 def _template_has_footer() -> bool:
     try:
         v = os.getenv('PDF_TEMPLATE_HAS_FOOTER', '0').strip().lower()
@@ -159,12 +215,13 @@ def _template_has_footer() -> bool:
         return False
 
 class InfoCard(Flowable):
-    def __init__(self, inner: Any, padding: float = 8, radius: float = 10, stroke_color: str = '#dee2e6'):
+    def __init__(self, inner: Any, padding: float = 12, radius: float = 12, stroke_color: str = '#e2e8f0', accent_color: str | None = None):
         super().__init__()
         self.inner = inner
         self.padding = padding
         self.radius = radius
         self.stroke_color = stroke_color
+        self.accent_color = accent_color or PDF_PRIMARY
         self._iw = 0
         self._ih = 0
     def wrap(self, availWidth, availHeight):
@@ -179,10 +236,14 @@ class InfoCard(Flowable):
         from reportlab.lib.colors import HexColor
         c = self.canv
         c.saveState()
+        total_w = self._iw + 2*self.padding
+        total_h = self._ih + 2*self.padding
         c.setFillColor(colors.white)
         c.setStrokeColor(HexColor(self.stroke_color))
         c.setLineWidth(1)
-        c.roundRect(0, 0, self._iw + 2*self.padding, self._ih + 2*self.padding, self.radius, stroke=True, fill=True)
+        c.roundRect(0, 0, total_w, total_h, self.radius, stroke=True, fill=True)
+        c.setFillColor(HexColor(self.accent_color))
+        c.rect(0, total_h - 4, total_w, 4, fill=True, stroke=False)
         try:
             self.inner.drawOn(c, self.padding, self.padding)
         except Exception:
@@ -191,8 +252,8 @@ class InfoCard(Flowable):
 
 def _make_info_block(tipo: str, pairs: list[tuple[str, str]], registrado_por=None):
     styles = getSampleStyleSheet()
-    key_style = ParagraphStyle(name='InfoKey', parent=styles['Normal'], fontName=_font_normal(), fontSize=9, leading=11, alignment=0, wordWrap='LTR')
-    val_style = ParagraphStyle(name='InfoVal', parent=styles['Normal'], fontName=_font_normal(), fontSize=9, leading=11, alignment=0, wordWrap='LTR')
+    key_style = ParagraphStyle(name='InfoKey', parent=styles['Normal'], fontName=_font_bold(), fontSize=9, leading=12, alignment=0, wordWrap='LTR', textColor=colors.HexColor('#475569'))
+    val_style = ParagraphStyle(name='InfoVal', parent=styles['Normal'], fontName=_font_normal(), fontSize=9, leading=12, alignment=0, wordWrap='LTR', textColor=colors.HexColor('#0f172a'))
     rows: list[list[Any]] = [
         [Paragraph('Gerado por', key_style), Paragraph(f"{current_user.name} ({current_user.nivel.upper()})", val_style)],
         [Paragraph('Data e Hora', key_style), Paragraph(_now_br().strftime('%d/%m/%Y %H:%M:%S'), val_style)],
@@ -203,17 +264,40 @@ def _make_info_block(tipo: str, pairs: list[tuple[str, str]], registrado_por=Non
         rows.append([Paragraph(str(k), key_style), Paragraph(str(v), val_style)])
     tbl = Table(rows, colWidths=[2.0*inch, None], hAlign='LEFT')
     tbl.setStyle(TableStyle([
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#0f172a')),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('FONTNAME', (0, 0), (-1, -1), _font_normal()),
+        ('FONTNAME', (0, 0), (0, -1), _font_bold()),
+        ('FONTNAME', (1, 0), (1, -1), _font_normal()),
         ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ('TOPPADDING', (0, 0), (-1, -1), 6),
-        ('LEFTPADDING', (0, 0), (-1, -1), 8),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ('LINEBELOW', (0, 0), (-1, -2), 0.5, colors.HexColor('#e2e8f0')),
     ]))
-    return InfoCard(tbl, padding=10, radius=12)
+    return InfoCard(tbl, padding=14, radius=12)
+
+def _premium_table_style(header_color=None):
+    if header_color is None:
+        header_color = PDF_SECONDARY
+    return TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(header_color)),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('FONTNAME', (0, 0), (-1, 0), _font_bold()),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('TOPPADDING', (0, 0), (-1, 0), 12),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+        ('TOPPADDING', (0, 1), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ('LINEBELOW', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8fafc')]),
+    ])
 
 @bp.route('/exportar/receita/<int:id>.pdf')
 @login_required
@@ -223,44 +307,33 @@ def exportar_receita_pdf(id: int):
         ings = RecipeIngredient.query.filter_by(recipe_id=r.id).order_by(RecipeIngredient.id.asc()).all()
         filename = f"receita_{r.id}.pdf"
         pdf_buffer = BytesIO()
-        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, leftMargin=0.6*inch, rightMargin=0.6*inch, topMargin=1.05*inch, bottomMargin=0.6*inch)
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, leftMargin=0.6*inch, rightMargin=0.6*inch, topMargin=1.15*inch, bottomMargin=0.7*inch)
         styles = getSampleStyleSheet()
-        styles.add(ParagraphStyle(name='Cell', parent=styles['Normal'], fontSize=10, leading=12, wordWrap='LTR'))
+        styles.add(ParagraphStyle(name='Cell', parent=styles['Normal'], fontSize=10, leading=14, wordWrap='LTR', textColor=colors.HexColor('#0f172a')))
+        styles.add(ParagraphStyle(name='SectionTitle', parent=styles['Heading2'], fontSize=14, leading=18, textColor=colors.HexColor(PDF_SECONDARY), fontName=_font_bold(), spaceBefore=12, spaceAfter=8))
         story: list[Any] = []
-        story.append(_make_info_block('Receita', [('Nome', r.nome), ('Embalagem', ('Embalado a vácuo' if (r.embalagem or '') == 'vacuo' else 'Caixa'))], registrado_por=None))
-        story.append(Spacer(1, 0.25 * inch))
-        story.append(Paragraph('<b>Modo de Preparo</b>', styles['h2']))
-        story.append(Paragraph(r.preparo or '-', styles['Cell']))
+        story.append(_make_info_block('Receita', [('Nome', r.nome), ('Embalagem', ('Embalado a vacuo' if (r.embalagem or '') == 'vacuo' else 'Caixa'))], registrado_por=None))
         story.append(Spacer(1, 0.3 * inch))
-        story.append(Paragraph('<b>Ingredientes</b>', styles['h2']))
+        story.append(Paragraph('Modo de Preparo', styles['SectionTitle']))
+        story.append(Paragraph(r.preparo or '-', styles['Cell']))
+        story.append(Spacer(1, 0.35 * inch))
+        story.append(Paragraph('Ingredientes', styles['SectionTitle']))
         data: list[list[Any]] = [["Ingrediente", "Quantidade"]]
         if ings:
             for it in ings:
                 data.append([it.nome, it.quantidade or '-'])
         else:
-            data.append(["—", "—"])
-        table = Table(data, colWidths=[3.5*inch, 2.0*inch])
-        table.setStyle(TableStyle([
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#6c757d')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTNAME', (0, 0), (-1, 0), _font_bold()),
-        ]))
+            data.append(["-", "-"])
+        table = Table(data, colWidths=[4.0*inch, 2.5*inch])
+        table.setStyle(_premium_table_style())
         story.append(table)
-        def footer_on_page(canvas, doc):
-            canvas.saveState()
-            canvas.setFont(_font_normal(), 8)
-            footer_text = f"Página {canvas.getPageNumber()} | MultiMax Receita | {_now_br().strftime('%d/%m/%Y %H:%M:%S')}"
-            canvas.drawString(inch, 0.5 * inch, footer_text)
-            canvas.restoreState()
         def on_page(canvas, doc):
             _brand_header(canvas, doc, 'Receita')
             _draw_cards_bg(canvas, doc, canvas.getPageNumber() == 1)
-            if not _template_has_footer():
-                footer_on_page(canvas, doc)
+            _premium_footer(canvas, doc, 'Receita')
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
         final_io = _finalize_pdf(pdf_buffer)
-        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        return _send_pdf(final_io, filename)
     except Exception as e:
         flash(f'Erro ao gerar PDF da Receita: {e}', 'danger')
         return redirect(url_for('receitas.index', id=id))
@@ -274,15 +347,14 @@ def exportar_cronograma_pdf():
     try:
         filename = 'cronograma_limpeza_multimax.pdf'
         pdf_buffer = BytesIO()
-        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, leftMargin=0.4*inch, rightMargin=0.4*inch, topMargin=1.05*inch, bottomMargin=0.5*inch)
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, leftMargin=0.4*inch, rightMargin=0.4*inch, topMargin=1.15*inch, bottomMargin=0.7*inch)
         styles = getSampleStyleSheet()
-        styles.add(ParagraphStyle(name='Cell', parent=styles['Normal'], fontSize=9, leading=11))
         styles.add(ParagraphStyle(name='Cell', parent=styles['Normal'], fontSize=9, leading=11, wordWrap='LTR'))
+        styles.add(ParagraphStyle(name='SectionTitle', parent=styles['Heading2'], fontSize=14, leading=18, textColor=colors.HexColor(PDF_SECONDARY), fontName=_font_bold(), spaceBefore=12, spaceAfter=8))
         story: list[Any] = []
-        styles.add(ParagraphStyle(name='Footer', fontSize=8, alignment=2, textColor=colors.gray))
         story.append(_make_info_block('Cronograma de Limpeza', [], registrado_por=None))
         story.append(Spacer(1, 0.4 * inch))
-        story.append(Paragraph('<b>Tarefas de Limpeza Agendadas</b>', styles['h2']))
+        story.append(Paragraph('Tarefas de Limpeza Agendadas', styles['SectionTitle']))
         story.append(Spacer(1, 0.2 * inch))
         tarefas = CleaningTaskModel.query.order_by(CleaningTaskModel.proxima_data.asc()).all()
         data: list[list[Any]] = [["Área/Limpeza", "Frequência", "Última Data", "Próxima Prevista", "Designado(s)", "Observações"]]
@@ -296,48 +368,25 @@ def exportar_cronograma_pdf():
                 Paragraph(t.observacao or '-', styles['Normal'])
             ])
         table = Table(data, colWidths=[2*inch, 0.8*inch, 1*inch, 1*inch, 1.5*inch, 2.5*inch])
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#198754')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('FONTNAME', (0, 0), (-1, 0), _font_bold()),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ]))
+        table.setStyle(_premium_table_style())
         story.append(table)
         story.append(PageBreak())
-        story.append(Paragraph('<b>Histórico de Conclusões (Recentes)</b>', styles['h2']))
-        story.append(Spacer(1, 0.2 * inch))
+        story.append(Paragraph('Histórico de Conclusões (Recentes)', styles['SectionTitle']))
+        story.append(Spacer(1, 0.15 * inch))
         historico = CleaningHistoryModel.query.order_by(CleaningHistoryModel.data_conclusao.desc()).limit(20).all()
         data_hist: list[list[Any]] = [["Data Conclusão", "Limpeza", "Realizado Por", "Observações"]]
         for h in historico:
             data_hist.append([h.data_conclusao.strftime('%d/%m/%Y %H:%M'), Paragraph(h.nome_limpeza, styles['Normal']), h.designados, Paragraph(h.observacao or '-', styles['Normal'])])
         table_hist = Table(data_hist, colWidths=[1.5*inch, 1.5*inch, 1.5*inch, 2*inch])
-        table_hist.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#6c757d')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('FONTNAME', (0, 0), (-1, 0), _font_bold()),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ]))
+        table_hist.setStyle(_premium_table_style('#6c757d'))
         story.append(table_hist)
-        def footer_on_page(canvas, doc):
-            canvas.saveState()
-            canvas.setFont(_font_normal(), 8)
-            footer_text = f"Página {canvas.getPageNumber()} | MultiMax Cronograma | {_now_br().strftime('%d/%m/%Y %H:%M:%S')}"
-            canvas.drawString(inch, 0.5 * inch, footer_text)
-            canvas.restoreState()
         def on_page(canvas, doc):
             _brand_header(canvas, doc, 'Cronograma de Limpeza')
             _draw_cards_bg(canvas, doc, canvas.getPageNumber() == 1)
-            if not _template_has_footer():
-                footer_on_page(canvas, doc)
+            _premium_footer(canvas, doc, 'Cronograma de Limpeza')
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
         final_io = _finalize_pdf(pdf_buffer)
-        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        return _send_pdf(final_io, filename)
     except Exception as e:
         flash(f'Erro ao gerar PDF do Cronograma: {e}', 'danger')
         return redirect(url_for('cronograma.cronograma'))
@@ -352,9 +401,10 @@ def exportar_tarefa_pdf(id):
         tarefa = CleaningTaskModel.query.get_or_404(id)
         filename = f"tarefa_{tarefa.id}_cronograma.pdf"
         pdf_buffer = BytesIO()
-        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, topMargin=1.05*inch)
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, leftMargin=0.6*inch, rightMargin=0.6*inch, topMargin=1.15*inch, bottomMargin=0.7*inch)
         styles = getSampleStyleSheet()
-        styles.add(ParagraphStyle(name='Cell', parent=styles['Normal'], fontSize=8, leading=10, wordWrap='LTR'))
+        styles.add(ParagraphStyle(name='Cell', parent=styles['Normal'], fontSize=9, leading=11, wordWrap='LTR'))
+        styles.add(ParagraphStyle(name='SectionTitle', parent=styles['Heading2'], fontSize=14, leading=18, textColor=colors.HexColor(PDF_SECONDARY), fontName=_font_bold(), spaceBefore=12, spaceAfter=8))
         story: list[Any] = []
         story.append(_make_info_block('Detalhes da Tarefa de Limpeza', [
             ('Tarefa', tarefa.nome_limpeza),
@@ -366,36 +416,24 @@ def exportar_tarefa_pdf(id):
         hist = CleaningHistoryModel.query.filter_by(nome_limpeza=tarefa.nome_limpeza).order_by(CleaningHistoryModel.data_conclusao.desc()).limit(5).all()
         obs = tarefa.observacao or ('Sem observações.' if not hist else hist[0].observacao or 'Sem observações.')
         desig = tarefa.designados or ('Não especificado' if not hist else hist[0].designados or 'Não especificado')
-        story.append(Paragraph(f"Observações: {obs}", styles['Normal']))
-        story.append(Paragraph(f"Designado(s): {desig}", styles['Normal']))
+        story.append(Paragraph(f"Observações: {obs}", styles['Cell']))
+        story.append(Paragraph(f"Designado(s): {desig}", styles['Cell']))
         story.append(Spacer(1, 0.3 * inch))
         if hist:
-            story.append(Paragraph('<b>Últimas Conclusões</b>', styles['h2']))
+            story.append(Paragraph('Últimas Conclusões', styles['SectionTitle']))
             data_hist = [["Data", "Realizado Por", "Observações"]]
             for h in hist:
                 data_hist.append([h.data_conclusao.strftime('%d/%m/%Y %H:%M'), h.designados, h.observacao or '-'])
             table_hist = Table(data_hist, colWidths=[1.5*inch, 2*inch, 3*inch])
-            table_hist.setStyle(TableStyle([
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#6c757d')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ]))
+            table_hist.setStyle(_premium_table_style('#6c757d'))
             story.append(table_hist)
-        def footer_on_page(canvas, doc):
-            canvas.saveState()
-            canvas.setFont(_font_normal(), 8)
-            footer_text = f"Página {canvas.getPageNumber()} | MultiMax Tarefa | {_now_br().strftime('%d/%m/%Y %H:%M:%S')}"
-            canvas.drawString(inch, 0.5 * inch, footer_text)
-            canvas.restoreState()
         def on_page(canvas, doc):
             _brand_header(canvas, doc, 'Detalhes da Tarefa de Limpeza')
             _draw_cards_bg(canvas, doc, canvas.getPageNumber() == 1)
-            if not _template_has_footer():
-                footer_on_page(canvas, doc)
+            _premium_footer(canvas, doc, 'Tarefa de Limpeza')
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
         final_io = _finalize_pdf(pdf_buffer)
-        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        return _send_pdf(final_io, filename)
     except Exception as e:
         flash(f'Erro ao gerar PDF da Tarefa: {e}', 'danger')
         return redirect(url_for('cronograma.cronograma'))
@@ -409,31 +447,24 @@ def exportar_historico_limpeza_pdf(id):
     try:
         h = CleaningHistoryModel.query.get_or_404(id)
         pdf_buffer = BytesIO()
-        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, topMargin=1.05*inch)
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, leftMargin=0.6*inch, rightMargin=0.6*inch, topMargin=1.15*inch, bottomMargin=0.7*inch)
         styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(name='Cell', parent=styles['Normal'], fontSize=10, leading=14, wordWrap='LTR', textColor=colors.HexColor('#0f172a')))
         story: list[Any] = []
-        story.append(Paragraph('<b>MultiMax - Histórico de Limpeza</b>', styles['Title']))
-        story.append(Spacer(1, 0.2 * inch))
-        story.append(Paragraph(f"Data: {h.data_conclusao.strftime('%d/%m/%Y %H:%M')}", styles['Normal']))
-        story.append(Paragraph(f"Tipo: {h.nome_limpeza}", styles['Normal']))
-        story.append(Paragraph(f"Realizado por: {h.designados or h.usuario_conclusao or '-'}", styles['Normal']))
-        if h.observacao:
-            story.append(Paragraph(f"Observação: {h.observacao}", styles['Normal']))
-        def footer_on_page(canvas, doc):
-            canvas.saveState()
-            canvas.setFont(_font_normal(), 8)
-            footer_text = f"Página {canvas.getPageNumber()} | MultiMax Histórico | {_now_br().strftime('%d/%m/%Y %H:%M:%S')}"
-            canvas.drawString(inch, 0.5 * inch, footer_text)
-            canvas.restoreState()
+        story.append(_make_info_block('Histórico de Limpeza', [
+            ('Data', h.data_conclusao.strftime('%d/%m/%Y %H:%M')),
+            ('Tipo', h.nome_limpeza),
+            ('Realizado por', h.designados or h.usuario_conclusao or '-'),
+            ('Observação', h.observacao or '-'),
+        ], registrado_por=None))
         def on_page(canvas, doc):
             _brand_header(canvas, doc, 'Histórico de Limpeza')
             _draw_cards_bg(canvas, doc, canvas.getPageNumber() == 1)
-            if not _template_has_footer():
-                footer_on_page(canvas, doc)
+            _premium_footer(canvas, doc, 'Histórico de Limpeza')
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
         final_io = _finalize_pdf(pdf_buffer)
         filename = f"historico_{id}.pdf"
-        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        return _send_pdf(final_io, filename)
     except Exception as e:
         flash(f'Erro ao gerar PDF do histórico: {e}', 'danger')
         return redirect(url_for('cronograma.cronograma'))
@@ -444,7 +475,7 @@ def exportar():
     try:
         filename = 'relatorio_estoque_multimax.pdf'
         pdf_buffer = BytesIO()
-        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, topMargin=1.05*inch)
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, leftMargin=0.6*inch, rightMargin=0.6*inch, topMargin=1.15*inch, bottomMargin=0.7*inch)
         styles = getSampleStyleSheet()
         styles.add(ParagraphStyle(name='Cell', parent=styles['Normal'], fontSize=9, leading=11, wordWrap='LTR'))
         story: list[Any] = []
@@ -517,43 +548,31 @@ def exportar():
             data,
             colWidths=[code_col_width, product_col_width, estoque_in*inch, minimo_in*inch, status_in*inch]
         )
+        table.setStyle(_premium_table_style())
         table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#198754')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('ALIGN', (1, 0), (1, -1), 'LEFT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('FONTNAME', (0, 0), (-1, 0), _font_bold()),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ]))
         for i, p in enumerate(produtos):
             row_index = i + 1
             if p.quantidade < p.estoque_minimo:
                 table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, row_index), (-1, row_index), colors.red),
+                    ('BACKGROUND', (0, row_index), (-1, row_index), colors.HexColor(PDF_DANGER)),
                     ('TEXTCOLOR', (0, row_index), (-1, row_index), colors.white),
                 ]))
             elif p.quantidade == p.estoque_minimo:
                 table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, row_index), (-1, row_index), colors.yellow),
+                    ('BACKGROUND', (0, row_index), (-1, row_index), colors.HexColor(PDF_WARNING)),
                     ('TEXTCOLOR', (0, row_index), (-1, row_index), colors.black),
                 ]))
         story.append(table)
-        def footer_on_page(canvas, doc):
-            canvas.saveState()
-            canvas.setFont(_font_normal(), 8)
-            footer_text = f"Página {canvas.getPageNumber()} | MultiMax Estoque | {_now_br().strftime('%d/%m/%Y %H:%M:%S')}"
-            canvas.drawString(inch, 0.5 * inch, footer_text)
-            canvas.restoreState()
         def on_page(canvas, doc):
             _brand_header(canvas, doc, 'Relatório de Estoque')
             _draw_cards_bg(canvas, doc, canvas.getPageNumber() == 1)
-            if not _template_has_footer():
-                footer_on_page(canvas, doc)
+            _premium_footer(canvas, doc, 'Relatório de Estoque')
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
         final_io = _finalize_pdf(pdf_buffer)
-        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        return _send_pdf(final_io, filename)
     except Exception as e:
         flash(f'Erro ao gerar PDF do Estoque: {e}', 'danger')
         return redirect(url_for('estoque.index'))
@@ -567,8 +586,9 @@ def exportar_graficos_produto(id):
         data_fim_str = request.args.get('data_fim', '').strip()
         filename = f"graficos_{produto.codigo}.pdf"
         pdf_buffer = BytesIO()
-        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, topMargin=1.05*inch)
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, leftMargin=0.6*inch, rightMargin=0.6*inch, topMargin=1.15*inch, bottomMargin=0.7*inch)
         styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(name='SectionTitle', parent=styles['Heading2'], fontSize=14, leading=18, textColor=colors.HexColor(PDF_SECONDARY), fontName=_font_bold(), spaceBefore=12, spaceAfter=8))
         story: list[Any] = []
         story.append(_make_info_block('Relatório de Movimentação', [('Produto', f"{produto.nome}"), ('Código', f"{produto.codigo}")], registrado_por=None))
         story.append(Spacer(1, 0.3 * inch))
@@ -589,21 +609,13 @@ def exportar_graficos_produto(id):
                 s = saidas[i] if i < len(saidas) else 0
                 data.append([label, str(e), str(s)])
             table = Table(data, colWidths=[3.5*inch, 1.5*inch, 1.5*inch])
-            table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#007bff')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('FONTNAME', (0, 0), (-1, 0), _font_bold()),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-            ]))
+            table.setStyle(_premium_table_style('#007bff'))
             story.append(table)
             story.append(Spacer(1, 0.2 * inch))
 
         def add_bar_chart(title, labels, entradas, saidas):
             try:
-                story.append(Paragraph(f"<b>{title}</b>", styles['h2']))
+                story.append(Paragraph(title, styles['SectionTitle']))
                 # configurar tamanho conforme quantidade de labels
                 count = max(len(labels or []), 1)
                 width_in = max(6.0, min(10.0, 0.45 * count))
@@ -746,21 +758,13 @@ def exportar_graficos_produto(id):
             add_bar_chart('Período Personalizado', labels, entradas, saidas)
             add_table('Período Personalizado', labels, entradas, saidas)
 
-        def footer_on_page(canvas, doc):
-            canvas.saveState()
-            canvas.setFont('Helvetica', 8)
-            footer_text = f"Página {canvas.getPageNumber()} | MultiMax Gráficos | {_now_br().strftime('%d/%m/%Y %H:%M:%S')}"
-            canvas.drawString(inch, 0.5 * inch, footer_text)
-            canvas.restoreState()
         def on_page(canvas, doc):
-            if not _has_pdf_template():
-                _brand_header(canvas, doc, 'Relatório de Movimentação')
+            _brand_header(canvas, doc, 'Relatório de Movimentação')
             _draw_cards_bg(canvas, doc, canvas.getPageNumber() == 1)
-            if not _template_has_footer():
-                footer_on_page(canvas, doc)
+            _premium_footer(canvas, doc, 'Relatório de Movimentação')
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
         final_io = _finalize_pdf(pdf_buffer)
-        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        return _send_pdf(final_io, filename)
     except Exception as e:
         flash(f'Erro ao gerar PDF de Gráficos: {e}', 'danger')
         return redirect(url_for('usuarios.graficos'))
@@ -805,15 +809,16 @@ def exportar_relatorio_carnes_pdf(id):
         taras_total = sum((pp.get('tara') or 0.0) for plist in animais.values() for pp in plist)
 
         pdf_buffer = BytesIO()
-        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, topMargin=1.05*inch)
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, leftMargin=0.6*inch, rightMargin=0.6*inch, topMargin=1.15*inch, bottomMargin=0.7*inch)
         styles = getSampleStyleSheet()
         styles.add(ParagraphStyle(name='Cell', parent=styles['Normal'], fontSize=9, leading=11, wordWrap='LTR'))
+        styles.add(ParagraphStyle(name='SectionTitle', parent=styles['Heading2'], fontSize=14, leading=18, textColor=colors.HexColor(PDF_SECONDARY), fontName=_font_bold(), spaceBefore=12, spaceAfter=8))
         story: list[Any] = []
         try:
             recebedor = User.query.get(getattr(r, 'recebedor_id', None))
         except Exception:
             recebedor = None
-        story.append(Paragraph('<b>Dados da Recepção</b>', styles['h2']))
+        story.append(Paragraph('Dados da Recepção', styles['SectionTitle']))
         story.append(Paragraph(f"Data: {r.data.strftime('%d/%m/%Y %H:%M')}", styles['Normal']))
         story.append(Paragraph(f"Número de referência: {r.reference_code or '-'}", styles['Normal']))
         story.append(Paragraph(f"Fornecedor: {r.fornecedor}", styles['Cell']))
@@ -823,25 +828,14 @@ def exportar_relatorio_carnes_pdf(id):
             story.append(Paragraph(f"Registrado por: {recebedor.name} ({recebedor.username})", styles['Normal']))
 
         story.append(Spacer(1, 0.2 * inch))
-        story.append(Paragraph('<b>Entregadores</b>', styles['h2']))
+        story.append(Paragraph('Entregadores', styles['SectionTitle']))
         carriers_data: list[list[Any]] = [['Nome', 'Peso (kg)']]
         for c in carriers:
             carriers_data.append([Paragraph(c.nome, styles['Cell']), f"{(c.peso or 0.0):.2f}"])
         if len(carriers) == 0:
             carriers_data.append(['Nenhum registrado', '-'])
         carriers_table = Table(carriers_data, colWidths=[doc.width * 0.7, doc.width * 0.3])
-        carriers_table.setStyle(TableStyle([
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f8f9fa')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-            ('FONTNAME', (0, 0), (-1, 0), _font_bold()),
-            ('ALIGN', (1, 1), (1, -1), 'RIGHT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 6),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-        ]))
+        carriers_table.setStyle(_premium_table_style())
         story.append(carriers_table)
         story.append(Spacer(1, 0.3 * inch))
         peso_nota = float(r.peso_nota or 0.0)
@@ -878,21 +872,11 @@ def exportar_relatorio_carnes_pdf(id):
         scale_t = doc.width / (total_t if total_t > 0 else 1)
         widths_t = [w * scale_t for w in widths_t]
         totals_table = Table(totals_data, colWidths=widths_t)
-        totals_table.setStyle(TableStyle([
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f8f9fa')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 6),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-        ]))
-        story.append(KeepTogether([Paragraph('<b>Resumo</b>', styles['h2']), totals_table]))
+        totals_table.setStyle(_premium_table_style('#6c757d'))
+        story.append(KeepTogether([Paragraph('Resumo', styles['SectionTitle']), totals_table]))
 
         for num in sorted(animais.keys()):
-            header = Paragraph(f"<b>Romaneio #{num}</b>", styles['h2'])
+            header = Paragraph(f"Romaneio #{num}", styles['SectionTitle'])
             data_rows_strings: list[list[str]] = [[
                 'Parte', 'Peso bruto (kg)', 'Entregador', 'Tara caixa (kg)', 'Peso líquido (kg)'
             ]]
@@ -940,22 +924,14 @@ def exportar_relatorio_carnes_pdf(id):
                         table_row.append(str(cell))
                 table_data.append(table_row)
             table = Table(table_data, colWidths=widths_pts, repeatRows=1)
+            table.setStyle(_premium_table_style('#6c757d'))
             table.setStyle(TableStyle([
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f8f9fa')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-                ('FONTNAME', (0, 0), (-1, 0), _font_bold()),
                 ('FONTNAME', (0, -1), (-1, -1), _font_bold()),
-                ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#f8f9fa')),
+                ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#f1f5f9')),
                 ('ALIGN', (1, 1), (-1, -2), 'RIGHT'),
                 ('ALIGN', (1, -1), (-1, -1), 'RIGHT'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('LEFTPADDING', (0, 0), (-1, -1), 6),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-                ('TOPPADDING', (0, 0), (-1, -1), 4),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
                 ('FONTNAME', (4, 1), (4, -1), _font_bold()),
-                ('TEXTCOLOR', (4, 1), (4, -1), colors.HexColor('#198754')),
+                ('TEXTCOLOR', (4, 1), (4, -1), colors.HexColor(PDF_SUCCESS)),
             ]))
             story.append(KeepTogether([header, table, Spacer(1, 0.2 * inch)]))
 
@@ -978,22 +954,15 @@ def exportar_relatorio_carnes_pdf(id):
 
         
         
-        def footer_on_page(canvas, doc):
-            canvas.saveState()
-            canvas.setFillColor(colors.black)
-            canvas.setFont('Helvetica', 8)
-            footer_text = f"Página {canvas.getPageNumber()} | MultiMax Carnes | {_now_br().strftime('%d/%m/%Y %H:%M:%S')}"
-            canvas.drawString(inch, 0.5 * inch, footer_text)
-            canvas.restoreState()
         def on_page(canvas, doc):
             _brand_header(canvas, doc, 'Relatório de Recepção de Carnes')
             _draw_cards_bg(canvas, doc, canvas.getPageNumber() == 1)
-            footer_on_page(canvas, doc)
+            _premium_footer(canvas, doc, 'Relatório de Carnes')
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
         final_io = _finalize_pdf(pdf_buffer)
         ref = r.reference_code or f"R{r.id:04d}"
         filename = f"{ref}_CARNE.pdf"
-        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        return _send_pdf(final_io, filename)
     except Exception as e:
         flash(f'Erro ao gerar PDF de Carnes: {e}', 'danger')
         return redirect(url_for('carnes.relatorio', id=id))
@@ -1070,7 +1039,7 @@ def exportar_relatorio_carnes_periodo():
 
         filename = f"relatorio_carnes_{tipo}_{escopo}_{base_date.strftime('%Y%m%d')}.pdf"
         pdf_buffer = BytesIO()
-        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, leftMargin=0.6*inch, rightMargin=0.6*inch, topMargin=1.15*inch, bottomMargin=0.7*inch)
         styles = getSampleStyleSheet()
         styles.add(ParagraphStyle(name='Cell', parent=styles['Normal'], fontSize=9, leading=11, wordWrap='LTR'))
         story: list[Any] = []
@@ -1108,32 +1077,19 @@ def exportar_relatorio_carnes_periodo():
             excess = (fornecedor_in + fixed_sum) - avail_in
             recebedor_in = max(1.2, recebedor_in - excess)
         table = Table(data_rows, colWidths=[date_in*inch, fornecedor_in*inch, ref_in*inch, recebedor_in*inch, total_in*inch])
-        table.setStyle(TableStyle([
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f8f9fa')),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 8),
-            ('ALIGN', (-1, 1), (-1, -1), 'RIGHT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ]))
+        table.setStyle(_premium_table_style())
         story.append(table)
         story.append(Spacer(1, 0.3 * inch))
-        story.append(Paragraph(f"Total geral: <b>{total_geral:.2f} kg</b>", styles['h2']))
+        styles.add(ParagraphStyle(name='SectionTitle', parent=styles['Heading2'], fontSize=14, leading=18, textColor=colors.HexColor(PDF_SECONDARY), fontName=_font_bold(), spaceBefore=12, spaceAfter=8))
+        story.append(Paragraph(f"Total geral: {total_geral:.2f} kg", styles['SectionTitle']))
 
-        def footer_on_page(canvas, doc):
-            canvas.saveState()
-            canvas.setFont('Helvetica', 8)
-            footer_text = f"Página {canvas.getPageNumber()} | MultiMax Carnes {escopo_label} | {_now_br().strftime('%d/%m/%Y %H:%M:%S')}"
-            canvas.drawString(inch, 0.5 * inch, footer_text)
-            canvas.restoreState()
         def on_page(canvas, doc):
             _brand_header(canvas, doc, 'Relatório de Recepção de Carnes — Período')
             _draw_cards_bg(canvas, doc, canvas.getPageNumber() == 1)
-            if not _template_has_footer():
-                footer_on_page(canvas, doc)
+            _premium_footer(canvas, doc, 'Relatório de Carnes — Período')
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
         final_io = _finalize_pdf(pdf_buffer)
-        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        return _send_pdf(final_io, filename)
     except Exception as e:
         flash(f'Erro ao gerar PDF de Carnes (período): {e}', 'danger')
         return redirect(url_for('carnes.index'))
@@ -1144,13 +1100,14 @@ def exportar_exemplo_pdf():
     try:
         filename = 'exemplo_layout_multimax.pdf'
         pdf_buffer = BytesIO()
-        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, leftMargin=0.6*inch, rightMargin=0.6*inch, topMargin=1.05*inch, bottomMargin=0.6*inch)
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, leftMargin=0.6*inch, rightMargin=0.6*inch, topMargin=1.15*inch, bottomMargin=0.7*inch)
         styles = getSampleStyleSheet()
         styles.add(ParagraphStyle(name='Cell', parent=styles['Normal'], fontSize=10, leading=13, wordWrap='LTR'))
+        styles.add(ParagraphStyle(name='SectionTitle', parent=styles['Heading2'], fontSize=14, leading=18, textColor=colors.HexColor(PDF_SECONDARY), fontName=_font_bold(), spaceBefore=12, spaceAfter=8))
         story: list[Any] = []
         story.append(_make_info_block('Exemplo de Layout Padrão', [('Seção', 'Demonstração'), ('Ambiente', 'Local')], registrado_por=None))
         story.append(Spacer(1, 0.35 * inch))
-        story.append(Paragraph('<b>Conteúdo Principal</b>', styles['h2']))
+        story.append(Paragraph('Conteúdo Principal', styles['SectionTitle']))
         lorem = ('Este é um exemplo de PDF com cabeçalho padronizado, cards com cantos arredondados e conteúdo consistente. '
                  'A primeira página possui um card menor com metadados da requisição (usuário, data/hora e tipo), seguido por um card ocupando o restante da página com o conteúdo principal. '
                  'As páginas seguintes usam um card único ocupando toda a página para o conteúdo.')
@@ -1159,20 +1116,13 @@ def exportar_exemplo_pdf():
             story.append(Spacer(1, 0.2 * inch))
         for i in range(1, 25):
             story.append(Paragraph(f"Linha de exemplo #{i:02d} — conteúdo demonstrativo.", styles['Cell']))
-        def footer_on_page(canvas, doc):
-            canvas.saveState()
-            canvas.setFont('Helvetica', 8)
-            footer_text = f"Página {canvas.getPageNumber()} | MultiMax Exemplo | {_now_br().strftime('%d/%m/%Y %H:%M:%S')}"
-            canvas.drawString(inch, 0.5 * inch, footer_text)
-            canvas.restoreState()
         def on_page(canvas, doc):
             _brand_header(canvas, doc, 'Exemplo de Layout Padrão')
             _draw_cards_bg(canvas, doc, canvas.getPageNumber() == 1)
-            if not _template_has_footer():
-                footer_on_page(canvas, doc)
+            _premium_footer(canvas, doc, 'Exemplo')
         doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
         final_io = _finalize_pdf(pdf_buffer)
-        return send_file(final_io, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        return _send_pdf(final_io, filename)
     except Exception as e:
         flash(f'Erro ao gerar PDF de Exemplo: {e}', 'danger')
         return redirect(url_for('home.index'))

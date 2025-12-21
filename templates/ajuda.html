@@ -1,0 +1,331 @@
+{% extends 'base.html' %}
+{% block title %}Ajuda — MultiMax{% endblock %}
+
+{% block breadcrumb %}
+<span class="mm-breadcrumb-separator">/</span>
+<span>Ajuda</span>
+{% endblock %}
+
+{% block content %}
+<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
+    <div>
+        <h1 class="mm-page-title">Central de Ajuda</h1>
+        <p class="mm-text-muted">Tutoriais, guias e sugestões para o sistema</p>
+    </div>
+    {% if current_user.nivel == 'admin' %}
+    <a href="{{ url_for('ajuda.novo_artigo') }}" class="mm-btn mm-btn-primary">
+        <i class="bi bi-plus-lg"></i> Novo Tutorial
+    </a>
+    {% endif %}
+</div>
+
+<div class="mm-nav-tabs mm-mb-6">
+    <a class="mm-nav-tab active" href="#tutoriais" data-tab="tutoriais">
+        <i class="bi bi-book"></i> Tutoriais
+    </a>
+    <a class="mm-nav-tab" href="#sugestoes" data-tab="sugestoes">
+        <i class="bi bi-lightbulb"></i> Sugestões
+    </a>
+</div>
+
+<div id="tab-tutoriais" class="mm-tab-content active">
+    <div class="mm-card mm-mb-6">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title">
+                <i class="bi bi-search mm-text-primary"></i>
+                Buscar Tutoriais
+            </h3>
+        </div>
+        <div class="mm-card-body">
+            <form method="get" class="mm-flex mm-gap-4 mm-items-end" style="flex-wrap: wrap;">
+                <div class="mm-form-group" style="flex: 1; min-width: 200px;">
+                    <label class="mm-label">Buscar</label>
+                    <input type="text" name="busca" value="{{ busca }}" class="mm-input" placeholder="Digite sua dúvida...">
+                </div>
+                <div class="mm-form-group" style="min-width: 150px;">
+                    <label class="mm-label">Categoria</label>
+                    <select name="categoria" class="mm-input mm-select">
+                        <option value="">Todas</option>
+                        {% for cat in categorias %}
+                        <option value="{{ cat }}" {% if cat == categoria_atual %}selected{% endif %}>{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mm-form-group" style="min-width: 150px;">
+                    <label class="mm-label">Ordenar por</label>
+                    <select name="ordenar" class="mm-input mm-select">
+                        <option value="ordem" {% if ordenar == 'ordem' %}selected{% endif %}>Padrão</option>
+                        <option value="mais_uteis" {% if ordenar == 'mais_uteis' %}selected{% endif %}>Mais úteis</option>
+                        <option value="recentes" {% if ordenar == 'recentes' %}selected{% endif %}>Mais recentes</option>
+                    </select>
+                </div>
+                <button type="submit" class="mm-btn mm-btn-primary">
+                    <i class="bi bi-search"></i> Buscar
+                </button>
+                {% if busca or categoria_atual %}
+                <a href="{{ url_for('ajuda.ajuda') }}" class="mm-btn mm-btn-outline">Limpar</a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <div class="mm-grid mm-grid-cols-2 mm-gap-4">
+        {% for article in articles %}
+        <div class="mm-card mm-article-card">
+            <div class="mm-card-body">
+                <div class="mm-flex mm-items-center mm-gap-2 mm-mb-2">
+                    <span class="mm-badge mm-badge-primary">{{ article.categoria }}</span>
+                </div>
+                <h4 class="mm-article-title">{{ article.titulo }}</h4>
+                <p class="mm-text-muted mm-text-sm">{{ article.conteudo[:150]|replace('#', '')|replace('*', '') }}...</p>
+                <div class="mm-flex mm-gap-2 mm-mt-2 mm-mb-2">
+                    <span class="mm-text-muted mm-text-sm">
+                        <i class="bi bi-hand-thumbs-up"></i> {{ article.votos_util or 0 }}
+                    </span>
+                    <span class="mm-text-muted mm-text-sm">
+                        <i class="bi bi-hand-thumbs-down"></i> {{ article.votos_nao_util or 0 }}
+                    </span>
+                </div>
+                <div class="mm-flex mm-gap-2 mm-mt-2">
+                    <a href="{{ url_for('ajuda.artigo', id=article.id) }}" class="mm-btn mm-btn-outline mm-btn-sm">
+                        <i class="bi bi-eye"></i> Ler
+                    </a>
+                    {% if current_user.nivel == 'admin' %}
+                    <a href="{{ url_for('ajuda.editar_artigo', id=article.id) }}" class="mm-btn mm-btn-outline mm-btn-sm">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <form method="post" action="{{ url_for('ajuda.excluir_artigo', id=article.id) }}" style="display: inline;">
+                        <button type="submit" class="mm-btn mm-btn-outline mm-btn-sm" style="color: var(--mm-danger);" onclick="return confirm('Excluir este tutorial?')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="mm-card" style="grid-column: span 2;">
+            <div class="mm-card-body mm-text-center mm-py-8">
+                <i class="bi bi-book" style="font-size: 3rem; color: var(--mm-text-muted);"></i>
+                <p class="mm-text-muted mm-mt-4">Nenhum tutorial encontrado.</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div id="tab-sugestoes" class="mm-tab-content" style="display: none;">
+    <div class="mm-grid mm-grid-cols-2 mm-gap-6">
+        <div class="mm-card">
+            <div class="mm-card-header">
+                <h3 class="mm-card-title">
+                    <i class="bi bi-lightbulb mm-text-warning"></i>
+                    Enviar Sugestão
+                </h3>
+            </div>
+            <div class="mm-card-body">
+                <form method="post" action="{{ url_for('ajuda.nova_sugestao') }}">
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Título</label>
+                        <input type="text" name="titulo" class="mm-input" placeholder="Resumo da sua ideia" required>
+                    </div>
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Categoria</label>
+                        <select name="categoria" class="mm-input mm-select">
+                            <option value="Melhoria">Melhoria</option>
+                            <option value="Nova Funcionalidade">Nova Funcionalidade</option>
+                            <option value="Correção">Correção</option>
+                            <option value="Interface">Interface</option>
+                            <option value="Outro">Outro</option>
+                        </select>
+                    </div>
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Descrição</label>
+                        <textarea name="descricao" class="mm-input" rows="4" placeholder="Descreva sua sugestão em detalhes..." required></textarea>
+                    </div>
+                    <button type="submit" class="mm-btn mm-btn-primary">
+                        <i class="bi bi-send"></i> Enviar Sugestão
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="mm-card">
+            <div class="mm-card-header">
+                <h3 class="mm-card-title">
+                    <i class="bi bi-bar-chart mm-text-info"></i>
+                    Sugestões da Comunidade
+                </h3>
+            </div>
+            <div class="mm-card-body">
+                {% if sugestoes %}
+                <div class="mm-sugestoes-list">
+                    {% for s in sugestoes %}
+                    <div class="mm-sugestao-item">
+                        <div class="mm-sugestao-votes">
+                            <form method="post" action="{{ url_for('ajuda.votar_sugestao', id=s.id) }}">
+                                <button type="submit" class="mm-vote-btn {% if s.id in user_votes %}voted{% endif %}">
+                                    <i class="bi bi-hand-thumbs-up{% if s.id in user_votes %}-fill{% endif %}"></i>
+                                    <span>{{ s.votos }}</span>
+                                </button>
+                            </form>
+                        </div>
+                        <div class="mm-sugestao-content">
+                            <div class="mm-flex mm-items-center mm-gap-2 mm-mb-1">
+                                <span class="mm-badge mm-badge-sm" style="background: rgba(59, 130, 246, 0.15); color: var(--mm-info);">{{ s.categoria }}</span>
+                                {% if s.status == 'implementada' %}
+                                <span class="mm-badge mm-badge-success mm-badge-sm">Implementada</span>
+                                {% elif s.status == 'aprovada' %}
+                                <span class="mm-badge mm-badge-primary mm-badge-sm">Aprovada</span>
+                                {% elif s.status == 'em_analise' %}
+                                <span class="mm-badge mm-badge-warning mm-badge-sm">Em Análise</span>
+                                {% elif s.status == 'rejeitada' %}
+                                <span class="mm-badge mm-badge-sm" style="background: rgba(107, 114, 128, 0.2); color: var(--mm-text-muted);">Rejeitada</span>
+                                {% endif %}
+                            </div>
+                            <h5 class="mm-sugestao-title">{{ s.titulo }}</h5>
+                            <p class="mm-text-muted mm-text-sm">{{ s.descricao[:100] }}{% if s.descricao|length > 100 %}...{% endif %}</p>
+                            <small class="mm-text-muted">Por {{ s.criado_por }} em {{ s.criado_em.strftime('%d/%m/%Y') }}</small>
+                            
+                            {% if current_user.nivel == 'admin' %}
+                            <div class="mm-mt-2">
+                                <form method="post" action="{{ url_for('ajuda.atualizar_status_sugestao', id=s.id) }}" class="mm-flex mm-gap-2">
+                                    <select name="status" class="mm-input mm-select mm-input-sm" style="width: auto;">
+                                        <option value="pendente" {% if s.status == 'pendente' %}selected{% endif %}>Pendente</option>
+                                        <option value="em_analise" {% if s.status == 'em_analise' %}selected{% endif %}>Em Análise</option>
+                                        <option value="aprovada" {% if s.status == 'aprovada' %}selected{% endif %}>Aprovada</option>
+                                        <option value="implementada" {% if s.status == 'implementada' %}selected{% endif %}>Implementada</option>
+                                        <option value="rejeitada" {% if s.status == 'rejeitada' %}selected{% endif %}>Rejeitada</option>
+                                    </select>
+                                    <button type="submit" class="mm-btn mm-btn-outline mm-btn-sm">Atualizar</button>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="mm-text-center mm-py-6">
+                    <i class="bi bi-lightbulb" style="font-size: 2rem; color: var(--mm-text-muted);"></i>
+                    <p class="mm-text-muted mm-mt-2">Nenhuma sugestão ainda. Seja o primeiro!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.mm-tab-content {
+    display: none;
+}
+.mm-tab-content.active {
+    display: block;
+}
+
+.mm-article-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.mm-article-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.mm-article-title {
+    font-size: var(--mm-text-lg);
+    font-weight: 600;
+    margin-bottom: var(--mm-space-2);
+    color: var(--mm-text);
+}
+
+.mm-sugestoes-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mm-space-4);
+}
+
+.mm-sugestao-item {
+    display: flex;
+    gap: var(--mm-space-4);
+    padding: var(--mm-space-4);
+    background: var(--mm-bg-secondary);
+    border-radius: var(--mm-radius);
+}
+
+.mm-sugestao-votes {
+    flex-shrink: 0;
+}
+
+.mm-vote-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: var(--mm-space-2) var(--mm-space-3);
+    background: var(--mm-bg);
+    border: 1px solid var(--mm-border);
+    border-radius: var(--mm-radius);
+    color: var(--mm-text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mm-vote-btn:hover, .mm-vote-btn.voted {
+    background: rgba(0, 255, 136, 0.1);
+    border-color: var(--mm-primary);
+    color: var(--mm-primary);
+}
+
+.mm-sugestao-content {
+    flex: 1;
+}
+
+.mm-sugestao-title {
+    font-weight: 600;
+    margin-bottom: var(--mm-space-1);
+}
+
+.mm-badge-sm {
+    font-size: 10px;
+    padding: 2px 6px;
+}
+
+.mm-input-sm {
+    padding: 4px 8px;
+    font-size: var(--mm-text-sm);
+}
+
+@media (max-width: 768px) {
+    .mm-grid-cols-2 {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.mm-nav-tab').forEach(tab => {
+    tab.addEventListener('click', function(e) {
+        e.preventDefault();
+        const target = this.getAttribute('data-tab');
+        
+        document.querySelectorAll('.mm-nav-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.mm-tab-content').forEach(c => {
+            c.classList.remove('active');
+            c.style.display = 'none';
+        });
+        
+        this.classList.add('active');
+        const content = document.getElementById('tab-' + target);
+        if (content) {
+            content.classList.add('active');
+            content.style.display = 'block';
+        }
+    });
+});
+</script>
+{% endblock %}

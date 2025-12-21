@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% block title %}Fornecedores — MultiMax{% endblock %}
+{% block content %}
+
+<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
+    <div>
+        <h1 class="mm-page-title">Fornecedores</h1>
+        <p class="mm-text-muted">Gestão de fornecedores e parceiros comerciais</p>
+    </div>
+    {% if current_user.nivel in ('operador','admin') %}
+    <a href="{{ url_for('fornecedores.adicionar') }}" class="mm-btn mm-btn-primary">
+        <i class="bi bi-plus-lg"></i>
+        Novo Fornecedor
+    </a>
+    {% endif %}
+</div>
+
+<div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(0, 255, 136, 0.15); color: var(--mm-primary);">
+            <i class="bi bi-building"></i>
+        </div>
+        <div class="mm-kpi-label">Total Fornecedores</div>
+        <div class="mm-kpi-value">{{ fornecedores|length }}</div>
+    </div>
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-success);">
+            <i class="bi bi-check-circle"></i>
+        </div>
+        <div class="mm-kpi-label">Ativos</div>
+        <div class="mm-kpi-value">{{ fornecedores|selectattr('ativo')|list|length }}</div>
+    </div>
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(239, 68, 68, 0.15); color: var(--mm-danger);">
+            <i class="bi bi-pause-circle"></i>
+        </div>
+        <div class="mm-kpi-label">Inativos</div>
+        <div class="mm-kpi-value">{{ fornecedores|rejectattr('ativo')|list|length }}</div>
+    </div>
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--mm-info);">
+            <i class="bi bi-percent"></i>
+        </div>
+        <div class="mm-kpi-label">Taxa de Ativos</div>
+        <div class="mm-kpi-value">
+            {% if fornecedores|length > 0 %}
+            {{ ((fornecedores|selectattr('ativo')|list|length / fornecedores|length) * 100)|round|int }}%
+            {% else %}
+            0%
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="mm-card">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <i class="bi bi-list-ul me-2"></i>Lista de Fornecedores
+        </h3>
+        <span class="mm-badge mm-badge-primary">{{ fornecedores|length }} registros</span>
+    </div>
+    <div class="mm-card-body">
+        <form method="get" class="mm-flex mm-gap-4 mm-mb-6">
+            <div class="mm-input-group" style="flex: 1;">
+                <i class="bi bi-search mm-input-icon"></i>
+                <input type="text" name="busca" class="mm-input mm-select" placeholder="Buscar por nome, CNPJ ou email..." value="{{ busca }}" style="padding-left: 2.5rem;">
+            </div>
+            <button type="submit" class="mm-btn mm-btn-primary">
+                <i class="bi bi-search"></i>
+                Buscar
+            </button>
+            {% if busca %}
+            <a href="{{ url_for('fornecedores.index') }}" class="mm-btn mm-btn-outline">
+                <i class="bi bi-x-lg"></i>
+                Limpar
+            </a>
+            {% endif %}
+        </form>
+
+        {% if fornecedores %}
+        <div class="mm-table-wrapper">
+            <table class="mm-table">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>CNPJ</th>
+                        <th>Telefone</th>
+                        <th>Email</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in fornecedores %}
+                    <tr>
+                        <td>
+                            <div class="mm-flex mm-items-center mm-gap-2">
+                                <div class="mm-avatar" style="width: 36px; height: 36px; background: rgba(0, 255, 136, 0.15); border-radius: var(--mm-radius); display: flex; align-items: center; justify-content: center;">
+                                    <i class="bi bi-building" style="color: var(--mm-primary);"></i>
+                                </div>
+                                <div>
+                                    <strong>{{ f.nome }}</strong>
+                                    {% if f.endereco %}
+                                    <div class="mm-text-muted" style="font-size: var(--mm-text-xs);">{{ f.endereco[:30] }}{% if f.endereco|length > 30 %}...{% endif %}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if f.cnpj %}
+                            <code style="font-size: var(--mm-text-xs); background: var(--mm-bg-secondary); padding: 2px 6px; border-radius: var(--mm-radius-sm);">{{ f.cnpj }}</code>
+                            {% else %}
+                            <span class="mm-text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if f.telefone %}
+                            <a href="tel:{{ f.telefone }}" class="mm-text-primary" style="text-decoration: none;">{{ f.telefone }}</a>
+                            {% else %}
+                            <span class="mm-text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if f.email %}
+                            <a href="mailto:{{ f.email }}" class="mm-text-primary" style="text-decoration: none;">{{ f.email }}</a>
+                            {% else %}
+                            <span class="mm-text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if f.ativo %}
+                            <span class="mm-badge mm-badge-success">Ativo</span>
+                            {% else %}
+                            <span class="mm-badge mm-badge-danger">Inativo</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="mm-flex mm-items-center mm-justify-center mm-gap-2">
+                                <a href="{{ url_for('fornecedores.detalhes', id=f.id) }}" class="mm-btn mm-btn-ghost mm-btn-sm mm-btn-icon" title="Ver Detalhes">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                {% if current_user.nivel in ('operador','admin') %}
+                                <a href="{{ url_for('fornecedores.editar', id=f.id) }}" class="mm-btn mm-btn-ghost mm-btn-sm mm-btn-icon" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% endif %}
+                                {% if current_user.nivel == 'admin' %}
+                                <a href="{{ url_for('fornecedores.excluir', id=f.id) }}" class="mm-btn mm-btn-ghost mm-btn-sm mm-btn-icon" style="color: var(--mm-danger);" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este fornecedor?')">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="mm-empty-state" style="text-align: center; padding: var(--mm-space-12);">
+            <div style="width: 80px; height: 80px; margin: 0 auto var(--mm-space-4); background: rgba(0, 255, 136, 0.1); border-radius: var(--mm-radius-full); display: flex; align-items: center; justify-content: center;">
+                <i class="bi bi-building" style="font-size: 2rem; color: var(--mm-primary);"></i>
+            </div>
+            {% if busca %}
+            <h4 class="mm-font-semibold mm-mb-2">Nenhum fornecedor encontrado</h4>
+            <p class="mm-text-muted">Não encontramos resultados para "{{ busca }}".</p>
+            <a href="{{ url_for('fornecedores.index') }}" class="mm-btn mm-btn-outline" style="margin-top: var(--mm-space-4);">
+                <i class="bi bi-arrow-left"></i>
+                Limpar busca
+            </a>
+            {% else %}
+            <h4 class="mm-font-semibold mm-mb-2">Nenhum fornecedor cadastrado</h4>
+            <p class="mm-text-muted">Comece adicionando seu primeiro fornecedor.</p>
+            {% if current_user.nivel in ('operador','admin') %}
+            <a href="{{ url_for('fornecedores.adicionar') }}" class="mm-btn mm-btn-primary" style="margin-top: var(--mm-space-4);">
+                <i class="bi bi-plus-lg"></i>
+                Adicionar Fornecedor
+            </a>
+            {% endif %}
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.mm-kpi-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--mm-radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    margin-bottom: var(--mm-space-3);
+}
+.mm-justify-center { justify-content: center; }
+.text-center { text-align: center; }
+.me-2 { margin-right: 0.5rem; }
+</style>
+{% endblock %}

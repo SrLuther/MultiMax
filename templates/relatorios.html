@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% block title %}Relatórios - MultiMax{% endblock %}
+{% block content %}
+
+<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
+    <div>
+        <h1 class="mm-page-title">Relatórios</h1>
+        <p class="mm-text-muted">Exportação e importação de dados do sistema</p>
+    </div>
+</div>
+
+<div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--mm-info);">
+            <i class="bi bi-file-earmark-spreadsheet"></i>
+        </div>
+        <div class="mm-kpi-label">Tipo de Arquivo</div>
+        <div class="mm-kpi-value">Excel</div>
+    </div>
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-success);">
+            <i class="bi bi-download"></i>
+        </div>
+        <div class="mm-kpi-label">Exportação</div>
+        <div class="mm-kpi-value">3 Tipos</div>
+    </div>
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(0, 212, 255, 0.15); color: var(--mm-accent-cyan);">
+            <i class="bi bi-upload"></i>
+        </div>
+        <div class="mm-kpi-label">Importação</div>
+        <div class="mm-kpi-value">Produtos</div>
+    </div>
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning);">
+            <i class="bi bi-shield-check"></i>
+        </div>
+        <div class="mm-kpi-label">Backup</div>
+        <div class="mm-kpi-value">Seguro</div>
+    </div>
+</div>
+
+<div class="mm-grid mm-grid-cols-3 mm-gap-6 mm-mb-6">
+    <div class="mm-card mm-card-gradient" style="border-top: 3px solid var(--mm-primary);">
+        <div class="mm-card-body" style="text-align: center;">
+            <div class="mm-kpi-icon" style="background: rgba(0, 255, 136, 0.15); color: var(--mm-primary); margin: 0 auto var(--mm-space-4);">
+                <i class="bi bi-box-seam"></i>
+            </div>
+            <h4 class="mm-font-semibold mm-mb-2">Produtos</h4>
+            <p class="mm-text-muted mm-mb-4" style="font-size: var(--mm-text-sm);">Exporte todos os produtos cadastrados com informações completas de estoque.</p>
+            <a href="{{ url_for('relatorios.exportar_produtos') }}" class="mm-btn mm-btn-primary" style="width: 100%;">
+                <i class="bi bi-download"></i>
+                Exportar Produtos
+            </a>
+        </div>
+    </div>
+    
+    <div class="mm-card mm-card-gradient" style="border-top: 3px solid var(--mm-success);">
+        <div class="mm-card-body" style="text-align: center;">
+            <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-success); margin: 0 auto var(--mm-space-4);">
+                <i class="bi bi-clock-history"></i>
+            </div>
+            <h4 class="mm-font-semibold mm-mb-2">Histórico</h4>
+            <p class="mm-text-muted mm-mb-4" style="font-size: var(--mm-text-sm);">Exporte o histórico completo de entradas e saídas do estoque.</p>
+            <a href="{{ url_for('relatorios.exportar_historico') }}" class="mm-btn mm-btn-secondary" style="width: 100%;">
+                <i class="bi bi-download"></i>
+                Exportar Histórico
+            </a>
+        </div>
+    </div>
+    
+    <div class="mm-card mm-card-gradient" style="border-top: 3px solid var(--mm-warning);">
+        <div class="mm-card-body" style="text-align: center;">
+            <div class="mm-kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning); margin: 0 auto var(--mm-space-4);">
+                <i class="bi bi-building"></i>
+            </div>
+            <h4 class="mm-font-semibold mm-mb-2">Fornecedores</h4>
+            <p class="mm-text-muted mm-mb-4" style="font-size: var(--mm-text-sm);">Exporte todos os fornecedores cadastrados no sistema.</p>
+            <a href="{{ url_for('relatorios.exportar_fornecedores') }}" class="mm-btn mm-btn-outline" style="width: 100%; border-color: var(--mm-warning); color: var(--mm-warning);">
+                <i class="bi bi-download"></i>
+                Exportar Fornecedores
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="mm-grid mm-grid-cols-2 mm-gap-6">
+    <div class="mm-card">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title">
+                <i class="bi bi-upload me-2"></i>Importar Produtos
+            </h3>
+            <span class="mm-badge mm-badge-info">Excel</span>
+        </div>
+        <div class="mm-card-body">
+            <div style="text-align: center; margin-bottom: var(--mm-space-6);">
+                <div class="mm-kpi-icon" style="background: rgba(0, 212, 255, 0.15); color: var(--mm-accent-cyan); margin: 0 auto var(--mm-space-4);">
+                    <i class="bi bi-file-earmark-arrow-up"></i>
+                </div>
+                <p class="mm-text-muted" style="font-size: var(--mm-text-sm);">
+                    Importe produtos a partir de uma planilha Excel. Produtos existentes serão atualizados automaticamente.
+                </p>
+            </div>
+            
+            <div class="mm-flex mm-flex-col mm-gap-4">
+                <a href="{{ url_for('relatorios.modelo_produtos') }}" class="mm-btn mm-btn-outline" style="width: 100%;">
+                    <i class="bi bi-file-earmark-excel"></i>
+                    Baixar Modelo Excel
+                </a>
+                {% if current_user.nivel == 'admin' %}
+                <a href="{{ url_for('relatorios.importar_produtos') }}" class="mm-btn mm-btn-primary" style="width: 100%;">
+                    <i class="bi bi-upload"></i>
+                    Importar Produtos
+                </a>
+                {% else %}
+                <button class="mm-btn mm-btn-outline" style="width: 100%; opacity: 0.5; cursor: not-allowed;" disabled>
+                    <i class="bi bi-lock"></i>
+                    Apenas Administradores
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="mm-card">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title">
+                <i class="bi bi-lightbulb me-2"></i>Dicas de Uso
+            </h3>
+        </div>
+        <div class="mm-card-body">
+            <div class="mm-tips-list">
+                <div class="mm-tip-item mm-flex mm-gap-4 mm-mb-4">
+                    <div class="mm-tip-icon" style="width: 40px; height: 40px; background: rgba(0, 255, 136, 0.1); border-radius: var(--mm-radius); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="bi bi-check-lg" style="color: var(--mm-primary);"></i>
+                    </div>
+                    <div>
+                        <h6 class="mm-font-medium mm-mb-1">Backup Regular</h6>
+                        <p class="mm-text-muted" style="font-size: var(--mm-text-sm); margin: 0;">Use a exportação de produtos para manter backups regulares dos dados.</p>
+                    </div>
+                </div>
+                
+                <div class="mm-tip-item mm-flex mm-gap-4 mm-mb-4">
+                    <div class="mm-tip-icon" style="width: 40px; height: 40px; background: rgba(59, 130, 246, 0.1); border-radius: var(--mm-radius); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="bi bi-clock-history" style="color: var(--mm-info);"></i>
+                    </div>
+                    <div>
+                        <h6 class="mm-font-medium mm-mb-1">Histórico Completo</h6>
+                        <p class="mm-text-muted" style="font-size: var(--mm-text-sm); margin: 0;">O relatório de histórico inclui todas as entradas e saídas do estoque.</p>
+                    </div>
+                </div>
+                
+                <div class="mm-tip-item mm-flex mm-gap-4 mm-mb-4">
+                    <div class="mm-tip-icon" style="width: 40px; height: 40px; background: rgba(245, 158, 11, 0.1); border-radius: var(--mm-radius); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="bi bi-file-earmark-excel" style="color: var(--mm-warning);"></i>
+                    </div>
+                    <div>
+                        <h6 class="mm-font-medium mm-mb-1">Modelo de Importação</h6>
+                        <p class="mm-text-muted" style="font-size: var(--mm-text-sm); margin: 0;">Baixe o modelo antes de importar para garantir o formato correto.</p>
+                    </div>
+                </div>
+                
+                <div class="mm-tip-item mm-flex mm-gap-4">
+                    <div class="mm-tip-icon" style="width: 40px; height: 40px; background: rgba(168, 85, 247, 0.1); border-radius: var(--mm-radius); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="bi bi-arrow-repeat" style="color: var(--mm-accent-purple);"></i>
+                    </div>
+                    <div>
+                        <h6 class="mm-font-medium mm-mb-1">Atualização Automática</h6>
+                        <p class="mm-text-muted" style="font-size: var(--mm-text-sm); margin: 0;">Produtos existentes são atualizados automaticamente na importação.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.mm-kpi-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--mm-radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    margin-bottom: var(--mm-space-3);
+}
+.me-2 { margin-right: 0.5rem; }
+.mm-mb-1 { margin-bottom: var(--mm-space-1); }
+.mm-mb-2 { margin-bottom: var(--mm-space-2); }
+.mm-mb-4 { margin-bottom: var(--mm-space-4); }
+.mm-mb-6 { margin-bottom: var(--mm-space-6); }
+</style>
+{% endblock %}

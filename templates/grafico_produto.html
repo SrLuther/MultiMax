@@ -1,52 +1,141 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gráficos - {{ produto.nome }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-<div class="container mt-5">
-    <h3>Gráficos de Demanda - {{ produto.nome }}</h3>
-    <a href="/graficos" class="btn btn-secondary mb-3">Voltar à Busca</a>
-    <a href="/graficos/export_pdf/{{ produto.id }}" class="btn btn-danger mb-3">Exportar PDF</a>
+{% extends 'base.html' %}
+{% block title %}Gráficos - {{ produto.nome }} — MultiMax{% endblock %}
 
-    <form method="post" class="mb-4" data-bs-theme="light">
-        <div class="row g-3">
-            <div class="col-md-6">
-                <label class="form-label">Data Início</label>
-                <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
+{% block breadcrumb %}
+<span class="mm-breadcrumb-separator">/</span>
+<a href="{{ url_for('estoque.index') }}" class="mm-breadcrumb-link">Estoque</a>
+<span class="mm-breadcrumb-separator">/</span>
+<span>Gráficos</span>
+{% endblock %}
+
+{% block content %}
+<div class="mm-animate-fade-in">
+    <div class="mm-flex mm-items-center mm-justify-between mm-mb-6">
+        <div>
+            <h1 class="mm-m-0" style="font-size: var(--mm-text-2xl); font-weight: var(--mm-font-bold); color: var(--mm-text-primary);">
+                Gráficos de Demanda
+            </h1>
+            <p class="mm-text-muted mm-m-0" style="margin-top: var(--mm-space-1);">
+                {{ produto.nome }}
+            </p>
+        </div>
+        <div class="mm-flex mm-gap-2">
+            <a href="{{ url_for('estoque.index') }}" class="mm-btn mm-btn-outline">
+                <i class="bi bi-arrow-left"></i>
+                Voltar
+            </a>
+        </div>
+    </div>
+
+    <div class="mm-card mm-mb-6">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title">
+                <i class="bi bi-calendar-range"></i>
+                Filtrar Período Personalizado
+            </h3>
+        </div>
+        <div class="mm-card-body">
+            <form method="post">
+                <div class="row g-3">
+                    <div class="col-12 col-md-4">
+                        <div class="mm-form-group">
+                            <label class="mm-label">
+                                <i class="bi bi-calendar-event"></i>
+                                Data Início
+                            </label>
+                            <input type="date" name="start_date" class="mm-input" value="{{ start_date }}">
+                            <small style="display: block; margin-top: 4px; font-size: 0.8rem; color: var(--mm-text-muted);">
+                                Início do período de análise
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="mm-form-group">
+                            <label class="mm-label">
+                                <i class="bi bi-calendar-check"></i>
+                                Data Fim
+                            </label>
+                            <input type="date" name="end_date" class="mm-input" value="{{ end_date }}">
+                            <small style="display: block; margin-top: 4px; font-size: 0.8rem; color: var(--mm-text-muted);">
+                                Fim do período de análise
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4 d-flex align-items-end">
+                        <button type="submit" class="mm-btn mm-btn-primary w-100">
+                            <i class="bi bi-graph-up"></i>
+                            Atualizar Gráfico
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="mm-grid mm-grid-cols-2 mm-gap-6 mm-mb-6">
+        <div class="mm-card">
+            <div class="mm-card-header">
+                <h3 class="mm-card-title">
+                    <i class="bi bi-bar-chart-line"></i>
+                    Demanda Semanal
+                </h3>
             </div>
-            <div class="col-md-6">
-                <label class="form-label">Data Fim</label>
-                <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
+            <div class="mm-card-body" style="text-align: center;">
+                {% if graph_semanal %}
+                <img src="data:image/png;base64,{{ graph_semanal }}" alt="Gráfico Semanal" 
+                     style="max-width: 100%; height: auto; border-radius: var(--mm-radius-md);">
+                {% else %}
+                <div class="mm-empty-state">
+                    <i class="bi bi-graph-down" style="font-size: 3rem; color: var(--mm-text-muted);"></i>
+                    <p class="mm-text-muted mm-m-0" style="margin-top: var(--mm-space-2);">Nenhum dado semanal disponível</p>
+                </div>
+                {% endif %}
             </div>
         </div>
-        <button type="submit" class="btn btn-primary mt-3">Atualizar Gráfico Personalizado</button>
-    </form>
 
-    <h4>Demanda Semanal</h4>
-    {% if graph_semanal %}
-    <img src="data:image/png;base64,{{ graph_semanal }}" alt="Gráfico Semanal" class="img-fluid mb-5">
-    {% else %}
-    <p class="text-muted">Nenhum dado semanal.</p>
-    {% endif %}
+        <div class="mm-card">
+            <div class="mm-card-header">
+                <h3 class="mm-card-title">
+                    <i class="bi bi-calendar3"></i>
+                    Demanda Mensal
+                </h3>
+            </div>
+            <div class="mm-card-body" style="text-align: center;">
+                {% if graph_mensal %}
+                <img src="data:image/png;base64,{{ graph_mensal }}" alt="Gráfico Mensal" 
+                     style="max-width: 100%; height: auto; border-radius: var(--mm-radius-md);">
+                {% else %}
+                <div class="mm-empty-state">
+                    <i class="bi bi-graph-down" style="font-size: 3rem; color: var(--mm-text-muted);"></i>
+                    <p class="mm-text-muted mm-m-0" style="margin-top: var(--mm-space-2);">Nenhum dado mensal disponível</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 
-    <h4>Demanda Mensal</h4>
-    {% if graph_mensal %}
-    <img src="data:image/png;base64,{{ graph_mensal }}" alt="Gráfico Mensal" class="img-fluid mb-5">
-    {% else %}
-    <p class="text-muted">Nenhum dado mensal.</p>
-    {% endif %}
-
-    <h4>Demanda Personalizada</h4>
-    {% if graph_personalizado %}
-    <img src="data:image/png;base64,{{ graph_personalizado }}" alt="Gráfico Personalizado" class="img-fluid mb-5">
-    {% else %}
-    <p class="text-muted">Nenhum dado no período selecionado.</p>
-    {% endif %}
+    <div class="mm-card">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title">
+                <i class="bi bi-graph-up-arrow"></i>
+                Demanda Personalizada
+            </h3>
+            <span class="mm-badge mm-badge-info">Período Selecionado</span>
+        </div>
+        <div class="mm-card-body" style="text-align: center;">
+            {% if graph_personalizado %}
+            <img src="data:image/png;base64,{{ graph_personalizado }}" alt="Gráfico Personalizado" 
+                 style="max-width: 100%; height: auto; border-radius: var(--mm-radius-md);">
+            {% else %}
+            <div class="mm-empty-state" style="padding: var(--mm-space-8);">
+                <i class="bi bi-calendar-x" style="font-size: 3rem; color: var(--mm-text-muted);"></i>
+                <p class="mm-text-muted mm-m-0" style="margin-top: var(--mm-space-2);">
+                    Nenhum dado no período selecionado
+                </p>
+                <small class="mm-text-muted">Selecione um período com datas de início e fim acima</small>
+            </div>
+            {% endif %}
+        </div>
+    </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+{% endblock %}

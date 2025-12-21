@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta, date
 from zoneinfo import ZoneInfo
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
+from werkzeug.utils import secure_filename
+import os
 from .. import db
-from ..models import CleaningTask, CleaningHistory
+from ..models import CleaningTask, CleaningHistory, CleaningChecklistTemplate, CleaningChecklistItem, CleaningHistoryPhoto
 
 bp = Blueprint('cronograma', __name__)
 
@@ -210,8 +212,45 @@ def cronograma():
         nomes_por_tipo = [n for n, defs in padroes.items() if defs[1] == htipo]
         if nomes_por_tipo:
             q = q.filter(CleaningHistory.nome_limpeza.in_(nomes_por_tipo))
-    hist_pag = q.order_by(CleaningHistory.data_conclusao.desc()).paginate(page=page_hist, per_page=3, error_out=False)
-    return render_template('cronograma.html', cronograma_tarefas=tarefas, historico_limpezas=hist_pag.items, historico_pagination=hist_pag, active_page='cronograma', htipo=htipo, ajustes=ajustes, tipo=tipo_sel)
+    hist_pag = q.order_by(CleaningHistory.data_conclusao.desc()).paginate(page=page_hist, per_page=5, error_out=False)
+    
+    hoje = date.today()
+    total_tarefas = CleaningTask.query.count()
+    tarefas_atrasadas = CleaningTask.query.filter(CleaningTask.proxima_data < hoje).count()
+    tarefas_proximas = CleaningTask.query.filter(
+        CleaningTask.proxima_data >= hoje,
+        CleaningTask.proxima_data <= hoje + timedelta(days=7)
+    ).count()
+    
+    primeiro_dia_mes = hoje.replace(day=1)
+    if hoje.month == 12:
+        ultimo_dia_mes = hoje.replace(year=hoje.year+1, month=1, day=1) - timedelta(days=1)
+    else:
+        ultimo_dia_mes = hoje.replace(month=hoje.month+1, day=1) - timedelta(days=1)
+    
+    concluidas_mes = CleaningHistory.query.filter(
+        CleaningHistory.data_conclusao >= datetime.combine(primeiro_dia_mes, datetime.min.time()),
+        CleaningHistory.data_conclusao <= datetime.combine(ultimo_dia_mes, datetime.max.time())
+    ).count()
+    
+    taxa_cumprimento = round((concluidas_mes / max(total_tarefas, 1)) * 100) if total_tarefas > 0 else 0
+    
+    kpis = {
+        'total': total_tarefas,
+        'atrasadas': tarefas_atrasadas,
+        'proximas': tarefas_proximas,
+        'concluidas_mes': concluidas_mes,
+        'taxa': min(taxa_cumprimento, 100)
+    }
+    
+    for t in tarefas:
+        t.status = 'normal'
+        if t.proxima_data < hoje:
+            t.status = 'atrasada'
+        elif t.proxima_data <= hoje + timedelta(days=3):
+            t.status = 'urgente'
+    
+    return render_template('cronograma.html', cronograma_tarefas=tarefas, historico_limpezas=hist_pag.items, historico_pagination=hist_pag, active_page='cronograma', htipo=htipo, ajustes=ajustes, tipo=tipo_sel, kpis=kpis, hoje=hoje)
 
 @bp.route('/cronograma/salvar', methods=['POST'])
 @login_required
@@ -297,3 +336,174 @@ def excluir_historico(id: int):
         db.session.rollback()
         flash(f'Erro ao excluir histórico: {e}', 'danger')
     return redirect(url_for('cronograma.cronograma'))
+
+
+@bp.route('/cronograma/api/calendario', methods=['GET'])
+@login_required
+def api_calendario():
+    ano = request.args.get('ano', date.today().year, type=int)
+    mes = request.args.get('mes', date.today().month, type=int)
+    
+    primeiro_dia = date(ano, mes, 1)
+    if mes == 12:
+        ultimo_dia = date(ano + 1, 1, 1) - timedelta(days=1)
+    else:
+        ultimo_dia = date(ano, mes + 1, 1) - timedelta(days=1)
+    
+    tarefas = CleaningTask.query.filter(
+        CleaningTask.proxima_data >= primeiro_dia,
+        CleaningTask.proxima_data <= ultimo_dia
+    ).all()
+    
+    historico = CleaningHistory.query.filter(
+        CleaningHistory.data_conclusao >= datetime.combine(primeiro_dia, datetime.min.time()),
+        CleaningHistory.data_conclusao <= datetime.combine(ultimo_dia, datetime.max.time())
+    ).all()
+    
+    eventos = []
+    cores = {'Parcial': '#3b82f6', 'Geral': '#ef4444', 'Mensal': '#f59e0b', 'Semanal': '#22c55e'}
+    hoje = date.today()
+    
+    for t in tarefas:
+        cor = cores.get(t.tipo, '#6b7280')
+        if t.proxima_data < hoje:
+            cor = '#dc2626'
+        eventos.append({
+            'id': f'task_{t.id}',
+            'title': t.nome_limpeza,
+            'start': t.proxima_data.isoformat(),
+            'color': cor,
+            'tipo': t.tipo,
+            'status': 'atrasada' if t.proxima_data < hoje else 'pendente'
+        })
+    
+    for h in historico:
+        eventos.append({
+            'id': f'hist_{h.id}',
+            'title': f'✓ {h.nome_limpeza}',
+            'start': h.data_conclusao.date().isoformat(),
+            'color': '#10b981',
+            'status': 'concluida'
+        })
+    
+    return jsonify({'eventos': eventos, 'ano': ano, 'mes': mes})
+
+
+@bp.route('/cronograma/api/checklist/<tipo>', methods=['GET'])
+@login_required
+def api_checklist(tipo):
+    items = CleaningChecklistTemplate.query.filter_by(tipo=tipo).order_by(CleaningChecklistTemplate.ordem).all()
+    return jsonify({'items': [{'id': i.id, 'texto': i.item_texto, 'obrigatorio': i.obrigatorio} for i in items]})
+
+
+@bp.route('/cronograma/concluir-completo', methods=['POST'])
+@login_required
+def concluir_completo():
+    if current_user.nivel not in ('operador', 'admin'):
+        flash('Sem permissão.', 'danger')
+        return redirect(url_for('cronograma.cronograma'))
+    
+    task_id = request.form.get('task_id', type=int)
+    tarefa = CleaningTask.query.get_or_404(task_id)
+    
+    observacao = (request.form.get('observacao', '') or '').strip()
+    designados = (request.form.get('designados', '') or current_user.name).strip()
+    duracao = request.form.get('duracao', type=int)
+    qualidade = request.form.get('qualidade', 5, type=int)
+    data_str = request.form.get('data_conclusao', '').strip()
+    
+    try:
+        hist = CleaningHistory()
+        hist.task_id = task_id
+        hist.nome_limpeza = tarefa.nome_limpeza
+        hist.observacao = observacao or 'Sem observações'
+        hist.designados = designados
+        hist.usuario_conclusao = current_user.name
+        hist.duracao_minutos = duracao
+        hist.qualidade = qualidade
+        
+        if data_str:
+            try:
+                dt = datetime.strptime(data_str, '%Y-%m-%d').replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+                hist.data_conclusao = dt
+                tarefa.ultima_data = dt.date()
+            except Exception:
+                tarefa.ultima_data = date.today()
+        else:
+            tarefa.ultima_data = date.today()
+        
+        db.session.add(hist)
+        db.session.flush()
+        
+        checklist_items = request.form.getlist('checklist')
+        templates = CleaningChecklistTemplate.query.filter_by(tipo=tarefa.tipo).all()
+        for tmpl in templates:
+            item = CleaningChecklistItem()
+            item.history_id = hist.id
+            item.item_texto = tmpl.item_texto
+            item.concluido = str(tmpl.id) in checklist_items
+            if item.concluido:
+                item.concluido_por = current_user.name
+                item.concluido_em = datetime.now(ZoneInfo('America/Sao_Paulo'))
+            db.session.add(item)
+        
+        upload_folder = os.path.join('static', 'uploads', 'limpeza')
+        os.makedirs(upload_folder, exist_ok=True)
+        
+        for tipo_foto in ['antes', 'depois']:
+            files = request.files.getlist(f'foto_{tipo_foto}')
+            for f in files:
+                if f and f.filename:
+                    filename = secure_filename(f'{hist.id}_{tipo_foto}_{datetime.now().strftime("%Y%m%d%H%M%S")}_{f.filename}')
+                    filepath = os.path.join(upload_folder, filename)
+                    f.save(filepath)
+                    
+                    photo = CleaningHistoryPhoto()
+                    photo.history_id = hist.id
+                    photo.filename = filename
+                    photo.tipo = tipo_foto
+                    photo.uploaded_by = current_user.name
+                    db.session.add(photo)
+        
+        tarefa.proxima_data = calcular_proxima_prevista(tarefa.ultima_data, tarefa.frequencia, tarefa.tipo, tarefa.nome_limpeza)
+        db.session.commit()
+        
+        flash(f'Limpeza "{tarefa.nome_limpeza}" concluída com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao concluir: {e}', 'danger')
+    
+    return redirect(url_for('cronograma.cronograma'))
+
+
+@bp.route('/cronograma/api/estatisticas', methods=['GET'])
+@login_required
+def api_estatisticas():
+    hoje = date.today()
+    
+    meses = []
+    for i in range(5, -1, -1):
+        if hoje.month - i <= 0:
+            ano = hoje.year - 1
+            mes = 12 + (hoje.month - i)
+        else:
+            ano = hoje.year
+            mes = hoje.month - i
+        
+        primeiro = date(ano, mes, 1)
+        if mes == 12:
+            ultimo = date(ano + 1, 1, 1) - timedelta(days=1)
+        else:
+            ultimo = date(ano, mes + 1, 1) - timedelta(days=1)
+        
+        concluidas = CleaningHistory.query.filter(
+            CleaningHistory.data_conclusao >= datetime.combine(primeiro, datetime.min.time()),
+            CleaningHistory.data_conclusao <= datetime.combine(ultimo, datetime.max.time())
+        ).count()
+        
+        meses.append({
+            'mes': primeiro.strftime('%b'),
+            'concluidas': concluidas
+        })
+    
+    return jsonify({'meses': meses})

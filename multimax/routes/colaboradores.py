@@ -1,12 +1,11 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from .. import db
-from ..models import Collaborator, Shift, AppSetting, User, Holiday
-from ..models import LeaveAssignment
+from ..models import Collaborator as CollaboratorModel, Shift, AppSetting, Holiday, LeaveAssignment, Vacation as VacationModel, MedicalCertificate
 from ..models import HourBankEntry
-from ..models import LeaveCredit, LeaveAssignment, LeaveConversion
+from ..models import LeaveCredit, LeaveConversion
 from ..services.notificacao_service import registrar_evento
-from datetime import datetime, date, time
+from datetime import datetime, date
 from zoneinfo import ZoneInfo
 
 bp = Blueprint('colaboradores', __name__)
@@ -15,6 +14,7 @@ bp = Blueprint('colaboradores', __name__)
 @bp.route('/escala', strict_slashes=False)
 @login_required
 def escala():
+    from datetime import timedelta
     try:
         from sqlalchemy import inspect, text
         insp = inspect(db.engine)
@@ -40,9 +40,59 @@ def escala():
             db.session.rollback()
         except Exception:
             pass
-    cols = Collaborator.query.filter_by(active=True).order_by(Collaborator.name.asc()).all()
-    from datetime import timedelta
+    cols = CollaboratorModel.query.filter_by(active=True).order_by(CollaboratorModel.name.asc()).all()
     today = date.today()
+    
+    semana_param = request.args.get('semana', '')
+    if semana_param:
+        try:
+            semana_inicio = datetime.strptime(semana_param, '%Y-%m-%d').date()
+            semana_inicio = semana_inicio - timedelta(days=semana_inicio.weekday())
+        except Exception:
+            semana_inicio = today - timedelta(days=today.weekday())
+    else:
+        semana_inicio = today - timedelta(days=today.weekday())
+    
+    semana_fim = semana_inicio + timedelta(days=6)
+    semana_anterior = (semana_inicio - timedelta(days=7)).strftime('%Y-%m-%d')
+    semana_proxima = (semana_inicio + timedelta(days=7)).strftime('%Y-%m-%d')
+    
+    dias_nomes = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom']
+    dias_semana = []
+    for i in range(7):
+        d = semana_inicio + timedelta(days=i)
+        dias_semana.append({
+            'data': d,
+            'nome': dias_nomes[i],
+            'is_today': d == today
+        })
+    
+    turnos_semana = Shift.query.filter(
+        Shift.date >= semana_inicio,
+        Shift.date <= semana_fim
+    ).all()
+    
+    turnos_map = {}
+    for t in turnos_semana:
+        key = (t.collaborator_id, t.date.isoformat())
+        turnos_map[key] = t
+    
+    horas_turno = {
+        'Manha': 8, 'Tarde': 8, 'Folga': 0,
+        'Abertura 5h': 8, 'Abertura 6h': 8, 'Fechamento': 8,
+        'Domingo 5h': 8, 'Domingo 6h': 7
+    }
+    horas_semana = {}
+    for c in cols:
+        total = 0
+        for dia in dias_semana:
+            key = (c.id, dia['data'].isoformat())
+            if key in turnos_map:
+                turno = turnos_map[key].turno or ''
+                total += horas_turno.get(turno, 0)
+        horas_semana[c.id] = total
+    
+    total_turnos_semana = len(turnos_semana)
     current_monday = today - timedelta(days=today.weekday())
     try:
         ref_monday_setting = AppSetting.query.filter_by(key='rodizio_ref_monday').first()
@@ -109,6 +159,51 @@ def escala():
         domingo_team = '1'
         domingo_ref_date = ''
     events = []
+    conflicts = []
+    try:
+        name_by_id = {c.id: c.name for c in cols}
+        for t in turnos_semana:
+            cid = t.collaborator_id
+            d = t.date
+            nm = name_by_id.get(cid) or f"ID {cid}"
+            # Folga agendada
+            try:
+                las = LeaveAssignment.query.filter(
+                    LeaveAssignment.collaborator_id == cid,
+                    LeaveAssignment.date <= d
+                ).order_by(LeaveAssignment.date.desc()).limit(3).all()
+                for la in las or []:
+                    days = max(1, int(la.days_used or 1))
+                    end_date = la.date + timedelta(days=days - 1)
+                    if end_date >= d:
+                        conflicts.append({'type': 'Folga', 'name': nm, 'date': d})
+                        break
+            except Exception:
+                pass
+            # Férias
+            try:
+                vac = VacationModel.query.filter(
+                    VacationModel.collaborator_id == cid,
+                    VacationModel.data_inicio <= d,
+                    VacationModel.data_fim >= d
+                ).first()
+                if vac:
+                    conflicts.append({'type': 'Férias', 'name': nm, 'date': d})
+            except Exception:
+                pass
+            # Atestado
+            try:
+                mc = MedicalCertificate.query.filter(
+                    MedicalCertificate.collaborator_id == cid,
+                    MedicalCertificate.data_inicio <= d,
+                    MedicalCertificate.data_fim >= d
+                ).first()
+                if mc:
+                    conflicts.append({'type': 'Atestado', 'name': nm, 'date': d})
+            except Exception:
+                pass
+    except Exception:
+        conflicts = []
     try:
         from datetime import timedelta
         base_team = domingo_team if domingo_team in ('1','2') else '1'
@@ -153,7 +248,11 @@ def escala():
                 h.name = nm
                 h.kind = 'municipal-Umbaúba'
             else:
-                hh = Holiday(); hh.date = dt; hh.name = nm; hh.kind = 'municipal-Umbaúba'; db.session.add(hh)
+                hh = Holiday()
+                hh.date = dt
+                hh.name = nm
+                hh.kind = 'municipal-Umbaúba'
+                db.session.add(hh)
         db.session.commit()
     except Exception:
         try:
@@ -198,7 +297,11 @@ def escala():
                 h.name = nm
                 h.kind = 'nacional'
             else:
-                hh = Holiday(); hh.date = dt; hh.name = nm; hh.kind = 'nacional'; db.session.add(hh)
+                hh = Holiday()
+                hh.date = dt
+                hh.name = nm
+                hh.kind = 'nacional'
+                db.session.add(hh)
         db.session.commit()
     except Exception:
         try:
@@ -246,7 +349,44 @@ def escala():
                 })
     except Exception:
         pass
-    return render_template('escala.html', colaboradores=cols, weeks=weeks, ref_open=open_ref, domingo_team=domingo_team, domingo_ref_date=domingo_ref_date, events=events, feriados=hs if 'hs' in locals() else [], active_page='escala')
+    try:
+        turno_colors = {
+            'Manha': '#22c55e',
+            'Tarde': '#3b82f6',
+            'Noite': '#8b5cf6',
+            'Folga': '#6b7280',
+        }
+        name_by_id = {c.id: c.name for c in cols}
+        for t in turnos_semana:
+            nm = name_by_id.get(t.collaborator_id) or f"ID {t.collaborator_id}"
+            events.append({
+                'title': f"{t.turno}: {nm}",
+                'start': t.date.strftime('%Y-%m-%d'),
+                'color': turno_colors.get(t.turno, '#6b7280'),
+                'url': url_for('colaboradores.escala'),
+                'kind': 'turno',
+            })
+    except Exception:
+        pass
+    return render_template('escala.html', 
+        colaboradores=cols, 
+        weeks=weeks, 
+        ref_open=open_ref, 
+        domingo_team=domingo_team, 
+        domingo_ref_date=domingo_ref_date, 
+        events=events, 
+        feriados=hs if 'hs' in locals() else [], 
+        active_page='escala',
+        semana_inicio=semana_inicio,
+        semana_fim=semana_fim,
+        semana_anterior=semana_anterior,
+        semana_proxima=semana_proxima,
+        dias_semana=dias_semana,
+        turnos_map=turnos_map,
+        horas_semana=horas_semana,
+        total_turnos_semana=total_turnos_semana,
+        conflicts=conflicts
+    )
 @bp.route('/escala/domingo/configurar', methods=['POST'], strict_slashes=False)
 @login_required
 def domingo_configurar():
@@ -345,6 +485,354 @@ def feriado_excluir(id: int):
         db.session.rollback()
         flash(f'Erro ao excluir feriado: {e}', 'danger')
     return redirect(url_for('colaboradores.escala'))
+
+
+@bp.route('/escala/turno/atribuir', methods=['POST'], strict_slashes=False)
+@login_required
+def turno_atribuir():
+    if current_user.nivel not in ('operador', 'admin'):
+        flash('Voce nao tem permissao para atribuir turnos.', 'danger')
+        return redirect(url_for('colaboradores.escala'))
+    
+    turno_id = request.form.get('turno_id', '').strip()
+    collaborator_id = request.form.get('collaborator_id', type=int)
+    data_str = request.form.get('data', '').strip()
+    turno_tipo = request.form.get('turno', '').strip()
+    observacao = request.form.get('observacao', '').strip()
+    
+    if not collaborator_id or not data_str or not turno_tipo:
+        flash('Preencha todos os campos obrigatorios.', 'warning')
+        return redirect(url_for('colaboradores.escala'))
+    
+    try:
+        data_turno = datetime.strptime(data_str, '%Y-%m-%d').date()
+    except Exception:
+        flash('Data invalida.', 'warning')
+        return redirect(url_for('colaboradores.escala'))
+    
+    try:
+        if turno_id:
+            shift = Shift.query.get(int(turno_id))
+            if shift:
+                shift.collaborator_id = collaborator_id
+                shift.date = data_turno
+                shift.turno = turno_tipo
+                shift.observacao = observacao
+                flash('Turno atualizado com sucesso.', 'success')
+        else:
+            existing = Shift.query.filter_by(collaborator_id=collaborator_id, date=data_turno).first()
+            if existing:
+                existing.turno = turno_tipo
+                existing.observacao = observacao
+                flash('Turno atualizado com sucesso.', 'success')
+            else:
+                shift = Shift()
+                shift.collaborator_id = collaborator_id
+                shift.date = data_turno
+                shift.turno = turno_tipo
+                shift.observacao = observacao
+                db.session.add(shift)
+                flash('Turno atribuido com sucesso.', 'success')
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao salvar turno: {e}', 'danger')
+    
+    from datetime import timedelta as td
+    semana = (data_turno - td(days=data_turno.weekday())).strftime('%Y-%m-%d')
+    return redirect(url_for('colaboradores.escala', semana=semana))
+
+
+@bp.route('/escala/turno/excluir/<int:id>', methods=['POST'], strict_slashes=False)
+@login_required
+def turno_excluir(id: int):
+    if current_user.nivel not in ('operador', 'admin'):
+        flash('Voce nao tem permissao para excluir turnos.', 'danger')
+        return redirect(url_for('colaboradores.escala'))
+    
+    from datetime import timedelta as td
+    shift = Shift.query.get_or_404(id)
+    semana = (shift.date - td(days=shift.date.weekday())).strftime('%Y-%m-%d')
+    try:
+        db.session.delete(shift)
+        db.session.commit()
+        flash('Turno excluido.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir turno: {e}', 'danger')
+    
+    return redirect(url_for('colaboradores.escala', semana=semana))
+
+
+@bp.route('/escala/equipe/configurar', methods=['POST'], strict_slashes=False)
+@login_required
+def equipe_configurar():
+    if current_user.nivel not in ('operador', 'admin'):
+        flash('Voce nao tem permissao para configurar equipes.', 'danger')
+        return redirect(url_for('colaboradores.escala'))
+    
+    collaborator_id = request.form.get('collaborator_id', type=int)
+    team = request.form.get('team', '').strip()
+    position = request.form.get('position', type=int) or 1
+    
+    if not collaborator_id or team not in ('1', '2'):
+        flash('Dados invalidos.', 'warning')
+        return redirect(url_for('colaboradores.escala'))
+    
+    try:
+        colab = CollaboratorModel.query.get(collaborator_id)
+        if colab:
+            colab.regular_team = team
+            colab.team_position = position
+            db.session.commit()
+            flash(f'{colab.name} atribuido a Equipe {team}, posicao {position}.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao configurar equipe: {e}', 'danger')
+    
+    return redirect(url_for('colaboradores.escala'))
+
+
+@bp.route('/escala/gerar-automatica', methods=['POST'], strict_slashes=False)
+@login_required
+def gerar_escala_automatica():
+    if current_user.nivel not in ('operador', 'admin'):
+        flash('Voce nao tem permissao para gerar escalas.', 'danger')
+        return redirect(url_for('colaboradores.escala'))
+    
+    from datetime import timedelta as td
+    
+    semana_str = request.form.get('semana', '').strip()
+    incluir_domingo = request.form.get('incluir_domingo') == 'on'
+    
+    try:
+        if semana_str:
+            semana_inicio = datetime.strptime(semana_str, '%Y-%m-%d').date()
+            semana_inicio = semana_inicio - td(days=semana_inicio.weekday())
+        else:
+            today = date.today()
+            semana_inicio = today - td(days=today.weekday())
+    except Exception:
+        flash('Data invalida.', 'warning')
+        return redirect(url_for('colaboradores.escala'))
+    
+    ref_monday_setting = AppSetting.query.filter_by(key='rodizio_ref_monday').first()
+    ref_open_setting = AppSetting.query.filter_by(key='rodizio_open_team_ref').first()
+    
+    ref_monday = None
+    if ref_monday_setting and ref_monday_setting.value:
+        try:
+            ref_monday = datetime.strptime(ref_monday_setting.value.strip(), '%Y-%m-%d').date()
+        except Exception:
+            pass
+    if not ref_monday:
+        ref_monday = semana_inicio
+    
+    open_ref = '1'
+    if ref_open_setting and ref_open_setting.value in ('1', '2'):
+        open_ref = ref_open_setting.value
+    
+    weeks_diff = (semana_inicio - ref_monday).days // 7
+    if weeks_diff % 2 == 1:
+        open_team = '2' if open_ref == '1' else '1'
+    else:
+        open_team = open_ref
+    close_team = '2' if open_team == '1' else '1'
+    
+    equipe_abertura = CollaboratorModel.query.filter_by(active=True, regular_team=open_team).order_by(CollaboratorModel.team_position.asc()).all()
+    equipe_fechamento = CollaboratorModel.query.filter_by(active=True, regular_team=close_team).order_by(CollaboratorModel.team_position.asc()).all()
+    
+    if len(equipe_abertura) < 3 or len(equipe_fechamento) < 3:
+        flash(f'Equipes incompletas. Abertura: {len(equipe_abertura)}/3, Fechamento: {len(equipe_fechamento)}/3. Configure as equipes primeiro.', 'warning')
+        return redirect(url_for('colaboradores.escala', semana=semana_inicio.strftime('%Y-%m-%d')))
+    
+    tz = ZoneInfo('America/Sao_Paulo')
+    turnos_criados = 0
+    
+    try:
+        for day_offset in range(6):
+            dia = semana_inicio + td(days=day_offset)
+            
+            for i, colab in enumerate(equipe_abertura[:3]):
+                existing = Shift.query.filter_by(collaborator_id=colab.id, date=dia).first()
+                if existing:
+                    continue
+                
+                shift = Shift()
+                shift.collaborator_id = colab.id
+                shift.date = dia
+                shift.auto_generated = True
+                
+                if i < 2:
+                    shift.turno = 'Abertura 5h'
+                    shift.shift_type = 'abertura_5h'
+                    shift.start_dt = datetime(dia.year, dia.month, dia.day, 5, 0, tzinfo=tz)
+                    shift.end_dt = datetime(dia.year, dia.month, dia.day, 15, 0, tzinfo=tz)
+                    shift.observacao = '05:00-11:00 almoco 13:00-15:00'
+                else:
+                    shift.turno = 'Abertura 6h'
+                    shift.shift_type = 'abertura_6h'
+                    shift.start_dt = datetime(dia.year, dia.month, dia.day, 6, 0, tzinfo=tz)
+                    shift.end_dt = datetime(dia.year, dia.month, dia.day, 16, 0, tzinfo=tz)
+                    shift.observacao = '06:00-11:00 almoco 13:00-16:00'
+                
+                db.session.add(shift)
+                turnos_criados += 1
+            
+            for colab in equipe_fechamento[:3]:
+                existing = Shift.query.filter_by(collaborator_id=colab.id, date=dia).first()
+                if existing:
+                    continue
+                
+                shift = Shift()
+                shift.collaborator_id = colab.id
+                shift.date = dia
+                shift.turno = 'Fechamento'
+                shift.shift_type = 'fechamento'
+                shift.auto_generated = True
+                shift.start_dt = datetime(dia.year, dia.month, dia.day, 9, 30, tzinfo=tz)
+                shift.end_dt = datetime(dia.year, dia.month, dia.day, 19, 30, tzinfo=tz)
+                shift.observacao = '09:30-13:00 almoco 15:00-19:30'
+                db.session.add(shift)
+                turnos_criados += 1
+        
+        if incluir_domingo:
+            domingo = semana_inicio + td(days=6)
+            
+            sun_team_setting = AppSetting.query.filter_by(key='domingo_team_ref').first()
+            sun_ref_setting = AppSetting.query.filter_by(key='domingo_ref_sunday').first()
+            
+            domingo_team = sun_team_setting.value.strip() if sun_team_setting and sun_team_setting.value else '1'
+            if domingo_team not in ('1', '2'):
+                domingo_team = '1'
+            
+            ref_sun = None
+            if sun_ref_setting and sun_ref_setting.value:
+                try:
+                    ref_sun = datetime.strptime(sun_ref_setting.value.strip(), '%Y-%m-%d').date()
+                except Exception:
+                    pass
+            
+            if ref_sun:
+                weeks_diff_sun = (domingo - ref_sun).days // 7
+                if weeks_diff_sun % 2 == 1:
+                    domingo_team = '2' if domingo_team == '1' else '1'
+            
+            equipe_domingo = CollaboratorModel.query.filter_by(active=True, regular_team=domingo_team).order_by(CollaboratorModel.team_position.asc()).all()[:3]
+            
+            for i, colab in enumerate(equipe_domingo):
+                existing = Shift.query.filter_by(collaborator_id=colab.id, date=domingo).first()
+                if existing:
+                    continue
+                
+                shift = Shift()
+                shift.collaborator_id = colab.id
+                shift.date = domingo
+                shift.auto_generated = True
+                shift.is_sunday_holiday = True
+                
+                if i < 2:
+                    shift.turno = 'Domingo 5h'
+                    shift.shift_type = 'domingo_5h'
+                    shift.start_dt = datetime(domingo.year, domingo.month, domingo.day, 5, 0, tzinfo=tz)
+                    shift.end_dt = datetime(domingo.year, domingo.month, domingo.day, 13, 0, tzinfo=tz)
+                    shift.observacao = '05:00-13:00 (+1 folga +1h extra)'
+                    
+                    existing_hb = HourBankEntry.query.filter_by(
+                        collaborator_id=colab.id, date=domingo, reason='Hora extra domingo (entrada 5h)'
+                    ).first()
+                    if not existing_hb:
+                        hb = HourBankEntry()
+                        hb.collaborator_id = colab.id
+                        hb.date = domingo
+                        hb.hours = 1.0
+                        hb.reason = 'Hora extra domingo (entrada 5h)'
+                        db.session.add(hb)
+                else:
+                    shift.turno = 'Domingo 6h'
+                    shift.shift_type = 'domingo_6h'
+                    shift.start_dt = datetime(domingo.year, domingo.month, domingo.day, 6, 0, tzinfo=tz)
+                    shift.end_dt = datetime(domingo.year, domingo.month, domingo.day, 13, 0, tzinfo=tz)
+                    shift.observacao = '06:00-13:00 (+1 folga)'
+                
+                db.session.add(shift)
+                turnos_criados += 1
+                
+                existing_lc = LeaveCredit.query.filter_by(
+                    collaborator_id=colab.id, date=domingo, origin='domingo'
+                ).first()
+                if not existing_lc:
+                    lc = LeaveCredit()
+                    lc.collaborator_id = colab.id
+                    lc.date = domingo
+                    lc.amount_days = 1
+                    lc.origin = 'domingo'
+                    lc.notes = f'Trabalho no domingo {domingo.strftime("%d/%m/%Y")}'
+                    db.session.add(lc)
+        
+        db.session.commit()
+        flash(f'Escala gerada com sucesso! {turnos_criados} turnos criados. Equipe {open_team} na abertura, Equipe {close_team} no fechamento.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao gerar escala: {e}', 'danger')
+    
+    return redirect(url_for('colaboradores.escala', semana=semana_inicio.strftime('%Y-%m-%d')))
+
+
+@bp.route('/escala/limpar-semana', methods=['POST'], strict_slashes=False)
+@login_required
+def limpar_escala_semana():
+    if current_user.nivel != 'admin':
+        flash('Apenas Gerente pode limpar escalas.', 'danger')
+        return redirect(url_for('colaboradores.escala'))
+    
+    from datetime import timedelta as td
+    
+    semana_str = request.form.get('semana', '').strip()
+    apenas_automaticos = request.form.get('apenas_automaticos') == 'on'
+    
+    try:
+        if semana_str:
+            semana_inicio = datetime.strptime(semana_str, '%Y-%m-%d').date()
+            semana_inicio = semana_inicio - td(days=semana_inicio.weekday())
+        else:
+            today = date.today()
+            semana_inicio = today - td(days=today.weekday())
+    except Exception:
+        flash('Data invalida.', 'warning')
+        return redirect(url_for('colaboradores.escala'))
+    
+    semana_fim = semana_inicio + td(days=6)
+    
+    try:
+        query = Shift.query.filter(Shift.date >= semana_inicio, Shift.date <= semana_fim)
+        if apenas_automaticos:
+            query = query.filter(Shift.auto_generated.is_(True))
+        
+        shifts_to_delete = query.all()
+        count = len(shifts_to_delete)
+        
+        for shift in shifts_to_delete:
+            if shift.is_sunday_holiday:
+                LeaveCredit.query.filter_by(
+                    collaborator_id=shift.collaborator_id, 
+                    date=shift.date, 
+                    origin='domingo'
+                ).delete()
+                HourBankEntry.query.filter_by(
+                    collaborator_id=shift.collaborator_id,
+                    date=shift.date,
+                    reason='Hora extra domingo (entrada 5h)'
+                ).delete()
+            db.session.delete(shift)
+        
+        db.session.commit()
+        flash(f'{count} turnos removidos da semana (creditos associados tambem removidos).', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao limpar escala: {e}', 'danger')
+    
+    return redirect(url_for('colaboradores.escala', semana=semana_inicio.strftime('%Y-%m-%d')))
 
 
 @bp.route('/gestao/folga/credito', methods=['POST'], strict_slashes=False)
@@ -473,6 +961,17 @@ def folga_agendar():
         flash('Dados inválidos para agendamento.', 'warning')
         return redirect(url_for('usuarios.gestao'))
     try:
+        from sqlalchemy import func
+        credits_sum = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == cid).scalar() or 0
+        assigned_sum = db.session.query(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).filter(LeaveAssignment.collaborator_id == cid).scalar() or 0
+        converted_sum = db.session.query(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).filter(LeaveConversion.collaborator_id == cid).scalar() or 0
+        folga_balance = int(credits_sum) - int(assigned_sum) - int(converted_sum)
+        if folga_balance < days:
+            flash(f'Saldo de folga insuficiente ({folga_balance} dia(s)). Reduza os dias ou converta em dinheiro.', 'warning')
+            return redirect(url_for('usuarios.gestao') + '#folgas')
+    except Exception:
+        pass
+    try:
         la = LeaveAssignment()
         la.collaborator_id = cid
         la.date = d
@@ -481,7 +980,7 @@ def folga_agendar():
         db.session.add(la)
         db.session.commit()
         try:
-            col = Collaborator.query.get(cid)
+            col = CollaboratorModel.query.get(cid)
             nome = col.name if col and col.name else f'ID {cid}'
         except Exception:
             nome = f'ID {cid}'

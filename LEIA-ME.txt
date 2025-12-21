@@ -1,0 +1,54 @@
+==============================================
+MULTIMAX - INSTALACAO EM VPS
+==============================================
+
+REQUISITOS:
+- Python 3.11+
+- PostgreSQL (opcional, SQLite por padrao)
+
+INSTALACAO:
+1. Copie todos os arquivos para sua VPS
+2. Crie um ambiente virtual:
+   python3 -m venv venv
+   source venv/bin/activate
+
+3. Instale as dependencias:
+   pip install -r requirements.txt
+
+4. Configure as variaveis de ambiente (opcional):
+   export SENHA_ADMIN=sua_senha_admin
+   export SENHA_OPERADOR=sua_senha_operador
+   export SQLALCHEMY_DATABASE_URI=postgresql://user:pass@host/db
+
+5. Execute a aplicacao:
+   python app.py
+
+A aplicacao estara disponivel em http://localhost:5000
+
+SERVICO SYSTEMD (para rodar como servico):
+------------------------------------------
+Crie o arquivo /etc/systemd/system/multimax.service:
+
+[Unit]
+Description=MultiMax App
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/caminho/para/multimax
+Environment="PATH=/caminho/para/multimax/venv/bin"
+ExecStart=/caminho/para/multimax/venv/bin/python app.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
+Depois execute:
+sudo systemctl daemon-reload
+sudo systemctl enable multimax
+sudo systemctl start multimax
+
+USUARIOS PADRAO:
+- admin (senha definida em SENHA_ADMIN ou criada no primeiro acesso)
+- operador (senha definida em SENHA_OPERADOR ou criada no primeiro acesso)
+

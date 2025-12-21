@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% block title %}Novo Pedido — MultiMax{% endblock %}
+{% block content %}
+
+<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
+    <div>
+        <h1 class="mm-page-title">Novo Pedido</h1>
+        <p class="mm-text-muted">Criar pedido de compra manual</p>
+    </div>
+    <a href="{{ url_for('pedidos.index') }}" class="mm-btn mm-btn-outline">
+        <i class="bi bi-arrow-left"></i>
+        Voltar
+    </a>
+</div>
+
+<form method="post" action="{{ url_for('pedidos.novo') }}">
+    <div class="mm-card mm-mb-6">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title"><i class="bi bi-info-circle me-2"></i>Informações do Pedido</h3>
+        </div>
+        <div class="mm-card-body">
+            <div class="mm-grid mm-grid-cols-3 mm-gap-4">
+                <div class="mm-form-group">
+                    <label class="mm-label">Fornecedor *</label>
+                    <select name="fornecedor_id" class="mm-select" required>
+                        <option value="">Selecione...</option>
+                        {% for f in fornecedores %}
+                        <option value="{{ f.id }}">{{ f.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mm-form-group">
+                    <label class="mm-label">Data Prevista de Entrega</label>
+                    <input type="date" name="data_prevista" class="mm-input">
+                </div>
+                <div class="mm-form-group">
+                    <label class="mm-label">Observação</label>
+                    <input type="text" name="observacao" class="mm-input" placeholder="Opcional...">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mm-card mm-mb-6">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title"><i class="bi bi-list-check me-2"></i>Itens do Pedido</h3>
+            <button type="button" class="mm-btn mm-btn-outline mm-btn-sm" onclick="addItem()">
+                <i class="bi bi-plus"></i> Adicionar Item
+            </button>
+        </div>
+        <div class="mm-card-body">
+            <div id="itensContainer">
+                <div class="item-row mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-4">
+                    <div class="mm-form-group">
+                        <label class="mm-label">Produto</label>
+                        <select name="produto_id[]" class="mm-select produto-select">
+                            <option value="">Selecione...</option>
+                            {% for p in produtos %}
+                            <option value="{{ p.id }}" data-preco="{{ p.preco_custo or 0 }}">{{ p.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mm-form-group">
+                        <label class="mm-label">Quantidade</label>
+                        <input type="text" name="quantidade[]" class="mm-input quantidade-input" placeholder="0">
+                    </div>
+                    <div class="mm-form-group">
+                        <label class="mm-label">Preço Unitário (R$)</label>
+                        <input type="text" name="preco[]" class="mm-input preco-input" placeholder="0,00">
+                    </div>
+                    <div class="mm-form-group" style="display: flex; align-items: flex-end;">
+                        <button type="button" class="mm-btn mm-btn-ghost" style="color: var(--mm-danger);" onclick="removeItem(this)">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mm-flex mm-justify-end mm-gap-4">
+        <a href="{{ url_for('pedidos.index') }}" class="mm-btn mm-btn-outline">Cancelar</a>
+        <button type="submit" class="mm-btn mm-btn-primary">
+            <i class="bi bi-check-lg"></i> Criar Pedido
+        </button>
+    </div>
+</form>
+
+<script>
+function addItem() {
+    const container = document.getElementById('itensContainer');
+    const firstRow = container.querySelector('.item-row');
+    const newRow = firstRow.cloneNode(true);
+    newRow.querySelectorAll('input').forEach(input => input.value = '');
+    newRow.querySelectorAll('select').forEach(select => select.selectedIndex = 0);
+    container.appendChild(newRow);
+}
+
+function removeItem(btn) {
+    const container = document.getElementById('itensContainer');
+    if (container.querySelectorAll('.item-row').length > 1) {
+        btn.closest('.item-row').remove();
+    }
+}
+
+document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('produto-select')) {
+        const option = e.target.options[e.target.selectedIndex];
+        const preco = option.getAttribute('data-preco') || '0';
+        const row = e.target.closest('.item-row');
+        const precoInput = row.querySelector('.preco-input');
+        precoInput.value = parseFloat(preco).toFixed(2).replace('.', ',');
+    }
+});
+</script>
+
+{% endblock %}

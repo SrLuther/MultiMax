@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% block title %}Controle de Validade — MultiMax{% endblock %}
+{% block content %}
+
+<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
+    <div>
+        <h1 class="mm-page-title">Controle de Validade</h1>
+        <p class="mm-text-muted">Monitoramento FIFO e produtos próximos ao vencimento</p>
+    </div>
+    <div class="mm-flex mm-gap-2">
+        <a href="{{ url_for('validade.fifo') }}" class="mm-btn mm-btn-outline">
+            <i class="bi bi-sort-numeric-down"></i>
+            Ordem FIFO
+        </a>
+        <a href="{{ url_for('validade.sugerir_promocao') }}" class="mm-btn mm-btn-primary">
+            <i class="bi bi-tag"></i>
+            Sugerir Promoções
+        </a>
+    </div>
+</div>
+
+<div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
+    <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-info);">
+        <div class="mm-flex mm-items-center mm-justify-between">
+            <div>
+                <div class="mm-kpi-label">Com Data de Validade</div>
+                <div class="mm-kpi-value" style="color: var(--mm-info);">{{ total_com_validade }}</div>
+            </div>
+            <div class="mm-kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--mm-info);">
+                <i class="bi bi-calendar-check"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-danger);">
+        <div class="mm-flex mm-items-center mm-justify-between">
+            <div>
+                <div class="mm-kpi-label">Vencidos</div>
+                <div class="mm-kpi-value" style="color: var(--mm-danger);">{{ vencidos }}</div>
+            </div>
+            <div class="mm-kpi-icon" style="background: rgba(239, 68, 68, 0.15); color: var(--mm-danger);">
+                <i class="bi bi-exclamation-octagon"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-warning);">
+        <div class="mm-flex mm-items-center mm-justify-between">
+            <div>
+                <div class="mm-kpi-label">Próximos 7 Dias</div>
+                <div class="mm-kpi-value" style="color: var(--mm-warning);">{{ proximos_7dias }}</div>
+            </div>
+            <div class="mm-kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning);">
+                <i class="bi bi-clock-history"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-success);">
+        <div class="mm-flex mm-items-center mm-justify-between">
+            <div>
+                <div class="mm-kpi-label">Próximos 30 Dias</div>
+                <div class="mm-kpi-value" style="color: var(--mm-success);">{{ proximos_30dias }}</div>
+            </div>
+            <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-success);">
+                <i class="bi bi-calendar3"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mm-card mm-mb-6">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title"><i class="bi bi-funnel me-2"></i>Filtros</h3>
+    </div>
+    <div class="mm-card-body">
+        <form method="get" action="{{ url_for('validade.index') }}" class="mm-flex mm-gap-4 mm-flex-wrap mm-items-end">
+            <div class="mm-form-group" style="min-width: 120px;">
+                <label class="mm-label">Dias de Alerta</label>
+                <select name="dias" class="mm-select">
+                    <option value="3" {% if dias_alerta == 3 %}selected{% endif %}>3 dias</option>
+                    <option value="7" {% if dias_alerta == 7 %}selected{% endif %}>7 dias</option>
+                    <option value="15" {% if dias_alerta == 15 %}selected{% endif %}>15 dias</option>
+                    <option value="30" {% if dias_alerta == 30 %}selected{% endif %}>30 dias</option>
+                    <option value="60" {% if dias_alerta == 60 %}selected{% endif %}>60 dias</option>
+                </select>
+            </div>
+            <div class="mm-form-group">
+                <label class="mm-flex mm-items-center mm-gap-2">
+                    <input type="checkbox" name="vencidos" value="1" {% if apenas_vencidos %}checked{% endif %}>
+                    <span>Apenas Vencidos</span>
+                </label>
+            </div>
+            <button type="submit" class="mm-btn mm-btn-primary">
+                <i class="bi bi-search"></i> Filtrar
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="mm-card">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title"><i class="bi bi-calendar-x me-2"></i>Produtos por Validade</h3>
+        <span class="mm-badge mm-badge-primary">{{ produtos_pag.total if produtos_pag else 0 }}</span>
+    </div>
+    <div class="mm-card-body">
+        {% if produtos and produtos|length > 0 %}
+        <div class="mm-table-wrapper">
+            <table class="mm-table">
+                <thead>
+                    <tr>
+                        <th>Produto</th>
+                        <th>Código</th>
+                        <th>Lote</th>
+                        <th>Validade</th>
+                        <th>Dias</th>
+                        <th>Quantidade</th>
+                        <th>Status</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in produtos %}
+                    <tr {% if p.status_validade == 'vencido' %}style="background: rgba(239, 68, 68, 0.08);"{% elif p.status_validade == 'critico' %}style="background: rgba(245, 158, 11, 0.08);"{% endif %}>
+                        <td>
+                            <div class="mm-flex mm-items-center mm-gap-2">
+                                <div class="mm-avatar" style="width: 32px; height: 32px; background: {% if p.status_validade == 'vencido' %}rgba(239, 68, 68, 0.15){% elif p.status_validade == 'critico' %}rgba(245, 158, 11, 0.15){% else %}rgba(34, 197, 94, 0.15){% endif %}; border-radius: var(--mm-radius); display: flex; align-items: center; justify-content: center;">
+                                    <i class="bi bi-box" style="color: {% if p.status_validade == 'vencido' %}var(--mm-danger){% elif p.status_validade == 'critico' %}var(--mm-warning){% else %}var(--mm-success){% endif %};"></i>
+                                </div>
+                                <strong>{{ p.nome }}</strong>
+                            </div>
+                        </td>
+                        <td class="mm-text-muted" style="font-size: var(--mm-text-sm);">{{ p.codigo }}</td>
+                        <td class="mm-text-muted" style="font-size: var(--mm-text-sm);">{{ p.lote or '-' }}</td>
+                        <td style="font-weight: 600;">{{ p.data_validade.strftime('%d/%m/%Y') if p.data_validade else '-' }}</td>
+                        <td>
+                            {% if p.status_validade == 'vencido' %}
+                            <span style="color: var(--mm-danger); font-weight: 600;">-{{ p.dias_restantes }}d</span>
+                            {% else %}
+                            <span style="color: {% if p.status_validade == 'critico' %}var(--mm-warning){% else %}var(--mm-success){% endif %}; font-weight: 600;">{{ p.dias_restantes }}d</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ p.quantidade }}</td>
+                        <td>
+                            {% if p.status_validade == 'vencido' %}
+                            <span class="mm-badge" style="background: rgba(239, 68, 68, 0.15); color: var(--mm-danger);">Vencido</span>
+                            {% elif p.status_validade == 'critico' %}
+                            <span class="mm-badge" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning);">Crítico</span>
+                            {% elif p.status_validade == 'alerta' %}
+                            <span class="mm-badge" style="background: rgba(251, 191, 36, 0.15); color: #d97706;">Alerta</span>
+                            {% else %}
+                            <span class="mm-badge" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-success);">OK</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{{ url_for('estoque.editar', id=p.id) }}" class="mm-btn mm-btn-outline mm-btn-sm" title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <nav class="mm-pagination mm-flex mm-items-center mm-justify-center mm-gap-2 mm-mt-4">
+            <a href="{{ url_for('validade.index', page=produtos_pag.prev_num if produtos_pag else 1, dias=dias_alerta, vencidos='1' if apenas_vencidos else '') }}" 
+               class="mm-btn mm-btn-outline mm-btn-sm {% if not produtos_pag or not produtos_pag.has_prev %}disabled{% endif %}">
+                <i class="bi bi-chevron-left"></i> Anterior
+            </a>
+            <span class="mm-text-muted" style="font-size: var(--mm-text-sm);">
+                Página {{ produtos_pag.page if produtos_pag else 1 }} de {{ produtos_pag.pages if produtos_pag else 1 }}
+            </span>
+            <a href="{{ url_for('validade.index', page=produtos_pag.next_num if produtos_pag else 1, dias=dias_alerta, vencidos='1' if apenas_vencidos else '') }}" 
+               class="mm-btn mm-btn-outline mm-btn-sm {% if not produtos_pag or not produtos_pag.has_next %}disabled{% endif %}">
+                Próxima <i class="bi bi-chevron-right"></i>
+            </a>
+        </nav>
+        {% else %}
+        <div class="mm-empty-state" style="text-align: center; padding: var(--mm-space-8);">
+            <div style="width: 60px; height: 60px; margin: 0 auto var(--mm-space-4); background: rgba(34, 197, 94, 0.1); border-radius: var(--mm-radius-full); display: flex; align-items: center; justify-content: center;">
+                <i class="bi bi-check-circle" style="font-size: 1.5rem; color: var(--mm-success);"></i>
+            </div>
+            <h4 class="mm-font-semibold mm-mb-2">Nenhum produto próximo do vencimento</h4>
+            <p class="mm-text-muted">Todos os produtos estão dentro da validade.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

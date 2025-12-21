@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% block title %}Catálogo de Ingredientes — MultiMax{% endblock %}
+
+{% block breadcrumb %}
+<span class="mm-breadcrumb-separator">/</span>
+<a href="{{ url_for('receitas.index') }}" class="mm-breadcrumb-link">Receitas</a>
+<span class="mm-breadcrumb-separator">/</span>
+<span>Catálogo de Ingredientes</span>
+{% endblock %}
+
+{% block content %}
+<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
+    <div>
+        <h1 class="mm-page-title">Catálogo de Ingredientes</h1>
+        <p class="mm-text-muted">Ingredientes pré-cadastrados para usar nas receitas</p>
+    </div>
+    <a href="{{ url_for('receitas.index') }}" class="mm-btn mm-btn-outline">
+        <i class="bi bi-arrow-left"></i> Voltar às Receitas
+    </a>
+</div>
+
+<div class="mm-grid mm-grid-cols-3 mm-gap-6">
+    <div class="mm-card" style="grid-column: span 1;">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title">
+                <i class="bi bi-plus-circle mm-text-primary"></i>
+                Novo Ingrediente
+            </h3>
+        </div>
+        <div class="mm-card-body">
+            <form method="post" action="{{ url_for('receitas.catalogo') }}">
+                <div class="mm-form-group mm-mb-4">
+                    <label class="mm-label">Nome do Ingrediente</label>
+                    <input type="text" name="nome" class="mm-input" placeholder="Ex: Carne Bovina" required>
+                </div>
+                <div class="mm-form-group mm-mb-4">
+                    <label class="mm-label">Categoria</label>
+                    <input type="text" name="categoria" class="mm-input" placeholder="Ex: Carnes, Temperos, Laticínios" list="categorias-list">
+                    <datalist id="categorias-list">
+                        {% for cat in categorias %}
+                        <option value="{{ cat }}">
+                        {% endfor %}
+                        <option value="Carnes">
+                        <option value="Temperos">
+                        <option value="Laticínios">
+                        <option value="Vegetais">
+                        <option value="Grãos">
+                        <option value="Outros">
+                    </datalist>
+                </div>
+                <div class="mm-form-group mm-mb-4">
+                    <label class="mm-label">Unidade Padrão</label>
+                    <select name="unidade_padrao" class="mm-input mm-select">
+                        <option value="kg">Quilograma (kg)</option>
+                        <option value="g">Grama (g)</option>
+                        <option value="un">Unidade (un)</option>
+                        <option value="l">Litro (l)</option>
+                        <option value="ml">Mililitro (ml)</option>
+                    </select>
+                </div>
+                <button type="submit" class="mm-btn mm-btn-primary" style="width: 100%;">
+                    <i class="bi bi-plus-lg"></i> Cadastrar Ingrediente
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="mm-card" style="grid-column: span 2;">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title">
+                <i class="bi bi-list-ul mm-text-info"></i>
+                Ingredientes Cadastrados
+            </h3>
+            <form method="get" action="{{ url_for('receitas.catalogo') }}" class="mm-flex mm-gap-2">
+                <input type="text" name="q" class="mm-input" placeholder="Buscar..." value="{{ q }}" style="width: 150px;">
+                <select name="categoria" class="mm-input mm-select" style="width: 130px;">
+                    <option value="">Todas</option>
+                    {% for cat in categorias %}
+                    <option value="{{ cat }}" {% if cat == categoria_atual %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="mm-btn mm-btn-outline mm-btn-sm">
+                    <i class="bi bi-search"></i>
+                </button>
+            </form>
+        </div>
+        <div class="mm-card-body">
+            <div class="mm-table-wrapper">
+                <table class="mm-table">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Categoria</th>
+                            <th>Unidade</th>
+                            <th style="text-align: right;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ing in ingredientes %}
+                        <tr>
+                            <td><strong>{{ ing.nome }}</strong></td>
+                            <td>
+                                {% if ing.categoria %}
+                                <span class="mm-badge mm-badge-info">{{ ing.categoria }}</span>
+                                {% else %}
+                                <span class="mm-text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ ing.unidade_padrao or 'kg' }}</td>
+                            <td style="text-align: right;">
+                                <div class="mm-flex mm-gap-2" style="justify-content: flex-end;">
+                                    <button class="mm-btn mm-btn-outline mm-btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#modalEdit{{ ing.id }}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <form method="post" action="{{ url_for('receitas.catalogo_excluir', id=ing.id) }}" class="mm-inline-form" onsubmit="return confirm('Remover este ingrediente do catálogo?')">
+                                        <button class="mm-btn mm-btn-danger mm-btn-sm" type="submit">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="mm-empty-cell">
+                                <div class="mm-empty-inline">
+                                    <i class="bi bi-box"></i>
+                                    <span>Nenhum ingrediente cadastrado</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% for ing in ingredientes %}
+<div class="modal fade" id="modalEdit{{ ing.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="post" action="{{ url_for('receitas.catalogo_editar', id=ing.id) }}">
+            <div class="modal-content mm-modal">
+                <div class="modal-header mm-modal-header">
+                    <h5 class="modal-title">Editar Ingrediente</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body mm-modal-body">
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Nome</label>
+                        <input type="text" name="nome" class="mm-input" value="{{ ing.nome }}" required>
+                    </div>
+                    <div class="mm-form-group mm-mb-4">
+                        <label class="mm-label">Categoria</label>
+                        <input type="text" name="categoria" class="mm-input" value="{{ ing.categoria or '' }}">
+                    </div>
+                    <div class="mm-form-group">
+                        <label class="mm-label">Unidade Padrão</label>
+                        <select name="unidade_padrao" class="mm-input mm-select">
+                            <option value="kg" {% if ing.unidade_padrao == 'kg' %}selected{% endif %}>Quilograma (kg)</option>
+                            <option value="g" {% if ing.unidade_padrao == 'g' %}selected{% endif %}>Grama (g)</option>
+                            <option value="un" {% if ing.unidade_padrao == 'un' %}selected{% endif %}>Unidade (un)</option>
+                            <option value="l" {% if ing.unidade_padrao == 'l' %}selected{% endif %}>Litro (l)</option>
+                            <option value="ml" {% if ing.unidade_padrao == 'ml' %}selected{% endif %}>Mililitro (ml)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer mm-modal-footer">
+                    <button class="mm-btn mm-btn-outline" type="button" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="mm-btn mm-btn-primary" type="submit">Salvar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
