@@ -1365,7 +1365,7 @@ def gestao_colabs_horas_adicionar():
                 flash(f'Horas registradas. Conversão automática aplicada: +{missing} dia(s) e -{missing*8}h no banco.', 'success')
             else:
                 flash('Horas registradas.', 'success')
-        except Exception:
+        except Exception as ex:
             flash('Horas registradas.', 'success')
     except Exception as ex:
         try:
@@ -1442,9 +1442,9 @@ def gestao_colabs_horas_excluir(id: int):
                 db.session.commit()
                 flash(f'Lançamento excluído. Conversões automáticas ajustadas: +{missing} dia(s) e -{missing*8}h no banco.', 'info')
             else:
-                flash('Lançamento excluído.', 'danger')
-        except Exception:
-            flash('Lançamento excluído.', 'danger')
+                flash('Lançamento excluído.', 'success')
+        except Exception as ex:
+            flash('Lançamento excluído.', 'success')
     except Exception as ex:
         try:
             db.session.rollback()

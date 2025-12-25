@@ -138,7 +138,7 @@ def criar_produto():
     if data.get('data_validade'):
         try:
             produto.data_validade = datetime.strptime(data['data_validade'], '%Y-%m-%d').date()
-        except:
+        except Exception:
             pass
     
     produto.lote = data.get('lote')
@@ -174,7 +174,7 @@ def atualizar_produto(id: int):
         if data['data_validade']:
             try:
                 produto.data_validade = datetime.strptime(data['data_validade'], '%Y-%m-%d').date()
-            except:
+            except Exception:
                 pass
         else:
             produto.data_validade = None
@@ -332,9 +332,8 @@ def produtos_estoque_baixo():
     return jsonify(data)
 
 @bp.route('/notifications', methods=['GET'])
+@api_auth_required
 def get_notifications():
-    if not current_user.is_authenticated:
-        return jsonify({'notifications': [], 'count': 0})
     
     notifications = []
     today = date.today()
@@ -348,7 +347,7 @@ def get_notifications():
         
         for p in crit:
             is_read = NotificationRead.query.filter_by(
-                user_id=current_user.id, tipo='estoque', ref_id=p.id
+                user_id=g.api_user.id, tipo='estoque', ref_id=p.id
             ).first() is not None
             if not is_read:
                 notifications.append({
@@ -373,7 +372,7 @@ def get_notifications():
         
         for t in tasks:
             is_read = NotificationRead.query.filter_by(
-                user_id=current_user.id, tipo='limpeza', ref_id=t.id
+                user_id=g.api_user.id, tipo='limpeza', ref_id=t.id
             ).first() is not None
             if not is_read:
                 if t.proxima_data < today:

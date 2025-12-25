@@ -1,9 +1,13 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, send_file, current_app, request
+from flask import Blueprint, render_template, redirect, url_for, flash, send_file, current_app, request, jsonify
 from flask_login import login_required, current_user
 import os
 import shutil
 import time
 from ..models import UserLogin
+try:
+    import psutil  # type: ignore
+except Exception:
+    psutil = None
 
 bp = Blueprint('dbadmin', __name__, url_prefix='/db')
 
@@ -90,6 +94,25 @@ def index():
         logins=logins,
         logins_pag=logins_pag
     )
+
+@bp.route('/metrics', methods=['GET'], strict_slashes=False)
+@login_required
+def metrics():
+    if current_user.nivel != 'admin':
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    cpu = None
+    mem = None
+    try:
+        if psutil is not None:
+            cpu = float(psutil.cpu_percent(interval=0.05))
+            mem = float(psutil.virtual_memory().percent)
+        else:
+            cpu = None
+            mem = None
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+    from datetime import datetime
+    return jsonify({'ok': True, 'ts': datetime.now().isoformat(), 'cpu': cpu, 'mem': mem})
 
 @bp.route('/backup', methods=['POST'], strict_slashes=False)
 @login_required

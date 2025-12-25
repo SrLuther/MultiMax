@@ -30,6 +30,31 @@
     </div>
 </div>
 
+<div class="mm-card mm-mb-6">
+    <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
+        <h3 class="mm-card-title">
+            <i class="bi bi-cpu mm-text-primary"></i>
+            Uso de Recursos da Máquina
+        </h3>
+        <span class="mm-badge mm-badge-primary">Atualiza a cada 1s</span>
+    </div>
+    <div class="mm-card-body">
+        <div class="mm-grid mm-grid-cols-2 mm-gap-4">
+            <div>
+                <div class="mm-label">CPU (%)</div>
+                <canvas id="cpuChart" height="120"></canvas>
+            </div>
+            <div>
+                <div class="mm-label">Memória (%)</div>
+                <canvas id="memChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="mm-card-footer">
+        <span class="mm-text-sm mm-text-muted">Origem: host local do MultiMax</span>
+    </div>
+</div>
+
 <div id="problems_and_diagnostics" class="mm-card mm-mb-6">
     <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
         <h3 class="mm-card-title">
@@ -176,6 +201,55 @@
 </div>
 
 <script>
+var __mmChartsLoaded = false;
+function ensureChartJs(cb){
+  if (window.Chart) { __mmChartsLoaded = true; cb(); return; }
+  if (__mmChartsLoaded) { cb(); return; }
+  var s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+  s.onload = function(){ __mmChartsLoaded = true; cb(); };
+  document.head.appendChild(s);
+}
+function startResourceCharts(){
+  var cpuCtx = document.getElementById('cpuChart');
+  var memCtx = document.getElementById('memChart');
+  if (!cpuCtx || !memCtx) return;
+  var labels = [];
+  var cpuData = [];
+  var memData = [];
+  var cpuChart = new Chart(cpuCtx, {
+    type: 'line',
+    data: { labels: labels, datasets: [{ label: 'CPU %', data: cpuData, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.15)', tension: 0.25 }] },
+    options: { responsive: true, animation: false, scales: { y: { beginAtZero: true, max: 100 } } }
+  });
+  var memChart = new Chart(memCtx, {
+    type: 'line',
+    data: { labels: labels, datasets: [{ label: 'Memória %', data: memData, borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.15)', tension: 0.25 }] },
+    options: { responsive: true, animation: false, scales: { y: { beginAtZero: true, max: 100 } } }
+  });
+  function pushPoint(ts, cpu, mem){
+    var t = new Date(ts);
+    var hh = String(t.getHours()).padStart(2,'0');
+    var mm = String(t.getMinutes()).padStart(2,'0');
+    var ss = String(t.getSeconds()).padStart(2,'0');
+    labels.push(hh+':'+mm+':'+ss);
+    cpuData.push(cpu);
+    memData.push(mem);
+    if (labels.length > 60){ labels.shift(); cpuData.shift(); memData.shift(); }
+    cpuChart.update();
+    memChart.update();
+  }
+  async function fetchMetrics(){
+    try{
+      var resp = await fetch("{{ url_for('dbadmin.metrics') }}");
+      var json = await resp.json();
+      if (!json || !json.ok || json.cpu == null || json.mem == null) return;
+      pushPoint(json.ts, json.cpu, json.mem);
+    } catch(e){}
+  }
+  fetchMetrics();
+  setInterval(fetchMetrics, 1000);
+}
 function resizeDbFrame() {
   var f = document.getElementById('dbStatusFrame');
   if (!f) return;
@@ -203,6 +277,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (f) {
     f.addEventListener('load', resizeDbFrame);
   }
+  ensureChartJs(startResourceCharts);
 });
 </script>
 <div class="mm-card">

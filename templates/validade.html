@@ -7,16 +7,32 @@
         <h1 class="mm-page-title">Controle de Validade</h1>
         <p class="mm-text-muted">Monitoramento FIFO e produtos próximos ao vencimento</p>
     </div>
-    <div class="mm-flex mm-gap-2">
-        <a href="{{ url_for('validade.fifo') }}" class="mm-btn mm-btn-outline">
-            <i class="bi bi-sort-numeric-down"></i>
-            Ordem FIFO
-        </a>
-        <a href="{{ url_for('validade.sugerir_promocao') }}" class="mm-btn mm-btn-primary">
-            <i class="bi bi-tag"></i>
-            Sugerir Promoções
-        </a>
-    </div>
+</div>
+
+<div class="validade-actions mm-flex mm-gap-2 mm-mt-3" style="flex-wrap: wrap;">
+    <a href="{{ url_for('validade.fifo') }}" class="mm-btn mm-btn-outline">
+        <i class="bi bi-sort-numeric-down"></i>
+        Ordem FIFO
+    </a>
+    <a href="{{ url_for('validade.sugerir_promocao') }}" class="mm-btn mm-btn-primary">
+        <i class="bi bi-tag"></i>
+        Sugerir Promoções
+    </a>
+    <style>
+        .validade-actions .mm-btn { flex: 0 0 180px; height: 48px; }
+        @media (max-width: 768px) {
+            .validade-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+            .validade-actions .mm-btn { width: 100%; height: 48px; display: flex; align-items: center; justify-content: center; padding: 0; white-space: nowrap; box-sizing: border-box; }
+        }
+        .validade-avatar--vencido { background: rgba(239, 68, 68, 0.15); }
+        .validade-avatar--critico { background: rgba(245, 158, 11, 0.15); }
+        .validade-avatar--ok { background: rgba(34, 197, 94, 0.15); }
+        .validade-icon--vencido { color: var(--mm-danger); }
+        .validade-icon--critico { color: var(--mm-warning); }
+        .validade-icon--ok { color: var(--mm-success); }
+        .validade-days--critico { color: var(--mm-warning); }
+        .validade-days--ok { color: var(--mm-success); }
+    </style>
 </div>
 
 <div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
@@ -124,8 +140,8 @@
                     <tr {% if p.status_validade == 'vencido' %}style="background: rgba(239, 68, 68, 0.08);"{% elif p.status_validade == 'critico' %}style="background: rgba(245, 158, 11, 0.08);"{% endif %}>
                         <td>
                             <div class="mm-flex mm-items-center mm-gap-2">
-                                <div class="mm-avatar" style="width: 32px; height: 32px; background: {% if p.status_validade == 'vencido' %}rgba(239, 68, 68, 0.15){% elif p.status_validade == 'critico' %}rgba(245, 158, 11, 0.15){% else %}rgba(34, 197, 94, 0.15){% endif %}; border-radius: var(--mm-radius); display: flex; align-items: center; justify-content: center;">
-                                    <i class="bi bi-box" style="color: {% if p.status_validade == 'vencido' %}var(--mm-danger){% elif p.status_validade == 'critico' %}var(--mm-warning){% else %}var(--mm-success){% endif %};"></i>
+                                <div class="mm-avatar {% if p.status_validade == 'vencido' %}validade-avatar--vencido{% elif p.status_validade == 'critico' %}validade-avatar--critico{% else %}validade-avatar--ok{% endif %}" style="width: 32px; height: 32px; border-radius: var(--mm-radius); display: flex; align-items: center; justify-content: center;">
+                                    <i class="bi bi-box {% if p.status_validade == 'vencido' %}validade-icon--vencido{% elif p.status_validade == 'critico' %}validade-icon--critico{% else %}validade-icon--ok{% endif %}"></i>
                                 </div>
                                 <strong>{{ p.nome }}</strong>
                             </div>
@@ -137,7 +153,7 @@
                             {% if p.status_validade == 'vencido' %}
                             <span style="color: var(--mm-danger); font-weight: 600;">-{{ p.dias_restantes }}d</span>
                             {% else %}
-                            <span style="color: {% if p.status_validade == 'critico' %}var(--mm-warning){% else %}var(--mm-success){% endif %}; font-weight: 600;">{{ p.dias_restantes }}d</span>
+                            <span class="{% if p.status_validade == 'critico' %}validade-days--critico{% else %}validade-days--ok{% endif %}" style="font-weight: 600;">{{ p.dias_restantes }}d</span>
                             {% endif %}
                         </td>
                         <td>{{ p.quantidade }}</td>

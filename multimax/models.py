@@ -178,6 +178,8 @@ class Collaborator(db.Model):
     team_position = db.Column(db.Integer, default=1)
     telefone = db.Column(db.String(20), nullable=True)
     data_admissao = db.Column(db.Date, nullable=True)
+    matricula = db.Column(db.String(30), nullable=True)
+    departamento = db.Column(db.String(50), nullable=True)
     
     user = db.relationship('User', backref='collaborator', lazy=True)
     shifts = db.relationship('Shift', backref='collaborator', lazy=True)
@@ -433,13 +435,39 @@ class HelpArticle(db.Model):
     categoria = db.Column(db.String(50), default='Geral')
     ordem = db.Column(db.Integer, default=0)
     ativo = db.Column(db.Boolean, default=True)
+
+class RegistroJornada(db.Model):
+    __tablename__ = 'registro_jornada'
+    id = db.Column(db.String(36), primary_key=True)
+    collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'), nullable=False)
+    tipo_registro = db.Column(db.String(10), nullable=False)
+    valor = db.Column(db.Numeric(8, 2), nullable=False)
+    data = db.Column(db.Date, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+
+    collaborator = db.relationship('Collaborator', backref='registros_jornada', lazy=True)
+
+class RegistroJornadaChange(db.Model):
+    __tablename__ = 'registro_jornada_change'
+    id = db.Column(db.Integer, primary_key=True)
+    worklog_id = db.Column(db.String(36), db.ForeignKey('registro_jornada.id'), nullable=False)
+    changed_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    old_tipo = db.Column(db.String(10))
+    old_valor = db.Column(db.Numeric(8, 2))
+    old_data = db.Column(db.Date)
+    new_tipo = db.Column(db.String(10))
+    new_valor = db.Column(db.Numeric(8, 2))
+    new_data = db.Column(db.Date)
+    changed_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+
+    worklog = db.relationship('RegistroJornada', backref='changes', lazy=True)
     votos_util = db.Column(db.Integer, default=0)
     votos_nao_util = db.Column(db.Integer, default=0)
     criado_por = db.Column(db.String(100))
     criado_em = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
     atualizado_em = db.Column(db.DateTime(timezone=True), onupdate=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
     
-    votes = db.relationship('ArticleVote', backref='article', lazy=True, cascade='all, delete-orphan')
 
 
 class ArticleVote(db.Model):

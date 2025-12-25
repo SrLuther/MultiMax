@@ -17,9 +17,11 @@ def _now():
 def index():
     page = request.args.get('page', 1, type=int)
     local_filter = request.args.get('local', '').strip()
+    tipo_filter = request.args.get('tipo', '').strip()
     data_inicio = request.args.get('data_inicio', '').strip()
     data_fim = request.args.get('data_fim', '').strip()
     apenas_alertas = request.args.get('alertas', '') == '1'
+    apenas_com_foto = request.args.get('com_foto', '') == '1'
     
     query = TemperatureLog.query
     if local_filter:
@@ -38,12 +40,51 @@ def index():
             pass
     if apenas_alertas:
         query = query.filter(TemperatureLog.alerta.is_(True))
+    if tipo_filter:
+        locs_tipo = TemperatureLocation.query.filter(TemperatureLocation.ativo.is_(True), TemperatureLocation.tipo == tipo_filter).all()
+        nomes_tipo = [l.nome for l in locs_tipo]
+        if nomes_tipo:
+            query = query.filter(TemperatureLog.local.in_(nomes_tipo))
+    if apenas_com_foto:
+        try:
+            query = query.filter(TemperatureLog.fotos.any())
+        except Exception:
+            pass
     
     query = query.order_by(TemperatureLog.data_registro.desc())
     per_page = int(current_app.config.get('PER_PAGE', 10))
     registros_pag = query.paginate(page=page, per_page=per_page, error_out=False)
+    try:
+        for reg in registros_pag.items:
+            rng = float((reg.temp_max or 0.0)) - float((reg.temp_min or 0.0))
+            if rng > 0:
+                pct = (float(reg.temperatura or 0.0) - float(reg.temp_min or 0.0)) / rng * 100.0
+            else:
+                pct = 0.0
+            pct = max(0.0, min(100.0, pct))
+            try:
+                reg.temp_pct = round(pct)
+            except Exception:
+                reg.temp_pct = 0
+    except Exception:
+        pass
     
     locais = TemperatureLocation.query.filter_by(ativo=True).order_by(TemperatureLocation.nome).all()
+    tipos = sorted(list({(l.tipo or '').strip() for l in locais if l.tipo}))
+    ultimos_por_local = {}
+    try:
+        for l in locais:
+            last = TemperatureLog.query.filter(TemperatureLog.local == l.nome).order_by(TemperatureLog.data_registro.desc()).first()
+            if last:
+                ultimos_por_local[l.nome] = {
+                    'valor': float(last.temperatura or 0.0),
+                    'min': float(last.temp_min or (l.temp_min or 0.0)),
+                    'max': float(last.temp_max or (l.temp_max or 0.0)),
+                    'alerta': bool(last.alerta),
+                    'data': last.data_registro,
+                }
+    except Exception:
+        ultimos_por_local = {}
     
     total_registros = TemperatureLog.query.count()
     total_alertas = TemperatureLog.query.filter_by(alerta=True).count()
@@ -51,6 +92,10 @@ def index():
         TemperatureLog.data_registro >= _now() - timedelta(hours=24)
     ).count()
     
+    today_str = _now().strftime('%Y-%m-%d')
+    seven_start_str = (_now() - timedelta(days=6)).strftime('%Y-%m-%d')
+    thirty_start_str = (_now() - timedelta(days=29)).strftime('%Y-%m-%d')
+
     return render_template(
         'temperatura.html',
         active_page='temperatura',
@@ -58,12 +103,19 @@ def index():
         registros_pag=registros_pag,
         locais=locais,
         local_filter=local_filter,
+        tipo_filter=tipo_filter,
         data_inicio=data_inicio,
         data_fim=data_fim,
         apenas_alertas=apenas_alertas,
+        apenas_com_foto=apenas_com_foto,
         total_registros=total_registros,
         total_alertas=total_alertas,
-        ultimas_24h=ultimas_24h
+        ultimas_24h=ultimas_24h,
+        tipos=tipos,
+        ultimos_por_local=ultimos_por_local,
+        today_str=today_str,
+        seven_start_str=seven_start_str,
+        thirty_start_str=thirty_start_str
     )
 
 @bp.route('/registrar', methods=['POST'], strict_slashes=False)

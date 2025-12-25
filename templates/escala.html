@@ -12,16 +12,24 @@
         <h1 class="mm-page-title">Escalas de Trabalho</h1>
         <p class="mm-text-muted">Grade semanal, turnos e calendario</p>
     </div>
-    <div class="mm-flex mm-gap-2">
-        <button class="mm-btn mm-btn-outline" onclick="window.print()">
-            <i class="bi bi-printer"></i> Imprimir
-        </button>
-        {% if current_user.nivel in ('operador', 'admin') %}
-        <button class="mm-btn mm-btn-primary" data-bs-toggle="modal" data-bs-target="#modalTurno">
-            <i class="bi bi-plus-lg"></i> Atribuir Turno
-        </button>
-        {% endif %}
-    </div>
+</div>
+
+<div class="escala-actions mm-flex mm-gap-2 mm-mt-3" style="flex-wrap: wrap;">
+    <button class="mm-btn mm-btn-outline" onclick="window.print()">
+        <i class="bi bi-printer"></i> Imprimir
+    </button>
+    {% if current_user.nivel in ('operador', 'admin') %}
+    <button class="mm-btn mm-btn-primary" data-bs-toggle="modal" data-bs-target="#modalTurno">
+        <i class="bi bi-plus-lg"></i> Atribuir Turno
+    </button>
+    {% endif %}
+    <style>
+        .escala-actions .mm-btn { flex: 0 0 180px; height: 48px; }
+        @media (max-width: 768px) {
+            .escala-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+            .escala-actions .mm-btn { width: 100%; height: 48px; display: flex; align-items: center; justify-content: center; padding: 0; white-space: nowrap; box-sizing: border-box; }
+        }
+    </style>
 </div>
 
 <div class="mm-tabs mm-mb-6">

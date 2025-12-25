@@ -7,16 +7,24 @@
         <h1 class="mm-page-title">Pedidos de Compra</h1>
         <p class="mm-text-muted">Gestão de pedidos a fornecedores</p>
     </div>
-    <div class="mm-flex mm-gap-2">
-        <a href="{{ url_for('pedidos.gerar_automatico') }}" class="mm-btn mm-btn-outline">
-            <i class="bi bi-lightning"></i>
-            Gerar Automático
-        </a>
-        <a href="{{ url_for('pedidos.novo') }}" class="mm-btn mm-btn-primary">
-            <i class="bi bi-plus-lg"></i>
-            Novo Pedido
-        </a>
-    </div>
+</div>
+
+<div class="pedidos-actions mm-flex mm-gap-2 mm-mt-3" style="flex-wrap: wrap;">
+    <a href="{{ url_for('pedidos.gerar_automatico') }}" class="mm-btn mm-btn-outline">
+        <i class="bi bi-lightning"></i>
+        Gerar Automático
+    </a>
+    <a href="{{ url_for('pedidos.novo') }}" class="mm-btn mm-btn-primary">
+        <i class="bi bi-plus-lg"></i>
+        Novo Pedido
+    </a>
+    <style>
+        .pedidos-actions .mm-btn { flex: 0 0 180px; height: 48px; }
+        @media (max-width: 768px) {
+            .pedidos-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+            .pedidos-actions .mm-btn { width: 100%; height: 48px; display: flex; align-items: center; justify-content: center; padding: 0; white-space: nowrap; box-sizing: border-box; }
+        }
+    </style>
 </div>
 
 <div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">

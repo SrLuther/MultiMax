@@ -1,540 +1,203 @@
 {% extends 'base.html' %}
-{% block title %}Estoque — MultiMax{% endblock %}
-
-{% block breadcrumb %}
-<span class="mm-breadcrumb-separator">/</span>
-<span>Estoque</span>
-{% endblock %}
-
+{% block title %}Controle de Estoque — MultiMax{% endblock %}
 {% block content %}
-<div class="mm-animate-fade-in">
-    <div class="mm-flex mm-items-center mm-justify-between mm-mb-6 estoque-header">
-        <div>
-            <h1 style="font-size: var(--mm-text-2xl); font-weight: var(--mm-font-bold); color: var(--mm-text-primary); margin: 0;">
-                Controle de Estoque
-            </h1>
-            <p class="mm-text-muted" style="margin: var(--mm-space-1) 0 0 0;">
-                Gerencie produtos, entradas e saídas
-            </p>
-        </div>
-        <div class="mm-flex mm-gap-2 estoque-actions">
-            {% if current_user.nivel in ('operador','admin') %}
-            <button class="mm-btn mm-btn-primary" data-bs-toggle="modal" data-bs-target="#addProdutoModal">
-                <i class="bi bi-plus-lg"></i>
-                Novo Produto
-            </button>
-            <button class="mm-btn mm-btn-secondary" data-bs-toggle="modal" data-bs-target="#estoqueModal">
-                <i class="bi bi-arrow-left-right"></i>
-                Movimentar
-            </button>
-            {% endif %}
-            <a class="mm-btn mm-btn-outline" href="{{ url_for('exportacao.exportar', mode='view') }}" target="_blank">
-                <i class="bi bi-eye"></i>
-                Visualizar
-            </a>
-            <a class="mm-btn mm-btn-outline" href="{{ url_for('exportacao.exportar', mode='print') }}" target="_blank">
-                <i class="bi bi-printer"></i>
-                Imprimir
-            </a>
-            <a class="mm-btn mm-btn-outline download" href="{{ url_for('exportacao.exportar', download=1) }}" data-pdf-export>
-                <i class="bi bi-download"></i>
-                Download
-            </a>
-        </div>
-    </div>
 
-    <div class="mm-card mm-mb-6">
-        <div class="mm-card-header">
-            <h3 class="mm-card-title">
-                <i class="bi bi-bar-chart-line me-2" style="color: var(--mm-primary);"></i>
-                Gráficos por Produto
-            </h3>
-            <div class="mm-flex mm-gap-2">
-                <a class="mm-btn mm-btn-sm mm-btn-ghost" href="{{ url_for('estoque.index') }}">Limpar</a>
-                {% if g_produto %}
-                <a class="mm-btn mm-btn-sm mm-btn-danger" href="{{ url_for('exportacao.exportar_graficos_produto', id=g_produto.id, data_inicio=g_data_inicio, data_fim=g_data_fim) }}" data-pdf-export>
-                    <i class="bi bi-file-earmark-pdf"></i>
-                    Exportar PDF
-                </a>
-                {% endif %}
-            </div>
-        </div>
-        <div class="mm-card-body">
-            <form class="row g-3 mb-4" method="get" action="{{ url_for('estoque.index') }}">
-                <div class="col-md-5">
-                    <input type="search" name="gq" value="{{ gq or '' }}" class="mm-input" placeholder="Buscar por Código ou Nome">
-                </div>
-                <div class="col-md-3">
-                    <input type="date" name="g_data_inicio" value="{{ g_data_inicio or '' }}" class="mm-input" placeholder="Data Inicial">
-                </div>
-                <div class="col-md-3">
-                    <input type="date" name="g_data_fim" value="{{ g_data_fim or '' }}" class="mm-input" placeholder="Data Final">
-                </div>
-                <div class="col-md-1">
-                    <button class="mm-btn mm-btn-primary mm-w-full" type="submit">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </div>
-            </form>
-            
-            {% if g_resultados and not g_produto %}
-            <div class="mm-alert mm-alert-warning mm-mb-4">
-                <i class="bi bi-info-circle"></i>
-                <span>{{ g_resultados|length }} resultado(s) encontrados. Selecione um:</span>
-            </div>
-            <div class="mm-mb-4">
-                {% for r in g_resultados %}
-                <a class="mm-card" href="{{ url_for('estoque.index', g_produto_id=r.id, g_data_inicio=g_data_inicio, g_data_fim=g_data_fim) }}" 
-                   style="display: block; text-decoration: none; margin-bottom: var(--mm-space-2); padding: var(--mm-space-3);">
-                    <strong style="color: var(--mm-primary);">{{ r.codigo }}</strong>
-                    <span class="mm-text-secondary"> — {{ r.nome }}</span>
-                </a>
-                {% endfor %}
-            </div>
-            {% endif %}
-            
-            {% if g_produto %}
-            <div class="mm-card mm-card-gradient mm-mb-4" style="padding: var(--mm-space-4);">
-                <div class="mm-flex mm-items-center mm-justify-between">
-                    <div>
-                        <h4 style="margin: 0; color: var(--mm-text-primary); font-weight: var(--mm-font-semibold);">{{ g_produto.nome }}</h4>
-                        <span class="mm-text-muted" style="font-size: var(--mm-text-sm);">Código: {{ g_produto.codigo }}</span>
-                    </div>
-                    <div class="mm-flex mm-gap-2">
-                        <span class="mm-badge mm-badge-primary">Estoque: {{ g_produto.quantidade }}</span>
-                        <span class="mm-badge mm-badge-info">Mínimo: {{ g_produto.estoque_minimo }}</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="row g-4">
-                <div class="col-lg-6">
-                    <div class="mm-card">
-                        <div class="mm-card-header">
-                            <h5 class="mm-card-title" style="font-size: var(--mm-text-base);">
-                                <i class="bi bi-calendar-week me-2"></i>Semanal
-                            </h5>
-                        </div>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <div style="height: 220px;"><canvas id="chartWeekly"></canvas></div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mm-table-wrapper" style="max-height: 220px; overflow-y: auto;">
-                                    <table class="mm-table"><thead><tr><th>Período</th><th style="text-align: right;">Ent.</th><th style="text-align: right;">Saí.</th></tr></thead><tbody id="tableWeeklyBody"></tbody><tfoot></tfoot></table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-6">
-                    <div class="mm-card">
-                        <div class="mm-card-header">
-                            <h5 class="mm-card-title" style="font-size: var(--mm-text-base);">
-                                <i class="bi bi-calendar-month me-2"></i>Mensal
-                            </h5>
-                        </div>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <div style="height: 220px;"><canvas id="chartMonthly"></canvas></div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mm-table-wrapper" style="max-height: 220px; overflow-y: auto;">
-                                    <table class="mm-table"><thead><tr><th>Período</th><th style="text-align: right;">Ent.</th><th style="text-align: right;">Saí.</th></tr></thead><tbody id="tableMonthlyBody"></tbody><tfoot></tfoot></table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-6">
-                    <div class="mm-card">
-                        <div class="mm-card-header">
-                            <h5 class="mm-card-title" style="font-size: var(--mm-text-base);">
-                                <i class="bi bi-calendar me-2"></i>Anual
-                            </h5>
-                        </div>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <div style="height: 220px;"><canvas id="chartYearly"></canvas></div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mm-table-wrapper" style="max-height: 220px; overflow-y: auto;">
-                                    <table class="mm-table"><thead><tr><th>Período</th><th style="text-align: right;">Ent.</th><th style="text-align: right;">Saí.</th></tr></thead><tbody id="tableYearlyBody"></tbody><tfoot></tfoot></table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-6">
-                    <div class="mm-card">
-                        <div class="mm-card-header">
-                            <h5 class="mm-card-title" style="font-size: var(--mm-text-base);">
-                                <i class="bi bi-calendar-range me-2"></i>Personalizado
-                            </h5>
-                        </div>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <div style="height: 220px;"><canvas id="chartCustom"></canvas></div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mm-table-wrapper" style="max-height: 220px; overflow-y: auto;">
-                                    <table class="mm-table"><thead><tr><th>Período</th><th style="text-align: right;">Ent.</th><th style="text-align: right;">Saí.</th></tr></thead><tbody id="tableCustomBody"></tbody><tfoot></tfoot></table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% else %}
-            <div class="mm-alert mm-alert-info">
-                <i class="bi bi-info-circle"></i>
-                <span>Busque um produto pelo código ou nome para visualizar os gráficos.</span>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <div class="mm-card mm-mb-6">
-        <div class="mm-card-header">
-            <h3 class="mm-card-title">
-                <i class="bi bi-box-seam me-2" style="color: var(--mm-primary);"></i>
-                Produtos em Estoque
-            </h3>
-            <span class="mm-badge mm-badge-primary">{{ produtos_pag.total }} itens</span>
-        </div>
-        <div class="mm-card-body">
-            <div class="mm-flex mm-gap-2 mm-mb-4" style="flex-wrap: wrap;">
-                <span class="mm-badge" style="background: var(--mm-bg-tertiary);">CX = Caixas</span>
-                <span class="mm-badge" style="background: var(--mm-bg-tertiary);">PC = Pacotes</span>
-                <span class="mm-badge" style="background: var(--mm-bg-tertiary);">VA = Vácuo</span>
-                <span class="mm-badge" style="background: var(--mm-bg-tertiary);">AV = Avulsos</span>
-            </div>
-            
-            <form class="row g-3 mm-mb-4" method="get" action="{{ url_for('estoque.index') }}">
-                <div class="col-md-5">
-                    <input type="search" name="busca" value="{{ busca or '' }}" class="mm-input" placeholder="Buscar por Código ou Nome">
-                </div>
-                <div class="col-md-4">
-                    <select name="cat" class="mm-input mm-select">
-                        <option value="">Todas as categorias</option>
-                        {% for c in ['CX','PC','VA','AV'] %}
-                        <option value="{{ c }}" {% if cat == c %}selected{% endif %}>{{ c }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3 mm-flex mm-gap-2">
-                    <button class="mm-btn mm-btn-primary" type="submit">
-                        <i class="bi bi-search"></i> Buscar
-                    </button>
-                    <a class="mm-btn mm-btn-ghost" href="{{ url_for('estoque.index') }}">Limpar</a>
-                </div>
-            </form>
-            
-            {% if busca %}
-            <div class="mm-alert mm-alert-info mm-mb-4">
-                <i class="bi bi-funnel"></i>
-                <span>Filtro: "{{ busca }}"</span>
-            </div>
-            {% endif %}
-            
-            <div class="mm-table-wrapper">
-                <table class="mm-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 8rem;">Código</th>
-                            <th>Produto</th>
-                            <th style="text-align: right; width: 6rem;">Estoque</th>
-                            <th style="text-align: right; width: 6rem;">Mínimo</th>
-                            <th style="text-align: center; width: 8rem;">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for p in produtos_pag.items %}
-                        {% set status = 'success' if p.quantidade > p.estoque_minimo else ('danger' if p.quantidade < p.estoque_minimo else 'warning') %}
-                        <tr>
-                            <td><span class="mm-badge mm-badge-{{ status }}">{{ p.codigo }}</span></td>
-                            <td>{{ p.nome }}</td>
-                            <td style="text-align: right;">
-                                <strong class="mm-text-{{ status }}">{{ p.quantidade }}</strong>
-                            </td>
-                            <td style="text-align: right;" class="mm-text-muted">{{ p.estoque_minimo }}</td>
-                            <td style="text-align: center;">
-                                {% if current_user.nivel in ('operador','admin') %}
-                                <a class="mm-btn mm-btn-sm mm-btn-outline" href="{{ url_for('estoque.editar', id=p.id) }}">
-                                    <i class="bi bi-pencil"></i> Editar
-                                </a>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="5" style="text-align: center;" class="mm-text-muted">Nenhum produto encontrado</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            
-            <div class="mm-flex mm-items-center mm-justify-between mm-mt-4">
-                <span class="mm-text-muted" style="font-size: var(--mm-text-sm);">
-                    Página {{ produtos_pag.page }} de {{ produtos_pag.pages }}
-                </span>
-                <div class="mm-flex mm-gap-2">
-                    {% if produtos_pag.has_prev %}
-                    <a class="mm-btn mm-btn-sm mm-btn-outline" href="{{ url_for('estoque.index', ppage=produtos_pag.prev_num, page=historico.page, busca=busca, cat=cat) }}">
-                        <i class="bi bi-chevron-left"></i> Anterior
-                    </a>
-                    {% endif %}
-                    {% if produtos_pag.has_next %}
-                    <a class="mm-btn mm-btn-sm mm-btn-outline" href="{{ url_for('estoque.index', ppage=produtos_pag.next_num, page=historico.page, busca=busca, cat=cat) }}">
-                        Próxima <i class="bi bi-chevron-right"></i>
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="mm-card">
-        <div class="mm-card-header">
-            <h3 class="mm-card-title">
-                <i class="bi bi-clock-history me-2" style="color: var(--mm-info);"></i>
-                Histórico de Movimentações
-            </h3>
-            <span class="mm-text-muted" style="font-size: var(--mm-text-sm);">Entradas e saídas recentes</span>
-        </div>
-        <div class="mm-card-body" style="padding: 0;">
-            <div class="mm-table-wrapper" tabindex="0">
-                <table class="mm-table" role="table" data-sortable="true">
-                    <thead>
-                        <tr>
-                            <th scope="col" style="width: 10rem;">Data</th>
-                            <th scope="col" style="width: 6rem;">Tipo</th>
-                            <th scope="col">Produto</th>
-                            <th scope="col" style="width: 8rem;">Código</th>
-                            <th scope="col">Detalhes</th>
-                            <th scope="col" style="text-align: right; width: 5rem;">Qtd</th>
-                            <th scope="col" style="width: 8rem;">Usuário</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for h in historico.items %}
-                        <tr>
-                            <td class="mm-text-muted">{{ h.data.strftime('%d/%m/%Y %H:%M') }}</td>
-                            <td>
-                                <span class="mm-badge {% if 'entrada' in h.action.lower() %}mm-badge-success{% elif 'saída' in h.action.lower() or 'saida' in h.action.lower() %}mm-badge-danger{% else %}mm-badge-info{% endif %}">
-                                    {{ h.action }}
-                                </span>
-                            </td>
-                            <td>{{ h.product_name or '-' }}</td>
-                            <td class="mm-text-muted">{{ hist_code_map.get(h.product_id) or '-' }}</td>
-                            <td class="mm-text-secondary">{{ h.details }}</td>
-                            <td style="text-align: right; font-weight: var(--mm-font-semibold);">{{ h.quantidade }}</td>
-                            <td class="mm-text-muted">{{ h.usuario }}</td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="7" style="text-align: center;" class="mm-text-muted">Sem movimentações</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <div style="padding: var(--mm-space-4); border-top: 1px solid var(--mm-border);">
-            <div class="mm-flex mm-items-center mm-justify-between">
-                <span class="mm-text-muted" style="font-size: var(--mm-text-sm);">
-                    Página {{ historico.page }} de {{ historico.pages }}
-                </span>
-                <div class="mm-flex mm-gap-2">
-                    {% if historico.has_prev %}
-                    <a class="mm-btn mm-btn-sm mm-btn-outline" href="{{ url_for('estoque.index', page=historico.prev_num, busca=busca) }}">
-                        <i class="bi bi-chevron-left"></i><span class="d-none d-sm-inline"> Anterior</span>
-                    </a>
-                    {% endif %}
-                    {% if historico.has_next %}
-                    <a class="mm-btn mm-btn-sm mm-btn-outline" href="{{ url_for('estoque.index', page=historico.next_num, busca=busca) }}">
-                        <span class="d-none d-sm-inline">Próxima </span><i class="bi bi-chevron-right"></i>
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
+    <div>
+        <h1 class="mm-page-title">Controle de Estoque</h1>
+        <p class="mm-text-muted">Consulta rápida, ações e histórico de movimentações</p>
     </div>
 </div>
 
-{% if current_user.nivel in ('operador','admin') %}
-<div class="modal fade" id="addProdutoModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <form class="modal-content" method="post" action="{{ url_for('estoque.adicionar_produto') }}" style="background: var(--mm-bg-card); border: 1px solid var(--mm-border); border-radius: var(--mm-radius-xl);">
-            <div class="modal-header" style="border-bottom: 1px solid var(--mm-border);">
-                <h5 class="modal-title" style="color: var(--mm-text-primary);">
-                    <i class="bi bi-plus-circle me-2" style="color: var(--mm-primary);"></i>
-                    Adicionar Produto
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="estoque-actions mm-flex mm-gap-2 mm-mt-3" style="flex-wrap: wrap;">
+    <a href="{{ url_for('estoque.lista_produtos') }}" class="mm-btn mm-btn-primary">
+        <i class="bi bi-plus-lg"></i>
+        + Produto
+    </a>
+    <a href="{{ url_for('estoque.lista_produtos') }}" class="mm-btn mm-btn-secondary">
+        <i class="bi bi-arrow-left-right"></i>
+        Movimentar
+    </a>
+    <a href="{{ url_for('estoque.lista_produtos') }}" class="mm-btn mm-btn-outline">
+        <i class="bi bi-card-list"></i>
+        Visualizar
+    </a>
+    <a href="{{ url_for('exportacao.exportar') }}" class="mm-btn mm-btn-outline">
+        <i class="bi bi-printer"></i>
+        Imprimir
+    </a>
+    <a href="{{ url_for('relatorios.exportar_produtos') }}" class="mm-btn mm-btn-outline">
+        <i class="bi bi-download"></i>
+        Download
+    </a>
+</div>
+<style>
+    .estoque-actions .mm-btn { flex: 0 0 180px; height: 48px; }
+    @media (max-width: 768px) {
+        .estoque-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+        .estoque-actions .mm-btn { width: 100%; height: 48px; display: flex; align-items: center; justify-content: center; padding: 0; white-space: nowrap; box-sizing: border-box; }
+    }
+</style>
+
+<div class="mm-card mm-mb-6">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title"><i class="bi bi-funnel me-2"></i>Filtros</h3>
+    </div>
+    <div class="mm-card-body">
+        <form method="get" action="{{ url_for('estoque.index') }}" class="mm-flex mm-gap-4 mm-flex-wrap mm-items-end">
+            <div class="mm-form-group" style="min-width: 220px;">
+                <label class="mm-label">Buscar</label>
+                <input type="text" name="busca" value="{{ busca }}" class="mm-input" placeholder="Código ou nome">
             </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="mm-label">Categoria</label>
-                    <select name="categoria" class="mm-input mm-select" required>
-                        <option value="CX">Caixas</option>
-                        <option value="PC">Pacotes</option>
-                        <option value="VA">A vácuo</option>
-                        <option value="AV" selected>Avulsos</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label class="mm-label">Nome</label>
-                    <input name="nome" class="mm-input" required placeholder="Nome do produto">
-                </div>
-                <div class="mb-3">
-                    <label class="mm-label">Estoque Mínimo</label>
-                    <input type="number" name="estoque_minimo" class="mm-input" min="0" value="0">
-                </div>
+            <div class="mm-form-group" style="min-width: 180px;">
+                <label class="mm-label">Categoria</label>
+                <select name="cat" class="mm-select">
+                    <option value="">Todas</option>
+                    <option value="CX" {% if cat == 'CX' %}selected{% endif %}>Caixas</option>
+                    <option value="PC" {% if cat == 'PC' %}selected{% endif %}>Pacotes</option>
+                    <option value="VA" {% if cat == 'VA' %}selected{% endif %}>A vácuo</option>
+                    <option value="AV" {% if cat == 'AV' %}selected{% endif %}>Avulsos</option>
+                </select>
             </div>
-            <div class="modal-footer" style="border-top: 1px solid var(--mm-border);">
-                <button type="button" class="mm-btn mm-btn-ghost" data-bs-dismiss="modal">Cancelar</button>
-                <button type="submit" class="mm-btn mm-btn-primary">
-                    <i class="bi bi-check-lg"></i> Adicionar
-                </button>
-            </div>
+            <button type="submit" class="mm-btn mm-btn-primary">
+                <i class="bi bi-search"></i> Filtrar
+            </button>
         </form>
     </div>
+    {% if busca or cat %}
+    <div class="mm-card-footer">
+        <span class="mm-text-muted">Resultado filtrado{% if busca %} por "{{ busca }}"{% endif %}{% if cat %} • Categoria {{ cat }}{% endif %}</span>
+    </div>
+    {% endif %}
+    {% if produtos_pag %}
+    <div class="mm-card-footer">
+        <span class="mm-badge mm-badge-primary">{{ produtos_pag.total }} produtos</span>
+    </div>
+    {% endif %}
 </div>
 
-<div class="modal fade" id="estoqueModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <form class="modal-content" method="post" action="{{ url_for('estoque.gerenciar') }}" style="background: var(--mm-bg-card); border: 1px solid var(--mm-border); border-radius: var(--mm-radius-xl);">
-            <div class="modal-header" style="border-bottom: 1px solid var(--mm-border);">
-                <h5 class="modal-title" style="color: var(--mm-text-primary);">
-                    <i class="bi bi-arrow-left-right me-2" style="color: var(--mm-primary);"></i>
-                    Gerenciar Estoque
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="mm-card mm-mb-6">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title"><i class="bi bi-box-seam me-2"></i>Produtos</h3>
+    </div>
+    <div class="mm-card-body">
+        {% if produtos_pag and produtos_pag.items %}
+        <div class="mm-table-wrapper">
+            <table class="mm-table">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Produto</th>
+                        <th>Estoque</th>
+                        <th>Mínimo</th>
+                        <th>Status</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in produtos_pag.items %}
+                    <tr>
+                        <td>{{ p.codigo }}</td>
+                        <td><strong>{{ p.nome }}</strong></td>
+                        <td>{{ p.quantidade }}</td>
+                        <td>{{ p.estoque_minimo }}</td>
+                        <td>
+                            {% if p.quantidade < p.estoque_minimo %}
+                            <span class="mm-badge" style="background: rgba(239, 68, 68, 0.15); color: var(--mm-danger);">CRÍTICO</span>
+                            {% elif p.quantidade == p.estoque_minimo %}
+                            <span class="mm-badge" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning);">ATENÇÃO</span>
+                            {% else %}
+                            <span class="mm-badge" style="background: var(--mm-bg-tertiary); color: var(--mm-text-secondary);">OK</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{{ url_for('estoque.editar', id=p.id) }}" class="mm-btn mm-btn-ghost mm-btn-sm"><i class="bi bi-pencil"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <nav class="mm-pagination mm-flex mm-items-center mm-justify-center mm-gap-2 mm-mt-4">
+            <a href="{{ url_for('estoque.index', ppage=produtos_pag.prev_num, busca=busca, cat=cat) }}" 
+               class="mm-btn mm-btn-outline mm-btn-sm {% if not produtos_pag.has_prev %}disabled{% endif %}">
+                <i class="bi bi-chevron-left"></i> Anterior
+            </a>
+            <span class="mm-text-muted" style="font-size: var(--mm-text-sm);">
+                Página {{ produtos_pag.page }} de {{ produtos_pag.pages }}
+            </span>
+            <a href="{{ url_for('estoque.index', ppage=produtos_pag.next_num, busca=busca, cat=cat) }}" 
+               class="mm-btn mm-btn-outline mm-btn-sm {% if not produtos_pag.has_next %}disabled{% endif %}">
+                Próxima <i class="bi bi-chevron-right"></i>
+            </a>
+        </nav>
+        {% else %}
+        <div class="mm-empty-state" style="text-align: center; padding: var(--mm-space-8);">
+            <div style="width: 60px; height: 60px; margin: 0 auto var(--mm-space-4); background: rgba(34, 197, 94, 0.1); border-radius: var(--mm-radius-full); display: flex; align-items: center; justify-content: center;">
+                <i class="bi bi-check-circle" style="font-size: 1.5rem; color: var(--mm-success);"></i>
             </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="mm-label">Buscar Produto</label>
-                    <input type="text" class="mm-input mb-2" id="estoqueProdutoFiltro" placeholder="Digite para filtrar...">
-                    <select name="product_id" class="mm-input mm-select" required id="estoqueProdutoSelect">
-                        {% for p in produtos_all %}
-                        <option value="{{ p.id }}">{{ p.codigo }} — {{ p.nome }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label class="mm-label">Quantidade</label>
-                    <input type="number" name="quantidade" class="mm-input" min="1" required placeholder="0">
-                </div>
-                <div class="mb-3">
-                    <label class="mm-label">Detalhes (opcional)</label>
-                    <input type="text" name="detalhes" class="mm-input" placeholder="Observações">
-                </div>
-                <input type="hidden" name="op" value="entrada">
-            </div>
-            <div class="modal-footer mm-flex mm-gap-2" style="border-top: 1px solid var(--mm-border);">
-                <button type="button" class="mm-btn" style="background: var(--mm-success); color: white;" onclick="this.form.op.value='entrada'; this.form.submit()">
-                    <i class="bi bi-box-arrow-in-down"></i> Entrada
-                </button>
-                <button type="button" class="mm-btn" style="background: var(--mm-warning); color: #0f172a;" onclick="this.form.op.value='saida'; this.form.submit()">
-                    <i class="bi bi-box-arrow-up"></i> Saída
-                </button>
-                {% if current_user.nivel == 'admin' %}
-                <button type="button" class="mm-btn mm-btn-danger" onclick="this.form.op.value='excluir'; this.form.submit()">
-                    <i class="bi bi-trash"></i> Excluir
-                </button>
-                {% endif %}
-            </div>
-        </form>
+            <h4 class="mm-font-semibold mm-mb-2">Nenhum produto encontrado</h4>
+            <p class="mm-text-muted">Ajuste os filtros ou adicione um novo produto.</p>
+        </div>
+        {% endif %}
     </div>
 </div>
-{% endif %}
 
-<div id="chartsDataHolder" data-json='{{ charts_g|tojson if charts_g else none|tojson }}' style="display:none"></div>
-{% endblock %}
+<div class="mm-card">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title"><i class="bi bi-clock-history me-2"></i>Histórico de Movimentações</h3>
+    </div>
+    <div class="mm-card-body">
+        {% if historico and historico.items %}
+        <div class="mm-table-wrapper">
+            <table class="mm-table">
+                <thead>
+                    <tr>
+                        <th>Data/Hora</th>
+                        <th>Produto</th>
+                        <th>Ação</th>
+                        <th>Quantidade</th>
+                        <th>Detalhes</th>
+                        <th>Usuário</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in historico.items %}
+                    <tr>
+                        <td>{{ h.data.strftime('%d/%m/%Y %H:%M') if h.data else '-' }}</td>
+                        <td>{{ h.product_name or (hist_code_map.get(h.product_id) if hist_code_map else '') }}</td>
+                        <td>{{ 'Entrada' if h.action == 'entrada' else 'Saída' }}</td>
+                        <td>{{ h.quantidade }}</td>
+                        <td>{{ h.details or '-' }}</td>
+                        <td class="mm-text-muted">{{ h.usuario or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <nav class="mm-pagination mm-flex mm-items-center mm-justify-center mm-gap-2 mm-mt-4">
+            <a href="{{ url_for('estoque.index', page=historico.prev_num, busca=busca, cat=cat, ppage=produtos_pag.page if produtos_pag else 1) }}" 
+               class="mm-btn mm-btn-outline mm-btn-sm {% if not historico.has_prev %}disabled{% endif %}">
+                <i class="bi bi-chevron-left"></i> Anterior
+            </a>
+            <span class="mm-text-muted" style="font-size: var(--mm-text-sm);">
+                Página {{ historico.page }} de {{ historico.pages }}
+            </span>
+            <a href="{{ url_for('estoque.index', page=historico.next_num, busca=busca, cat=cat, ppage=produtos_pag.page if produtos_pag else 1) }}" 
+               class="mm-btn mm-btn-outline mm-btn-sm {% if not historico.has_next %}disabled{% endif %}">
+                Próxima <i class="bi bi-chevron-right"></i>
+            </a>
+        </nav>
+        {% else %}
+        <div class="mm-empty-state" style="text-align: center; padding: var(--mm-space-8);">
+            <div style="width: 60px; height: 60px; margin: 0 auto var(--mm-space-4); background: rgba(59, 130, 246, 0.1); border-radius: var(--mm-radius-full); display: flex; align-items: center; justify-content: center;">
+                <i class="bi bi-info-circle" style="font-size: 1.5rem; color: var(--mm-info);"></i>
+            </div>
+            <h4 class="mm-font-semibold mm-mb-2">Nenhuma movimentação recente</h4>
+            <p class="mm-text-muted">Quando houver entradas ou saídas, elas aparecerão aqui.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
 
-{% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    var input = document.getElementById('estoqueProdutoFiltro');
-    var sel = document.getElementById('estoqueProdutoSelect');
-    function filterProducts() {
-        var q = (input && input.value || '').toLowerCase();
-        var opts = sel ? sel.querySelectorAll('option') : [];
-        for (var i = 0; i < opts.length; i++) {
-            var t = (opts[i].textContent || '').toLowerCase();
-            opts[i].style.display = t.indexOf(q) >= 0 ? '' : 'none';
-        }
-    }
-    if (input) { input.addEventListener('input', filterProducts); }
-    
-    const chartsDataEl = document.getElementById('chartsDataHolder');
-    const chartsData = chartsDataEl ? JSON.parse(chartsDataEl.dataset.json || 'null') : null;
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    
-    function makeTable(bodyId, labels, entradas, saidas) {
-        const body = document.getElementById(bodyId);
-        if (!body) return;
-        body.innerHTML = '';
-        let sumE = 0, sumS = 0;
-        const n = Math.max(labels.length, entradas.length, saidas.length);
-        for (let i = 0; i < n; i++) {
-            const tr = document.createElement('tr');
-            const tdL = document.createElement('td'); tdL.textContent = (labels[i] ?? '-');
-            const tdE = document.createElement('td'); tdE.style.textAlign = 'right'; const eVal = Number(entradas[i] ?? 0); tdE.textContent = eVal.toString();
-            const tdS = document.createElement('td'); tdS.style.textAlign = 'right'; const sVal = Number(saidas[i] ?? 0); tdS.textContent = sVal.toString();
-            tr.appendChild(tdL); tr.appendChild(tdE); tr.appendChild(tdS); body.appendChild(tr);
-            sumE += eVal; sumS += sVal;
-        }
-        const table = body.parentElement;
-        const tfoot = table ? table.querySelector('tfoot') : null;
-        if (tfoot) {
-            tfoot.innerHTML = '';
-            const trf = document.createElement('tr');
-            trf.style.fontWeight = 'bold';
-            const tdT = document.createElement('td'); tdT.textContent = 'Total';
-            const tdTE = document.createElement('td'); tdTE.style.textAlign = 'right'; tdTE.textContent = sumE.toString();
-            const tdTS = document.createElement('td'); tdTS.style.textAlign = 'right'; tdTS.textContent = sumS.toString();
-            trf.appendChild(tdT); trf.appendChild(tdTE); trf.appendChild(tdTS); tfoot.appendChild(trf);
-        }
-    }
-    
-    function makeBarChart(canvasId, labels, entradas, saidas) {
-        const ctx = document.getElementById(canvasId);
-        if (!ctx) return;
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels || [],
-                datasets: [
-                    { label: 'Entradas', data: (entradas || []).map(v => Number(v || 0)), backgroundColor: 'rgba(0, 255, 136, 0.7)', borderColor: '#00ff88', borderWidth: 2, borderRadius: 4 },
-                    { label: 'Saídas', data: (saidas || []).map(v => Number(v || 0)), backgroundColor: 'rgba(239, 68, 68, 0.7)', borderColor: '#ef4444', borderWidth: 2, borderRadius: 4 }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { beginAtZero: true, ticks: { precision: 0, color: isDark ? '#94a3b8' : '#64748b' }, grid: { color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' } },
-                    x: { ticks: { color: isDark ? '#94a3b8' : '#64748b' }, grid: { display: false } }
-                },
-                plugins: { legend: { labels: { color: isDark ? '#cbd5e1' : '#475569', font: { family: 'Inter' } } } }
-            }
-        });
-    }
-    
-    if (chartsData) {
-        makeTable('tableWeeklyBody', chartsData.weekly.labels, chartsData.weekly.entrada, chartsData.weekly.saida);
-        makeTable('tableMonthlyBody', chartsData.monthly.labels, chartsData.monthly.entrada, chartsData.monthly.saida);
-        makeTable('tableYearlyBody', chartsData.yearly.labels, chartsData.yearly.entrada, chartsData.yearly.saida);
-        makeTable('tableCustomBody', chartsData.custom.labels, chartsData.custom.entrada, chartsData.custom.saida);
-        makeBarChart('chartWeekly', chartsData.weekly.labels, chartsData.weekly.entrada, chartsData.weekly.saida);
-        makeBarChart('chartMonthly', chartsData.monthly.labels, chartsData.monthly.entrada, chartsData.monthly.saida);
-        makeBarChart('chartYearly', chartsData.yearly.labels, chartsData.yearly.entrada, chartsData.yearly.saida);
-        makeBarChart('chartCustom', chartsData.custom.labels, chartsData.custom.entrada, chartsData.custom.saida);
-    }
-});
-</script>
 {% endblock %}

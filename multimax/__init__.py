@@ -141,6 +141,7 @@ def create_app():
     from .routes.pedidos import bp as pedidos_bp
     from .routes.perdas import bp as perdas_bp
     from .routes.ajuda import bp as ajuda_bp
+    from .routes.jornada import bp as jornada_bp
     notif_enabled = (os.getenv('NOTIFICACOES_ENABLED', 'false') or 'false').lower() == 'true'
     notificacoes_bp = None
     if notif_enabled:
@@ -172,6 +173,7 @@ def create_app():
     app.register_blueprint(pedidos_bp)
     app.register_blueprint(perdas_bp)
     app.register_blueprint(ajuda_bp)
+    app.register_blueprint(jornada_bp)
     if notificacoes_bp:
         app.register_blueprint(notificacoes_bp)
     if dbadmin_bp:
@@ -616,7 +618,7 @@ def create_app():
                 return r2.stdout.strip()
         except Exception:
             pass
-        return '1.3.6.0'
+        return '2.1.0.0'
 
     resolved_version = _get_version()
     app.config['APP_VERSION_RESOLVED'] = resolved_version.lstrip('vV') if isinstance(resolved_version, str) else resolved_version
@@ -718,7 +720,8 @@ def create_app():
             from sqlalchemy import inspect
             insp = inspect(db.engine)
             tables = set(insp.get_table_names())
-            if ('app_setting' not in tables) or ('job_role' not in tables) or ('leave_assignment' not in tables) or ('leave_conversion' not in tables):
+            declared = set(db.Model.metadata.tables.keys())
+            if declared - tables:
                 db.create_all()
         except Exception:
             try:
@@ -959,6 +962,149 @@ def create_app():
                 except Exception:
                     pass
 
+        try:
+            from sqlalchemy import inspect, text
+            insp = inspect(db.engine)
+            cols = [c['name'] for c in insp.get_columns('collaborator')]
+            changed = False
+            if 'name' not in cols:
+                db.session.execute(text('ALTER TABLE collaborator ADD COLUMN name TEXT'))
+                changed = True
+                if 'nome' in cols:
+                    try:
+                        db.session.execute(text('UPDATE collaborator SET name = nome WHERE name IS NULL'))
+                    except Exception:
+                        pass
+                else:
+                    try:
+                        db.session.execute(text("UPDATE collaborator SET name = '' WHERE name IS NULL"))
+                    except Exception:
+                        pass
+            if 'matricula' not in cols:
+                db.session.execute(text('ALTER TABLE collaborator ADD COLUMN matricula TEXT'))
+                changed = True
+            if 'departamento' not in cols:
+                db.session.execute(text('ALTER TABLE collaborator ADD COLUMN departamento TEXT'))
+                changed = True
+            if changed:
+                db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+
+        try:
+            from sqlalchemy import inspect, text
+            insp = inspect(db.engine)
+            s_cols = [c['name'] for c in insp.get_columns('shift')]
+            s_changed = False
+            if 'start_dt' not in s_cols and not is_sqlite:
+                db.session.execute(text('ALTER TABLE shift ADD COLUMN start_dt TIMESTAMPTZ'))
+                s_changed = True
+            if 'end_dt' not in s_cols and not is_sqlite:
+                db.session.execute(text('ALTER TABLE shift ADD COLUMN end_dt TIMESTAMPTZ'))
+                s_changed = True
+            if 'shift_type' not in s_cols:
+                db.session.execute(text('ALTER TABLE shift ADD COLUMN shift_type TEXT'))
+                s_changed = True
+            if 'auto_generated' not in s_cols:
+                db.session.execute(text('ALTER TABLE shift ADD COLUMN auto_generated BOOLEAN'))
+                s_changed = True
+            if 'is_sunday_holiday' not in s_cols:
+                db.session.execute(text('ALTER TABLE shift ADD COLUMN is_sunday_holiday BOOLEAN'))
+                s_changed = True
+            if s_changed:
+                db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+
+        try:
+            from sqlalchemy import inspect, text
+            insp = inspect(db.engine)
+            la_cols = [c['name'] for c in insp.get_columns('leave_assignment')]
+            if 'notes' not in la_cols:
+                db.session.execute(text('ALTER TABLE leave_assignment ADD COLUMN notes TEXT'))
+                db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+
+        try:
+            from sqlalchemy import inspect, text
+            insp = inspect(db.engine)
+            lc_cols = [c['name'] for c in insp.get_columns('leave_credit')]
+            lc_changed = False
+            if 'origin' not in lc_cols:
+                db.session.execute(text('ALTER TABLE leave_credit ADD COLUMN origin TEXT'))
+                lc_changed = True
+            if 'notes' not in lc_cols:
+                db.session.execute(text('ALTER TABLE leave_credit ADD COLUMN notes TEXT'))
+                lc_changed = True
+            if lc_changed:
+                db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+
+        try:
+            from sqlalchemy import inspect, text
+            insp = inspect(db.engine)
+            hb_cols = [c['name'] for c in insp.get_columns('hour_bank_entry')]
+            if 'reason' not in hb_cols:
+                db.session.execute(text('ALTER TABLE hour_bank_entry ADD COLUMN reason TEXT'))
+                db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+
+        try:
+            from sqlalchemy import inspect, text
+            insp = inspect(db.engine)
+            vac_cols = [c['name'] for c in insp.get_columns('vacation')]
+            if 'observacao' not in vac_cols:
+                db.session.execute(text('ALTER TABLE vacation ADD COLUMN observacao TEXT'))
+                db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+
+        try:
+            from sqlalchemy import inspect, text
+            insp = inspect(db.engine)
+            mc_cols = [c['name'] for c in insp.get_columns('medical_certificate')]
+            mc_changed = False
+            if 'motivo' not in mc_cols:
+                db.session.execute(text('ALTER TABLE medical_certificate ADD COLUMN motivo TEXT'))
+                mc_changed = True
+            if 'cid' not in mc_cols:
+                db.session.execute(text('ALTER TABLE medical_certificate ADD COLUMN cid TEXT'))
+                mc_changed = True
+            if 'medico' not in mc_cols:
+                db.session.execute(text('ALTER TABLE medical_certificate ADD COLUMN medico TEXT'))
+                mc_changed = True
+            if 'foto_atestado' not in mc_cols:
+                db.session.execute(text('ALTER TABLE medical_certificate ADD COLUMN foto_atestado TEXT'))
+                mc_changed = True
+            if mc_changed:
+                db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+
         def _make_backup(retain_count: int = 20, min_interval_sec: int = 900, update_daily_snapshot: bool = True, force: bool = False):
             try:
                 bdir = str(app.config.get('BACKUP_DIR') or '').strip()
@@ -1123,6 +1269,14 @@ def create_app():
         except Exception:
             enabled = False
         return {'notifications_enabled': enabled}
+    
+    @app.context_processor
+    def inject_dev_flag():
+        try:
+            is_dev = bool(app.debug) or ((os.getenv('DEBUG', 'false') or 'false').lower() == 'true')
+        except Exception:
+            is_dev = False
+        return {'is_dev': is_dev}
         
     try:
         import logging
