@@ -445,6 +445,7 @@ class RegistroJornada(db.Model):
     data = db.Column(db.Date, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
     updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+    observacao = db.Column(db.String(255))
 
     collaborator = db.relationship('Collaborator', backref='registros_jornada', lazy=True)
 

@@ -36,10 +36,11 @@ def _normalize_db_uri(uri: str | None) -> str | None:
             rest = post.split('/', 1)[1] if '/' in post else ''
             hostport = 'aws-1-sa-east-1.pooler.supabase.com:5432'
             s = pre + '@' + hostport + ('/' + rest if rest else '')
-        if s and ('sslmode=' not in s):
-            s = s + ('&sslmode=require' if '?' in s else '?sslmode=require')
-        if s and ('connect_timeout=' not in s):
-            s = s + ('&connect_timeout=3' if '?' in s else '?connect_timeout=3')
+        if s and s.startswith('postgresql+psycopg://'):
+            if 'sslmode=' not in s:
+                s = s + ('&sslmode=require' if '?' in s else '?sslmode=require')
+            if 'connect_timeout=' not in s:
+                s = s + ('&connect_timeout=3' if '?' in s else '?connect_timeout=3')
         return s or uri
     except Exception:
         return uri
@@ -100,7 +101,10 @@ def create_app():
     app.config['BACKUP_DIR'] = backup_dir
     if isinstance(selected_uri, str) and selected_uri.startswith('sqlite:'):
         try:
-            app.config['DB_FILE_PATH'] = selected_uri.split('sqlite:///')[1]
+            p = selected_uri.split('sqlite:///', 1)[1]
+            if '?' in p:
+                p = p.split('?', 1)[0]
+            app.config['DB_FILE_PATH'] = p
         except Exception:
             app.config['DB_FILE_PATH'] = db_path
 
@@ -618,7 +622,7 @@ def create_app():
                 return r2.stdout.strip()
         except Exception:
             pass
-        return '2.1.0.0'
+        return '2.1.1.0'
 
     resolved_version = _get_version()
     app.config['APP_VERSION_RESOLVED'] = resolved_version.lstrip('vV') if isinstance(resolved_version, str) else resolved_version
@@ -720,7 +724,7 @@ def create_app():
             from sqlalchemy import inspect
             insp = inspect(db.engine)
             tables = set(insp.get_table_names())
-            declared = set(db.Model.metadata.tables.keys())
+            declared = set(db.metadata.tables.keys())
             if declared - tables:
                 db.create_all()
         except Exception:
@@ -1098,6 +1102,19 @@ def create_app():
                 db.session.execute(text('ALTER TABLE medical_certificate ADD COLUMN foto_atestado TEXT'))
                 mc_changed = True
             if mc_changed:
+                db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+
+        try:
+            from sqlalchemy import inspect, text
+            insp = inspect(db.engine)
+            rj_cols = [c['name'] for c in insp.get_columns('registro_jornada')]
+            if 'observacao' not in rj_cols:
+                db.session.execute(text('ALTER TABLE registro_jornada ADD COLUMN observacao TEXT'))
                 db.session.commit()
         except Exception:
             try:

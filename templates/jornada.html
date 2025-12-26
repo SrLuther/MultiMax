@@ -71,6 +71,21 @@
             </div>
             {% endif %}
         </div>
+        <div class="mm-resumo-grid" aria-hidden="true">
+            {% for s in cards_stats %}
+            <div class="mm-card-mini">
+                <div class="mm-card-mini-title">{{ s.name }}</div>
+                <div class="mm-card-mini-grid">
+                    <div class="mm-text-muted">Horas (residual)</div>
+                    <div class="mm-text-right mm-font-bold">{{ '%.2f'|format(s.residual_hours or 0) }} h</div>
+                    <div class="mm-text-muted">Dias de Folga</div>
+                    <div class="mm-text-right mm-font-bold">{{ s.saldo_days or 0 }} dia(s)</div>
+                    <div class="mm-text-muted">Folgas usadas</div>
+                    <div class="mm-text-right mm-font-bold">{{ s.assigned_days or 0 }} dia(s)</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
         <div class="mm-flex mm-items-center mm-justify-between mm-mt-3">
             <div class="mm-text-sm mm-text-muted">Página {{ cs_page }} de {{ cs_total_pages }}</div>
             <div class="mm-pagination">
@@ -694,12 +709,31 @@
 .mm-card-mini { width: 220px; min-width: 220px; min-height: 120px; height: auto; background: var(--mm-bg-card); border: 1px solid var(--mm-border); border-radius: var(--mm-radius); padding: var(--mm-space-3); display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; gap: var(--mm-space-2); }
 .mm-card-mini-title { font-weight: 600; margin-bottom: 4px; }
 .mm-card-mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-items: center; width: 100%; }
+.mm-resumo-grid { display: none; }
 @media (max-width: 768px) { .mm-card-mini { width: 100%; min-width: unset; } }
 @media (max-width: 768px) {
   .mm-page-header .mm-flex.mm-gap-3 { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: auto; gap: var(--mm-space-2); }
   #btnOpenModal, .mm-migrar-btn, .mm-export-btn { order: initial; width: 100%; }
   .mm-page-header .mm-flex.mm-gap-3 form { width: 100%; }
   .mm-wide-btn { width: 100%; }
+}
+@media (max-width: 768px) {
+  .mm-card .mm-card-header { flex-direction: column; align-items: stretch; gap: var(--mm-space-2); }
+  .mm-card .mm-card-header .mm-flex.mm-gap-2 { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; gap: var(--mm-space-2); align-items: stretch; justify-items: center; }
+  .mm-card .mm-card-header .mm-flex.mm-gap-2 a.mm-btn,
+  .mm-card .mm-card-header .mm-flex.mm-gap-2 button.mm-btn { width: auto; padding: 0.25rem 0.6rem; min-height: 2rem; display: flex; align-items: center; justify-content: center; gap: var(--mm-space-1); justify-self: center; }
+  .mm-card .mm-card-header .mm-flex.mm-gap-2 a.mm-btn { width: auto; padding: 0.25rem 0.6rem; min-height: 2rem; }
+  .mm-card .mm-card-header .mm-flex.mm-gap-2 a.mm-btn { display: flex; align-items: center; justify-content: center; gap: var(--mm-space-1); }
+  .mm-card .mm-card-header .mm-flex.mm-gap-2 a.mm-btn i,
+  .mm-card .mm-card-header .mm-flex.mm-gap-2 button.mm-btn i,
+  .mm-card .mm-card-body .mm-grid .mm-flex.mm-items-end .mm-btn i { display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+  .mm-card .mm-card-header .mm-flex.mm-gap-2 input.mm-input { height: 2.25rem; width: 100%; padding: 0.35rem 0.75rem; font-size: var(--mm-text-sm); box-sizing: border-box; }
+  .mm-card .mm-card-body .mm-grid .mm-flex.mm-items-end .mm-btn { width: 100%; padding: 0.35rem 0.75rem; font-size: var(--mm-text-sm); }
+  .mm-card .mm-card-header .mm-flex.mm-gap-2 form { display: contents; }
+  .mm-card .mm-card-header .mm-flex.mm-gap-2 input[name="del_inicio"] { grid-row: 1; grid-column: 1; }
+  .mm-card .mm-card-header .mm-flex.mm-gap-2 input[name="del_fim"] { grid-row: 1; grid-column: 2; }
+  .mm-card .mm-card-header .mm-flex.mm-gap-2 a.mm-btn { grid-row: 2; grid-column: 1; }
+  .mm-card .mm-card-header .mm-flex.mm-gap-2 button[type="submit"] { grid-row: 2; grid-column: 2; }
 }
 @media (max-width: 768px) {
   .mm-resumo-card .mm-card-body form { flex-direction: column; align-items: stretch; gap: var(--mm-space-2); }
@@ -709,6 +743,11 @@
   .mm-resumo-card .mm-flex.mm-items-center.mm-justify-between.mm-mt-3 { flex-direction: column; gap: var(--mm-space-2); align-items: stretch; }
   .mm-resumo-card .mm-pagination { display: flex; gap: var(--mm-space-2); }
   .mm-resumo-card .mm-pagination a { width: 100%; }
+}
+/* desktop layout */
+@media (min-width: 1024px) {
+  .mm-resumo-card .mm-flex.mm-flex-wrap.mm-gap-4 { display: none; }
+  .mm-resumo-card .mm-resumo-grid { display: grid; grid-template-columns: repeat(4, minmax(220px, 1fr)); gap: var(--mm-space-4); }
 }
 </style>
 
@@ -928,6 +967,83 @@ if (acaoUso) acaoUso.addEventListener('change', setAction);
   if (dias) dias.addEventListener('input', sync);
   if (rate) rate.addEventListener('input', sync);
   sync();
+})();
+
+// Paginação em div (máximo 10 itens por página) para o grid de resumo
+(function(){
+  const grid = document.querySelector('.mm-resumo-card .mm-resumo-grid');
+  if (!grid) return;
+  const items = Array.from(grid.children || []);
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+  let page = 1;
+  if (items.length <= pageSize) return;
+  function render(){
+    items.forEach((el, i)=>{
+      const visible = i >= (page-1)*pageSize && i < page*pageSize;
+      el.style.display = visible ? '' : 'none';
+    });
+    if (label) label.textContent = `Página ${page} de ${totalPages}`;
+    prev.classList.toggle('mm-disabled', page <= 1);
+    next.classList.toggle('mm-disabled', page >= totalPages);
+  }
+  const ctrl = document.createElement('div');
+  ctrl.className = 'mm-pagination mm-mt-2';
+  const wrap = document.createElement('div');
+  wrap.className = 'mm-flex mm-items-center mm-justify-between';
+  const label = document.createElement('div');
+  label.className = 'mm-text-sm mm-text-muted';
+  const btnBox = document.createElement('div');
+  btnBox.className = 'mm-pagination';
+  const prev = document.createElement('a');
+  prev.href = 'javascript:void(0)';
+  prev.className = 'mm-btn mm-btn-sm mm-btn-outline';
+  prev.innerHTML = '<i class="bi bi-chevron-left"></i> Anterior';
+  const next = document.createElement('a');
+  next.href = 'javascript:void(0)';
+  next.className = 'mm-btn mm-btn-sm mm-btn-outline';
+  next.innerHTML = 'Próxima <i class="bi bi-chevron-right"></i>';
+  btnBox.appendChild(prev);
+  btnBox.appendChild(next);
+  wrap.appendChild(label);
+  wrap.appendChild(btnBox);
+  ctrl.appendChild(wrap);
+  grid.parentNode.appendChild(ctrl);
+  prev.addEventListener('click', ()=>{ if (page > 1) { page--; render(); } });
+  next.addEventListener('click', ()=>{ if (page < totalPages) { page++; render(); } });
+  render();
+})();
+
+(function(){
+  const actions = document.querySelector('.mm-card .mm-card-header .mm-flex.mm-gap-2');
+  if (!actions) return;
+  const anchor = actions.querySelector('a.mm-btn');
+  const massaBtn = actions.querySelector('form .mm-btn[type="submit"]');
+  const buscarBtn = document.querySelector('.mm-card .mm-card-body .mm-grid .mm-flex.mm-items-end .mm-btn');
+  const targets = [massaBtn, buscarBtn].filter(Boolean);
+  function apply(){
+    if (!anchor) return;
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    const w = anchor.offsetWidth;
+    const h = anchor.offsetHeight;
+    targets.forEach(t=>{
+      if (!t) return;
+      if (isMobile) {
+        if (w) t.style.width = w + 'px';
+        if (h) t.style.height = h + 'px';
+      } else {
+        t.style.width = '';
+        t.style.height = '';
+      }
+    });
+  }
+  apply();
+  window.addEventListener('resize', apply);
+  document.addEventListener('DOMContentLoaded', apply);
+  try {
+    const ro = new (window.ResizeObserver || function(){})((entries)=>{ apply(); });
+    if (ro && anchor) ro.observe(anchor);
+  } catch (e) {}
 })();
 </script>
 {% endblock %}

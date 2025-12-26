@@ -9,6 +9,9 @@ from reportlab.lib.units import inch, cm
 from flask import Blueprint, redirect, url_for, flash, send_file, request
 from flask_login import login_required, current_user
 from ..models import Produto, CleaningTask as CleaningTaskModel, CleaningHistory as CleaningHistoryModel, Historico, MeatReception, MeatCarrier, MeatPart, User, Recipe, RecipeIngredient
+from ..models import Collaborator, HourBankEntry, LeaveCredit, LeaveAssignment, LeaveConversion
+from sqlalchemy import func
+from flask import render_template
 from io import BytesIO
 from typing import Any
 from reportlab.platypus import Image
@@ -1126,3 +1129,115 @@ def exportar_exemplo_pdf():
     except Exception as e:
         flash(f'Erro ao gerar PDF de Exemplo: {e}', 'danger')
         return redirect(url_for('home.index'))
+
+
+@bp.route('/exportar/jornada/pdf')
+@login_required
+def exportar_jornada_pdf():
+    if current_user.nivel not in ['operador', 'admin']:
+        flash('Você não tem permissão para exportar relatório de jornada.', 'danger')
+        return redirect(url_for('jornada.index'))
+    try:
+        collab_id = request.args.get('collaborator_id', type=int)
+        inicio = (request.args.get('inicio') or '').strip()
+        fim = (request.args.get('fim') or '').strip()
+        di = None
+        df = None
+        try:
+            if inicio:
+                di = datetime.strptime(inicio, '%Y-%m-%d').date()
+        except Exception:
+            di = None
+        try:
+            if fim:
+                df = datetime.strptime(fim, '%Y-%m-%d').date()
+        except Exception:
+            df = None
+        colaboradores = Collaborator.query.filter_by(active=True).order_by(Collaborator.name.asc()).all()
+        def _range_filter(q, col):
+            if di and df:
+                return q.filter(col.between(di, df))
+            if di:
+                return q.filter(col >= di)
+            if df:
+                return q.filter(col <= df)
+            return q
+        resumo = []
+        eventos = []
+        targets = colaboradores if not collab_id else [c for c in colaboradores if c.id == collab_id]
+        for c in targets:
+            try:
+                hq = _range_filter(HourBankEntry.query.filter(HourBankEntry.collaborator_id == c.id), HourBankEntry.date)
+                cq = _range_filter(LeaveCredit.query.filter(LeaveCredit.collaborator_id == c.id), LeaveCredit.date)
+                aq = _range_filter(LeaveAssignment.query.filter(LeaveAssignment.collaborator_id == c.id), LeaveAssignment.date)
+                vq = _range_filter(LeaveConversion.query.filter(LeaveConversion.collaborator_id == c.id), LeaveConversion.date)
+                hsum = float(hq.with_entities(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).scalar() or 0.0)
+                residual_hours = (hsum % 8.0) if hsum >= 0.0 else - ((-hsum) % 8.0)
+                credits_sum = int(cq.with_entities(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).scalar() or 0)
+                assigned_sum = int(aq.with_entities(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).scalar() or 0)
+                converted_sum = int(vq.with_entities(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).scalar() or 0)
+                saldo_days = credits_sum - assigned_sum - converted_sum
+                resumo.append({'id': c.id, 'name': c.name, 'residual_hours': residual_hours, 'saldo_days': saldo_days})
+                for e in hq.order_by(HourBankEntry.date.desc()).all():
+                    eventos.append(['horas', e.date.strftime('%d/%m/%Y'), c.name, f"{float(e.hours or 0.0):.2f} h", e.reason or ''])
+                for cr in cq.order_by(LeaveCredit.date.desc()).all():
+                    eventos.append(['dias_add', cr.date.strftime('%d/%m/%Y'), c.name, f"+{int(cr.amount_days or 0)} dia(s)", cr.notes or ''])
+                for a in aq.order_by(LeaveAssignment.date.desc()).all():
+                    eventos.append(['dias_uso', a.date.strftime('%d/%m/%Y'), c.name, f"-{int(a.days_used or 0)} dia(s)", a.notes or ''])
+                for v in vq.order_by(LeaveConversion.date.desc()).all():
+                    eventos.append(['dias_pago', v.date.strftime('%d/%m/%Y'), c.name, f"{int(v.amount_days or 0)} dia(s) — R$ {float(v.amount_paid or 0):.2f}", v.notes or ''])
+            except Exception:
+                pass
+        eventos.sort(key=lambda it: (it[2], it[1]), reverse=True)
+        filename = 'relatorio_jornada_multimax.pdf'
+        pdf_buffer = BytesIO()
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, leftMargin=0.6*inch, rightMargin=0.6*inch, topMargin=1.15*inch, bottomMargin=0.7*inch)
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(name='Cell', parent=styles['Normal'], fontSize=9, leading=12, wordWrap='LTR'))
+        styles.add(ParagraphStyle(name='SectionTitle', parent=styles['Heading2'], fontSize=14, leading=18, textColor=colors.HexColor(PDF_SECONDARY), fontName=_font_bold(), spaceBefore=12, spaceAfter=8))
+        story: list[Any] = []
+        story.append(_make_info_block('Relatório de Jornada', [
+            ('Colaborador', (next((c.name for c in colaboradores if c.id == collab_id), 'Todos') if collab_id else 'Todos')),
+            ('Período', (f"{inicio or '-'} até {fim or '-'}"))
+        ], registrado_por=None))
+        story.append(Spacer(1, 0.35 * inch))
+        story.append(Paragraph('Resumo de Saldos', styles['SectionTitle']))
+        story.append(Spacer(1, 0.15 * inch))
+        data_resumo: list[list[Any]] = [['Colaborador', 'Horas restantes', 'Dias restantes']]
+        for r in resumo:
+            data_resumo.append([Paragraph(r['name'], styles['Cell']), f"{float(r['residual_hours']):.2f} h", f"{int(r['saldo_days'])} dia(s)"])
+        table_resumo = Table(data_resumo, hAlign='LEFT')
+        table_resumo.setStyle(TableStyle([
+            ('GRID', (0,0), (-1,-1), 0.5, colors.lightgrey),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f1f5f9')),
+            ('FONTNAME', (0,0), (-1,0), _font_bold()),
+            ('LEFTPADDING', (0,0), (-1,-1), 6),
+            ('RIGHTPADDING', (0,0), (-1,-1), 6),
+        ]))
+        story.append(table_resumo)
+        story.append(Spacer(1, 0.3 * inch))
+        story.append(Paragraph('Eventos do Período', styles['SectionTitle']))
+        story.append(Spacer(1, 0.15 * inch))
+        data_eventos: list[list[Any]] = [['Data', 'Colaborador', 'Tipo', 'Valor', 'Observações']]
+        for e in eventos:
+            tipo_label = {'horas':'Horas registradas','dias_add':'Dias acrescentados','dias_uso':'Dias usados','dias_pago':'Dias convertidos em R$'}.get(e[0], e[0])
+            data_eventos.append([e[1], Paragraph(e[2], styles['Cell']), tipo_label, e[3], Paragraph(e[4], styles['Cell'])])
+        table_events = Table(data_eventos, hAlign='LEFT', colWidths=[1.0*inch, 2.0*inch, 1.8*inch, 1.2*inch, None])
+        table_events.setStyle(TableStyle([
+            ('GRID', (0,0), (-1,-1), 0.5, colors.lightgrey),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f1f5f9')),
+            ('FONTNAME', (0,0), (-1,0), _font_bold()),
+            ('LEFTPADDING', (0,0), (-1,-1), 6),
+            ('RIGHTPADDING', (0,0), (-1,-1), 6),
+        ]))
+        story.append(table_events)
+        def on_page(canvas, doc):
+            _brand_header(canvas, doc, 'Relatório de Jornada')
+            _draw_cards_bg(canvas, doc, canvas.getPageNumber() == 1)
+            _premium_footer(canvas, doc, 'Jornada')
+        doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
+        final_io = _finalize_pdf(pdf_buffer)
+        return _send_pdf(final_io, filename)
+    except Exception as e:
+        flash(f'Erro ao gerar PDF de Jornada: {e}', 'danger')
+        return redirect(url_for('jornada.index'))
