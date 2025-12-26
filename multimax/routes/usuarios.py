@@ -807,7 +807,7 @@ def gestao():
     users_page = all_users[u_start:u_end]
 
     # Paginação de logs
-    per_logs = 10
+    per_logs = 2
     total_logs = len(logs)
     l_total_pages = max(1, (total_logs + per_logs - 1) // per_logs)
     if l_page > l_total_pages:
