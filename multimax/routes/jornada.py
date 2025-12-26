@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, session
 from flask_login import login_required, current_user
 from .. import db
-from ..models import Collaborator, RegistroJornada, RegistroJornadaChange, Holiday, SystemLog, LeaveAssignment, Vacation, MedicalCertificate
+from ..models import Collaborator, RegistroJornada, RegistroJornadaChange, Holiday, SystemLog, LeaveAssignment, Vacation, MedicalCertificate, HourBankEntry, LeaveCredit, LeaveConversion
 from datetime import datetime, date
 from zoneinfo import ZoneInfo
 from uuid import uuid4
@@ -215,24 +215,49 @@ def index():
     at_end = at_start + sub_per_page
     atestados_page = atestados_all[at_start:at_end]
 
-    # Agregação por colaborador (horas/dias)
+    # Agregação por colaborador baseada em métricas reais (residual horas e saldo de dias)
     cards_stats = []
     try:
-        h_rows = db.session.query(RegistroJornada.collaborator_id, func.sum(RegistroJornada.valor))\
-            .filter(RegistroJornada.tipo_registro == 'horas')\
-            .group_by(RegistroJornada.collaborator_id).all()
-        d_rows = db.session.query(RegistroJornada.collaborator_id, func.sum(RegistroJornada.valor))\
-            .filter(RegistroJornada.tipo_registro == 'dias')\
-            .group_by(RegistroJornada.collaborator_id).all()
-        h_map = {cid: float(s or 0.0) for cid, s in h_rows or []}
-        d_map = {cid: float(s or 0.0) for cid, s in d_rows or []}
+        # Interpretar filtros de data
+        try:
+            di_cards = datetime.strptime(data_inicio, '%Y-%m-%d').date() if data_inicio else None
+        except Exception:
+            di_cards = None
+        try:
+            df_cards = datetime.strptime(data_fim, '%Y-%m-%d').date() if data_fim else None
+        except Exception:
+            df_cards = None
+
+        def apply_range(q, col):
+            if di_cards and df_cards:
+                return q.filter(col.between(di_cards, df_cards))
+            if di_cards:
+                return q.filter(col >= di_cards)
+            if df_cards:
+                return q.filter(col <= df_cards)
+            return q
+
         for c in colaboradores:
-            cards_stats.append({
-                'id': c.id,
-                'name': c.name,
-                'horas': h_map.get(c.id, 0.0),
-                'dias': d_map.get(c.id, 0.0)
-            })
+            try:
+                hq = apply_range(HourBankEntry.query.filter(HourBankEntry.collaborator_id == c.id), HourBankEntry.date)
+                cq = apply_range(LeaveCredit.query.filter(LeaveCredit.collaborator_id == c.id), LeaveCredit.date)
+                aq = apply_range(LeaveAssignment.query.filter(LeaveAssignment.collaborator_id == c.id), LeaveAssignment.date)
+                vq = apply_range(LeaveConversion.query.filter(LeaveConversion.collaborator_id == c.id), LeaveConversion.date)
+                hsum = float(hq.with_entities(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).scalar() or 0.0)
+                residual_hours = (hsum % 8.0) if hsum >= 0.0 else - ((-hsum) % 8.0)
+                credits_sum = int(cq.with_entities(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).scalar() or 0)
+                assigned_sum = int(aq.with_entities(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).scalar() or 0)
+                converted_sum = int(vq.with_entities(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).scalar() or 0)
+                saldo_days = credits_sum - assigned_sum - converted_sum
+                cards_stats.append({
+                    'id': c.id,
+                    'name': c.name,
+                    'residual_hours': residual_hours,
+                    'saldo_days': saldo_days,
+                    'assigned_days': assigned_sum
+                })
+            except Exception:
+                pass
     except Exception:
         cards_stats = []
 
@@ -343,6 +368,7 @@ def create():
         flash('Data futura não permitida.', 'danger')
         return redirect(url_for('jornada.index'))
     try:
+        obs = (request.form.get('observacao') or '').strip()
         w = RegistroJornada()
         w.id = str(uuid4())
         w.collaborator_id = cid
@@ -351,6 +377,7 @@ def create():
         w.data = dt
         w.created_at = datetime.now(ZoneInfo('America/Sao_Paulo'))
         w.updated_at = w.created_at
+        w.observacao = obs
         db.session.add(w)
         db.session.commit()
         _log_event('create', f"{tipo} {val} em {dt} para colaborador {cid}")
@@ -398,11 +425,13 @@ def update(worklog_id):
         flash('Data futura não permitida.', 'danger')
         return redirect(url_for('jornada.index'))
     try:
+        obs = (request.form.get('observacao') or '').strip()
         w.collaborator_id = cid
         w.tipo_registro = tipo
         w.valor = val
         w.data = dt
         w.updated_at = datetime.now(ZoneInfo('America/Sao_Paulo'))
+        w.observacao = obs
         ch = RegistroJornadaChange()
         ch.worklog_id = w.id
         ch.changed_by = current_user.id
@@ -509,9 +538,9 @@ def export():
             ws = wb.create_sheet(title='Jornada')
         else:
             ws.title = 'Jornada'
-        ws.append(['ID', 'Colaborador', 'Tipo', 'Valor', 'Data', 'Criado em'])
+        ws.append(['ID', 'Colaborador', 'Tipo', 'Valor', 'Data', 'Observações', 'Criado em'])
         for w, c in rows:
-            ws.append([w.id, c.name, w.tipo_registro, float(w.valor or 0), w.data.strftime('%Y-%m-%d'), (w.created_at.strftime('%Y-%m-%d %H:%M') if w.created_at else '')])
+            ws.append([w.id, c.name, w.tipo_registro, float(w.valor or 0), w.data.strftime('%Y-%m-%d'), (w.observacao or ''), (w.created_at.strftime('%Y-%m-%d %H:%M') if w.created_at else '')])
         buf = io.BytesIO()
         wb.save(buf)
         buf.seek(0)
@@ -519,11 +548,207 @@ def export():
     else:
         buf = io.StringIO()
         writer = csv.writer(buf)
-        writer.writerow(['ID', 'Colaborador', 'Tipo', 'Valor', 'Data', 'Criado em'])
+        writer.writerow(['ID', 'Colaborador', 'Tipo', 'Valor', 'Data', 'Observações', 'Criado em'])
         for w, c in rows:
-            writer.writerow([w.id, c.name, w.tipo_registro, f"{float(w.valor or 0):.2f}", w.data.strftime('%Y-%m-%d'), (w.created_at.strftime('%Y-%m-%d %H:%M') if w.created_at else '')])
+            writer.writerow([w.id, c.name, w.tipo_registro, f"{float(w.valor or 0):.2f}", w.data.strftime('%Y-%m-%d'), (w.observacao or ''), (w.created_at.strftime('%Y-%m-%d %H:%M') if w.created_at else '')])
         data_str = buf.getvalue().encode('utf-8')
         return send_file(io.BytesIO(data_str), mimetype='text/csv', as_attachment=True, download_name='registro_jornada.csv')
+
+@bp.route('/relatorio', methods=['GET'], strict_slashes=False)
+@login_required
+def relatorio():
+    if current_user.nivel not in ['operador', 'admin']:
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('jornada.index'))
+    collab_id = request.args.get('collaborator_id', type=int)
+    inicio = (request.args.get('inicio') or '').strip()
+    fim = (request.args.get('fim') or '').strip()
+    di = None
+    df = None
+    try:
+        if inicio:
+            di = datetime.strptime(inicio, '%Y-%m-%d').date()
+    except Exception:
+        di = None
+    try:
+        if fim:
+            df = datetime.strptime(fim, '%Y-%m-%d').date()
+    except Exception:
+        df = None
+    colaboradores = Collaborator.query.filter_by(active=True).order_by(Collaborator.name.asc()).all()
+    def _range_filter(q, col):
+        if di and df:
+            return q.filter(col.between(di, df))
+        if di:
+            return q.filter(col >= di)
+        if df:
+            return q.filter(col <= df)
+        return q
+    resumo = []
+    eventos = []
+    targets = colaboradores if not collab_id else [c for c in colaboradores if c.id == collab_id]
+    for c in targets:
+        try:
+            hq = _range_filter(HourBankEntry.query.filter(HourBankEntry.collaborator_id == c.id), HourBankEntry.date)
+            cq = _range_filter(LeaveCredit.query.filter(LeaveCredit.collaborator_id == c.id), LeaveCredit.date)
+            aq = _range_filter(LeaveAssignment.query.filter(LeaveAssignment.collaborator_id == c.id), LeaveAssignment.date)
+            vq = _range_filter(LeaveConversion.query.filter(LeaveConversion.collaborator_id == c.id), LeaveConversion.date)
+            rjq = _range_filter(RegistroJornada.query.filter(RegistroJornada.collaborator_id == c.id), RegistroJornada.data)
+            rj_obs_map = {}
+            rj_obs_date_map = {}
+            for w in rjq.all():
+                try:
+                    k = (w.data, (w.tipo_registro or ''))
+                    if k not in rj_obs_map and (w.observacao or ''):
+                        rj_obs_map[k] = (w.observacao or '')
+                    if (w.data not in rj_obs_date_map) and (w.observacao or ''):
+                        rj_obs_date_map[w.data] = (w.observacao or '')
+                except Exception:
+                    pass
+            hsum = float(db.session.query(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).filter(HourBankEntry.collaborator_id == c.id).scalar() or 0.0)
+            if di or df:
+                hsum = float(hq.with_entities(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).scalar() or 0.0)
+            residual_hours = (hsum % 8.0) if hsum >= 0.0 else - ((-hsum) % 8.0)
+            credits_sum = int(db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == c.id).scalar() or 0)
+            assigned_sum = int(db.session.query(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).filter(LeaveAssignment.collaborator_id == c.id).scalar() or 0)
+            converted_sum = int(db.session.query(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).filter(LeaveConversion.collaborator_id == c.id).scalar() or 0)
+            if di or df:
+                credits_sum = int(cq.with_entities(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).scalar() or 0)
+                assigned_sum = int(aq.with_entities(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).scalar() or 0)
+                converted_sum = int(vq.with_entities(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).scalar() or 0)
+            saldo_days = credits_sum - assigned_sum - converted_sum
+            resumo.append({'id': c.id, 'name': c.name, 'residual_hours': residual_hours, 'saldo_days': saldo_days})
+            for e in hq.order_by(HourBankEntry.date.desc()).all():
+                if e.date:
+                    desc = (e.reason or '')
+                    eventos.append({'collab_id': c.id, 'collab_name': c.name, 'date': e.date, 'tipo': 'horas', 'valor': float(e.hours or 0.0), 'descricao': desc})
+            for cr in cq.order_by(LeaveCredit.date.desc()).all():
+                if cr.date:
+                    desc = (cr.notes or '')
+                    eventos.append({'collab_id': c.id, 'collab_name': c.name, 'date': cr.date, 'tipo': 'dias_add', 'valor': int(cr.amount_days or 0), 'descricao': desc})
+            for a in aq.order_by(LeaveAssignment.date.desc()).all():
+                if a.date:
+                    desc = (a.notes or '')
+                    if not desc:
+                        desc = (rj_obs_map.get((a.date, 'dias')) or '')
+                    if not desc:
+                        desc = (rj_obs_date_map.get(a.date) or '')
+                    eventos.append({'collab_id': c.id, 'collab_name': c.name, 'date': a.date, 'tipo': 'dias_uso', 'valor': -int(a.days_used or 0), 'descricao': desc})
+            for v in vq.order_by(LeaveConversion.date.desc()).all():
+                if v.date:
+                    notes = (v.notes or '')
+                    if not notes:
+                        notes = (rj_obs_map.get((v.date, 'dias')) or '')
+                    if not notes:
+                        notes = (rj_obs_date_map.get(v.date) or '')
+                    eventos.append({'collab_id': c.id, 'collab_name': c.name, 'date': v.date, 'tipo': 'dias_pago', 'valor': int(v.amount_days or 0), 'descricao': f"R$ {float(v.amount_paid or 0):.2f} — {notes}"})
+        except Exception as e:
+            _log_event('relatorio_error', f"collab {c.id} {c.name}: {e}")
+    eventos.sort(key=lambda it: ((it.get('collab_name') or ''), (it.get('date') or date.min)), reverse=True)
+    return render_template('relatorio_jornada.html', resumo=resumo, eventos=eventos, colaboradores=colaboradores, inicio=inicio, fim=fim, collab_id=collab_id, active_page='jornada')
+
+@bp.route('/relatorio/export', methods=['GET'], strict_slashes=False)
+@login_required
+def relatorio_export():
+    if current_user.nivel not in ['operador', 'admin']:
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('jornada.index'))
+    collab_id = request.args.get('collaborator_id', type=int)
+    inicio = (request.args.get('inicio') or '').strip()
+    fim = (request.args.get('fim') or '').strip()
+    di = None
+    df = None
+    try:
+        if inicio:
+            di = datetime.strptime(inicio, '%Y-%m-%d').date()
+    except Exception:
+        di = None
+    try:
+        if fim:
+            df = datetime.strptime(fim, '%Y-%m-%d').date()
+    except Exception:
+        df = None
+    colaboradores = Collaborator.query.filter_by(active=True).order_by(Collaborator.name.asc()).all()
+    def _range_filter(q, col):
+        if di and df:
+            return q.filter(col.between(di, df))
+        if di:
+            return q.filter(col >= di)
+        if df:
+            return q.filter(col <= df)
+        return q
+    resumo = []
+    eventos = []
+    targets = colaboradores if not collab_id else [c for c in colaboradores if c.id == collab_id]
+    for c in targets:
+        try:
+            hq = _range_filter(HourBankEntry.query.filter(HourBankEntry.collaborator_id == c.id), HourBankEntry.date)
+            cq = _range_filter(LeaveCredit.query.filter(LeaveCredit.collaborator_id == c.id), LeaveCredit.date)
+            aq = _range_filter(LeaveAssignment.query.filter(LeaveAssignment.collaborator_id == c.id), LeaveAssignment.date)
+            vq = _range_filter(LeaveConversion.query.filter(LeaveConversion.collaborator_id == c.id), LeaveConversion.date)
+            rjq = _range_filter(RegistroJornada.query.filter(RegistroJornada.collaborator_id == c.id), RegistroJornada.data)
+            rj_obs_map = {}
+            rj_obs_date_map = {}
+            for w in rjq.all():
+                try:
+                    k = (w.data, (w.tipo_registro or ''))
+                    if k not in rj_obs_map and (w.observacao or ''):
+                        rj_obs_map[k] = (w.observacao or '')
+                    if (w.data not in rj_obs_date_map) and (w.observacao or ''):
+                        rj_obs_date_map[w.data] = (w.observacao or '')
+                except Exception:
+                    pass
+            hsum = float(hq.with_entities(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).scalar() or 0.0)
+            residual_hours = (hsum % 8.0) if hsum >= 0.0 else - ((-hsum) % 8.0)
+            credits_sum = int(cq.with_entities(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).scalar() or 0)
+            assigned_sum = int(aq.with_entities(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).scalar() or 0)
+            converted_sum = int(vq.with_entities(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).scalar() or 0)
+            saldo_days = credits_sum - assigned_sum - converted_sum
+            resumo.append({'id': c.id, 'name': c.name, 'residual_hours': residual_hours, 'saldo_days': saldo_days})
+            for e in hq.order_by(HourBankEntry.date.desc()).all():
+                if e.date:
+                    desc = (e.reason or '')
+                    eventos.append({'date': e.date, 'collab': c.name, 'tipo': 'Horas', 'valor': float(e.hours or 0.0), 'obs': desc})
+            for cr in cq.order_by(LeaveCredit.date.desc()).all():
+                if cr.date:
+                    desc = (cr.notes or '')
+                    eventos.append({'date': cr.date, 'collab': c.name, 'tipo': 'Dias acrescentados', 'valor': int(cr.amount_days or 0), 'obs': desc})
+            for a in aq.order_by(LeaveAssignment.date.desc()).all():
+                if a.date:
+                    desc = (a.notes or '')
+                    if not desc:
+                        desc = (rj_obs_map.get((a.date, 'dias')) or '')
+                    if not desc:
+                        desc = (rj_obs_date_map.get(a.date) or '')
+                    eventos.append({'date': a.date, 'collab': c.name, 'tipo': 'Dias usados', 'valor': -int(a.days_used or 0), 'obs': desc})
+            for v in vq.order_by(LeaveConversion.date.desc()).all():
+                if v.date:
+                    notes = (v.notes or '')
+                    if not notes:
+                        notes = (rj_obs_map.get((v.date, 'dias')) or '')
+                    if not notes:
+                        notes = (rj_obs_date_map.get(v.date) or '')
+                    eventos.append({'date': v.date, 'collab': c.name, 'tipo': 'Dias convertidos em R$', 'valor': int(v.amount_days or 0), 'obs': f"R$ {float(v.amount_paid or 0):.2f} — {notes}"})
+        except Exception as e:
+            _log_event('relatorio_export_error', f"collab {c.id} {c.name}: {e}")
+    eventos.sort(key=lambda it: ((it.get('collab') or ''), (it.get('date') or date.min)), reverse=True)
+    wb = Workbook()
+    ws_resumo = wb.active
+    if not ws_resumo:
+        ws_resumo = wb.create_sheet(title='Resumo')
+    else:
+        ws_resumo.title = 'Resumo'
+    ws_resumo.append(['Colaborador', 'Horas restantes', 'Dias restantes'])
+    for r in resumo:
+        ws_resumo.append([r['name'], float(r['residual_hours'] or 0.0), int(r['saldo_days'] or 0)])
+    ws_eventos = wb.create_sheet(title='Eventos')
+    ws_eventos.append(['Data', 'Colaborador', 'Tipo', 'Valor', 'Observações'])
+    for e in eventos:
+        ws_eventos.append([(e.get('date').strftime('%Y-%m-%d') if e.get('date') else ''), e.get('collab') or '', e.get('tipo') or '', e.get('valor'), e.get('obs') or ''])
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return send_file(buf, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', as_attachment=True, download_name='relatorio_jornada.xlsx')
 
 
 @bp.route('/migrar', methods=['POST'], strict_slashes=False)
@@ -537,6 +762,13 @@ def migrar():
     try:
         entries = HourBankEntry.query.all()
         for e in entries:
+            exists = RegistroJornada.query.filter_by(
+                collaborator_id=e.collaborator_id,
+                tipo_registro='horas',
+                data=e.date
+            ).first()
+            if exists:
+                continue
             w = RegistroJornada()
             w.id = str(uuid4())
             w.collaborator_id = e.collaborator_id
@@ -545,10 +777,18 @@ def migrar():
             w.data = e.date
             w.created_at = datetime.now(ZoneInfo('America/Sao_Paulo'))
             w.updated_at = w.created_at
+            w.observacao = (e.reason or '')
             db.session.add(w)
             created += 1
         credits = LeaveCredit.query.all()
         for c in credits:
+            exists = RegistroJornada.query.filter_by(
+                collaborator_id=c.collaborator_id,
+                tipo_registro='dias',
+                data=c.date
+            ).first()
+            if exists:
+                continue
             w = RegistroJornada()
             w.id = str(uuid4())
             w.collaborator_id = c.collaborator_id
@@ -557,6 +797,7 @@ def migrar():
             w.data = c.date
             w.created_at = datetime.now(ZoneInfo('America/Sao_Paulo'))
             w.updated_at = w.created_at
+            w.observacao = (c.notes or '')
             db.session.add(w)
             created += 1
         db.session.commit()
@@ -569,3 +810,121 @@ def migrar():
             pass
         flash(f'Erro na migração: {e}', 'danger')
     return redirect(url_for('jornada.index'))
+
+@bp.route('/sincronizar-observacoes', methods=['POST'], strict_slashes=False)
+@login_required
+def sincronizar_observacoes():
+    if current_user.nivel != 'admin':
+        flash('Apenas Administradores podem sincronizar.', 'danger')
+        return redirect(url_for('jornada.index'))
+    updated = 0
+    try:
+        horas_regs = RegistroJornada.query.filter(RegistroJornada.tipo_registro == 'horas').all()
+        for w in horas_regs:
+            try:
+                src = HourBankEntry.query.filter_by(collaborator_id=w.collaborator_id, date=w.data).order_by(HourBankEntry.id.asc()).first()
+                val = (src.reason if src and src.reason else '')
+                if val and not (w.observacao or '').strip():
+                    w.observacao = val
+                    updated += 1
+            except Exception:
+                pass
+        dias_regs = RegistroJornada.query.filter(RegistroJornada.tipo_registro == 'dias').all()
+        for w in dias_regs:
+            try:
+                src = LeaveCredit.query.filter_by(collaborator_id=w.collaborator_id, date=w.data).order_by(LeaveCredit.id.asc()).first()
+                val = (src.notes if src and src.notes else '')
+                if val and not (w.observacao or '').strip():
+                    w.observacao = val
+                    updated += 1
+            except Exception:
+                pass
+        db.session.commit()
+        _log_event('sync_obs', f"{updated} observações sincronizadas")
+        flash(f'Observações sincronizadas: {updated}', 'success')
+    except Exception as e:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        flash(f'Erro na sincronização: {e}', 'danger')
+    return redirect(url_for('jornada.index'))
+
+@bp.route('/delete_by_date', methods=['POST'], strict_slashes=False)
+@login_required
+def delete_by_date():
+    if current_user.nivel != 'admin':
+        flash('Apenas Administradores podem excluir em massa.', 'danger')
+        return redirect(url_for('jornada.index'))
+    date_str = (request.form.get('data') or '').strip()
+    d_start_str = (request.form.get('del_inicio') or '').strip()
+    d_end_str = (request.form.get('del_fim') or '').strip()
+    di = None
+    df = None
+    dt = None
+    try:
+        if d_start_str:
+            di = datetime.strptime(d_start_str, '%Y-%m-%d').date()
+    except Exception:
+        di = None
+    try:
+        if d_end_str:
+            df = datetime.strptime(d_end_str, '%Y-%m-%d').date()
+    except Exception:
+        df = None
+    if not (di and df):
+        try:
+            if date_str:
+                dt = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except Exception:
+            dt = None
+    if not ((di and df) or dt):
+        flash('Período ou data inválidos para exclusão.', 'warning')
+        return redirect(url_for('jornada.index'))
+    try:
+        if di and df:
+            q = RegistroJornada.query.filter(RegistroJornada.data.between(di, df))
+        else:
+            q = RegistroJornada.query.filter(RegistroJornada.data == dt)
+        count = q.count()
+        for w in q.all():
+            db.session.delete(w)
+        db.session.commit()
+        if di and df:
+            _log_event('bulk_delete', f"{count} registros removidos no período {di} a {df}")
+        else:
+            _log_event('bulk_delete', f"{count} registros removidos em {dt}")
+        if count > 0:
+            if di and df:
+                ps = (f"{di.strftime('%d/%m/%Y')} a {df.strftime('%d/%m/%Y')}" if (di and df) else '')
+                flash(f'{count} registro(s) removido(s) no período {ps}.', 'success')
+            else:
+                ds = (dt.strftime('%d/%m/%Y') if dt else '')
+                flash(f'{count} registro(s) removido(s) na data {ds}.', 'success')
+        else:
+            flash('Nenhum registro para remover no intervalo informado.', 'info')
+    except Exception as e:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        flash(f'Erro ao excluir registros: {e}', 'danger')
+    # Preservar filtros do usuário ao redirecionar
+    args = {
+        'colaborador': (request.form.get('colaborador') or '').strip() or None,
+        'tipo': (request.form.get('tipo') or '').strip() or None,
+        'inicio': (request.form.get('inicio') or '').strip() or None,
+        'fim': (request.form.get('fim') or '').strip() or None,
+        'sort': (request.form.get('sort') or '').strip() or None,
+        'cs_collaborator_id': (request.form.get('cs_collaborator_id') or '').strip() or None,
+        'cs_page': (request.form.get('cs_page') or '').strip() or None,
+    }
+    args = {k: v for k, v in args.items() if v is not None}
+    try:
+        from urllib.parse import urlencode
+        base = url_for('jornada.index')
+        qs = urlencode(args) if args else ''
+        url = f"{base}?{qs}" if qs else base
+        return redirect(url, code=303)
+    except Exception:
+        return redirect(url_for('jornada.index'))

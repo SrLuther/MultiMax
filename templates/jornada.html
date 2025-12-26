@@ -12,8 +12,8 @@
         <div class="mm-flex mm-gap-3 mm-mt-3">
             {% if current_user.nivel == 'admin' %}
             <button type="button" class="mm-btn mm-btn-primary" id="btnOpenModal" aria-haspopup="dialog">
-                <i class="bi bi-plus-lg"></i>
-                Novo Registro
+                <i class="bi bi-pencil-square"></i>
+                Atualizar
             </button>
             <form method="post" action="{{ url_for('jornada.migrar') }}" onsubmit="return confirm('Migrar registros existentes para a tabela unificada?')">
                 <button type="submit" class="mm-btn mm-btn-outline mm-migrar-btn">
@@ -30,6 +30,12 @@
                 <i class="bi bi-file-earmark-excel"></i>
                 Exportar Excel
             </a>
+            {% if current_user.nivel == 'admin' %}
+            <a class="mm-btn mm-btn-outline mm-export-btn" href="{{ url_for('jornada.relatorio', collaborator_id=(q_colab if q_colab else None), inicio=data_inicio, fim=data_fim) }}">
+                <i class="bi bi-journal-text"></i>
+                Relatório
+            </a>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -55,10 +61,12 @@
             <div class="mm-card-mini">
                 <div class="mm-card-mini-title">{{ cs_item.name }}</div>
                 <div class="mm-card-mini-grid">
-                    <div class="mm-text-muted">Horas</div>
-                    <div class="mm-text-right mm-font-bold">{{ '%.2f'|format(cs_item.horas or 0) }} h</div>
-                    <div class="mm-text-muted">Dias</div>
-                    <div class="mm-text-right mm-font-bold">{{ '%.0f'|format(cs_item.dias or 0) }} dia(s)</div>
+                    <div class="mm-text-muted">Horas (residual)</div>
+                    <div class="mm-text-right mm-font-bold">{{ '%.2f'|format(cs_item.residual_hours or 0) }} h</div>
+                    <div class="mm-text-muted">Dias de Folga</div>
+                    <div class="mm-text-right mm-font-bold">{{ cs_item.saldo_days or 0 }} dia(s)</div>
+                    <div class="mm-text-muted">Folgas usadas</div>
+                    <div class="mm-text-right mm-font-bold">{{ cs_item.assigned_days or 0 }} dia(s)</div>
                 </div>
             </div>
             {% endif %}
@@ -79,11 +87,30 @@
 
 <div class="mm-card mm-mb-6">
     <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
-        <h3 class="mm-card-title"><i class="bi bi-funnel me-2"></i>Filtros</h3>
-        <a class="mm-btn mm-btn-sm mm-btn-outline" href="{{ url_for('jornada.index') }}">
-            <i class="bi bi-x-lg"></i>
-            Limpar
-        </a>
+        <h3 class="mm-card-title"><i class="bi bi-activity me-2"></i>Gestão de Jornada</h3>
+        <div class="mm-flex mm-gap-2">
+            <a class="mm-btn mm-btn-sm mm-btn-outline" href="{{ url_for('jornada.index') }}">
+                <i class="bi bi-x-lg"></i>
+                Limpar
+            </a>
+            {% if current_user.nivel == 'admin' %}
+            <form method="post" action="{{ url_for('jornada.delete_by_date') }}" onsubmit="return confirm('Excluir todos os registros no período informado?')" class="mm-flex mm-gap-2">
+                <input type="hidden" name="colaborador" value="{{ q_colab or '' }}">
+                <input type="hidden" name="tipo" value="{{ tipo or '' }}">
+                <input type="hidden" name="inicio" value="{{ data_inicio or '' }}">
+                <input type="hidden" name="fim" value="{{ data_fim or '' }}">
+                <input type="hidden" name="sort" value="{{ sort or '' }}">
+                <input type="hidden" name="cs_collaborator_id" value="{{ cs_collab_id or '' }}">
+                <input type="hidden" name="cs_page" value="{{ cs_page or '' }}">
+                <input type="date" name="del_inicio" class="mm-input" placeholder="Início" required>
+                <input type="date" name="del_fim" class="mm-input" placeholder="Fim" required>
+                <button type="submit" class="mm-btn mm-btn-danger mm-wide-btn">
+                    <i class="bi bi-trash"></i>
+                    Massa
+                </button>
+            </form>
+            {% endif %}
+        </div>
     </div>
     <div class="mm-card-body">
         <form class="mm-grid mm-grid-cols-3 mm-gap-4" method="get" action="{{ url_for('jornada.index') }}">
@@ -129,7 +156,7 @@
                     </select>
                 </div>
                 <div class="mm-flex mm-items-end">
-                    <button class="mm-btn mm-btn-primary" type="submit"><i class="bi bi-search"></i> Buscar</button>
+                    <button class="mm-btn mm-btn-primary mm-wide-btn" type="submit"><i class="bi bi-search"></i> Buscar</button>
                 </div>
             </div>
         </form>
@@ -144,29 +171,146 @@
             <div class="mm-grid mm-grid-cols-2 mm-gap-6">
                 <div>
                     <div class="mm-text-muted">Horas</div>
-                    <div class="mm-text-xl mm-font-bold">{{ '%.2f'|format(resumo_horas or 0) }} h</div>
+                    <div class="mm-text-xl mm-font-bold">{{ '%.2f'|format((cs_item and cs_item.residual_hours) or (resumo_horas or 0)) }} h</div>
                 </div>
                 <div>
                     <div class="mm-text-muted">Dias</div>
-                    <div class="mm-text-xl mm-font-bold">{{ '%.0f'|format(resumo_dias or 0) }} dia(s)</div>
+                    <div class="mm-text-xl mm-font-bold">{{ '%.0f'|format(((cs_item and cs_item.saldo_days) or (resumo_dias or 0)) | float) }} dia(s)</div>
                 </div>
             </div>
         </div>
         {% endif %}
+
         <div class="mm-mt-4">
             <div class="mm-flex mm-items-center mm-justify-between mm-mb-3">
                 <h3 class="mm-card-title"><i class="bi bi-table me-2"></i>Registros</h3>
                 <span class="mm-badge">{{ total }} registros</span>
             </div>
+            <div class="mm-mt-6">
+                <div class="mm-flex mm-items-center mm-justify-between mm-mb-3">
+                    <h3 class="mm-card-title"><i class="bi bi-calendar-minus me-2"></i>Uso de Folgas</h3>
+                </div>
+                <form method="get" action="{{ url_for('jornada.index') }}" class="mm-flex mm-gap-2 mm-items-center mm-mb-4">
+                    <input type="hidden" name="la_page" value="1">
+                    <select name="la_collaborator_id" class="mm-input mm-select" style="min-width: 220px;">
+                        <option value="">— filtrar colaborador —</option>
+                        {% for c in colaboradores %}
+                        <option value="{{ c.id }}" {% if la_collab_id and la_collab_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="mm-btn mm-btn-outline"><i class="bi bi-search"></i> Filtrar</button>
+                </form>
+
+                <form id="formFolgaAcao" method="post" action="{{ url_for('usuarios.gestao_colabs_folga_uso_adicionar') }}" class="mm-form-row mm-mb-6">
+                    <div class="mm-form-group">
+                        <label class="mm-label">Colaborador</label>
+                        <select name="collaborator_id" class="mm-input mm-select" required>
+                            {% for c in colaboradores %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mm-form-group">
+                        <label class="mm-label">Data</label>
+                        <input type="date" name="date" class="mm-input" required>
+                    </div>
+                    <div class="mm-form-group">
+                        <label class="mm-label">Dias</label>
+                        <input type="number" name="days" id="diasInput" class="mm-input" min="1" value="1" required>
+                        <input type="hidden" name="days_used" id="days_used_hidden">
+                    </div>
+                    <div class="mm-form-group" style="flex: 2;">
+                        <label class="mm-label">Observações</label>
+                        <input type="text" name="notes" class="mm-input" placeholder="Observações (opcional)">
+                    </div>
+                    <div class="mm-form-group">
+                        <label class="mm-label">Ação</label>
+                        <div class="mm-flex mm-gap-3" role="radiogroup">
+                            <label class="mm-flex mm-items-center mm-gap-2"><input type="radio" name="acao" value="uso" id="acaoUso" checked> <span>Registrar uso</span></label>
+                            <label class="mm-flex mm-items-center mm-gap-2"><input type="radio" name="acao" value="conversao" id="acaoConv"> <span>Converter em R$</span></label>
+                        </div>
+                    </div>
+                    <div class="mm-form-group" id="convRate" hidden>
+                        <label class="mm-label">Valor por dia (R$)</label>
+                        <input type="number" step="0.01" name="rate_per_day" id="rateInput" class="mm-input" value="65">
+                    </div>
+                    <div class="mm-form-group" id="convAmount" hidden>
+                        <label class="mm-label">Total a pagar (R$)</label>
+                        <input type="number" step="0.01" name="amount_paid" id="amountInput" class="mm-input" value="65.00">
+                    </div>
+                    <div class="mm-form-group" style="align-self: end;">
+                        <button class="mm-btn mm-btn-primary" type="submit">
+                            <i class="bi bi-plus-lg"></i>
+                            Salvar
+                        </button>
+                    </div>
+                </form>
+
+                <div class="mm-table-wrapper">
+                    <table class="mm-table">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Colaborador</th>
+                                <th style="text-align: center;">Dias Usados</th>
+                                <th>Observações</th>
+                                <th style="text-align: right;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for la in leave_assignments_page %}
+                            {% set col = colaboradores|selectattr('id', 'equalto', la.collaborator_id)|list|first %}
+                            <tr>
+                                <td>{{ la.date.strftime('%d/%m/%Y') }}</td>
+                                <td>{{ col and col.name or ('ID ' ~ la.collaborator_id) }}</td>
+                                <td style="text-align: center;">
+                                    <span class="mm-badge mm-badge-danger">-{{ la.days_used }}</span>
+                                </td>
+                                <td>{{ la.notes or '-' }}</td>
+                                <td style="text-align: right;">
+                                    <div class="mm-flex mm-gap-2" style="justify-content: flex-end;">
+                                        <form method="post" action="{{ url_for('usuarios.gestao_colabs_folga_uso_excluir', id=la.id) }}" class="mm-inline-form" onsubmit="return confirm('Excluir uso de folga?')">
+                                            <button class="mm-btn mm-btn-danger mm-btn-sm" type="submit">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="mm-empty-cell">
+                                    <div class="mm-empty-inline">
+                                        <i class="bi bi-calendar-x"></i>
+                                        <span>Sem uso de folgas registrado</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mm-flex mm-items-center mm-justify-between mm-mt-3">
+                    <div class="mm-text-sm mm-text-muted">Página {{ la_page }} de {{ la_total_pages }}</div>
+                    <div class="mm-pagination">
+                        <a class="mm-btn mm-btn-sm mm-btn-outline {% if la_page <= 1 %}mm-disabled{% endif %}" href="{{ url_for('jornada.index') }}?la_page={{ la_page-1 if la_page>1 else 1 }}&la_collaborator_id={{ la_collab_id or '' }}">
+                            <i class="bi bi-chevron-left"></i> Anterior
+                        </a>
+                        <a class="mm-btn mm-btn-sm mm-btn-outline {% if la_page >= la_total_pages %}mm-disabled{% endif %}" href="{{ url_for('jornada.index') }}?la_page={{ la_page+1 if la_page<la_total_pages else la_total_pages }}&la_collaborator_id={{ la_collab_id or '' }}">
+                            Próxima <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
             <div class="mm-table-wrapper">
                 <table class="mm-table">
                     <thead>
                         <tr>
-                            <th>ID</th>
                             <th>Colaborador</th>
                             <th>Tipo</th>
                             <th>Valor</th>
                             <th>Data</th>
+                            <th>Observações</th>
                             {% if current_user.nivel == 'admin' %}
                             <th class="text-end">Ações</th>
                             {% endif %}
@@ -175,18 +319,18 @@
                     <tbody>
                         {% for w, c in registros %}
                         <tr>
-                            <td><code class="mm-code">{{ w.id }}</code></td>
                             <td><strong>{{ c.name }}</strong></td>
                             <td>{{ 'Horas' if w.tipo_registro == 'horas' else 'Dias' }}</td>
                             <td>{% if w.tipo_registro == 'horas' %}{{ '%.2f'|format(w.valor or 0) }} h{% else %}{{ '%.0f'|format(w.valor or 0) }} dia(s){% endif %}</td>
                             <td>{{ w.data.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ w.observacao or '-' }}</td>
                             {% if current_user.nivel == 'admin' %}
                             <td class="text-end">
                                 <div class="mm-flex mm-gap-2 mm-justify-end">
                                     <button type="button" class="mm-btn mm-btn-sm mm-btn-outline" data-view-id="{{ w.id }}" data-view-colab="{{ c.id }}" data-view-tipo="{{ w.tipo_registro }}" data-view-valor="{{ '%.2f'|format(w.valor or 0) }}" data-view-data="{{ w.data.strftime('%Y-%m-%d') }}" title="Detalhes">
                                         <i class="bi bi-eye"></i>
                                     </button>
-                                    <button type="button" class="mm-btn mm-btn-sm mm-btn-outline" data-edit-id="{{ w.id }}" data-edit-colab="{{ c.id }}" data-edit-tipo="{{ w.tipo_registro }}" data-edit-valor="{{ '%.2f'|format(w.valor or 0) }}" data-edit-data="{{ w.data.strftime('%Y-%m-%d') }}">
+                                    <button type="button" class="mm-btn mm-btn-sm mm-btn-outline" data-edit-id="{{ w.id }}" data-edit-colab="{{ c.id }}" data-edit-tipo="{{ w.tipo_registro }}" data-edit-valor="{{ '%.2f'|format(w.valor or 0) }}" data-edit-data="{{ w.data.strftime('%Y-%m-%d') }}" data-edit-obs="{{ w.observacao or '' }}">
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <a class="mm-btn mm-btn-sm mm-btn-outline" href="{{ url_for('jornada.export', colaborador=c.id, inicio=w.data.strftime('%Y-%m-%d'), fim=w.data.strftime('%Y-%m-%d') ) }}" title="Exportar dia">
@@ -229,221 +373,20 @@
 
 {% if q_colab %}{% endif %}
 
-<div class="mm-card mm-mb-6" id="folgas">
-    <div class="mm-card-header">
-        <h3 class="mm-card-title">
-            <i class="bi bi-calendar-minus mm-text-danger"></i>
-            Uso de Folgas
-        </h3>
-    </div>
-    <div class="mm-card-body">
-        <form method="get" action="{{ url_for('jornada.index') }}" class="mm-form-row mm-mb-4">
-            <input type="hidden" name="la_page" value="1">
-            <div class="mm-form-group">
-                <label class="mm-label">Filtrar por colaborador</label>
-                <select name="la_collaborator_id" class="mm-input mm-select">
-                    <option value="">— todos —</option>
-                    {% for c in colaboradores %}
-                    <option value="{{ c.id }}" {% if la_collab_id and la_collab_id == c.id %}selected{% endif %}>{{ c.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="mm-form-group" style="align-self: end;">
-                <button class="mm-btn mm-btn-outline" type="submit"><i class="bi bi-search"></i> Filtrar</button>
-            </div>
-        </form>
-        <form id="formFolgaAcao" method="post" action="{{ url_for('usuarios.gestao_colabs_folga_uso_adicionar') }}" class="mm-form-row mm-mb-6">
-            <div class="mm-form-group">
-                <label class="mm-label">Colaborador</label>
-                <select name="collaborator_id" class="mm-input mm-select" required>
-                    {% for c in colaboradores %}
-                    <option value="{{ c.id }}">{{ c.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="mm-form-group">
-                <label class="mm-label">Data</label>
-                <input type="date" name="date" class="mm-input" required>
-            </div>
-            <div class="mm-form-group">
-                <label class="mm-label">Dias</label>
-                <input type="number" name="days" id="diasInput" class="mm-input" min="1" value="1" required>
-                <input type="hidden" name="days_used" id="days_used_hidden">
-            </div>
-            <div class="mm-form-group" style="flex: 2;">
-                <label class="mm-label">Observações</label>
-                <input type="text" name="notes" class="mm-input" placeholder="Observações (opcional)">
-            </div>
-            <div class="mm-form-group">
-                <label class="mm-label">Ação</label>
-                <div class="mm-flex mm-gap-3" role="radiogroup">
-                    <label class="mm-flex mm-items-center mm-gap-2"><input type="radio" name="acao" value="uso" id="acaoUso" checked> <span>Registrar uso</span></label>
-                    <label class="mm-flex mm-items-center mm-gap-2"><input type="radio" name="acao" value="conversao" id="acaoConv"> <span>Converter em R$</span></label>
-                </div>
-            </div>
-            <div class="mm-form-group" id="convRate" hidden>
-                <label class="mm-label">Valor por dia (R$)</label>
-                <input type="number" step="0.01" name="rate_per_day" id="rateInput" class="mm-input" value="65">
-            </div>
-            <div class="mm-form-group" id="convAmount" hidden>
-                <label class="mm-label">Total a pagar (R$)</label>
-                <input type="number" step="0.01" name="amount_paid" id="amountInput" class="mm-input" value="65.00">
-            </div>
-            <div class="mm-form-group" style="align-self: end;">
-                <button class="mm-btn mm-btn-primary" type="submit">
-                    <i class="bi bi-plus-lg"></i>
-                    Salvar
-                </button>
-            </div>
-        </form>
-        <script>
-        (function(){
-            const acaoUso = document.getElementById('acaoUso');
-            const acaoConv = document.getElementById('acaoConv');
-            const form = document.getElementById('formFolgaAcao');
-            const rate = document.getElementById('rateInput');
-            const dias = document.getElementById('diasInput');
-            const amount = document.getElementById('amountInput');
-            const convRate = document.getElementById('convRate');
-            const convAmount = document.getElementById('convAmount');
-            const daysUsedHidden = document.getElementById('days_used_hidden');
-            function updateMode(){
-                const isConv = acaoConv.checked;
-                convRate.hidden = !isConv;
-                convAmount.hidden = !isConv;
-                if(isConv){
-                    form.action = "{{ url_for('colaboradores.folga_converter') }}";
-                } else {
-                    form.action = "{{ url_for('usuarios.gestao_colabs_folga_uso_adicionar') }}";
-                }
-            }
-            function updateAmount(){
-                const d = parseFloat(dias.value || '0');
-                const r = parseFloat(rate.value || '65');
-                const total = (isNaN(d) || isNaN(r)) ? 0 : (d * r);
-                amount.value = total.toFixed(2);
-            }
-            acaoUso.addEventListener('change', updateMode);
-            acaoConv.addEventListener('change', updateMode);
-            rate.addEventListener('input', updateAmount);
-            dias.addEventListener('input', updateAmount);
-            form.addEventListener('submit', function(){
-                if(acaoUso.checked){
-                    daysUsedHidden.value = dias.value;
-                }
-                if(acaoConv.checked){
-                    updateAmount();
-                }
-            });
-            updateMode();
-            updateAmount();
-        })();
-        </script>
-        
-        <div class="mm-table-wrapper">
-            <table class="mm-table">
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Colaborador</th>
-                        <th style="text-align: center;">Dias Usados</th>
-                        <th>Observações</th>
-                        <th style="text-align: right;">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for la in leave_assignments_page %}
-                    {% set col = colaboradores|selectattr('id', 'equalto', la.collaborator_id)|list|first %}
-                    <tr>
-                        <td>{{ la.date.strftime('%d/%m/%Y') }}</td>
-                        <td>{{ col and col.name or ('ID ' ~ la.collaborator_id) }}</td>
-                        <td style="text-align: center;">
-                            <span class="mm-badge mm-badge-danger">-{{ la.days_used }}</span>
-                        </td>
-                        <td>{{ la.notes or '-' }}</td>
-                        <td style="text-align: right;">
-                            <div class="mm-flex mm-gap-2" style="justify-content: flex-end;">
-                                <button class="mm-btn mm-btn-outline mm-btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#modalEditUso{{ la.id }}">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <form method="post" action="{{ url_for('usuarios.gestao_colabs_folga_uso_excluir', id=la.id) }}" class="mm-inline-form" onsubmit="return confirm('Excluir uso de folga?')">
-                                    <button class="mm-btn mm-btn-danger mm-btn-sm" type="submit">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="5" class="mm-empty-cell">
-                            <div class="mm-empty-inline">
-                                <i class="bi bi-calendar-x"></i>
-                                <span>Sem uso de folgas registrado</span>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        <div class="mm-pagination">
-            <div class="mm-flex mm-items-center mm-justify-between">
-                <div>Pagina {{ la_page }} de {{ la_total_pages }}</div>
-                <div class="mm-flex mm-gap-2">
-                    {% if la_page > 1 %}
-                    <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('jornada.index') }}?la_page={{ la_page-1 }}&la_collaborator_id={{ la_collab_id or '' }}"><i class="bi bi-chevron-left"></i> Anterior</a>
-                    {% endif %}
-                    {% if la_page < la_total_pages %}
-                    <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('jornada.index') }}?la_page={{ la_page+1 }}&la_collaborator_id={{ la_collab_id or '' }}">Próxima <i class="bi bi-chevron-right"></i></a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-{% for la in leave_assignments_page %}
-<div class="modal fade" id="modalEditUso{{ la.id }}" tabindex="-1">
-    <div class="modal-dialog">
-        <form method="post" action="{{ url_for('usuarios.gestao_colabs_folga_uso_editar', id=la.id) }}">
-            <div class="modal-content mm-modal">
-                <div class="modal-header mm-modal-header">
-                    <h5 class="modal-title">Editar Uso de Folga</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body mm-modal-body">
-                    <div class="mm-form-group mm-mb-4">
-                        <label class="mm-label">Data</label>
-                        <input type="date" name="date" class="mm-input" value="{{ la.date.strftime('%Y-%m-%d') }}" required>
-                    </div>
-                    <div class="mm-form-group mm-mb-4">
-                        <label class="mm-label">Dias Usados</label>
-                        <input type="number" name="days_used" class="mm-input" min="1" value="{{ la.days_used }}" required>
-                    </div>
-                    <div class="mm-form-group">
-                        <label class="mm-label">Observações</label>
-                        <input type="text" name="notes" class="mm-input" value="{{ la.notes or '' }}">
-                    </div>
-                </div>
-                <div class="modal-footer mm-modal-footer">
-                    <button class="mm-btn mm-btn-outline" type="button" data-bs-dismiss="modal">Cancelar</button>
-                    <button class="mm-btn mm-btn-primary" type="submit">Salvar</button>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
-{% endfor %}
 
 <div class="mm-card mm-mb-6" id="ferias">
-    <div class="mm-card-header">
+    <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
         <h3 class="mm-card-title">
             <i class="bi bi-sun mm-text-warning"></i>
             Gestão de Férias
         </h3>
+        <div class="mm-flex mm-gap-2">
+            <button type="button" class="mm-btn mm-btn-sm mm-btn-primary" id="btnPanelFerias">Férias</button>
+            <button type="button" class="mm-btn mm-btn-sm mm-btn-outline" id="btnPanelAtestados">Atestados</button>
+        </div>
     </div>
     <div class="mm-card-body">
+        <div id="panelFerias">
         <form method="get" action="{{ url_for('jornada.index') }}" class="mm-flex mm-gap-2 mm-items-center">
             <input type="hidden" name="ferias_page" value="1">
             <select name="ferias_collaborator_id" class="mm-input mm-select" style="min-width: 220px;">
@@ -540,196 +483,134 @@
                 </div>
             </div>
         </div>
-    </div>
-</div>
-
-<div class="mm-card mm-mb-6" id="atestados">
-    <div class="mm-card-header">
-        <h3 class="mm-card-title">
-            <i class="bi bi-file-medical mm-text-info"></i>
-            Atestados Médicos
-        </h3>
-    </div>
-    <div class="mm-card-body">
-        <form method="get" action="{{ url_for('jornada.index') }}" class="mm-flex mm-gap-2 mm-items-center">
-            <input type="hidden" name="at_page" value="1">
-            <select name="at_collaborator_id" class="mm-input mm-select" style="min-width: 220px;">
-                <option value="">— filtrar colaborador —</option>
-                {% for c in colaboradores %}
-                <option value="{{ c.id }}" {% if at_collab_id and at_collab_id == c.id %}selected{% endif %}>{{ c.name }}</option>
-                {% endfor %}
-            </select>
-            <button type="submit" class="mm-btn mm-btn-outline"><i class="bi bi-search"></i> Filtrar</button>
-        </form>
-        <form method="post" action="{{ url_for('usuarios.gestao_atestado_adicionar') }}" enctype="multipart/form-data" class="mm-form-row mm-mb-6" style="flex-wrap: wrap;">
-            <div class="mm-form-group">
-                <label class="mm-label">Colaborador</label>
-                <select name="collaborator_id" class="mm-input mm-select" required>
+        </div>
+        <div id="panelAtestados" hidden>
+            <div class="mm-mb-4 mm-flex mm-items-center mm-gap-2">
+                <i class="bi bi-file-medical mm-text-info"></i>
+                <span class="mm-card-title">Atestados Médicos</span>
+            </div>
+            <form method="get" action="{{ url_for('jornada.index') }}" class="mm-flex mm-gap-2 mm-items-center">
+                <input type="hidden" name="at_page" value="1">
+                <select name="at_collaborator_id" class="mm-input mm-select" style="min-width: 220px;">
+                    <option value="">— filtrar colaborador —</option>
                     {% for c in colaboradores %}
-                    <option value="{{ c.id }}">{{ c.name }}</option>
+                    <option value="{{ c.id }}" {% if at_collab_id and at_collab_id == c.id %}selected{% endif %}>{{ c.name }}</option>
                     {% endfor %}
                 </select>
-            </div>
-            <div class="mm-form-group">
-                <label class="mm-label">Data Início</label>
-                <input type="date" name="data_inicio" class="mm-input" required>
-            </div>
-            <div class="mm-form-group">
-                <label class="mm-label">Data Fim</label>
-                <input type="date" name="data_fim" class="mm-input" required>
-            </div>
-            <div class="mm-form-group">
-                <label class="mm-label">CID (opcional)</label>
-                <input type="text" name="cid" class="mm-input" placeholder="Ex: J00">
-            </div>
-            <div class="mm-form-group">
-                <label class="mm-label">Médico (opcional)</label>
-                <input type="text" name="medico" class="mm-input" placeholder="Nome do médico">
-            </div>
-            <div class="mm-form-group" style="flex: 2;">
-                <label class="mm-label">Motivo</label>
-                <input type="text" name="motivo" class="mm-input" placeholder="Motivo do afastamento">
-            </div>
-            <div class="mm-form-group">
-                <label class="mm-label">Foto do Atestado</label>
-                <input type="file" name="foto_atestado" class="mm-input" accept="image/*">
-            </div>
-            <div class="mm-form-group" style="align-self: end;">
-                <button class="mm-btn mm-btn-primary" type="submit">
-                    <i class="bi bi-plus-lg"></i>
-                    Registrar Atestado
-                </button>
-            </div>
-        </form>
-        
-        <div class="mm-table-wrapper">
-            <table class="mm-table">
-                <thead>
-                    <tr>
-                        <th>Colaborador</th>
-                        <th>Período</th>
-                        <th style="text-align: center;">Dias</th>
-                        <th>Motivo</th>
-                        <th>CID</th>
-                        <th>Foto</th>
-                        <th style="text-align: right;">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for a in atestados_page %}
-                    {% set col = colaboradores|selectattr('id', 'equalto', a.collaborator_id)|list|first %}
-                    <tr>
-                        <td>{{ col and col.name or ('ID ' ~ a.collaborator_id) }}</td>
-                        <td>{{ a.data_inicio.strftime('%d/%m') }} - {{ a.data_fim.strftime('%d/%m/%Y') }}</td>
-                        <td style="text-align: center;">
-                            <span class="mm-badge mm-badge-info">{{ a.dias }} dias</span>
-                        </td>
-                        <td>{{ a.motivo or '-' }}</td>
-                        <td>{{ a.cid or '-' }}</td>
-                        <td>
-                            {% if a.foto_atestado %}
-                            <a href="{{ url_for('static', filename='uploads/atestados/' ~ a.foto_atestado) }}" target="_blank" class="mm-btn mm-btn-outline mm-btn-sm">
-                                <i class="bi bi-image"></i> Ver
-                            </a>
-                            {% else %}
-                            <span class="mm-text-muted">-</span>
-                            {% endif %}
-                        </td>
-                        <td style="text-align: right;">
-                            <form method="post" action="{{ url_for('usuarios.gestao_atestado_excluir', id=a.id) }}" class="mm-inline-form" onsubmit="return confirm('Excluir atestado?')">
-                                <button class="mm-btn mm-btn-danger mm-btn-sm" type="submit">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="7" class="mm-empty-cell">
-                            <div class="mm-empty-inline">
-                                <i class="bi bi-file-medical"></i>
-                                <span>Nenhum atestado registrado</span>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        <div class="mm-pagination">
-            <div class="mm-flex mm-items-center mm-justify-between">
-                <div>Pagina {{ at_page }} de {{ at_total_pages }}</div>
-                <div class="mm-flex mm-gap-2">
-                    {% if at_page > 1 %}
-                    <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('jornada.index') }}?at_page={{ at_page-1 }}&at_collaborator_id={{ at_collab_id or '' }}"><i class="bi bi-chevron-left"></i> Anterior</a>
-                    {% endif %}
-                    {% if at_page < at_total_pages %}
-                    <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('jornada.index') }}?at_page={{ at_page+1 }}&at_collaborator_id={{ at_collab_id or '' }}">Próxima <i class="bi bi-chevron-right"></i></a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="mm-card mm-mb-6">
-    <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
-        <h3 class="mm-card-title"><i class="bi bi-funnel me-2"></i>Filtros</h3>
-        <a class="mm-btn mm-btn-sm mm-btn-outline" href="{{ url_for('jornada.index') }}">
-            <i class="bi bi-x-lg"></i>
-            Limpar
-        </a>
-    </div>
-    <div class="mm-card-body">
-        <form class="mm-grid mm-grid-cols-3 mm-gap-4" method="get" action="{{ url_for('jornada.index') }}">
-            <div>
-                <label class="mm-label">Colaborador</label>
-                <select name="colaborador" class="mm-input mm-select">
-                    <option value="">— todos —</option>
-                    {% for c in colaboradores %}
-                    <option value="{{ c.id }}">{{ c.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div>
-                <label class="mm-label">Tipo</label>
-                <div class="mm-flex mm-gap-3" role="radiogroup" aria-label="Tipo de registro">
-                    <label class="mm-flex mm-items-center mm-gap-2"><input type="radio" name="tipo" value="" {% if not tipo %}checked{% endif %}> <span>Todos</span></label>
-                    <label class="mm-flex mm-items-center mm-gap-2"><input type="radio" name="tipo" value="horas" {% if tipo == 'horas' %}checked{% endif %}> <span>Horas</span></label>
-                    <label class="mm-flex mm-items-center mm-gap-2"><input type="radio" name="tipo" value="dias" {% if tipo == 'dias' %}checked{% endif %}> <span>Dias</span></label>
-                </div>
-            </div>
-            <div class="mm-grid mm-grid-cols-2 mm-gap-3">
-                <div>
-                    <label class="mm-label">Início</label>
-                    <input type="date" name="inicio" value="{{ data_inicio or '' }}" class="mm-input">
-                </div>
-                <div>
-                    <label class="mm-label">Fim</label>
-                    <input type="date" name="fim" value="{{ data_fim or '' }}" class="mm-input">
-                </div>
-            </div>
-            <div class="mm-grid mm-grid-cols-2 mm-gap-3">
-                <div>
-                    <label class="mm-label">Ordenação</label>
-                    <select class="mm-input" name="sort">
-                        <option value="data desc" {% if sort == 'data desc' %}selected{% endif %}>Data ↓</option>
-                        <option value="data asc" {% if sort == 'data asc' %}selected{% endif %}>Data ↑</option>
-                        <option value="valor desc" {% if sort == 'valor desc' %}selected{% endif %}>Valor ↓</option>
-                        <option value="valor asc" {% if sort == 'valor asc' %}selected{% endif %}>Valor ↑</option>
-                        <option value="tipo desc" {% if sort == 'tipo desc' %}selected{% endif %}>Tipo ↓</option>
-                        <option value="tipo asc" {% if sort == 'tipo asc' %}selected{% endif %}>Tipo ↑</option>
-                        <option value="colaborador desc" {% if sort == 'colaborador desc' %}selected{% endif %}>Colaborador ↓</option>
-                        <option value="colaborador asc" {% if sort == 'colaborador asc' %}selected{% endif %}>Colaborador ↑</option>
+                <button type="submit" class="mm-btn mm-btn-outline"><i class="bi bi-search"></i> Filtrar</button>
+            </form>
+            <form method="post" action="{{ url_for('usuarios.gestao_atestado_adicionar') }}" enctype="multipart/form-data" class="mm-form-row mm-mb-6" style="flex-wrap: wrap;">
+                <div class="mm-form-group">
+                    <label class="mm-label">Colaborador</label>
+                    <select name="collaborator_id" class="mm-input mm-select" required>
+                        {% for c in colaboradores %}
+                        <option value="{{ c.id }}">{{ c.name }}</option>
+                        {% endfor %}
                     </select>
                 </div>
-                <div class="mm-flex mm-items-end">
-                    <button class="mm-btn mm-btn-primary" type="submit"><i class="bi bi-search"></i> Buscar</button>
+                <div class="mm-form-group">
+                    <label class="mm-label">Data Início</label>
+                    <input type="date" name="data_inicio" class="mm-input" required>
+                </div>
+                <div class="mm-form-group">
+                    <label class="mm-label">Data Fim</label>
+                    <input type="date" name="data_fim" class="mm-input" required>
+                </div>
+                <div class="mm-form-group">
+                    <label class="mm-label">CID (opcional)</label>
+                    <input type="text" name="cid" class="mm-input" placeholder="Ex: J00">
+                </div>
+                <div class="mm-form-group">
+                    <label class="mm-label">Médico (opcional)</label>
+                    <input type="text" name="medico" class="mm-input" placeholder="Nome do médico">
+                </div>
+                <div class="mm-form-group" style="flex: 2;">
+                    <label class="mm-label">Motivo</label>
+                    <input type="text" name="motivo" class="mm-input" placeholder="Motivo do afastamento">
+                </div>
+                <div class="mm-form-group">
+                    <label class="mm-label">Foto do Atestado</label>
+                    <input type="file" name="foto_atestado" class="mm-input" accept="image/*">
+                </div>
+                <div class="mm-form-group" style="align-self: end;">
+                    <button class="mm-btn mm-btn-primary" type="submit">
+                        <i class="bi bi-plus-lg"></i>
+                        Registrar Atestado
+                    </button>
+                </div>
+            </form>
+            <div class="mm-table-wrapper">
+                <table class="mm-table">
+                    <thead>
+                        <tr>
+                            <th>Colaborador</th>
+                            <th>Período</th>
+                            <th style="text-align: center;">Dias</th>
+                            <th>Motivo</th>
+                            <th>CID</th>
+                            <th>Foto</th>
+                            <th style="text-align: right;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in atestados_page %}
+                        {% set col = colaboradores|selectattr('id', 'equalto', a.collaborator_id)|list|first %}
+                        <tr>
+                            <td>{{ col and col.name or ('ID ' ~ a.collaborator_id) }}</td>
+                            <td>{{ a.data_inicio.strftime('%d/%m') }} - {{ a.data_fim.strftime('%d/%m/%Y') }}</td>
+                            <td style="text-align: center;">
+                                <span class="mm-badge mm-badge-info">{{ a.dias }} dias</span>
+                            </td>
+                            <td>{{ a.motivo or '-' }}</td>
+                            <td>{{ a.cid or '-' }}</td>
+                            <td>
+                                {% if a.foto_atestado %}
+                                <a href="{{ url_for('static', filename='uploads/atestados/' ~ a.foto_atestado) }}" target="_blank" class="mm-btn mm-btn-outline mm-btn-sm">
+                                    <i class="bi bi-image"></i> Ver
+                                </a>
+                                {% else %}
+                                <span class="mm-text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: right;">
+                                <form method="post" action="{{ url_for('usuarios.gestao_atestado_excluir', id=a.id) }}" class="mm-inline-form" onsubmit="return confirm('Excluir atestado?')">
+                                    <button class="mm-btn mm-btn-danger mm-btn-sm" type="submit">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="mm-empty-cell">
+                                <div class="mm-empty-inline">
+                                    <i class="bi bi-file-medical"></i>
+                                    <span>Nenhum atestado registrado</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="mm-pagination">
+                <div class="mm-flex mm-items-center mm-justify-between">
+                    <div>Pagina {{ at_page }} de {{ at_total_pages }}</div>
+                    <div class="mm-flex mm-gap-2">
+                        {% if at_page > 1 %}
+                        <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('jornada.index') }}?at_page={{ at_page-1 }}&at_collaborator_id={{ at_collab_id or '' }}"><i class="bi bi-chevron-left"></i> Anterior</a>
+                        {% endif %}
+                        {% if at_page < at_total_pages %}
+                        <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('jornada.index') }}?at_page={{ at_page+1 }}&at_collaborator_id={{ at_collab_id or '' }}">Próxima <i class="bi bi-chevron-right"></i></a>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
-        </form>
+        </div>
     </div>
 </div>
+
+
 
 
 <!-- removed duplicate 'Gestão de Folgas' card and its modals -->
@@ -739,25 +620,33 @@
 <div id="modalOverlay" class="mm-modal-overlay" hidden></div>
 <div id="modalDialog" class="mm-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" hidden>
     <div class="mm-modal-header">
-        <h3 id="modalTitle" class="mm-card-title"><i class="bi bi-plus-lg mm-text-primary"></i> Registro</h3>
+        <h3 id="modalTitle" class="mm-card-title"><i class="bi bi-pencil-square mm-text-primary"></i> Atualizar</h3>
         <button type="button" class="mm-btn mm-btn-sm mm-btn-outline" id="btnCloseModal" aria-label="Fechar">
             <i class="bi bi-x-lg"></i>
         </button>
     </div>
     <div class="mm-modal-body">
-        <form id="jornadaForm" method="post" action="{{ url_for('jornada.create') }}">
+        <form id="jornadaForm" method="post" action="{{ url_for('usuarios.gestao_colabs_horas_adicionar') }}">
             <input type="hidden" name="_edit_id" id="_edit_id">
+            <input type="hidden" name="hours" id="hoursHidden">
+            <input type="hidden" name="amount_days" id="amountDaysHidden">
+            <input type="hidden" name="days_used" id="daysUsedHidden">
+            <input type="hidden" name="origin" id="originHidden" value="manual">
+            <input type="hidden" name="reason" id="reasonHidden">
+            <input type="hidden" name="notes" id="notesHidden">
+            <input type="hidden" name="tipo" id="tipoHidden">
             <div class="mm-grid mm-grid-cols-2 mm-gap-4">
                 <div>
-                    <label class="mm-label">Tipo</label>
+                    <label class="mm-label">Ação</label>
                     <div class="mm-flex mm-gap-3" role="radiogroup">
-                        <label class="mm-flex mm-items-center mm-gap-2"><input type="radio" name="tipo" value="horas" id="tipoHoras"> <span>Horas</span></label>
-                        <label class="mm-flex mm-items-center mm-gap-2"><input type="radio" name="tipo" value="dias" id="tipoDias"> <span>Dias</span></label>
+                        <label class="mm-flex mm-items-center mm-gap-2"><input type="radio" name="acao_unificada" value="horas" id="acaoHoras" checked> <span>Horas Extra</span></label>
+                        <label class="mm-flex mm-items-center mm-gap-2"><input type="radio" name="acao_unificada" value="folga_credito" id="acaoCredito"> <span>Folga (Crédito)</span></label>
+                        <label class="mm-flex mm-items-center mm-gap-2"><input type="radio" name="acao_unificada" value="folga_uso" id="acaoUso"> <span>Folga (Uso)</span></label>
                     </div>
                 </div>
                 <div>
                     <label class="mm-label">Data</label>
-                    <input type="date" name="data" id="dataInput" class="mm-input" required>
+                    <input type="date" name="date" id="dataInput" class="mm-input" required>
                     <div class="mm-text-sm mm-mt-1" id="dateFeedback" style="color: var(--mm-danger);"></div>
                 </div>
                 <div>
@@ -770,18 +659,18 @@
                     </select>
                 </div>
                 <div>
-                    <label class="mm-label">Valor</label>
-                    <input type="number" step="0.25" min="0" max="24" name="valor" id="valorInput" class="mm-input" required>
+                    <label class="mm-label" id="valorLabel">Horas</label>
+                    <input type="number" step="0.25" min="0" max="24" id="valorInput" class="mm-input" required>
                     <div class="mm-text-sm mm-mt-1" id="valorFeedback"></div>
                 </div>
-                <div>
-                    <label class="mm-label">Conversão</label>
-                    <div id="convBox" class="mm-badge mm-badge-info">–</div>
+                <div style="grid-column: 1 / -1;">
+                    <label class="mm-label">Observações</label>
+                    <input type="text" name="observacao" id="obsInput" class="mm-input" placeholder="Observações (opcional)">
                 </div>
             </div>
             <div class="mm-flex mm-justify-end mm-gap-2 mm-mt-4">
                 <button type="submit" class="mm-btn mm-btn-primary" id="btnSubmit">
-                    <span id="submitLabel">Salvar</span>
+                    <span id="submitLabel">Atualizar</span>
                     <span id="submitLoading" hidden><i class="bi bi-arrow-repeat"></i></span>
                 </button>
             </div>
@@ -802,14 +691,15 @@
 </style>
 
 <style>
-.mm-card-mini { width: 220px; min-width: 220px; height: 120px; background: var(--mm-bg-card); border: 1px solid var(--mm-border); border-radius: var(--mm-radius); padding: var(--mm-space-3); display: flex; flex-direction: column; justify-content: space-between; }
-.mm-card-mini-title { font-weight: 600; }
-.mm-card-mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-items: center; }
+.mm-card-mini { width: 220px; min-width: 220px; min-height: 120px; height: auto; background: var(--mm-bg-card); border: 1px solid var(--mm-border); border-radius: var(--mm-radius); padding: var(--mm-space-3); display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; gap: var(--mm-space-2); }
+.mm-card-mini-title { font-weight: 600; margin-bottom: 4px; }
+.mm-card-mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-items: center; width: 100%; }
 @media (max-width: 768px) { .mm-card-mini { width: 100%; min-width: unset; } }
 @media (max-width: 768px) {
   .mm-page-header .mm-flex.mm-gap-3 { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: auto; gap: var(--mm-space-2); }
   #btnOpenModal, .mm-migrar-btn, .mm-export-btn { order: initial; width: 100%; }
   .mm-page-header .mm-flex.mm-gap-3 form { width: 100%; }
+  .mm-wide-btn { width: 100%; }
 }
 @media (max-width: 768px) {
   .mm-resumo-card .mm-card-body form { flex-direction: column; align-items: stretch; gap: var(--mm-space-2); }
@@ -828,16 +718,24 @@ const dialog = document.getElementById('modalDialog');
 const openBtn = document.getElementById('btnOpenModal');
 const closeBtn = document.getElementById('btnCloseModal');
 const form = document.getElementById('jornadaForm');
-const tipoHoras = document.getElementById('tipoHoras');
-const tipoDias = document.getElementById('tipoDias');
 const valorInput = document.getElementById('valorInput');
 const valorFeedback = document.getElementById('valorFeedback');
-const convBox = document.getElementById('convBox');
+const valorLabel = document.getElementById('valorLabel');
 const dateInput = document.getElementById('dataInput');
 const dateFeedback = document.getElementById('dateFeedback');
 const colabSelect = document.getElementById('colabSelect');
 const submitLabel = document.getElementById('submitLabel');
 const submitLoading = document.getElementById('submitLoading');
+const acaoHoras = document.getElementById('acaoHoras');
+const acaoCredito = document.getElementById('acaoCredito');
+const acaoUso = document.getElementById('acaoUso');
+const hoursHidden = document.getElementById('hoursHidden');
+const amountDaysHidden = document.getElementById('amountDaysHidden');
+const daysUsedHidden = document.getElementById('daysUsedHidden');
+const originHidden = document.getElementById('originHidden');
+const reasonHidden = document.getElementById('reasonHidden');
+const notesHidden = document.getElementById('notesHidden');
+const obsInput = document.getElementById('obsInput');
 
 function openModal() {
   overlay.hidden = false; dialog.hidden = false;
@@ -848,24 +746,12 @@ function closeModal() {
   overlay.style.opacity = '0'; dialog.style.opacity = '0';
   setTimeout(()=>{ overlay.hidden = true; dialog.hidden = true; }, 300);
 }
-if (openBtn) openBtn.addEventListener('click', ()=>{ form.action = "{{ url_for('jornada.create') }}"; document.getElementById('_edit_id').value=''; submitLabel.textContent='Salvar'; openModal(); });
+if (openBtn) openBtn.addEventListener('click', ()=>{ document.getElementById('_edit_id').value=''; submitLabel.textContent='Atualizar'; setAction(); openModal(); });
 if (closeBtn) closeBtn.addEventListener('click', closeModal);
 overlay.addEventListener('click', closeModal);
 document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && !dialog.hidden) closeModal(); });
 
-function updateValorConstraints() {
-  if (tipoHoras.checked) { valorInput.step = '0.25'; valorInput.min = '0'; valorInput.max = '24'; }
-  else if (tipoDias.checked) { valorInput.step = '1'; valorInput.min = '1'; valorInput.max = '365'; }
-}
-function updateConversion() {
-  const v = parseFloat(valorInput.value || '0');
-  if (tipoHoras.checked) { const d = v / 8; convBox.textContent = d.toFixed(2) + ' dia(s)'; valorFeedback.style.color = 'var(--mm-success)'; }
-  else if (tipoDias.checked) { const h = v * 8; convBox.textContent = h.toFixed(2) + ' h'; valorFeedback.style.color = 'var(--mm-success)'; }
-  else { convBox.textContent = '–'; valorFeedback.textContent=''; }
-}
-tipoHoras.addEventListener('change', ()=>{ updateValorConstraints(); updateConversion(); });
-tipoDias.addEventListener('change', ()=>{ updateValorConstraints(); updateConversion(); });
-valorInput.addEventListener('input', ()=>{ const v = valorInput.value; const ok = v !== '' && !isNaN(parseFloat(v)); valorFeedback.textContent = ok ? 'OK' : 'Valor inválido'; updateConversion(); });
+valorInput.addEventListener('input', ()=>{ const v = valorInput.value; const ok = v !== '' && !isNaN(parseFloat(v)); valorFeedback.textContent = ok ? 'OK' : 'Valor inválido'; });
 
 // seleção direta via select
 
@@ -887,12 +773,15 @@ document.querySelectorAll('[data-edit-id]').forEach(btn=>{
     const data = btn.getAttribute('data-edit-data');
     document.getElementById('_edit_id').value = id;
     form.action = "{{ url_for('jornada.update', worklog_id='__ID__') }}".replace('__ID__', id);
-    tipoHoras.checked = tipo === 'horas'; tipoDias.checked = tipo === 'dias';
-    updateValorConstraints();
+    tipoHidden.value = tipo;
+    if (tipo === 'horas') { valorLabel.textContent='Horas'; valorInput.step='0.25'; valorInput.min='0'; valorInput.max='24'; }
+    else { valorLabel.textContent='Dias'; valorInput.step='1'; valorInput.min='1'; valorInput.max='365'; }
     valorInput.value = valor;
     dateInput.value = data;
     colabSelect.value = cid;
-    convBox.textContent = '–';
+    valorFeedback.textContent = '';
+    const obsField = document.getElementById('obsInput');
+    obsField.value = btn.getAttribute('data-edit-obs') || '';
     submitLabel.textContent='Salvar Alterações';
     const histBox = document.getElementById('editHistory');
     fetch("{{ url_for('jornada.history', worklog_id='__ID__') }}".replace('__ID__', id))
@@ -908,7 +797,7 @@ document.querySelectorAll('[data-edit-id]').forEach(btn=>{
   });
 });
 
-document.querySelectorAll('[data-view-id]').forEach(btn=>{
+    document.querySelectorAll('[data-view-id]').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     const id = btn.getAttribute('data-view-id');
     const cid = btn.getAttribute('data-view-colab');
@@ -917,12 +806,13 @@ document.querySelectorAll('[data-view-id]').forEach(btn=>{
     const data = btn.getAttribute('data-view-data');
     document.getElementById('_edit_id').value = '';
     form.action = '';
-    tipoHoras.checked = tipo === 'horas'; tipoDias.checked = tipo === 'dias';
-    updateValorConstraints();
+    tipoHidden.value = tipo;
+    if (tipo === 'horas') { valorLabel.textContent='Horas'; valorInput.step='0.25'; valorInput.min='0'; valorInput.max='24'; }
+    else { valorLabel.textContent='Dias'; valorInput.step='1'; valorInput.min='1'; valorInput.max='365'; }
     valorInput.value = valor;
     dateInput.value = data;
     colabSelect.value = cid;
-    convBox.textContent = '–';
+    valorFeedback.textContent = '';
     submitLabel.textContent='Salvar';
     document.getElementById('btnSubmit').style.display = 'none';
     const histBox = document.getElementById('editHistory');
@@ -949,8 +839,95 @@ form.addEventListener('submit', (e)=>{
   if (isNaN(v)) ok = false;
   if (!cid) ok = false;
   if (!d) ok = false;
-  if (d) { const today = new Date(); const dd = new Date(d); if (dd > today) ok = false; if (isWeekend(d)) ok = false; }
-  if (!ok) { e.preventDefault(); submitLoading.hidden = true; submitLabel.textContent = 'Salvar'; }
+  if (d) { const today = new Date(); const dd = new Date(d); if (dd > today) ok = false; }
+  if (!ok) { e.preventDefault(); submitLoading.hidden = true; submitLabel.textContent = 'Atualizar'; return; }
+  notesHidden.value = (obsInput.value || '').trim();
+  reasonHidden.value = notesHidden.value;
+  hoursHidden.value = '';
+  amountDaysHidden.value = '';
+  daysUsedHidden.value = '';
+  if (acaoHoras && acaoHoras.checked) {
+    form.action = "{{ url_for('usuarios.gestao_colabs_horas_adicionar') }}";
+    hoursHidden.value = v.toString();
+  } else if (acaoCredito && acaoCredito.checked) {
+    form.action = "{{ url_for('usuarios.gestao_colabs_folga_credito_adicionar') }}";
+    amountDaysHidden.value = Math.max(1, Math.round(v)).toString();
+    originHidden.value = 'manual';
+  } else if (acaoUso && acaoUso.checked) {
+    form.action = "{{ url_for('usuarios.gestao_colabs_folga_uso_adicionar') }}";
+    daysUsedHidden.value = Math.max(1, Math.round(v)).toString();
+  }
 });
+
+function setAction(){
+  let label = 'Horas'; let step = 0.25; let min = 0; let max = 24;
+  if (acaoCredito && acaoCredito.checked) { label = 'Dias (crédito)'; step = 1; min = 1; max = 365; }
+  if (acaoUso && acaoUso.checked) { label = 'Dias (uso)'; step = 1; min = 1; max = 365; }
+  valorLabel.textContent = label;
+  valorInput.step = String(step);
+  valorInput.min = String(min);
+  valorInput.max = String(max);
+  valorFeedback.textContent = '';
+  if (acaoHoras && acaoHoras.checked) {
+    form.action = "{{ url_for('usuarios.gestao_colabs_horas_adicionar') }}";
+  } else if (acaoCredito && acaoCredito.checked) {
+    form.action = "{{ url_for('usuarios.gestao_colabs_folga_credito_adicionar') }}";
+  } else if (acaoUso && acaoUso.checked) {
+    form.action = "{{ url_for('usuarios.gestao_colabs_folga_uso_adicionar') }}";
+  }
+}
+if (acaoHoras) acaoHoras.addEventListener('change', setAction);
+if (acaoCredito) acaoCredito.addEventListener('change', setAction);
+if (acaoUso) acaoUso.addEventListener('change', setAction);
+
+// toggle Férias/Atestados panels
+(function(){
+  const btnF = document.getElementById('btnPanelFerias');
+  const btnA = document.getElementById('btnPanelAtestados');
+  const btnL = document.getElementById('btnPanelFolgas');
+  const pF = document.getElementById('panelFerias');
+  const pA = document.getElementById('panelAtestados');
+  const folCard = document.getElementById('folgas');
+  if (btnF && btnA && pF && pA) {
+    function setBtnPrimary(btn){ btn.classList.add('mm-btn-primary'); btn.classList.remove('mm-btn-outline'); }
+    function setBtnOutline(btn){ btn.classList.add('mm-btn-outline'); btn.classList.remove('mm-btn-primary'); }
+    function activateFerias(){ if(folCard){ folCard.style.display='none'; } pF.hidden=false; pA.hidden=true; setBtnPrimary(btnF); setBtnOutline(btnA); if(btnL){ setBtnOutline(btnL); } }
+    function activateAtest(){ if(folCard){ folCard.style.display='none'; } pF.hidden=true; pA.hidden=false; setBtnPrimary(btnA); setBtnOutline(btnF); if(btnL){ setBtnOutline(btnL); } }
+    function activateFolgas(){ if(folCard){ folCard.style.display=''; } pF.hidden=true; pA.hidden=true; if(btnL){ setBtnPrimary(btnL); } setBtnOutline(btnF); setBtnOutline(btnA); }
+    btnF.addEventListener('click', activateFerias);
+    btnA.addEventListener('click', activateAtest);
+    if(btnL) btnL.addEventListener('click', activateFolgas);
+    if(folCard){ folCard.style.display='none'; }
+    activateFerias();
+  }
+})();
+
+// Folgas form: toggle conversão campos e cálculo
+(function(){
+  const uso = document.getElementById('acaoUso');
+  const conv = document.getElementById('acaoConv');
+  const rateBox = document.getElementById('convRate');
+  const amountBox = document.getElementById('convAmount');
+  const dias = document.getElementById('diasInput');
+  const rate = document.getElementById('rateInput');
+  const amount = document.getElementById('amountInput');
+  const hiddenDaysUsed = document.getElementById('days_used_hidden');
+  function sync() {
+    if (hiddenDaysUsed && dias) hiddenDaysUsed.value = dias.value || 1;
+    const isConv = conv && conv.checked;
+    if (rateBox) rateBox.hidden = !isConv;
+    if (amountBox) amountBox.hidden = !isConv;
+    if (isConv && dias && rate && amount) {
+      const d = parseFloat(dias.value || '1');
+      const r = parseFloat(rate.value || '0');
+      amount.value = (d * r).toFixed(2);
+    }
+  }
+  if (uso) uso.addEventListener('change', sync);
+  if (conv) conv.addEventListener('change', sync);
+  if (dias) dias.addEventListener('input', sync);
+  if (rate) rate.addEventListener('input', sync);
+  sync();
+})();
 </script>
 {% endblock %}
