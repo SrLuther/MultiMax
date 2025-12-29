@@ -738,16 +738,7 @@ def gerar_escala_automatica():
                     shift.end_dt = datetime(domingo.year, domingo.month, domingo.day, 13, 0, tzinfo=tz)
                     shift.observacao = '05:00-13:00 (+1 folga +1h extra)'
                     
-                    existing_hb = HourBankEntry.query.filter_by(
-                        collaborator_id=colab.id, date=domingo, reason='Hora extra domingo (entrada 5h)'
-                    ).first()
-                    if not existing_hb:
-                        hb = HourBankEntry()
-                        hb.collaborator_id = colab.id
-                        hb.date = domingo
-                        hb.hours = 1.0
-                        hb.reason = 'Hora extra domingo (entrada 5h)'
-                        db.session.add(hb)
+                    # já coberto pelo combinado acima
                 else:
                     shift.turno = 'Domingo 6h'
                     shift.shift_type = 'domingo_6h'
@@ -758,17 +749,35 @@ def gerar_escala_automatica():
                 db.session.add(shift)
                 turnos_criados += 1
                 
-                existing_lc = LeaveCredit.query.filter_by(
-                    collaborator_id=colab.id, date=domingo, origin='domingo'
-                ).first()
-                if not existing_lc:
-                    lc = LeaveCredit()
-                    lc.collaborator_id = colab.id
-                    lc.date = domingo
-                    lc.amount_days = 1
-                    lc.origin = 'domingo'
-                    lc.notes = f'Trabalho no domingo {domingo.strftime("%d/%m/%Y")}'
-                    db.session.add(lc)
+                from ..models import TemporaryEntry
+                # Para 5h: crédito combinado (folga + 1h). Para 6h: apenas folga.
+                if i < 2:
+                    existing_b = TemporaryEntry.query.filter_by(
+                        kind='folga_hour_both', collaborator_id=colab.id, date=domingo
+                    ).first()
+                    if not existing_b:
+                        tb = TemporaryEntry()
+                        tb.kind = 'folga_hour_both'
+                        tb.collaborator_id = colab.id
+                        tb.date = domingo
+                        tb.amount_days = 1
+                        tb.hours = 1.0
+                        tb.source = 'domingo'
+                        tb.reason = 'Folga + 1h extra (domingo 5h)'
+                        db.session.add(tb)
+                else:
+                    existing_lc = TemporaryEntry.query.filter_by(
+                        kind='folga_credit', collaborator_id=colab.id, date=domingo
+                    ).first()
+                    if not existing_lc:
+                        te = TemporaryEntry()
+                        te.kind = 'folga_credit'
+                        te.collaborator_id = colab.id
+                        te.date = domingo
+                        te.amount_days = 1
+                        te.source = 'domingo'
+                        te.reason = f'Trabalho no domingo {domingo.strftime("%d/%m/%Y")}'
+                        db.session.add(te)
         
         db.session.commit()
         flash(f'Escala gerada com sucesso! {turnos_criados} turnos criados. Equipe {open_team} na abertura, Equipe {close_team} no fechamento.', 'success')
@@ -972,10 +981,17 @@ def folga_agendar():
     except Exception:
         pass
     try:
+        from datetime import timedelta
+        try:
+            end_d = d + timedelta(days=max(1, days) - 1)
+            feriados_no_periodo = Holiday.query.filter(Holiday.date >= d, Holiday.date <= end_d).count()
+        except Exception:
+            feriados_no_periodo = 0
+        effective_days = max(0, int(days) - int(feriados_no_periodo))
         la = LeaveAssignment()
         la.collaborator_id = cid
         la.date = d
-        la.days_used = days
+        la.days_used = effective_days
         la.notes = notes
         db.session.add(la)
         db.session.commit()

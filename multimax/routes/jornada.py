@@ -105,7 +105,7 @@ def index():
         orders = [RegistroJornada.data.desc()]
     query = query.order_by(*orders)
 
-    per_page = 50
+    per_page = 10
     total = query.count()
     total_pages = max(1, (total + per_page - 1) // per_page)
     if page > total_pages:

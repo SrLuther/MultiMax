@@ -22,14 +22,7 @@
                 </button>
             </form>
             {% endif %}
-            <a class="mm-btn mm-btn-outline mm-export-btn" href="{{ url_for('jornada.export', colaborador=q_colab, tipo=tipo, inicio=data_inicio, fim=data_fim, fmt='csv') }}">
-                <i class="bi bi-file-earmark-arrow-down"></i>
-                Exportar CSV
-            </a>
-            <a class="mm-btn mm-btn-outline mm-export-btn" href="{{ url_for('jornada.export', colaborador=q_colab, tipo=tipo, inicio=data_inicio, fim=data_fim, fmt='xlsx') }}">
-                <i class="bi bi-file-earmark-excel"></i>
-                Exportar Excel
-            </a>
+            
             {% if current_user.nivel == 'admin' %}
             <a class="mm-btn mm-btn-outline mm-export-btn" href="{{ url_for('jornada.relatorio', collaborator_id=(q_colab if q_colab else None), inicio=data_inicio, fim=data_fim) }}">
                 <i class="bi bi-journal-text"></i>
@@ -39,6 +32,8 @@
         </div>
     </div>
 </div>
+
+<div class="mm-subnav mm-sticky"></div>
 
 <div class="mm-card mm-mb-6 mm-resumo-card">
     <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
@@ -117,18 +112,12 @@
                 <input type="hidden" name="sort" value="{{ sort or '' }}">
                 <input type="hidden" name="cs_collaborator_id" value="{{ cs_collab_id or '' }}">
                 <input type="hidden" name="cs_page" value="{{ cs_page or '' }}">
-                <input type="date" name="del_inicio" class="mm-input" placeholder="Início" required>
-                <input type="date" name="del_fim" class="mm-input" placeholder="Fim" required>
-                <button type="submit" class="mm-btn mm-btn-danger mm-wide-btn">
-                    <i class="bi bi-trash"></i>
-                    Massa
-                </button>
             </form>
             {% endif %}
         </div>
     </div>
     <div class="mm-card-body">
-        <form class="mm-grid mm-grid-cols-3 mm-gap-4" method="get" action="{{ url_for('jornada.index') }}">
+        <form class="mm-grid mm-grid-cols-3 mm-gap-4" method="get" action="{{ url_for('jornada.index') }}" style="display: grid; grid-auto-flow: column; column-gap: 1cm; align-items: end;">
             <div>
                 <label class="mm-label">Colaborador</label>
                 <select name="colaborador" class="mm-input mm-select">
@@ -138,15 +127,8 @@
                     {% endfor %}
                 </select>
             </div>
-            <div>
-                <label class="mm-label">Tipo</label>
-                <div class="mm-flex mm-gap-3" role="radiogroup" aria-label="Tipo de registro">
-                    <label class="mm-flex mm-items-center mm-gap-2"><input type="radio" name="tipo" value="" {% if not tipo %}checked{% endif %}> <span>Todos</span></label>
-                    <label class="mm-flex mm-items-center mm-gap-2"><input type="radio" name="tipo" value="horas" {% if tipo == 'horas' %}checked{% endif %}> <span>Horas</span></label>
-                    <label class="mm-flex mm-items-center mm-gap-2"><input type="radio" name="tipo" value="dias" {% if tipo == 'dias' %}checked{% endif %}> <span>Dias</span></label>
-                </div>
-            </div>
-            <div class="mm-grid mm-grid-cols-2 mm-gap-3">
+            
+            <div class="mm-grid mm-grid-cols-2 mm-gap-3" style="display: contents;">
                 <div>
                     <label class="mm-label">Início</label>
                     <input type="date" name="inicio" value="{{ data_inicio or '' }}" class="mm-input">
@@ -156,21 +138,17 @@
                     <input type="date" name="fim" value="{{ data_fim or '' }}" class="mm-input">
                 </div>
             </div>
-            <div class="mm-grid mm-grid-cols-2 mm-gap-3">
+            <div class="mm-grid mm-grid-cols-2 mm-gap-3" style="display: contents;">
                 <div>
                     <label class="mm-label">Ordenação</label>
                     <select class="mm-input" name="sort">
                         <option value="data desc" {% if sort == 'data desc' %}selected{% endif %}>Data ↓</option>
                         <option value="data asc" {% if sort == 'data asc' %}selected{% endif %}>Data ↑</option>
-                        <option value="valor desc" {% if sort == 'valor desc' %}selected{% endif %}>Valor ↓</option>
-                        <option value="valor asc" {% if sort == 'valor asc' %}selected{% endif %}>Valor ↑</option>
-                        <option value="tipo desc" {% if sort == 'tipo desc' %}selected{% endif %}>Tipo ↓</option>
-                        <option value="tipo asc" {% if sort == 'tipo asc' %}selected{% endif %}>Tipo ↑</option>
                         <option value="colaborador desc" {% if sort == 'colaborador desc' %}selected{% endif %}>Colaborador ↓</option>
                         <option value="colaborador asc" {% if sort == 'colaborador asc' %}selected{% endif %}>Colaborador ↑</option>
                     </select>
                 </div>
-                <div class="mm-flex mm-items-end">
+                <div class="mm-flex mm-items-end mm-justify-end">
                     <button class="mm-btn mm-btn-primary mm-wide-btn" type="submit"><i class="bi bi-search"></i> Buscar</button>
                 </div>
             </div>
@@ -196,12 +174,12 @@
         </div>
         {% endif %}
 
-        <div class="mm-mt-4">
+        <div id="registros" class="mm-mt-4">
             <div class="mm-flex mm-items-center mm-justify-between mm-mb-3">
                 <h3 class="mm-card-title"><i class="bi bi-table me-2"></i>Registros</h3>
                 <span class="mm-badge">{{ total }} registros</span>
             </div>
-            <div class="mm-mt-6">
+            <div id="folgas" class="mm-mt-6">
                 <div class="mm-flex mm-items-center mm-justify-between mm-mb-3">
                     <h3 class="mm-card-title"><i class="bi bi-calendar-minus me-2"></i>Uso de Folgas</h3>
                 </div>
@@ -653,16 +631,17 @@
             <div class="mm-grid mm-grid-cols-2 mm-gap-4">
                 <div>
                     <label class="mm-label">Ação</label>
-                    <div class="mm-flex mm-gap-3" role="radiogroup">
-                        <label class="mm-flex mm-items-center mm-gap-2"><input type="radio" name="acao_unificada" value="horas" id="acaoHoras" checked> <span>Horas Extra</span></label>
-                        <label class="mm-flex mm-items-center mm-gap-2"><input type="radio" name="acao_unificada" value="folga_credito" id="acaoCredito"> <span>Folga (Crédito)</span></label>
-                        <label class="mm-flex mm-items-center mm-gap-2"><input type="radio" name="acao_unificada" value="folga_uso" id="acaoUso"> <span>Folga (Uso)</span></label>
-                    </div>
+                    <select id="acaoSelect" name="acao_unificada" class="mm-input">
+                        <option value="horas" selected>Horas Extra</option>
+                        <option value="folga_credito">Folga (Crédito)</option>
+                        <option value="folga_uso">Folga (Uso)</option>
+                    </select>
+                    <div id="acaoHelp" class="mm-text-sm mm-text-muted mm-mt-1"></div>
                 </div>
                 <div>
                     <label class="mm-label">Data</label>
                     <input type="date" name="date" id="dataInput" class="mm-input" required>
-                    <div class="mm-text-sm mm-mt-1" id="dateFeedback" style="color: var(--mm-danger);"></div>
+                    <div class="mm-text-sm mm-text-muted mm-mt-1" id="dateFeedback"></div>
                 </div>
                 <div>
                     <label class="mm-label">Colaborador</label>
@@ -675,7 +654,7 @@
                 </div>
                 <div>
                     <label class="mm-label" id="valorLabel">Horas</label>
-                    <input type="number" step="0.25" min="0" max="24" id="valorInput" class="mm-input" required>
+                    <input type="number" step="0.25" min="0" max="24" id="valorInput" class="mm-input" placeholder="Ex.: 2.5" required>
                     <div class="mm-text-sm mm-mt-1" id="valorFeedback"></div>
                 </div>
                 <div style="grid-column: 1 / -1;">
@@ -683,6 +662,7 @@
                     <input type="text" name="observacao" id="obsInput" class="mm-input" placeholder="Observações (opcional)">
                 </div>
             </div>
+            <div id="opSummary" class="mm-summary-box mm-mt-3" aria-live="polite"></div>
             <div class="mm-flex mm-justify-end mm-gap-2 mm-mt-4">
                 <button type="submit" class="mm-btn mm-btn-primary" id="btnSubmit">
                     <span id="submitLabel">Atualizar</span>
@@ -695,6 +675,8 @@
 </div>
 
 <style>
+.mm-subnav { position: sticky; top: 0; background: var(--mm-bg); border-bottom: 1px solid var(--mm-border); padding: 0.5rem 0; z-index: 50; }
+.mm-subnav .mm-btn { white-space: nowrap; }
 .mm-modal-overlay { position: fixed; inset:0; background: rgba(0,0,0,0.35); z-index: 1000; opacity:0; transition: opacity 300ms ease; }
 .mm-modal { position: fixed; top: 10%; left: 50%; transform: translateX(-50%); width: min(720px, 92vw); background: var(--mm-bg-card); border: 1px solid var(--mm-border); border-radius: var(--mm-radius-lg); z-index: 1001; opacity:0; transition: opacity 300ms ease; max-height: 80vh; display:flex; flex-direction:column; }
 .mm-modal-header { display:flex; align-items:center; justify-content:space-between; padding: var(--mm-space-4); border-bottom: 1px solid var(--mm-border); }
@@ -702,6 +684,7 @@
 .mm-dropdown { position: absolute; background: var(--mm-bg); border: 1px solid var(--mm-border); border-radius: var(--mm-radius); margin-top: 4px; max-height: 180px; overflow:auto; width: 100%; }
 .mm-dropdown-item { padding: 8px 12px; cursor: pointer; }
 .mm-dropdown-item:hover { background: var(--mm-bg-secondary); }
+.mm-summary-box { border: 1px dashed var(--mm-border); border-radius: var(--mm-radius); padding: 10px; font-size: var(--mm-text-sm); color: var(--mm-text-muted); }
 @media (max-width: 768px) { .mm-modal { top: 6%; } }
 </style>
 
@@ -765,9 +748,7 @@ const dateFeedback = document.getElementById('dateFeedback');
 const colabSelect = document.getElementById('colabSelect');
 const submitLabel = document.getElementById('submitLabel');
 const submitLoading = document.getElementById('submitLoading');
-const acaoHoras = document.getElementById('acaoHoras');
-const acaoCredito = document.getElementById('acaoCredito');
-const acaoUso = document.getElementById('acaoUso');
+const acaoSelect = document.getElementById('acaoSelect');
 const hoursHidden = document.getElementById('hoursHidden');
 const amountDaysHidden = document.getElementById('amountDaysHidden');
 const daysUsedHidden = document.getElementById('daysUsedHidden');
@@ -775,6 +756,15 @@ const originHidden = document.getElementById('originHidden');
 const reasonHidden = document.getElementById('reasonHidden');
 const notesHidden = document.getElementById('notesHidden');
 const obsInput = document.getElementById('obsInput');
+
+
+const autoObs = { last: '', edited: false };
+if (obsInput) {
+  obsInput.addEventListener('input', ()=>{ autoObs.edited = true; });
+}
+function parseYmd(dstr){ const parts = (dstr || '').split('-'); const y = parseInt(parts[0]||'0',10); const m = parseInt(parts[1]||'1',10)-1; const d = parseInt(parts[2]||'1',10); return new Date(y, m, d); }
+function formatBRDate(dstr){ const dt = parseYmd(dstr); const dd = String(dt.getDate()).padStart(2,'0'); const mm = String(dt.getMonth()+1).padStart(2,'0'); const yyyy = dt.getFullYear(); return `${dd}/${mm}/${yyyy}`; }
+function setAutoObs(text){ if (!obsInput) return; const val = text || ''; const cur = (obsInput.value || '').trim(); if (!autoObs.edited || cur === '' || cur === autoObs.last){ obsInput.value = val; autoObs.last = val; autoObs.edited = false; } }
 
 function openModal() {
   overlay.hidden = false; dialog.hidden = false;
@@ -790,16 +780,21 @@ if (closeBtn) closeBtn.addEventListener('click', closeModal);
 overlay.addEventListener('click', closeModal);
 document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && !dialog.hidden) closeModal(); });
 
-valorInput.addEventListener('input', ()=>{ const v = valorInput.value; const ok = v !== '' && !isNaN(parseFloat(v)); valorFeedback.textContent = ok ? 'OK' : 'Valor inválido'; });
+valorInput.addEventListener('input', ()=>{ const v = valorInput.value; const ok = v !== '' && !isNaN(parseFloat(v)); valorFeedback.textContent = ok ? '' : 'Valor inválido'; });
 
 // seleção direta via select
 
-function isWeekend(d) { const t = new Date(d); const k = t.getDay(); return k === 0 || k === 6; }
+function isWeekend(d) { const t = parseYmd(d); const k = t.getDay(); return k === 0 || k === 6; }
+function isSunday(d) { const t = parseYmd(d); return t.getDay() === 0; }
 function checkHoliday(d) {
-  fetch("{{ url_for('jornada.is_holiday') }}?date=" + encodeURIComponent(d)).then(r=>r.json()).then(j=>{
-    if (j && j.holiday) { dateFeedback.textContent = 'Feriado: ' + (j.name || ''); }
-    else { dateFeedback.textContent = isWeekend(d) ? 'Fim de semana não permitido' : ''; }
-  }).catch(()=>{ dateFeedback.textContent = isWeekend(d) ? 'Fim de semana não permitido' : ''; });
+  fetch("{{ url_for('jornada.is_holiday') }}?date=" + encodeURIComponent(d))
+    .then(r=>r.json())
+    .then(j=>{
+      if (j && j.holiday) { dateFeedback.textContent = 'Feriado: ' + (j.name || ''); setAutoObs(((j.name || 'Feriado') + ' ' + formatBRDate(d))); }
+      else if (isSunday(d)) { dateFeedback.textContent = 'Fim de semana'; setAutoObs(('Domingo ' + formatBRDate(d))); }
+      else { dateFeedback.textContent = ''; }
+    })
+    .catch(()=>{ if (isSunday(d)) { dateFeedback.textContent = 'Fim de semana'; setAutoObs(('Domingo ' + formatBRDate(d))); } else { dateFeedback.textContent = isWeekend(d) ? 'Fim de semana' : ''; } });
 }
 dateInput.addEventListener('change', ()=>{ const d = dateInput.value; if (!d) return; checkHoliday(d); });
 
@@ -833,6 +828,7 @@ document.querySelectorAll('[data-edit-id]').forEach(btn=>{
         histBox.appendChild(list);
       }).catch(()=>{ histBox.hidden = true; });
     openModal();
+    setAction();
   });
 });
 
@@ -865,6 +861,7 @@ document.querySelectorAll('[data-edit-id]').forEach(btn=>{
         histBox.appendChild(list);
       }).catch(()=>{ histBox.hidden = true; });
     openModal();
+    setAction();
     setTimeout(()=>{ document.getElementById('btnSubmit').style.display = ''; }, 350);
   });
 });
@@ -885,39 +882,79 @@ form.addEventListener('submit', (e)=>{
   hoursHidden.value = '';
   amountDaysHidden.value = '';
   daysUsedHidden.value = '';
-  if (acaoHoras && acaoHoras.checked) {
-    form.action = "{{ url_for('usuarios.gestao_colabs_horas_adicionar') }}";
+  e.preventDefault();
+  const valSubmit = (acaoSelect && acaoSelect.value) || 'horas';
+  let actionUrl = '';
+  if (valSubmit === 'horas') {
+    actionUrl = "{{ url_for('usuarios.gestao_colabs_horas_adicionar') }}";
     hoursHidden.value = v.toString();
-  } else if (acaoCredito && acaoCredito.checked) {
-    form.action = "{{ url_for('usuarios.gestao_colabs_folga_credito_adicionar') }}";
+  } else if (valSubmit === 'folga_credito') {
+    actionUrl = "{{ url_for('usuarios.gestao_colabs_folga_credito_adicionar') }}";
     amountDaysHidden.value = Math.max(1, Math.round(v)).toString();
     originHidden.value = 'manual';
-  } else if (acaoUso && acaoUso.checked) {
-    form.action = "{{ url_for('usuarios.gestao_colabs_folga_uso_adicionar') }}";
+  } else if (valSubmit === 'folga_uso') {
+    actionUrl = "{{ url_for('usuarios.gestao_colabs_folga_uso_adicionar') }}";
     daysUsedHidden.value = Math.max(1, Math.round(v)).toString();
   }
+  const body = new URLSearchParams(new FormData(form));
+  fetch(actionUrl, { method: 'POST', body })
+    .then(()=>{ submitLoading.hidden = true; submitLabel.textContent = 'Atualizar'; closeModal(); window.location.href = "{{ url_for('jornada.index') }}"; })
+    .catch(()=>{ submitLoading.hidden = true; submitLabel.textContent = 'Atualizar'; closeModal(); window.location.href = "{{ url_for('jornada.index') }}"; });
 });
 
 function setAction(){
-  let label = 'Horas'; let step = 0.25; let min = 0; let max = 24;
-  if (acaoCredito && acaoCredito.checked) { label = 'Dias (crédito)'; step = 1; min = 1; max = 365; }
-  if (acaoUso && acaoUso.checked) { label = 'Dias (uso)'; step = 1; min = 1; max = 365; }
+  let help = '';
+  const val = (acaoSelect && acaoSelect.value) || 'horas';
+  let label = 'Horas'; let step = 0.25; let min = 0; let max = 24; let placeholder = 'Ex.: 2.5';
+  if (val === 'folga_credito') { label = 'Dias (crédito)'; step = 1; min = 1; max = 365; placeholder = 'Ex.: 1'; help = 'Adiciona dias ao saldo de folgas do colaborador.'; }
+  if (val === 'folga_uso') { label = 'Valor'; step = 1; min = 1; max = 365; placeholder = 'Ex.: 1'; help = 'Debita dias do saldo, somente se houver saldo positivo.'; }
+  if (val === 'horas') { help = 'Registra horas no banco. Conversão automática 8h→1 dia e ajuste -8h aplicados.'; }
   valorLabel.textContent = label;
   valorInput.step = String(step);
   valorInput.min = String(min);
   valorInput.max = String(max);
+  valorInput.placeholder = placeholder;
+  const editIdVal = (document.getElementById('_edit_id') && document.getElementById('_edit_id').value) || '';
+  if (!editIdVal) { submitLabel.textContent = 'Atualizar'; }
+  const helpBox = document.getElementById('acaoHelp'); if (helpBox) helpBox.textContent = help;
   valorFeedback.textContent = '';
-  if (acaoHoras && acaoHoras.checked) {
+  if (val === 'horas') {
     form.action = "{{ url_for('usuarios.gestao_colabs_horas_adicionar') }}";
-  } else if (acaoCredito && acaoCredito.checked) {
+  } else if (val === 'folga_credito') {
     form.action = "{{ url_for('usuarios.gestao_colabs_folga_credito_adicionar') }}";
-  } else if (acaoUso && acaoUso.checked) {
+  } else if (val === 'folga_uso') {
     form.action = "{{ url_for('usuarios.gestao_colabs_folga_uso_adicionar') }}";
   }
+  renderSummary();
 }
-if (acaoHoras) acaoHoras.addEventListener('change', setAction);
-if (acaoCredito) acaoCredito.addEventListener('change', setAction);
-if (acaoUso) acaoUso.addEventListener('change', setAction);
+if (acaoSelect) acaoSelect.addEventListener('change', setAction);
+
+function renderSummary(){
+  const box = document.getElementById('opSummary');
+  if (!box) return;
+  const val = (acaoSelect && acaoSelect.value) || 'horas';
+  let tipo = 'Folga (Uso)';
+  if (val === 'horas') tipo = 'Horas Extra';
+  else if (val === 'folga_credito') tipo = 'Folga (Crédito)';
+  const vraw = valorInput.value || '';
+  let valor = '—';
+  if (vraw !== '' && !isNaN(parseFloat(vraw))) {
+    if (val === 'horas') valor = `${parseFloat(vraw)} h`;
+    else valor = `${Math.max(1, Math.round(parseFloat(vraw)))} dia(s)`;
+  }
+  const d = dateInput.value || '';
+  const data = d ? formatBRDate(d) : '—';
+  let colaborador = '—';
+  if (colabSelect && colabSelect.value) {
+    const opt = colabSelect.options[colabSelect.selectedIndex];
+    colaborador = opt ? opt.text : '—';
+  }
+  box.textContent = `Operação: ${tipo} • Valor: ${valor} • Data: ${data} • Colaborador: ${colaborador}`;
+}
+
+valorInput.addEventListener('input', renderSummary);
+dateInput.addEventListener('change', renderSummary);
+colabSelect.addEventListener('change', renderSummary);
 
 // toggle Férias/Atestados panels
 (function(){
@@ -1028,13 +1065,8 @@ if (acaoUso) acaoUso.addEventListener('change', setAction);
     const h = anchor.offsetHeight;
     targets.forEach(t=>{
       if (!t) return;
-      if (isMobile) {
-        if (w) t.style.width = w + 'px';
-        if (h) t.style.height = h + 'px';
-      } else {
-        t.style.width = '';
-        t.style.height = '';
-      }
+      if (h) t.style.height = h + 'px';
+      if (isMobile) { if (w) t.style.width = w + 'px'; } else { t.style.width = ''; }
     });
   }
   apply();

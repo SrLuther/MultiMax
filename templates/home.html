@@ -46,6 +46,10 @@
             <i class="bi bi-clock-history" style="font-size: 2rem; color: var(--mm-primary);"></i>
             <div class="mm-text-muted mm-mt-2" style="font-size: var(--mm-text-sm);">Jornada</div>
         </a>
+        <a href="{{ url_for('temporarios.index') }}" class="mm-card mm-text-center mm-p-3 mm-text-decoration-none dashboard-shortcut" data-testid="shortcut-temporarios">
+            <i class="bi bi-hourglass-split" style="font-size: 2rem; color: var(--mm-primary);"></i>
+            <div class="mm-text-muted mm-mt-2" style="font-size: var(--mm-text-sm);">Dados Temporários</div>
+        </a>
         <a href="{{ url_for('temperatura.index') }}" class="mm-card mm-text-center mm-p-3 mm-text-decoration-none dashboard-shortcut" data-testid="shortcut-temperatura">
             <i class="bi bi-thermometer-half" style="font-size: 2rem; color: var(--mm-orange);"></i>
             <div class="mm-text-muted mm-mt-2" style="font-size: var(--mm-text-sm);">Temperatura</div>

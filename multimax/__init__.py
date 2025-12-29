@@ -146,6 +146,10 @@ def create_app():
     from .routes.perdas import bp as perdas_bp
     from .routes.ajuda import bp as ajuda_bp
     from .routes.jornada import bp as jornada_bp
+    try:
+        from .routes.temporarios import bp as temporarios_bp
+    except Exception:
+        temporarios_bp = None
     notif_enabled = (os.getenv('NOTIFICACOES_ENABLED', 'false') or 'false').lower() == 'true'
     notificacoes_bp = None
     if notif_enabled:
@@ -178,6 +182,8 @@ def create_app():
     app.register_blueprint(perdas_bp)
     app.register_blueprint(ajuda_bp)
     app.register_blueprint(jornada_bp)
+    if temporarios_bp:
+        app.register_blueprint(temporarios_bp)
     if notificacoes_bp:
         app.register_blueprint(notificacoes_bp)
     if dbadmin_bp:
@@ -1160,7 +1166,23 @@ def create_app():
                                 return True
                         ts = time.strftime('%Y%m%d-%H%M%S')
                         dst = os.path.join(bdir, f'backup-{ts}.sqlite')
-                        shutil.copy2(src, dst)
+                        try:
+                            import sqlite3
+                            s_conn = sqlite3.connect(src)
+                            d_conn = sqlite3.connect(dst)
+                            try:
+                                s_conn.backup(d_conn)
+                            finally:
+                                try:
+                                    d_conn.close()
+                                except Exception:
+                                    pass
+                                try:
+                                    s_conn.close()
+                                except Exception:
+                                    pass
+                        except Exception:
+                            shutil.copy2(src, dst)
                         files_regular = sorted([
                             os.path.join(bdir, f) for f in os.listdir(bdir)
                             if isinstance(f, str) and f.lower().endswith('.sqlite') and f.startswith('backup-') and not f.startswith('backup-24h')
@@ -1243,6 +1265,79 @@ def create_app():
         setattr(app, 'perform_backup', _make_backup)
         _start_backup_scheduler()
         _start_daily_snapshot_scheduler()
+
+        def _start_tempdata_scheduler():
+            try:
+                from datetime import datetime as _dt, timedelta as _td, date as _date
+                from zoneinfo import ZoneInfo as _Zone
+                from .models import Shift, TemporaryEntry
+            except Exception:
+                return
+            def _loop():
+                while True:
+                    try:
+                        tz = _Zone('America/Sao_Paulo')
+                        with app.app_context():
+                            today = _date.today()
+                            # próximo domingo da semana corrente
+                            domingo = today + _td(days=(6 - today.weekday()))
+                            shifts = []
+                            try:
+                                shifts = Shift.query.filter(Shift.date == domingo).all()
+                            except Exception:
+                                shifts = []
+                            for s in shifts:
+                                cid = s.collaborator_id
+                                if not cid:
+                                    continue
+                                try:
+                                    is_5h = False
+                                    if s.start_dt:
+                                        try:
+                                            is_5h = int(s.start_dt.astimezone(tz).hour) == 5
+                                        except Exception:
+                                            is_5h = False
+                                    if (s.shift_type or '').lower().find('5h') >= 0:
+                                        is_5h = True
+                                    if is_5h:
+                                        exists_b = TemporaryEntry.query.filter_by(kind='folga_hour_both', collaborator_id=cid, date=s.date).first()
+                                        if not exists_b:
+                                            tb = TemporaryEntry()
+                                            tb.kind = 'folga_hour_both'
+                                            tb.collaborator_id = cid
+                                            tb.date = s.date
+                                            tb.amount_days = 1
+                                            tb.hours = 1.0
+                                            tb.source = 'regra_domingo'
+                                            tb.reason = 'Trabalho em domingo'
+                                            db.session.add(tb)
+                                    else:
+                                        exists = TemporaryEntry.query.filter_by(kind='folga_credit', collaborator_id=cid, date=s.date).first()
+                                        if not exists:
+                                            te = TemporaryEntry()
+                                            te.kind = 'folga_credit'
+                                            te.collaborator_id = cid
+                                            te.date = s.date
+                                            te.amount_days = 1
+                                            te.source = 'regra_domingo'
+                                            te.reason = f'Trabalho em domingo {s.date.strftime("%d/%m/%Y")}'
+                                            db.session.add(te)
+                                except Exception:
+                                    pass
+                            try:
+                                db.session.commit()
+                            except Exception:
+                                try:
+                                    db.session.rollback()
+                                except Exception:
+                                    pass
+                    except Exception:
+                        pass
+                    time.sleep(3600)
+            t = threading.Thread(target=_loop, daemon=True)
+            t.start()
+
+        _start_tempdata_scheduler()
 
         def _start_notif_scheduler():
             try:

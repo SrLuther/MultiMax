@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from .. import db
-from ..models import User, Produto, Historico, CleaningHistory, SystemLog, NotificationRead, HourBankEntry, Collaborator, JobRole, LeaveCredit, LeaveAssignment, LeaveConversion, Shift, CleaningTask, Vacation, MedicalCertificate
+from ..models import User, Produto, Historico, CleaningHistory, SystemLog, NotificationRead, HourBankEntry, Collaborator, JobRole, LeaveCredit, LeaveAssignment, LeaveConversion, Shift, CleaningTask, Vacation, MedicalCertificate, Holiday
 from datetime import datetime
 from typing import cast, Sequence
 import os
@@ -1558,6 +1558,7 @@ def gestao_colabs_folga_uso_adicionar():
     days_str = (request.form.get('days_used', '1').strip() or '1')
     notes = (request.form.get('notes', '').strip() or '')
     try:
+        from datetime import timedelta
         cid = int(cid_str)
         d = datetime.strptime(date_str, '%Y-%m-%d').date()
         days = int(days_str)
@@ -1565,14 +1566,31 @@ def gestao_colabs_folga_uso_adicionar():
         flash('Dados inválidos para uso de folga.', 'warning')
         return redirect(url_for('usuarios.gestao', view='folgas'))
     try:
+        try:
+            end_d = d + timedelta(days=max(1, days) - 1)
+            feriados_no_periodo = Holiday.query.filter(Holiday.date >= d, Holiday.date <= end_d).count()
+        except Exception:
+            feriados_no_periodo = 0
+        effective_days = max(0, int(days) - int(feriados_no_periodo))
+
+        from sqlalchemy import func
+        credits_sum = int(db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == cid).scalar() or 0)
+        assigned_sum = int(db.session.query(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).filter(LeaveAssignment.collaborator_id == cid).scalar() or 0)
+        converted_sum = int(db.session.query(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).filter(LeaveConversion.collaborator_id == cid).scalar() or 0)
+        saldo_days = credits_sum - assigned_sum - converted_sum
+
+        if effective_days < 1 or effective_days > saldo_days:
+            flash('Saldo insuficiente de folgas.', 'warning')
+            return redirect(url_for('usuarios.gestao', view='folgas'))
+
         la = LeaveAssignment()
         la.collaborator_id = cid
         la.date = d
-        la.days_used = days
+        la.days_used = effective_days
         la.notes = notes
         db.session.add(la)
         db.session.commit()
-        flash(f'Uso de {days} dia(s) de folga registrado.', 'success')
+        flash(f'Uso de {effective_days} dia(s) de folga registrado.', 'success')
     except Exception as ex:
         db.session.rollback()
         flash(f'Erro ao registrar uso: {ex}', 'danger')
@@ -1589,10 +1607,18 @@ def gestao_colabs_folga_uso_editar(id: int):
     days_str = (request.form.get('days_used', '').strip() or '')
     notes = (request.form.get('notes', '').strip() or '')
     try:
+        from datetime import timedelta
         if date_str:
             la.date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        # recalcular dias efetivos desconsiderando feriados
         if days_str:
-            la.days_used = int(days_str)
+            try:
+                new_days = int(days_str)
+                end_d = la.date + timedelta(days=max(1, new_days) - 1)
+                feriados_no_periodo = Holiday.query.filter(Holiday.date >= la.date, Holiday.date <= end_d).count()
+            except Exception:
+                feriados_no_periodo = 0
+            la.days_used = max(0, int(new_days) - int(feriados_no_periodo))
         la.notes = notes
         db.session.commit()
         flash('Uso de folga atualizado.', 'info')

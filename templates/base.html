@@ -12,6 +12,8 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='multimax-estilo.css') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon-180.png') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/logo-user.png') }}">
+    <link rel="shortcut icon" type="image/png" href="{{ url_for('static', filename='icons/logo-user.png') }}">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#00ff88">
@@ -110,6 +112,10 @@
                 <a href="{{ url_for('dbadmin.index') }}" class="mm-nav-item {% if 'dbadmin' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-database mm-nav-icon"></i>
                     <span class="mm-nav-text">Banco de Dados</span>
+                </a>
+                <a href="{{ url_for('temporarios.index') }}" class="mm-nav-item {% if 'temporarios' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-hourglass-split mm-nav-icon"></i>
+                    <span class="mm-nav-text">Dados Temporários</span>
                 </a>
             </div>
             {% endif %}

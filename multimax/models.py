@@ -213,6 +213,22 @@ class HourBankEntry(db.Model):
     hours = db.Column(db.Float, nullable=False)
     reason = db.Column(db.String(255))
 
+class TemporaryEntry(db.Model):
+    __tablename__ = 'temporary_entry'
+    id = db.Column(db.Integer, primary_key=True)
+    kind = db.Column(db.String(20), nullable=False)
+    collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    amount_days = db.Column(db.Integer)
+    hours = db.Column(db.Float)
+    reason = db.Column(db.String(255))
+    source = db.Column(db.String(50))
+    status = db.Column(db.String(20), default='pendente')
+    payload = db.Column(db.Text)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+    collaborator = db.relationship('Collaborator', backref='temporary_entries', lazy=True)
+
 class JobRole(db.Model):
     __tablename__ = 'job_role'
     id = db.Column(db.Integer, primary_key=True)

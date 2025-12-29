@@ -36,7 +36,10 @@
             <i class="bi bi-cpu mm-text-primary"></i>
             Uso de Recursos da Máquina
         </h3>
-        <span class="mm-badge mm-badge-primary">Atualiza a cada 1s</span>
+        <div class="mm-flex mm-gap-2 mm-items-center">
+            <span class="mm-badge" id="serverClock">Servidor — --:--:--</span>
+            <span class="mm-badge mm-badge-primary">Atualiza a cada 1s</span>
+        </div>
     </div>
     <div class="mm-card-body">
         <div class="mm-grid mm-grid-cols-2 mm-gap-4">
@@ -239,12 +242,22 @@ function startResourceCharts(){
     cpuChart.update();
     memChart.update();
   }
+  function updateServerClock(ts){
+    var el = document.getElementById('serverClock');
+    if (!el) return;
+    var t = new Date(ts);
+    var hh = String(t.getHours()).padStart(2,'0');
+    var mm = String(t.getMinutes()).padStart(2,'0');
+    var ss = String(t.getSeconds()).padStart(2,'0');
+    el.textContent = 'Servidor — ' + hh + ':' + mm + ':' + ss;
+  }
   async function fetchMetrics(){
     try{
       var resp = await fetch("{{ url_for('dbadmin.metrics') }}");
       var json = await resp.json();
       if (!json || !json.ok || json.cpu == null || json.mem == null) return;
       pushPoint(json.ts, json.cpu, json.mem);
+      updateServerClock(json.ts);
     } catch(e){}
   }
   fetchMetrics();
