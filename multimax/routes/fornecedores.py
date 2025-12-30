@@ -8,7 +8,7 @@ bp = Blueprint('fornecedores', __name__, url_prefix='/fornecedores')
 @bp.route('/')
 @login_required
 def index():
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Você não tem permissão para acessar esta página.', 'danger')
         return redirect(url_for('home.index'))
     search = request.args.get('busca', '').strip()
@@ -25,7 +25,7 @@ def index():
 @bp.route('/adicionar', methods=['GET', 'POST'])
 @login_required
 def adicionar():
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Você não tem permissão para adicionar fornecedores.', 'danger')
         return redirect(url_for('fornecedores.index'))
     if request.method == 'POST':
@@ -61,7 +61,7 @@ def adicionar():
 @bp.route('/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar(id: int):
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Você não tem permissão para editar fornecedores.', 'danger')
         return redirect(url_for('fornecedores.index'))
     fornecedor = Fornecedor.query.get_or_404(id)
@@ -96,7 +96,7 @@ def editar(id: int):
 @bp.route('/excluir/<int:id>')
 @login_required
 def excluir(id: int):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Você não tem permissão para excluir fornecedores.', 'danger')
         return redirect(url_for('fornecedores.index'))
     fornecedor = Fornecedor.query.get_or_404(id)
@@ -116,7 +116,7 @@ def excluir(id: int):
 @bp.route('/detalhes/<int:id>')
 @login_required
 def detalhes(id: int):
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Você não tem permissão para acessar esta página.', 'danger')
         return redirect(url_for('home.index'))
     fornecedor = Fornecedor.query.get_or_404(id)

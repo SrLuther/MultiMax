@@ -33,7 +33,7 @@ def _log_event(evento, detalhes):
 @bp.route('/', methods=['GET'], strict_slashes=False)
 @login_required
 def index():
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Acesso negado.', 'danger')
         return redirect(url_for('home.index'))
     try:
@@ -332,7 +332,7 @@ def is_holiday():
 @bp.route('/create', methods=['POST'], strict_slashes=False)
 @login_required
 def create():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Administradores podem criar.', 'danger')
         return redirect(url_for('jornada.index'))
     tipo = (request.form.get('tipo') or '').strip()
@@ -394,7 +394,7 @@ def create():
 @bp.route('/update/<worklog_id>', methods=['POST'], strict_slashes=False)
 @login_required
 def update(worklog_id):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Administradores podem editar.', 'danger')
         return redirect(url_for('jornada.index'))
     w = RegistroJornada.query.filter_by(id=worklog_id).first()
@@ -457,7 +457,7 @@ def update(worklog_id):
 @bp.route('/delete/<worklog_id>', methods=['POST'], strict_slashes=False)
 @login_required
 def delete(worklog_id):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Administradores podem excluir.', 'danger')
         return redirect(url_for('jornada.index'))
     w = RegistroJornada.query.filter_by(id=worklog_id).first()
@@ -501,7 +501,7 @@ def history(worklog_id):
 @bp.route('/export', methods=['GET'], strict_slashes=False)
 @login_required
 def export():
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ('operador', 'admin', 'DEV'):
         flash('Acesso negado.', 'danger')
         return redirect(url_for('jornada.index'))
     fmt = (request.args.get('fmt') or 'csv').strip().lower()
@@ -557,7 +557,7 @@ def export():
 @bp.route('/relatorio', methods=['GET'], strict_slashes=False)
 @login_required
 def relatorio():
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ('operador', 'admin', 'DEV'):
         flash('Acesso negado.', 'danger')
         return redirect(url_for('jornada.index'))
     collab_id = request.args.get('collaborator_id', type=int)
@@ -650,7 +650,7 @@ def relatorio():
 @bp.route('/relatorio/export', methods=['GET'], strict_slashes=False)
 @login_required
 def relatorio_export():
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ('operador', 'admin', 'DEV'):
         flash('Acesso negado.', 'danger')
         return redirect(url_for('jornada.index'))
     collab_id = request.args.get('collaborator_id', type=int)
@@ -754,7 +754,7 @@ def relatorio_export():
 @bp.route('/migrar', methods=['POST'], strict_slashes=False)
 @login_required
 def migrar():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Administradores podem migrar.', 'danger')
         return redirect(url_for('jornada.index'))
     from ..models import HourBankEntry, LeaveCredit
@@ -814,7 +814,7 @@ def migrar():
 @bp.route('/sincronizar-observacoes', methods=['POST'], strict_slashes=False)
 @login_required
 def sincronizar_observacoes():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Administradores podem sincronizar.', 'danger')
         return redirect(url_for('jornada.index'))
     updated = 0
@@ -853,7 +853,7 @@ def sincronizar_observacoes():
 @bp.route('/delete_by_date', methods=['POST'], strict_slashes=False)
 @login_required
 def delete_by_date():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Administradores podem excluir em massa.', 'danger')
         return redirect(url_for('jornada.index'))
     date_str = (request.form.get('data') or '').strip()

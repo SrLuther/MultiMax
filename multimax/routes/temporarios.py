@@ -11,7 +11,7 @@ bp = Blueprint('temporarios', __name__)
 @bp.route('/temporarios', methods=['GET'], strict_slashes=False)
 @login_required
 def index():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Acesso negado. Apenas Administradores podem revisar dados temporários.', 'danger')
         return redirect(url_for('home.index'))
     tipo = (request.args.get('tipo') or '').strip()
@@ -32,7 +32,7 @@ def index():
 @bp.route('/temporarios/update', methods=['POST'], strict_slashes=False)
 @login_required
 def update():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Acesso negado.', 'danger')
         return redirect(url_for('temporarios.index'))
     tid = request.form.get('id', type=int)
@@ -219,7 +219,7 @@ def update():
 @bp.route('/temporarios/approve', methods=['POST'], strict_slashes=False)
 @login_required
 def approve():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Acesso negado.', 'danger')
         return redirect(url_for('temporarios.index'))
     tid = request.form.get('id', type=int)
@@ -301,7 +301,7 @@ def approve():
 @bp.route('/temporarios/reject', methods=['POST'], strict_slashes=False)
 @login_required
 def reject():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Acesso negado.', 'danger')
         return redirect(url_for('temporarios.index'))
     tid = request.form.get('id', type=int)

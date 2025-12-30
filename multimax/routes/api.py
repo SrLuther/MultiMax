@@ -44,7 +44,9 @@ def api_auth_required(f):
         else:
             return jsonify({'error': 'Autenticação necessária. Use X-API-Key header ou faça login.', 'code': 401}), 401
         
-        if g.api_user.nivel not in ['operador', 'admin']:
+        if g.api_user.nivel == 'visualizador':
+            return jsonify({'error': 'Visualizadores não têm permissão para fazer alterações no sistema.', 'code': 403}), 403
+        if g.api_user.nivel not in ['operador', 'admin', 'DEV']:
             return jsonify({'error': 'Acesso negado', 'code': 403}), 403
         return f(*args, **kwargs)
     return decorated_function
@@ -52,7 +54,7 @@ def api_auth_required(f):
 def api_admin_only(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not hasattr(g, 'api_user') or g.api_user.nivel != 'admin':
+        if not hasattr(g, 'api_user') or g.api_user.nivel not in ['admin', 'DEV']:
             return jsonify({'error': 'Apenas administradores podem realizar esta ação', 'code': 403}), 403
         return f(*args, **kwargs)
     return decorated_function
@@ -112,6 +114,8 @@ def obter_produto(id: int):
 @bp.route('/produtos', methods=['POST'])
 @api_auth_required
 def criar_produto():
+    if g.api_user.nivel == 'visualizador':
+        return jsonify({'error': 'Visualizadores não têm permissão para fazer alterações no sistema.', 'code': 403}), 403
     data = request.get_json()
     if not data:
         return jsonify({'error': 'Dados JSON não fornecidos'}), 400
@@ -155,6 +159,8 @@ def criar_produto():
 @bp.route('/produtos/<int:id>', methods=['PUT'])
 @api_auth_required
 def atualizar_produto(id: int):
+    if g.api_user.nivel == 'visualizador':
+        return jsonify({'error': 'Visualizadores não têm permissão para fazer alterações no sistema.', 'code': 403}), 403
     produto = Produto.query.get_or_404(id)
     data = request.get_json()
     if not data:
@@ -190,6 +196,8 @@ def atualizar_produto(id: int):
 @bp.route('/produtos/<int:id>', methods=['DELETE'])
 @api_auth_required
 def excluir_produto(id: int):
+    if g.api_user.nivel == 'visualizador':
+        return jsonify({'error': 'Visualizadores não têm permissão para fazer alterações no sistema.', 'code': 403}), 403
     if g.api_user.nivel != 'admin':
         return jsonify({'error': 'Apenas administradores podem excluir produtos'}), 403
     
@@ -203,6 +211,8 @@ def excluir_produto(id: int):
 @bp.route('/produtos/<int:id>/entrada', methods=['POST'])
 @api_auth_required
 def entrada_produto(id: int):
+    if g.api_user.nivel == 'visualizador':
+        return jsonify({'error': 'Visualizadores não têm permissão para fazer alterações no sistema.', 'code': 403}), 403
     produto = Produto.query.get_or_404(id)
     data = request.get_json()
     if not data:
@@ -232,6 +242,8 @@ def entrada_produto(id: int):
 @bp.route('/produtos/<int:id>/saida', methods=['POST'])
 @api_auth_required
 def saida_produto(id: int):
+    if g.api_user.nivel == 'visualizador':
+        return jsonify({'error': 'Visualizadores não têm permissão para fazer alterações no sistema.', 'code': 403}), 403
     produto = Produto.query.get_or_404(id)
     data = request.get_json()
     if not data:

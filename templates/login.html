@@ -354,7 +354,7 @@
                         <img src="{{ url_for('static', filename='icons/logo-user.png') }}" 
                              alt="Carregando" 
                              class="login-loader-logo">
-                        <span class="login-loader-text">Entrando...</span>
+                        <span class="login-loader-text" id="loaderText">Entrando...</span>
                     </div>
                 </div>
 
@@ -367,7 +367,9 @@
                 {% endif %}
                 {% endwith %}
 
-                <form id="loginForm" method="post">
+                <!-- Formulário de Login -->
+                <form id="loginForm" method="post" style="display: {% if show_register %}none{% else %}block{% endif %};">
+                    <input type="hidden" name="action" value="login">
                     <div class="login-form-group">
                         <input type="text" 
                                name="username" 
@@ -391,6 +393,66 @@
                         <i class="bi bi-box-arrow-in-right"></i>
                         Entrar no Sistema
                     </button>
+
+                    <div style="text-align: center; margin-top: var(--mm-space-4);">
+                        <button type="button" onclick="showRegister()" style="background: none; border: none; color: var(--mm-primary); cursor: pointer; font-size: var(--mm-text-sm); text-decoration: underline;">
+                            Não tem conta? Cadastre-se
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Formulário de Cadastro -->
+                <form id="registerForm" method="post" style="display: {% if show_register %}block{% else %}none{% endif %};">
+                    <input type="hidden" name="action" value="register">
+                    <div class="login-form-group">
+                        <input type="text" 
+                               name="name" 
+                               class="login-input" 
+                               placeholder="Nome completo" 
+                               required 
+                               autofocus 
+                               autocomplete="name">
+                    </div>
+
+                    <div class="login-form-group">
+                        <input type="text" 
+                               name="username" 
+                               class="login-input" 
+                               placeholder="Nome de usuário (mín. 3 caracteres)" 
+                               required 
+                               minlength="3"
+                               autocomplete="username">
+                    </div>
+
+                    <div class="login-form-group">
+                        <input type="password" 
+                               name="password" 
+                               class="login-input" 
+                               placeholder="Senha (mín. 4 caracteres)" 
+                               required 
+                               minlength="4"
+                               autocomplete="new-password">
+                    </div>
+
+                    <div class="login-form-group">
+                        <input type="password" 
+                               name="confirm_password" 
+                               class="login-input" 
+                               placeholder="Confirmar senha" 
+                               required 
+                               autocomplete="new-password">
+                    </div>
+
+                    <button id="registerSubmit" type="submit" class="login-btn">
+                        <i class="bi bi-person-plus"></i>
+                        Criar Conta
+                    </button>
+
+                    <div style="text-align: center; margin-top: var(--mm-space-4);">
+                        <button type="button" onclick="showLogin()" style="background: none; border: none; color: var(--mm-primary); cursor: pointer; font-size: var(--mm-text-sm); text-decoration: underline;">
+                            Já tem conta? Faça login
+                        </button>
+                    </div>
                 </form>
             </div>
 
@@ -404,21 +466,57 @@
 
     <script>
         (function() {
-            const form = document.getElementById('loginForm');
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
             const blocker = document.getElementById('loginBlocker');
-            const submitBtn = document.getElementById('loginSubmit');
+            const loaderText = document.getElementById('loaderText');
+            const loginSubmit = document.getElementById('loginSubmit');
+            const registerSubmit = document.getElementById('registerSubmit');
 
-            if (form) {
-                form.addEventListener('submit', function() {
+            window.showRegister = function() {
+                if (loginForm) loginForm.style.display = 'none';
+                if (registerForm) registerForm.style.display = 'block';
+                const nameInput = registerForm?.querySelector('input[name="name"]');
+                if (nameInput) nameInput.focus();
+            };
+
+            window.showLogin = function() {
+                if (registerForm) registerForm.style.display = 'none';
+                if (loginForm) loginForm.style.display = 'block';
+                const usernameInput = loginForm?.querySelector('input[name="username"]');
+                if (usernameInput) usernameInput.focus();
+            };
+
+            if (loginForm) {
+                loginForm.addEventListener('submit', function() {
                     if (blocker) blocker.classList.add('show');
-                    if (submitBtn) submitBtn.disabled = true;
+                    if (loaderText) loaderText.textContent = 'Entrando...';
+                    if (loginSubmit) loginSubmit.disabled = true;
+                });
+            }
+
+            if (registerForm) {
+                registerForm.addEventListener('submit', function() {
+                    const password = registerForm.querySelector('input[name="password"]').value;
+                    const confirmPassword = registerForm.querySelector('input[name="confirm_password"]').value;
+                    
+                    if (password !== confirmPassword) {
+                        alert('As senhas não coincidem!');
+                        event.preventDefault();
+                        return false;
+                    }
+                    
+                    if (blocker) blocker.classList.add('show');
+                    if (loaderText) loaderText.textContent = 'Cadastrando...';
+                    if (registerSubmit) registerSubmit.disabled = true;
                 });
             }
 
             window.addEventListener('pageshow', function(event) {
                 if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
                     if (blocker) blocker.classList.remove('show');
-                    if (submitBtn) submitBtn.disabled = false;
+                    if (loginSubmit) loginSubmit.disabled = false;
+                    if (registerSubmit) registerSubmit.disabled = false;
                 }
             });
 

@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Rendimento — MultiMax{% endblock %}
+{% block content %}
+<div class="mm-alert mm-alert-warning" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05)); border-left: 4px solid var(--mm-warning); border-radius: var(--mm-radius-lg); padding: var(--mm-space-4); margin-bottom: var(--mm-space-4); box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);">
+    <i class="bi bi-exclamation-triangle-fill" style="font-size: 1.5rem; color: var(--mm-warning);"></i>
+    <div style="flex: 1;">
+        <strong style="display: block; margin-bottom: var(--mm-space-1); color: var(--mm-warning); font-size: var(--mm-text-lg);">⚠️ Página em Construção</strong>
+        <span style="color: var(--mm-text-secondary);">Essa página está em construção e elaboração de raciocínio lógico e ainda não foi finalizada, logo, muitas coisas podem mudar</span>
+    </div>
+</div>
+<div class="mm-page-header">
+    <h1 class="mm-page-title">Análise de Rendimento</h1>
+    <p class="mm-text-muted">Controle de rendimento por recepção</p>
+</div>
+
+<div class="mm-grid mm-grid-cols-2 mm-gap-4 mm-mb-6">
+    <div class="mm-card">
+        <div class="mm-kpi-label">Rendimento Médio</div>
+        <div class="mm-kpi-value">{{ "%.1f"|format(rendimento_medio) }}%</div>
+    </div>
+    <div class="mm-card">
+        <div class="mm-kpi-label">Total de Análises</div>
+        <div class="mm-kpi-value">{{ total_analises }}</div>
+    </div>
+</div>
+
+<div class="mm-card">
+    <table class="mm-table">
+        <thead>
+            <tr>
+                <th>Recepção</th>
+                <th>Peso Entrada</th>
+                <th>Peso Saída</th>
+                <th>Rendimento</th>
+                <th>Perdas</th>
+                <th>Data</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for analise in analises %}
+            <tr>
+                <td>{{ analise.reception.reference_code if analise.reception else '-' }}</td>
+                <td>{{ "%.2f"|format(analise.peso_entrada) }} kg</td>
+                <td>{{ "%.2f"|format(analise.peso_saida) }} kg</td>
+                <td>
+                    <strong style="color: {% if analise.rendimento_percentual >= 70 %}var(--mm-success){% elif analise.rendimento_percentual >= 50 %}var(--mm-warning){% else %}var(--mm-danger){% endif %};">
+                        {{ "%.1f"|format(analise.rendimento_percentual) }}%
+                    </strong>
+                </td>
+                <td>{{ "%.2f"|format(analise.perdas_kg) }} kg</td>
+                <td>{{ analise.data_analise.strftime('%d/%m/%Y') if analise.data_analise else '-' }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" class="mm-text-center mm-text-muted">Nenhuma análise registrada</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+

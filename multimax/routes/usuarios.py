@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
+from ..password_hash import generate_password_hash, check_password_hash
+from ..filename_utils import secure_filename
 from .. import db
 from ..models import User, Produto, Historico, CleaningHistory, SystemLog, NotificationRead, HourBankEntry, Collaborator, JobRole, LeaveCredit, LeaveAssignment, LeaveConversion, Shift, CleaningTask, Vacation, MedicalCertificate, Holiday
 from datetime import datetime
@@ -18,10 +19,25 @@ from pathlib import Path
 
 bp = Blueprint('usuarios', __name__)
 
+def _is_dev(user):
+    """Verifica se o usuário é desenvolvedor (acesso total)"""
+    return user.nivel == 'DEV'
+
+def _can_manage_admins(user):
+    """Verifica se o usuário pode gerenciar administradores (apenas DEV)"""
+    return user.nivel == 'DEV'
+
+def _block_viewer_modifications():
+    """Bloqueia visualizadores de fazer qualquer alteração (exceto perfil)"""
+    if current_user.nivel == 'visualizador':
+        flash('Visualizadores não têm permissão para fazer alterações no sistema.', 'danger')
+        return True
+    return False
+
 @bp.route('/users', methods=['GET', 'POST'])
 @login_required
 def users():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Acesso negado. Apenas Gerente pode gerenciar usuários.', 'danger')
         return redirect(url_for('estoque.index'))
     if request.method == 'POST':
@@ -29,6 +45,10 @@ def users():
         username_input = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
         nivel = request.form.get('nivel', 'visualizador').strip()
+        # Apenas DEV pode criar ou alterar usuários para admin/DEV
+        if nivel in ('admin', 'DEV') and current_user.nivel != 'DEV':
+            flash('Apenas o desenvolvedor pode criar ou alterar administradores.', 'danger')
+            return redirect(url_for('usuarios.gestao'))
         if not name or not password:
             flash('Nome e senha são obrigatórios.', 'warning')
             return redirect(url_for('usuarios.gestao'))
@@ -69,7 +89,7 @@ def users():
 @bp.route('/gestao/vps/restart', methods=['POST'])
 @login_required
 def gestao_vps_restart():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Administradores podem reiniciar a VPS.', 'danger')
         return redirect(url_for('usuarios.gestao'))
     secret_in = (request.form.get('secret_key') or '').strip()
@@ -88,7 +108,7 @@ def gestao_vps_restart():
 @bp.route('/gestao/vps/upload', methods=['POST'])
 @login_required
 def gestao_vps_upload():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Administradores podem atualizar a VPS.', 'danger')
         return redirect(url_for('usuarios.gestao'))
     secret_in = (request.form.get('secret_key') or '').strip()
@@ -147,7 +167,7 @@ def gestao_vps_upload():
 @bp.route('/gestao/restart', methods=['POST'])
 @login_required
 def gestao_restart():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Administradores podem reiniciar.', 'danger')
         return redirect(url_for('usuarios.gestao'))
     secret_in = (request.form.get('secret_key') or '').strip()
@@ -178,7 +198,7 @@ def gestao_restart():
 @bp.route('/users/<int:user_id>/senha', methods=['POST'])
 @login_required
 def update_password(user_id):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Você não tem permissão para atualizar senhas.', 'danger')
         return redirect(url_for('estoque.index'))
     user = User.query.get_or_404(user_id)
@@ -204,7 +224,7 @@ def update_password(user_id):
 @bp.route('/users/<int:user_id>/reset_senha', methods=['POST'])
 @login_required
 def reset_password(user_id):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Você não tem permissão para redefinir senhas.', 'danger')
         return redirect(url_for('estoque.index'))
     user = User.query.get_or_404(user_id)
@@ -227,13 +247,17 @@ def reset_password(user_id):
 @bp.route('/users/<int:user_id>/nivel', methods=['POST'])
 @login_required
 def update_level(user_id):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Você não tem permissão para alterar níveis de usuário.', 'danger')
         return redirect(url_for('estoque.index'))
     user = User.query.get_or_404(user_id)
     nivel = request.form.get('nivel', 'visualizador').strip()
-    if nivel not in ('visualizador', 'operador', 'admin'):
+    if nivel not in ('visualizador', 'operador', 'admin', 'DEV'):
         flash('Nível inválido.', 'warning')
+        return redirect(url_for('usuarios.gestao'))
+    # Apenas DEV pode alterar nível para admin/DEV
+    if nivel in ('admin', 'DEV') and current_user.nivel != 'DEV':
+        flash('Apenas o desenvolvedor pode alterar usuários para administrador.', 'danger')
         return redirect(url_for('usuarios.gestao'))
     try:
         user.nivel = nivel
@@ -253,13 +277,17 @@ def update_level(user_id):
 @bp.route('/users/<int:user_id>/excluir', methods=['POST'])
 @login_required
 def excluir_user(user_id):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Você não tem permissão para excluir usuários.', 'danger')
         return redirect(url_for('estoque.index'))
     if current_user.id == user_id:
         flash('Você não pode excluir sua própria conta.', 'warning')
         return redirect(url_for('usuarios.users'))
     user = User.query.get_or_404(user_id)
+    # Apenas DEV pode excluir administradores
+    if user.nivel in ('admin', 'DEV') and current_user.nivel != 'DEV':
+        flash('Apenas o desenvolvedor pode excluir administradores.', 'danger')
+        return redirect(url_for('usuarios.users'))
     try:
         db.session.delete(user)
         log = SystemLog()
@@ -278,7 +306,7 @@ def excluir_user(user_id):
 @bp.route('/monitor')
 @login_required
 def monitor():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Acesso negado. Apenas Administradores.', 'danger')
         return redirect(url_for('estoque.index'))
     return redirect(url_for('usuarios.gestao'))
@@ -286,7 +314,7 @@ def monitor():
 @bp.route('/notifications/read')
 @login_required
 def notifications_read():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Administradores podem resolver notificações.', 'danger')
         return redirect(url_for('home.index'))
     tipo = request.args.get('tipo')
@@ -333,7 +361,7 @@ def notifications_unread_all():
 @bp.route('/notifications/read_all')
 @login_required
 def notifications_read_all():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Administradores podem resolver notificações.', 'danger')
         return redirect(url_for('home.index'))
     nxt = request.args.get('next', url_for('home.index'))
@@ -379,24 +407,33 @@ def notifications_read_all():
 @login_required
 def perfil():
     if request.method == 'POST':
-        name = (request.form.get('name') or '').strip()
-        username_input = (request.form.get('username') or '').strip().lower()
-        if not name:
-            flash('Nome é obrigatório.', 'warning')
-            return redirect(url_for('usuarios.perfil'))
-        if not username_input:
-            flash('Login é obrigatório.', 'warning')
-            return redirect(url_for('usuarios.perfil'))
-        base_username = ''.join(ch for ch in username_input if ch.isalnum())
-        if not base_username:
-            flash('Login deve conter apenas letras e números.', 'warning')
-            return redirect(url_for('usuarios.perfil'))
-        if base_username != current_user.username:
-            if User.query.filter_by(username=base_username).first() is not None:
-                flash('Login já existe. Escolha outro.', 'danger')
+        # Visualizadores podem alterar apenas nome e senha (não username)
+        if current_user.nivel == 'visualizador':
+            name = (request.form.get('name') or '').strip()
+            if not name:
+                flash('Nome é obrigatório.', 'warning')
                 return redirect(url_for('usuarios.perfil'))
-            current_user.username = base_username
-        current_user.name = name
+            current_user.name = name
+        else:
+            # Outros níveis podem alterar nome e username
+            name = (request.form.get('name') or '').strip()
+            username_input = (request.form.get('username') or '').strip().lower()
+            if not name:
+                flash('Nome é obrigatório.', 'warning')
+                return redirect(url_for('usuarios.perfil'))
+            if not username_input:
+                flash('Login é obrigatório.', 'warning')
+                return redirect(url_for('usuarios.perfil'))
+            base_username = ''.join(ch for ch in username_input if ch.isalnum())
+            if not base_username:
+                flash('Login deve conter apenas letras e números.', 'warning')
+                return redirect(url_for('usuarios.perfil'))
+            if base_username != current_user.username:
+                if User.query.filter_by(username=base_username).first() is not None:
+                    flash('Login já existe. Escolha outro.', 'danger')
+                    return redirect(url_for('usuarios.perfil'))
+                current_user.username = base_username
+            current_user.name = name
         try:
             db.session.commit()
             flash('Perfil atualizado.', 'success')
@@ -655,7 +692,7 @@ def perfil_senha():
 @bp.route('/gestao', methods=['GET'])
 @login_required
 def gestao():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Acesso negado. Apenas Administradores.', 'danger')
         return redirect(url_for('estoque.index'))
     q = (request.args.get('q') or '').strip()
@@ -1201,7 +1238,7 @@ def gestao():
 @bp.route('/gestao/colaboradores/criar', methods=['POST'])
 @login_required
 def gestao_colabs_criar():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Você não tem permissão para criar colaboradores.', 'danger')
         return redirect(url_for('usuarios.gestao'))
     nome = request.form.get('name', '').strip()
@@ -1230,7 +1267,7 @@ def gestao_colabs_criar():
 @bp.route('/gestao/colaboradores/<int:id>/editar', methods=['POST'])
 @login_required
 def gestao_colabs_editar(id: int):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Você não tem permissão para editar colaboradores.', 'danger')
         return redirect(url_for('usuarios.gestao'))
     c = Collaborator.query.get_or_404(id)
@@ -1261,7 +1298,7 @@ def gestao_colabs_editar(id: int):
 @bp.route('/gestao/colaboradores/<int:id>/excluir', methods=['POST'])
 @login_required
 def gestao_colabs_excluir(id: int):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode excluir colaboradores.', 'danger')
         return redirect(url_for('usuarios.gestao'))
     c = Collaborator.query.get_or_404(id)
@@ -1278,7 +1315,7 @@ def gestao_colabs_excluir(id: int):
 @bp.route('/gestao/usuarios/associar', methods=['POST'])
 @login_required
 def gestao_usuarios_associar():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Você não tem permissão para associar usuário a colaborador.', 'danger')
         return redirect(url_for('usuarios.gestao'))
     try:
@@ -1314,7 +1351,7 @@ def gestao_usuarios_associar():
 @bp.route('/gestao/colaboradores/horas/adicionar', methods=['POST'])
 @login_required
 def gestao_colabs_horas_adicionar():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Você não tem permissão para registrar horas.', 'danger')
         return redirect(url_for('usuarios.gestao', view='colaboradores'))
     cid_str = (request.form.get('collaborator_id', '').strip() or '')
@@ -1378,7 +1415,7 @@ def gestao_colabs_horas_adicionar():
 @bp.route('/gestao/colaboradores/horas/excluir/<int:id>', methods=['POST'])
 @login_required
 def gestao_colabs_horas_excluir(id: int):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode excluir lançamentos.', 'danger')
         return redirect(url_for('usuarios.gestao', view='colaboradores'))
     e = HourBankEntry.query.get_or_404(id)
@@ -1456,7 +1493,7 @@ def gestao_colabs_horas_excluir(id: int):
 @bp.route('/gestao/colaboradores/horas/editar/<int:id>', methods=['POST'])
 @login_required
 def gestao_colabs_horas_editar(id: int):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode editar lançamentos.', 'danger')
         return redirect(url_for('usuarios.gestao', view='colaboradores'))
     e = HourBankEntry.query.get_or_404(id)
@@ -1478,7 +1515,7 @@ def gestao_colabs_horas_editar(id: int):
 @bp.route('/gestao/colaboradores/folgas/credito/adicionar', methods=['POST'])
 @login_required
 def gestao_colabs_folga_credito_adicionar():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Você não tem permissão para registrar folgas.', 'danger')
         return redirect(url_for('usuarios.gestao', view='folgas'))
     cid_str = (request.form.get('collaborator_id', '').strip() or '')
@@ -1511,7 +1548,7 @@ def gestao_colabs_folga_credito_adicionar():
 @bp.route('/gestao/colaboradores/folgas/credito/editar/<int:id>', methods=['POST'])
 @login_required
 def gestao_colabs_folga_credito_editar(id: int):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode editar créditos de folga.', 'danger')
         return redirect(url_for('usuarios.gestao', view='folgas'))
     lc = LeaveCredit.query.get_or_404(id)
@@ -1534,7 +1571,7 @@ def gestao_colabs_folga_credito_editar(id: int):
 @bp.route('/gestao/colaboradores/folgas/credito/excluir/<int:id>', methods=['POST'])
 @login_required
 def gestao_colabs_folga_credito_excluir(id: int):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode excluir créditos de folga.', 'danger')
         return redirect(url_for('usuarios.gestao', view='folgas'))
     lc = LeaveCredit.query.get_or_404(id)
@@ -1550,7 +1587,7 @@ def gestao_colabs_folga_credito_excluir(id: int):
 @bp.route('/gestao/colaboradores/folgas/uso/adicionar', methods=['POST'])
 @login_required
 def gestao_colabs_folga_uso_adicionar():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Você não tem permissão para registrar uso de folgas.', 'danger')
         return redirect(url_for('usuarios.gestao', view='folgas'))
     cid_str = (request.form.get('collaborator_id', '').strip() or '')
@@ -1599,7 +1636,7 @@ def gestao_colabs_folga_uso_adicionar():
 @bp.route('/gestao/colaboradores/folgas/uso/editar/<int:id>', methods=['POST'])
 @login_required
 def gestao_colabs_folga_uso_editar(id: int):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode editar uso de folga.', 'danger')
         return redirect(url_for('usuarios.gestao', view='folgas'))
     la = LeaveAssignment.query.get_or_404(id)
@@ -1630,7 +1667,7 @@ def gestao_colabs_folga_uso_editar(id: int):
 @bp.route('/gestao/colaboradores/folgas/uso/excluir/<int:id>', methods=['POST'])
 @login_required
 def gestao_colabs_folga_uso_excluir(id: int):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode excluir uso de folga.', 'danger')
         return redirect(url_for('usuarios.gestao', view='folgas'))
     la = LeaveAssignment.query.get_or_404(id)
@@ -1646,7 +1683,7 @@ def gestao_colabs_folga_uso_excluir(id: int):
 @bp.route('/gestao/roles', methods=['POST'])
 @login_required
 def gestao_role_criar():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Acesso negado.', 'danger')
         return redirect(url_for('usuarios.gestao'))
     name = (request.form.get('name') or '').strip()
@@ -1675,7 +1712,7 @@ def gestao_role_criar():
 @bp.route('/gestao/roles/<int:id>/editar', methods=['POST'])
 @login_required
 def gestao_role_editar(id: int):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Acesso negado.', 'danger')
         return redirect(url_for('usuarios.gestao'))
     role = JobRole.query.get_or_404(id)
@@ -1697,7 +1734,7 @@ def gestao_role_editar(id: int):
 @bp.route('/gestao/roles/<int:id>/excluir', methods=['POST'])
 @login_required
 def gestao_role_excluir(id: int):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Acesso negado.', 'danger')
         return redirect(url_for('usuarios.gestao'))
     role = JobRole.query.get_or_404(id)
@@ -1714,7 +1751,7 @@ def gestao_role_excluir(id: int):
 @bp.route('/gestao/ferias/adicionar', methods=['POST'])
 @login_required
 def gestao_ferias_adicionar():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Acesso negado.', 'danger')
         return redirect(url_for('usuarios.gestao'))
     try:
@@ -1751,7 +1788,7 @@ def gestao_ferias_adicionar():
 @bp.route('/gestao/ferias/<int:id>/excluir', methods=['POST'])
 @login_required
 def gestao_ferias_excluir(id: int):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Acesso negado.', 'danger')
         return redirect(url_for('usuarios.gestao'))
     v = Vacation.query.get_or_404(id)
@@ -1776,12 +1813,11 @@ def allowed_file(filename):
 @bp.route('/gestao/atestado/adicionar', methods=['POST'])
 @login_required
 def gestao_atestado_adicionar():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Acesso negado.', 'danger')
         return redirect(url_for('usuarios.gestao'))
     try:
         import os
-        from werkzeug.utils import secure_filename
         
         cid_str = (request.form.get('collaborator_id') or '').strip()
         di_str = (request.form.get('data_inicio') or '').strip()
@@ -1846,7 +1882,7 @@ def gestao_atestado_adicionar():
 @bp.route('/gestao/atestado/<int:id>/excluir', methods=['POST'])
 @login_required
 def gestao_atestado_excluir(id: int):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Acesso negado.', 'danger')
         return redirect(url_for('usuarios.gestao'))
     m = MedicalCertificate.query.get_or_404(id)

@@ -78,7 +78,7 @@ def _ensure_reception_columns():
 @bp.route('/', strict_slashes=False)
 @login_required
 def index():
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         return redirect(url_for('estoque.index'))
     _check_schema_once()
     try:
@@ -115,7 +115,7 @@ def index():
 @bp.route('/nova', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
 def nova():
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         return redirect(url_for('estoque.index'))
     _check_schema_once()
     if request.method == 'POST':
@@ -226,7 +226,7 @@ def nova():
 @bp.route('/relatorio/<int:id>', methods=['GET'], strict_slashes=False)
 @login_required
 def relatorio(id: int):
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         return redirect(url_for('estoque.index'))
     _check_schema_once()
     r = MeatReception.query.get_or_404(id)
@@ -286,7 +286,7 @@ def relatorio(id: int):
 @bp.route('/excluir/<int:id>', methods=['POST'], strict_slashes=False)
 @login_required
 def excluir(id: int):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Você não tem permissão para excluir recepções.', 'danger')
         return redirect(url_for('carnes.index'))
     r = MeatReception.query.get_or_404(id)

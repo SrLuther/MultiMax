@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}Detalhes do Lote — MultiMax{% endblock %}
+{% block content %}
+<div class="mm-page-header mm-flex mm-items-center mm-justify-between">
+    <div>
+        <h1 class="mm-page-title">Lote: {{ lote.lote_codigo }}</h1>
+        <p class="mm-text-muted">Rastreabilidade completa</p>
+    </div>
+    <a href="{{ url_for('lotes.index') }}" class="mm-btn mm-btn-secondary">Voltar</a>
+</div>
+
+<div class="mm-grid mm-grid-cols-2 mm-gap-4 mm-mb-6">
+    <div class="mm-card">
+        <h3 class="mm-card-title">Informações do Lote</h3>
+        <div class="mm-mt-4">
+            <p><strong>Produto:</strong> {{ lote.produto.nome if lote.produto else '-' }}</p>
+            <p><strong>Fornecedor:</strong> {{ lote.fornecedor or '-' }}</p>
+            <p><strong>Quantidade:</strong> {{ "%.2f"|format(lote.quantidade_atual) }} / {{ "%.2f"|format(lote.quantidade_inicial) }} kg</p>
+            <p><strong>Localização:</strong> {{ lote.localizacao or '-' }}</p>
+            <p><strong>Validade:</strong> {{ lote.data_validade.strftime('%d/%m/%Y') if lote.data_validade else '-' }}</p>
+        </div>
+    </div>
+    
+    <div class="mm-card">
+        <h3 class="mm-card-title">Movimentações</h3>
+        {% if current_user.nivel != 'visualizador' %}
+        <form method="POST" action="{{ url_for('lotes.movimentar', id=lote.id) }}" class="mm-mt-4">
+            <div class="mm-form-group">
+                <label>Tipo</label>
+                <select name="tipo" class="mm-form-control" required>
+                    <option value="entrada">Entrada</option>
+                    <option value="saida">Saída</option>
+                    <option value="transferencia">Transferência</option>
+                </select>
+            </div>
+            <div class="mm-form-group">
+                <label>Quantidade (kg)</label>
+                <input type="number" name="quantidade" class="mm-form-control" step="0.01" min="0" required>
+            </div>
+            <div class="mm-form-group">
+                <label>Destino</label>
+                <input type="text" name="destino" class="mm-form-control">
+            </div>
+            <button type="submit" class="mm-btn mm-btn-primary">Registrar</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="mm-card">
+    <h3 class="mm-card-title">Histórico de Movimentações</h3>
+    <table class="mm-table">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>Quantidade</th>
+                <th>Origem/Destino</th>
+                <th>Usuário</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for mov in movimentos %}
+            <tr>
+                <td>{{ mov.data_movimento.strftime('%d/%m/%Y %H:%M') }}</td>
+                <td><span class="mm-badge">{{ mov.tipo }}</span></td>
+                <td>{{ "%.2f"|format(mov.quantidade) }} kg</td>
+                <td>{{ mov.origem or '-' }} → {{ mov.destino or '-' }}</td>
+                <td>{{ mov.usuario or '-' }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" class="mm-text-center mm-text-muted">Nenhuma movimentação registrada</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="mm-card mm-mt-4">
+    <h3 class="mm-card-title">Rastreabilidade</h3>
+    <a href="{{ url_for('lotes.rastreabilidade', id=lote.id) }}" class="mm-btn mm-btn-primary">Ver Rastreabilidade Completa</a>
+</div>
+{% endblock %}
+

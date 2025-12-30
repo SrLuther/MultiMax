@@ -55,7 +55,7 @@ def index():
 @bp.route('/novo', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
 def novo():
-    if current_user.nivel not in ('operador', 'admin'):
+    if current_user.nivel not in ('operador', 'admin', 'DEV'):
         flash('Sem permissão para criar pedidos.', 'warning')
         return redirect(url_for('pedidos.index'))
     
@@ -129,7 +129,7 @@ def novo():
 @bp.route('/gerar-automatico', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
 def gerar_automatico():
-    if current_user.nivel not in ('operador', 'admin'):
+    if current_user.nivel not in ('operador', 'admin', 'DEV'):
         flash('Sem permissão para gerar pedidos.', 'warning')
         return redirect(url_for('pedidos.index'))
     
@@ -201,7 +201,7 @@ def gerar_automatico():
 @bp.route('/<int:id>/status', methods=['POST'], strict_slashes=False)
 @login_required
 def atualizar_status(id: int):
-    if current_user.nivel not in ('operador', 'admin'):
+    if current_user.nivel not in ('operador', 'admin', 'DEV'):
         flash('Sem permissão para atualizar status.', 'warning')
         return redirect(url_for('pedidos.index'))
     
@@ -220,7 +220,7 @@ def atualizar_status(id: int):
 @bp.route('/<int:id>/excluir', methods=['POST'], strict_slashes=False)
 @login_required
 def excluir(id: int):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas administradores podem excluir pedidos.', 'warning')
         return redirect(url_for('pedidos.index'))
     

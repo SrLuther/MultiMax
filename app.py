@@ -2,9 +2,12 @@ import os
 import threading
 import time
 import urllib.request
+import logging
+from urllib.error import URLError, HTTPError
 from multimax import create_app
 
 app = create_app()
+logger = logging.getLogger(__name__)
 
 def _start_keepalive():
     enabled = os.getenv('KEEPALIVE_ENABLED', 'false').lower() == 'true'
@@ -13,16 +16,28 @@ def _start_keepalive():
     url = (os.getenv('KEEPALIVE_URL') or '').strip()
     if not url:
         return
-    interval = int(os.getenv('KEEPALIVE_INTERVAL', '300'))
+    try:
+        interval = int(os.getenv('KEEPALIVE_INTERVAL', '300'))
+        if interval < 60:
+            interval = 300  # Mínimo de 60 segundos para evitar spam
+    except (ValueError, TypeError):
+        interval = 300
+    
     def _loop():
         while True:
             try:
                 req = urllib.request.Request(url, headers={'User-Agent': 'MultiMax-KeepAlive'})
                 urllib.request.urlopen(req, timeout=10).read()
-            except Exception:
-                pass
+            except HTTPError as e:
+                logger.warning(f"Keepalive HTTP error: {e.code} - {e.reason}")
+            except URLError as e:
+                logger.warning(f"Keepalive URL error: {e.reason}")
+            except TimeoutError:
+                logger.warning("Keepalive timeout")
+            except Exception as e:
+                logger.error(f"Keepalive unexpected error: {type(e).__name__}: {e}", exc_info=True)
             time.sleep(interval)
-    t = threading.Thread(target=_loop, daemon=True)
+    t = threading.Thread(target=_loop, daemon=True, name='keepalive-thread')
     t.start()
 
 if __name__ == '__main__':

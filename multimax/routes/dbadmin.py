@@ -46,7 +46,7 @@ def _list_backups():
 @bp.route('/', methods=['GET'], strict_slashes=False)
 @login_required
 def index():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode acessar Banco de Dados.', 'danger')
         return redirect(url_for('home.index'))
     uri = current_app.config.get('SQLALCHEMY_DATABASE_URI', '')
@@ -98,7 +98,7 @@ def index():
 @bp.route('/metrics', methods=['GET'], strict_slashes=False)
 @login_required
 def metrics():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         return jsonify({'ok': False, 'error': 'forbidden'}), 403
     cpu = None
     mem = None
@@ -117,7 +117,7 @@ def metrics():
 @bp.route('/backup', methods=['POST'], strict_slashes=False)
 @login_required
 def backup_now():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode executar backup.', 'danger')
         return redirect(url_for('home.index'))
     ok = False
@@ -133,7 +133,7 @@ def backup_now():
 @bp.route('/download/<path:name>', methods=['GET'], strict_slashes=False)
 @login_required
 def download(name: str):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode baixar backup.', 'danger')
         return redirect(url_for('home.index'))
     bdir = str(current_app.config.get('BACKUP_DIR') or '').strip()
@@ -149,7 +149,7 @@ def download(name: str):
 @bp.route('/excluir/<path:name>', methods=['POST'], strict_slashes=False)
 @login_required
 def excluir(name: str):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode excluir backups.', 'danger')
         return redirect(url_for('home.index'))
     bdir = str(current_app.config.get('BACKUP_DIR') or '').strip()
@@ -170,7 +170,7 @@ def excluir(name: str):
 @bp.route('/restaurar/<path:name>', methods=['POST'], strict_slashes=False)
 @login_required
 def restaurar(name: str):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode restaurar backups.', 'danger')
         return redirect(url_for('home.index'))
     uri = current_app.config.get('SQLALCHEMY_DATABASE_URI', '')
@@ -216,7 +216,7 @@ def restaurar(name: str):
 @bp.route('/restaurar/snapshot', methods=['POST'], strict_slashes=False)
 @login_required
 def restaurar_snapshot():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode restaurar backups.', 'danger')
         return redirect(url_for('home.index'))
     uri = current_app.config.get('SQLALCHEMY_DATABASE_URI', '')

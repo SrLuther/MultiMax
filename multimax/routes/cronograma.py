@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, date
 from zoneinfo import ZoneInfo
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from werkzeug.utils import secure_filename
+from ..filename_utils import secure_filename
 import os
 from .. import db
 from ..models import CleaningTask, CleaningHistory, CleaningChecklistTemplate, CleaningChecklistItem, CleaningHistoryPhoto
@@ -135,7 +135,7 @@ def setup_cleaning_tasks():
 @bp.route('/cronograma', methods=['GET'])
 @login_required
 def cronograma():
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Acesso negado. Apenas Operadores e Administradores podem visualizar o cronograma.', 'danger')
         return redirect(url_for('estoque.index'))
     mapping = {
@@ -255,7 +255,7 @@ def cronograma():
 @bp.route('/cronograma/salvar', methods=['POST'])
 @login_required
 def salvar_cronograma():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente (Admin) pode concluir e atualizar o cronograma.', 'danger')
         return redirect(url_for('cronograma.cronograma'))
     concluir_id = request.form.get('concluir_id')
@@ -324,7 +324,7 @@ def salvar_cronograma():
 @bp.route('/cronograma/historico/excluir/<int:id>', methods=['POST'])
 @login_required
 def excluir_historico(id: int):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode excluir histórico.', 'danger')
         return redirect(url_for('cronograma.cronograma'))
     h = CleaningHistory.query.get_or_404(id)
@@ -399,7 +399,7 @@ def api_checklist(tipo):
 @bp.route('/cronograma/concluir-completo', methods=['POST'])
 @login_required
 def concluir_completo():
-    if current_user.nivel not in ('operador', 'admin'):
+    if current_user.nivel not in ('operador', 'admin', 'DEV'):
         flash('Sem permissão.', 'danger')
         return redirect(url_for('cronograma.cronograma'))
     

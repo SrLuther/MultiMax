@@ -390,7 +390,7 @@ def escala():
 @bp.route('/escala/domingo/configurar', methods=['POST'], strict_slashes=False)
 @login_required
 def domingo_configurar():
-    if current_user.nivel not in ('operador', 'admin'):
+    if current_user.nivel not in ('operador', 'admin', 'DEV'):
         flash('Você não tem permissão para configurar domingos.', 'danger')
         return redirect(url_for('colaboradores.escala'))
     team = (request.form.get('domingo_team', '1') or '1').strip()
@@ -435,7 +435,7 @@ def domingo_configurar():
 @bp.route('/escala/feriado/criar', methods=['POST'], strict_slashes=False)
 @login_required
 def feriado_criar():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode configurar feriados.', 'danger')
         return redirect(url_for('colaboradores.escala'))
     date_str = (request.form.get('date', '').strip() or '')
@@ -473,7 +473,7 @@ def feriado_criar():
 @bp.route('/escala/feriado/excluir/<int:id>', methods=['POST'], strict_slashes=False)
 @login_required
 def feriado_excluir(id: int):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode excluir feriados.', 'danger')
         return redirect(url_for('colaboradores.escala'))
     h = Holiday.query.get_or_404(id)
@@ -490,7 +490,7 @@ def feriado_excluir(id: int):
 @bp.route('/escala/turno/atribuir', methods=['POST'], strict_slashes=False)
 @login_required
 def turno_atribuir():
-    if current_user.nivel not in ('operador', 'admin'):
+    if current_user.nivel not in ('operador', 'admin', 'DEV'):
         flash('Voce nao tem permissao para atribuir turnos.', 'danger')
         return redirect(url_for('colaboradores.escala'))
     
@@ -546,7 +546,7 @@ def turno_atribuir():
 @bp.route('/escala/turno/excluir/<int:id>', methods=['POST'], strict_slashes=False)
 @login_required
 def turno_excluir(id: int):
-    if current_user.nivel not in ('operador', 'admin'):
+    if current_user.nivel not in ('operador', 'admin', 'DEV'):
         flash('Voce nao tem permissao para excluir turnos.', 'danger')
         return redirect(url_for('colaboradores.escala'))
     
@@ -567,7 +567,7 @@ def turno_excluir(id: int):
 @bp.route('/escala/equipe/configurar', methods=['POST'], strict_slashes=False)
 @login_required
 def equipe_configurar():
-    if current_user.nivel not in ('operador', 'admin'):
+    if current_user.nivel not in ('operador', 'admin', 'DEV'):
         flash('Voce nao tem permissao para configurar equipes.', 'danger')
         return redirect(url_for('colaboradores.escala'))
     
@@ -596,7 +596,7 @@ def equipe_configurar():
 @bp.route('/escala/gerar-automatica', methods=['POST'], strict_slashes=False)
 @login_required
 def gerar_escala_automatica():
-    if current_user.nivel not in ('operador', 'admin'):
+    if current_user.nivel not in ('operador', 'admin', 'DEV'):
         flash('Voce nao tem permissao para gerar escalas.', 'danger')
         return redirect(url_for('colaboradores.escala'))
     
@@ -791,7 +791,7 @@ def gerar_escala_automatica():
 @bp.route('/escala/limpar-semana', methods=['POST'], strict_slashes=False)
 @login_required
 def limpar_escala_semana():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode limpar escalas.', 'danger')
         return redirect(url_for('colaboradores.escala'))
     
@@ -847,7 +847,7 @@ def limpar_escala_semana():
 @bp.route('/gestao/folga/credito', methods=['POST'], strict_slashes=False)
 @login_required
 def folga_credito_registrar_gestao():
-    if current_user.nivel not in ('operador', 'admin'):
+    if current_user.nivel not in ('operador', 'admin', 'DEV'):
         flash('Você não tem permissão para registrar créditos.', 'danger')
         return redirect(url_for('usuarios.gestao'))
     cid_str = (request.form.get('collaborator_id', '').strip() or '')
@@ -882,7 +882,7 @@ def folga_credito_registrar_gestao():
 @bp.route('/gestao/folga/credito/domingo', methods=['POST'], strict_slashes=False)
 @login_required
 def folga_credito_domingo():
-    if current_user.nivel not in ('operador', 'admin'):
+    if current_user.nivel not in ('operador', 'admin', 'DEV'):
         flash('Você não tem permissão para registrar créditos.', 'danger')
         return redirect(url_for('usuarios.gestao'))
     cid_str = (request.form.get('collaborator_id', '').strip() or '')
@@ -921,7 +921,7 @@ def folga_credito_domingo():
 @bp.route('/gestao/folga/credito/reduzir', methods=['POST'], strict_slashes=False)
 @login_required
 def folga_credito_reduzir():
-    if current_user.nivel not in ('operador', 'admin'):
+    if current_user.nivel not in ('operador', 'admin', 'DEV'):
         flash('Você não tem permissão para ajustar créditos.', 'danger')
         return redirect(url_for('usuarios.gestao'))
     cid_str = (request.form.get('collaborator_id', '').strip() or '')
@@ -955,7 +955,7 @@ def folga_credito_reduzir():
 @bp.route('/gestao/folga/agendar', methods=['POST'], strict_slashes=False)
 @login_required
 def folga_agendar():
-    if current_user.nivel not in ('operador', 'admin'):
+    if current_user.nivel not in ('operador', 'admin', 'DEV'):
         flash('Você não tem permissão para agendar folga.', 'danger')
         return redirect(url_for('usuarios.gestao'))
     cid_str = (request.form.get('collaborator_id', '').strip() or '')
@@ -1013,7 +1013,7 @@ def folga_agendar():
 @bp.route('/gestao/folga/converter', methods=['POST'], strict_slashes=False)
 @login_required
 def folga_converter():
-    if current_user.nivel not in ('operador', 'admin'):
+    if current_user.nivel not in ('operador', 'admin', 'DEV'):
         flash('Você não tem permissão para converter folga.', 'danger')
         return redirect(url_for('usuarios.gestao'))
     cid_str = (request.form.get('collaborator_id', '').strip() or '')

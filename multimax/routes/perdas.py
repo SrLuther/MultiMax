@@ -81,7 +81,10 @@ def index():
 @bp.route('/registrar', methods=['POST'], strict_slashes=False)
 @login_required
 def registrar():
-    if current_user.nivel not in ('operador', 'admin'):
+    if current_user.nivel == 'visualizador':
+        flash('Visualizadores não têm permissão para fazer alterações no sistema.', 'danger')
+        return redirect(url_for('perdas.index'))
+    if current_user.nivel not in ('operador', 'admin', 'DEV'):
         flash('Sem permissão para registrar perdas.', 'warning')
         return redirect(url_for('perdas.index'))
     
@@ -116,31 +119,49 @@ def registrar():
         flash('Informe o produto.', 'warning')
         return redirect(url_for('perdas.index'))
     
+    # Validação adicional
+    if quantidade <= 0:
+        flash('A quantidade deve ser maior que zero.', 'warning')
+        return redirect(url_for('perdas.index'))
+    
+    if len(motivo) > 255:
+        motivo = motivo[:255]
+    if len(observacao) > 500:
+        observacao = observacao[:500]
+    
     reg = LossRecord()
     reg.produto_id = produto_id
-    reg.produto_nome = produto_nome
+    reg.produto_nome = produto_nome[:100] if produto_nome else ''
     reg.quantidade = quantidade
-    reg.unidade = unidade
+    reg.unidade = unidade[:10] if unidade else 'un'
     reg.motivo = motivo
-    reg.custo_estimado = custo
+    reg.custo_estimado = max(0, custo)  # Garantir não negativo
     reg.observacao = observacao
-    reg.usuario = current_user.username
+    reg.usuario = current_user.username[:100] if current_user.username else ''
     reg.data_registro = _now()
     
-    db.session.add(reg)
-    
-    if produto and produto.quantidade > 0:
-        produto.quantidade = max(0, produto.quantidade - int(quantidade))
-    
-    db.session.commit()
-    
-    flash('Perda registrada com sucesso.', 'success')
+    try:
+        db.session.add(reg)
+        
+        if produto and produto.quantidade > 0:
+            produto.quantidade = max(0, produto.quantidade - int(quantidade))
+        
+        db.session.commit()
+        flash('Perda registrada com sucesso.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        import logging
+        logging.getLogger(__name__).error(f"Erro ao registrar perda: {e}", exc_info=True)
+        flash('Erro ao registrar perda. Tente novamente.', 'danger')
     return redirect(url_for('perdas.index'))
 
 @bp.route('/<int:id>/excluir', methods=['POST'], strict_slashes=False)
 @login_required
 def excluir(id: int):
-    if current_user.nivel != 'admin':
+    if current_user.nivel == 'visualizador':
+        flash('Visualizadores não têm permissão para fazer alterações no sistema.', 'danger')
+        return redirect(url_for('perdas.index'))
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas administradores podem excluir registros.', 'warning')
         return redirect(url_for('perdas.index'))
     

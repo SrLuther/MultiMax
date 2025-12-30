@@ -79,7 +79,7 @@ def obter_tendencia(produto_id: int) -> str:
 @bp.route('/')
 @login_required
 def index():
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         from flask import flash, redirect, url_for
         flash('Você não tem permissão para acessar esta página.', 'danger')
         return redirect(url_for('home.index'))

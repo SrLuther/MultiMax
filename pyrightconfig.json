@@ -1,9 +1,14 @@
 {
+  
   "venvPath": ".",
-  "venv": ".venv",
+  "venv": ".venv2",
   "typeCheckingMode": "basic",
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+  "useLibraryCodeForTypes": true,
   "exclude": [
     "dist",
-    "node_modules"
+    "node_modules",
+    "**/__pycache__/**"
   ]
 }

@@ -12,7 +12,7 @@ bp = Blueprint('relatorios', __name__, url_prefix='/relatorios')
 @bp.route('/')
 @login_required
 def index():
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Você não tem permissão para acessar esta página.', 'danger')
         return redirect(url_for('home.index'))
     return render_template('relatorios.html', active_page='relatorios')
@@ -20,7 +20,7 @@ def index():
 @bp.route('/exportar/produtos')
 @login_required
 def exportar_produtos():
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Você não tem permissão para exportar dados.', 'danger')
         return redirect(url_for('relatorios.index'))
     
@@ -84,7 +84,7 @@ def exportar_produtos():
 @bp.route('/exportar/historico')
 @login_required
 def exportar_historico():
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Você não tem permissão para exportar dados.', 'danger')
         return redirect(url_for('relatorios.index'))
     
@@ -139,7 +139,7 @@ def exportar_historico():
 @bp.route('/exportar/fornecedores')
 @login_required
 def exportar_fornecedores():
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Você não tem permissão para exportar dados.', 'danger')
         return redirect(url_for('relatorios.index'))
     
@@ -195,7 +195,7 @@ def exportar_fornecedores():
 @bp.route('/importar/produtos', methods=['GET', 'POST'])
 @login_required
 def importar_produtos():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas administradores podem importar produtos.', 'danger')
         return redirect(url_for('relatorios.index'))
     
@@ -286,7 +286,7 @@ def importar_produtos():
 @bp.route('/modelo/produtos')
 @login_required
 def modelo_produtos():
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Você não tem permissão para baixar modelos.', 'danger')
         return redirect(url_for('relatorios.index'))
     

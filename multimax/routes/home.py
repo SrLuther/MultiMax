@@ -491,7 +491,7 @@ def index():
 def update_mural():
     if not current_user.is_authenticated:
         return redirect(url_for('auth.login'))
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode editar o mural.', 'danger')
         return redirect(url_for('home.index'))
     txt = request.form.get('mural_text', '').strip()
@@ -516,7 +516,7 @@ def update_mural():
 def update_changelog():
     if not current_user.is_authenticated:
         return redirect(url_for('auth.login'))
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode editar o changelog.', 'danger')
         return redirect(url_for('home.index'))
     txt = request.form.get('changelog_text', '').strip()

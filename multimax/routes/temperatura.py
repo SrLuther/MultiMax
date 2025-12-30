@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-from werkzeug.utils import secure_filename
+from ..filename_utils import secure_filename
 import os
 from .. import db
 from ..models import TemperatureLog, TemperatureLocation, TemperaturePhoto
@@ -121,7 +121,7 @@ def index():
 @bp.route('/registrar', methods=['POST'], strict_slashes=False)
 @login_required
 def registrar():
-    if current_user.nivel not in ('operador', 'admin'):
+    if current_user.nivel not in ('operador', 'admin', 'DEV'):
         flash('Sem permissão para registrar temperatura.', 'warning')
         return redirect(url_for('temperatura.index'))
     
@@ -184,7 +184,7 @@ def registrar():
 @bp.route('/excluir/<int:id>', methods=['POST'], strict_slashes=False)
 @login_required
 def excluir(id: int):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas administradores podem excluir registros.', 'warning')
         return redirect(url_for('temperatura.index'))
     
@@ -202,7 +202,7 @@ def excluir(id: int):
 @bp.route('/locais', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
 def locais():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas administradores podem gerenciar locais.', 'warning')
         return redirect(url_for('temperatura.index'))
     
@@ -245,7 +245,7 @@ def locais():
 @bp.route('/locais/editar/<int:id>', methods=['POST'], strict_slashes=False)
 @login_required
 def editar_local(id: int):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas administradores podem editar locais.', 'warning')
         return redirect(url_for('temperatura.locais'))
     
@@ -274,7 +274,7 @@ def editar_local(id: int):
 @bp.route('/locais/excluir/<int:id>', methods=['POST'], strict_slashes=False)
 @login_required
 def excluir_local(id: int):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas administradores podem excluir locais.', 'warning')
         return redirect(url_for('temperatura.locais'))
     

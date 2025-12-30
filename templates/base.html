@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='multimax-estilo.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-fixes.css') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon-180.png') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/logo-user.png') }}">
@@ -44,7 +45,7 @@
                 </a>
             </div>
             
-            {% if current_user.is_authenticated and current_user.nivel in ('visualizador','operador','admin') %}
+            {% if current_user.is_authenticated and current_user.nivel in ('visualizador','operador','admin','DEV') %}
             <div class="mm-nav-section">
                 <div class="mm-nav-section-title">Operações</div>
                 <a href="{{ url_for('cronograma.cronograma') }}" class="mm-nav-item {% if 'cronograma' in request.endpoint %}active{% endif %}">
@@ -54,6 +55,26 @@
                 <a href="{{ url_for('carnes.index') }}" class="mm-nav-item {% if 'carnes' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-basket mm-nav-icon"></i>
                     <span class="mm-nav-text">Carnes</span>
+                </a>
+                <a href="{{ url_for('cortes.index') }}" class="mm-nav-item {% if 'cortes' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-scissors mm-nav-icon"></i>
+                    <span class="mm-nav-text">Cortes</span>
+                </a>
+                <a href="{{ url_for('lotes.index') }}" class="mm-nav-item {% if 'lotes' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-tags mm-nav-icon"></i>
+                    <span class="mm-nav-text">Lotes</span>
+                </a>
+                <a href="{{ url_for('maturacao.index') }}" class="mm-nav-item {% if 'maturacao' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-hourglass-split mm-nav-icon"></i>
+                    <span class="mm-nav-text">Maturação</span>
+                </a>
+                <a href="{{ url_for('camara_fria.index') }}" class="mm-nav-item {% if 'camara_fria' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-snow mm-nav-icon"></i>
+                    <span class="mm-nav-text">Câmara Fria</span>
+                </a>
+                <a href="{{ url_for('rendimento.index') }}" class="mm-nav-item {% if 'rendimento' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-graph-up mm-nav-icon"></i>
+                    <span class="mm-nav-text">Rendimento</span>
                 </a>
                 <a href="{{ url_for('receitas.index') }}" class="mm-nav-item {% if 'receitas' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-journal-text mm-nav-icon"></i>
@@ -99,10 +120,40 @@
                     <i class="bi bi-graph-up-arrow mm-nav-icon"></i>
                     <span class="mm-nav-text">Previsão</span>
                 </a>
+                <a href="{{ url_for('precificacao.index') }}" class="mm-nav-item {% if 'precificacao' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-currency-dollar mm-nav-icon"></i>
+                    <span class="mm-nav-text">Precificação</span>
+                </a>
+                <a href="{{ url_for('aproveitamento.index') }}" class="mm-nav-item {% if 'aproveitamento' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-lightbulb mm-nav-icon"></i>
+                    <span class="mm-nav-text">Aproveitamento</span>
+                </a>
+                <a href="{{ url_for('certificados.sanitarios') }}" class="mm-nav-item {% if 'certificados' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-file-earmark-check mm-nav-icon"></i>
+                    <span class="mm-nav-text">Certificados</span>
+                </a>
+                <a href="{{ url_for('fornecedores_avaliacao.index') }}" class="mm-nav-item {% if 'fornecedores_avaliacao' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-star mm-nav-icon"></i>
+                    <span class="mm-nav-text">Avaliar Fornecedores</span>
+                </a>
+                <a href="{{ url_for('integracao_temp.alertas') }}" class="mm-nav-item {% if 'integracao_temp' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-exclamation-triangle mm-nav-icon"></i>
+                    <span class="mm-nav-text">Alertas Temp.</span>
+                </a>
             </div>
             {% endif %}
             
-            {% if current_user.is_authenticated and current_user.nivel == 'admin' %}
+            {% if current_user.is_authenticated and current_user.nivel in ('admin', 'DEV') %}
+            <div class="mm-nav-section">
+                <div class="mm-nav-section-title">Análises</div>
+                <a href="{{ url_for('dashboard.index') }}" class="mm-nav-item {% if 'dashboard' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-speedometer2 mm-nav-icon"></i>
+                    <span class="mm-nav-text">Dashboard Executivo</span>
+                </a>
+            </div>
+            {% endif %}
+            
+            {% if current_user.is_authenticated and current_user.nivel in ('admin', 'DEV') %}
             <div class="mm-nav-section">
                 <div class="mm-nav-section-title">Administração</div>
                 <a href="{{ url_for('usuarios.gestao') }}" class="mm-nav-item {% if 'usuarios' in request.endpoint %}active{% endif %}">
@@ -164,7 +215,7 @@
                 <a href="{{ url_for('estoque.index') }}" class="mm-quick-action" title="Ver estoque" aria-label="Ver estoque">
                     <i class="bi bi-box-seam" aria-hidden="true"></i>
                 </a>
-                {% if current_user.nivel in ('operador','admin') %}
+                {% if current_user.nivel in ('operador','admin','DEV') %}
                 <a href="{{ url_for('cronograma.cronograma') }}" class="mm-quick-action" title="Cronograma de limpeza" aria-label="Cronograma de limpeza">
                     <i class="bi bi-calendar-check" aria-hidden="true"></i>
                 </a>

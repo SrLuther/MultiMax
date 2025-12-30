@@ -134,6 +134,17 @@ def create_app():
     from .routes.exportacao import bp as exportacao_bp
     from .routes.usuarios import bp as usuarios_bp
     from .routes.carnes import bp as carnes_bp
+    from .routes.cortes import bp as cortes_bp
+    from .routes.lotes import bp as lotes_bp
+    from .routes.maturacao import bp as maturacao_bp
+    from .routes.precificacao import bp as precificacao_bp
+    from .routes.aproveitamento import bp as aproveitamento_bp
+    from .routes.camara_fria import bp as camara_fria_bp
+    from .routes.integracao_temp import bp as integracao_temp_bp
+    from .routes.dashboard import bp as dashboard_bp
+    from .routes.certificados import bp as certificados_bp
+    from .routes.rendimento import bp as rendimento_bp
+    from .routes.fornecedores_avaliacao import bp as fornecedores_avaliacao_bp
     from .routes.colaboradores import bp as colaboradores_bp
     from .routes.receitas import bp as receitas_bp
     from .routes.fornecedores import bp as fornecedores_bp
@@ -170,6 +181,17 @@ def create_app():
     app.register_blueprint(exportacao_bp)
     app.register_blueprint(usuarios_bp)
     app.register_blueprint(carnes_bp)
+    app.register_blueprint(cortes_bp)
+    app.register_blueprint(lotes_bp)
+    app.register_blueprint(maturacao_bp)
+    app.register_blueprint(precificacao_bp)
+    app.register_blueprint(aproveitamento_bp)
+    app.register_blueprint(camara_fria_bp)
+    app.register_blueprint(integracao_temp_bp)
+    app.register_blueprint(dashboard_bp)
+    app.register_blueprint(certificados_bp)
+    app.register_blueprint(rendimento_bp)
+    app.register_blueprint(fornecedores_avaliacao_bp)
     app.register_blueprint(colaboradores_bp)
     app.register_blueprint(receitas_bp)
     app.register_blueprint(fornecedores_bp)
@@ -195,12 +217,21 @@ def create_app():
         if not ver:
             try:
                 import subprocess
-                ver = subprocess.check_output(['git','describe','--tags','--abbrev=0'], cwd=os.path.dirname(os.path.dirname(__file__)), text=True).strip()
-            except Exception:
+                base_dir = os.path.dirname(os.path.dirname(__file__))
+                r = subprocess.run(['git', 'describe', '--tags', '--abbrev=0'], 
+                                 cwd=base_dir, capture_output=True, text=True, timeout=2)
+                if r.returncode == 0 and r.stdout.strip():
+                    ver = r.stdout.strip()
+            except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError):
+                pass
+            except Exception as e:
+                app.logger.warning(f"Erro ao obter versão do git: {e}")
+            if not ver:
                 try:
                     s = AppSetting.query.filter_by(key='app_version').first()
                     ver = (s.value or '').strip() if s else ''
-                except Exception:
+                except Exception as e:
+                    app.logger.warning(f"Erro ao obter versão do banco: {e}")
                     ver = ''
         return {'git_version': ver or 'dev'}
 
@@ -620,14 +651,20 @@ def create_app():
         try:
             import subprocess
             base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.dirname(__file__)))
-            r = subprocess.run(['git', 'describe', '--tags', '--abbrev=0'], cwd=base_dir, capture_output=True, text=True, timeout=2)
+            r = subprocess.run(['git', 'describe', '--tags', '--abbrev=0'], 
+                             cwd=base_dir, capture_output=True, text=True, timeout=2)
             if r.returncode == 0 and r.stdout.strip():
                 return r.stdout.strip()
-            r2 = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], cwd=base_dir, capture_output=True, text=True, timeout=2)
+            r2 = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], 
+                              cwd=base_dir, capture_output=True, text=True, timeout=2)
             if r2.returncode == 0 and r2.stdout.strip():
                 return r2.stdout.strip()
-        except Exception:
+        except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError):
             pass
+        except Exception as e:
+            # Log apenas se não for erro esperado (git não disponível)
+            if 'git' not in str(e).lower():
+                app.logger.debug(f"Erro ao obter versão: {e}")
         return '2.1.1.0'
 
     resolved_version = _get_version()
@@ -659,9 +696,11 @@ def create_app():
                     rlog2 = subprocess.run(['git', 'log', '-n', '20', '--pretty=%h %s'], cwd=base_dir, capture_output=True, text=True, timeout=3)
                     if rlog2.returncode == 0:
                         commits = [line.strip() for line in rlog2.stdout.splitlines() if line.strip()]
-            except Exception:
+            except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError):
                 try:
-                    with urllib.request.urlopen('https://api.github.com/repos/SrLuther/MultiMax/commits?sha=main') as resp:
+                    req = urllib.request.Request('https://api.github.com/repos/SrLuther/MultiMax/commits?sha=main')
+                    req.add_header('User-Agent', 'MultiMax-App')
+                    with urllib.request.urlopen(req, timeout=5) as resp:
                         raw = resp.read().decode('utf-8')
                         arr = json.loads(raw)
                         for it in arr[:20]:
@@ -669,7 +708,10 @@ def create_app():
                             msg = ((it.get('commit') or {}).get('message') or '').split('\n',1)[0]
                             if msg:
                                 commits.append(f'{h} {msg}')
-                except Exception:
+                except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError):
+                    commits = []
+                except Exception as e:
+                    app.logger.warning(f"Erro ao buscar commits do GitHub: {e}")
                     commits = []
             curated = [
                 'Segurança: ajuste de permissões para Visualizador',
@@ -826,8 +868,17 @@ def create_app():
                 if not cur_ver:
                     try:
                         import subprocess
-                        cur_ver = subprocess.check_output(['git','describe','--tags','--abbrev=0'], cwd=os.path.dirname(os.path.dirname(__file__)), text=True).strip()
-                    except Exception:
+                        base_dir = os.path.dirname(os.path.dirname(__file__))
+                        r = subprocess.run(['git', 'describe', '--tags', '--abbrev=0'], 
+                                         cwd=base_dir, capture_output=True, text=True, timeout=2)
+                        if r.returncode == 0 and r.stdout.strip():
+                            cur_ver = r.stdout.strip()
+                        else:
+                            cur_ver = (s_ver.value or '').strip()
+                    except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError):
+                        cur_ver = (s_ver.value or '').strip()
+                    except Exception as e:
+                        app.logger.warning(f"Erro ao obter versão: {e}")
                         cur_ver = (s_ver.value or '').strip()
                 s_ver.value = cur_ver
                 s_ch = AppSetting.query.filter_by(key='changelog_text').first()
@@ -849,46 +900,36 @@ def create_app():
                     db.session.rollback()
                 except Exception:
                     pass
-            if User.query.filter_by(username='admin').first() is None:
-                admin = User()
-                admin.name = 'Administrador'
-                admin.username = 'admin'
-                admin.nivel = 'admin'
-                from werkzeug.security import generate_password_hash
-                admin.password_hash = generate_password_hash(os.getenv('SENHA_ADMIN', 'admin123'))
-                db.session.add(admin)
-                db.session.commit()
-            else:
+            # Usuário Desenvolvedor (DEV) - única senha padrão no sistema
+            if User.query.filter_by(username='dev').first() is None:
                 try:
-                    from werkzeug.security import generate_password_hash
-                    env_pwd = os.getenv('SENHA_ADMIN')
-                    if env_pwd:
-                        admin = User.query.filter_by(username='admin').first()
-                        if admin:
-                            admin.password_hash = generate_password_hash(env_pwd)
-                            db.session.commit()
+                    dev = User()
+                    dev.name = 'Desenvolvedor'
+                    dev.username = 'dev'
+                    dev.nivel = 'DEV'
+                    from multimax.password_hash import generate_password_hash
+                    dev.password_hash = generate_password_hash(os.getenv('SENHA_DEV', 'maxpowerdev963'))
+                    db.session.add(dev)
+                    db.session.commit()
                 except Exception:
                     try:
                         db.session.rollback()
                     except Exception:
                         pass
-            if User.query.filter_by(username='operador').first() is None:
-                operador = User()
-                operador.name = 'Operador Padrão'
-                operador.username = 'operador'
-                operador.nivel = 'operador'
-                from werkzeug.security import generate_password_hash
-                operador.password_hash = generate_password_hash(os.getenv('SENHA_OPERADOR', 'op123'))
-                db.session.add(operador)
-                db.session.commit()
             else:
                 try:
-                    from werkzeug.security import generate_password_hash
-                    env_pwd = os.getenv('SENHA_OPERADOR')
+                    from multimax.password_hash import generate_password_hash
+                    env_pwd = os.getenv('SENHA_DEV')
                     if env_pwd:
-                        operador = User.query.filter_by(username='operador').first()
-                        if operador:
-                            operador.password_hash = generate_password_hash(env_pwd)
+                        dev = User.query.filter_by(username='dev').first()
+                        if dev:
+                            dev.password_hash = generate_password_hash(env_pwd)
+                            db.session.commit()
+                    else:
+                        # Atualizar senha padrão se não houver variável de ambiente
+                        dev = User.query.filter_by(username='dev').first()
+                        if dev:
+                            dev.password_hash = generate_password_hash('maxpowerdev963')
                             db.session.commit()
                 except Exception:
                     try:

@@ -382,7 +382,7 @@ def votar_artigo(id):
 @bp.route('/ajuda/novo', methods=['GET', 'POST'])
 @login_required
 def novo_artigo():
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas administradores podem criar tutoriais.', 'danger')
         return redirect(url_for('ajuda.ajuda'))
     
@@ -413,7 +413,7 @@ def novo_artigo():
 @bp.route('/ajuda/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_artigo(id):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas administradores podem editar tutoriais.', 'danger')
         return redirect(url_for('ajuda.ajuda'))
     
@@ -434,7 +434,7 @@ def editar_artigo(id):
 @bp.route('/ajuda/excluir/<int:id>', methods=['POST'])
 @login_required
 def excluir_artigo(id):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas administradores podem excluir tutoriais.', 'danger')
         return redirect(url_for('ajuda.ajuda'))
     
@@ -499,7 +499,7 @@ def votar_sugestao(id):
 @bp.route('/ajuda/sugestao/<int:id>/status', methods=['POST'])
 @login_required
 def atualizar_status_sugestao(id):
-    if current_user.nivel != 'admin':
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas administradores podem alterar status.', 'danger')
         return redirect(url_for('ajuda.ajuda'))
     

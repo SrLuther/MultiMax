@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block title %}Cortes — MultiMax{% endblock %}
+{% block content %}
+<div class="mm-alert mm-alert-warning" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05)); border-left: 4px solid var(--mm-warning); border-radius: var(--mm-radius-lg); padding: var(--mm-space-4); margin-bottom: var(--mm-space-4); box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);">
+    <i class="bi bi-exclamation-triangle-fill" style="font-size: 1.5rem; color: var(--mm-warning);"></i>
+    <div style="flex: 1;">
+        <strong style="display: block; margin-bottom: var(--mm-space-1); color: var(--mm-warning); font-size: var(--mm-text-lg);">⚠️ Página em Construção</strong>
+        <span style="color: var(--mm-text-secondary);">Essa página está em construção e elaboração de raciocínio lógico e ainda não foi finalizada, logo, muitas coisas podem mudar</span>
+    </div>
+</div>
+<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
+    <div>
+        <h1 class="mm-page-title">Gestão de Cortes</h1>
+        <p class="mm-text-muted">Cadastro e execução de cortes de carne</p>
+    </div>
+    {% if current_user.nivel != 'visualizador' %}
+    <a href="{{ url_for('cortes.novo') }}" class="mm-btn mm-btn-primary">
+        <i class="bi bi-plus-lg"></i> Novo Corte
+    </a>
+    {% endif %}
+</div>
+
+<div class="mm-card mm-mb-4">
+    <form method="GET" class="mm-flex mm-gap-3 mm-items-end">
+        <div class="mm-form-group" style="flex: 1;">
+            <label>Categoria</label>
+            <select name="categoria" class="mm-form-control">
+                <option value="">Todas</option>
+                <option value="bovina" {% if categoria == 'bovina' %}selected{% endif %}>Bovina</option>
+                <option value="suina" {% if categoria == 'suina' %}selected{% endif %}>Suína</option>
+                <option value="frango" {% if categoria == 'frango' %}selected{% endif %}>Frango</option>
+            </select>
+        </div>
+        <div class="mm-form-group" style="flex: 2;">
+            <label>Buscar</label>
+            <input type="text" name="busca" value="{{ busca }}" class="mm-form-control" placeholder="Nome do corte...">
+        </div>
+        <button type="submit" class="mm-btn mm-btn-primary">Buscar</button>
+    </form>
+</div>
+
+<div class="mm-grid mm-grid-cols-2 mm-gap-4 mm-mb-6">
+    <div class="mm-card">
+        <div class="mm-kpi-label">Total de Cortes</div>
+        <div class="mm-kpi-value">{{ total_cortes }}</div>
+    </div>
+    <div class="mm-card">
+        <div class="mm-kpi-label">Execuções Hoje</div>
+        <div class="mm-kpi-value">{{ execucoes_hoje }}</div>
+    </div>
+</div>
+
+<div class="mm-card">
+    <div class="mm-table-wrapper">
+    <table class="mm-table">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Categoria</th>
+                <th>Rendimento Esperado</th>
+                <th>Preço Base (kg)</th>
+                <th>Tempo Preparo</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for corte in cortes %}
+            <tr>
+                <td><strong>{{ corte.nome }}</strong></td>
+                <td><span class="mm-badge">{{ corte.categoria }}</span></td>
+                <td>{{ corte.rendimento_esperado }}%</td>
+                <td>R$ {{ "%.2f"|format(corte.preco_base_kg) }}</td>
+                <td>{{ corte.tempo_preparo_minutos }} min</td>
+                <td>
+                    {% if current_user.nivel != 'visualizador' %}
+                    <a href="{{ url_for('cortes.editar', id=corte.id) }}" class="mm-btn mm-btn-sm mm-btn-secondary">Editar</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" class="mm-text-center mm-text-muted">Nenhum corte cadastrado</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+{% endblock %}
+

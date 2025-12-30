@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard Executivo — MultiMax{% endblock %}
+{% block content %}
+<div class="mm-page-header">
+    <h1 class="mm-page-title">Dashboard Executivo</h1>
+    <p class="mm-text-muted">Visão geral do sistema</p>
+</div>
+
+<div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-label">Total de Produtos</div>
+        <div class="mm-kpi-value">{{ total_produtos }}</div>
+    </div>
+    <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-warning);">
+        <div class="mm-kpi-label">Baixo Estoque</div>
+        <div class="mm-kpi-value" style="color: var(--mm-warning);">{{ produtos_baixo_estoque }}</div>
+    </div>
+    <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-danger);">
+        <div class="mm-kpi-label">Lotes Vencendo</div>
+        <div class="mm-kpi-value" style="color: var(--mm-danger);">{{ lotes_vencendo }}</div>
+    </div>
+    <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-success);">
+        <div class="mm-kpi-label">Recepções (Mês)</div>
+        <div class="mm-kpi-value" style="color: var(--mm-success);">{{ recepcoes_mes }}</div>
+    </div>
+</div>
+
+<div class="mm-grid mm-grid-cols-2 mm-gap-4 mm-mb-6">
+    <div class="mm-card">
+        <h3 class="mm-card-title">Resumo Financeiro</h3>
+        <div class="mm-mt-4">
+            <div class="mm-flex mm-justify-between mm-mb-2">
+                <span>Perdas do Mês:</span>
+                <strong style="color: var(--mm-danger);">R$ {{ "%.2f"|format(valor_perdas) }}</strong>
+            </div>
+            <div class="mm-flex mm-justify-between mm-mb-2">
+                <span>Produtos em Promoção:</span>
+                <strong>{{ promocoes }}</strong>
+            </div>
+            <div class="mm-flex mm-justify-between">
+                <span>Rendimento Médio:</span>
+                <strong>{{ "%.1f"|format(rendimento_medio) }}%</strong>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mm-card">
+        <h3 class="mm-card-title">Alertas</h3>
+        <div class="mm-mt-4">
+            <div class="mm-flex mm-justify-between mm-mb-2">
+                <span>Alertas de Temperatura:</span>
+                <strong style="color: var(--mm-danger);">{{ alertas_temp }}</strong>
+            </div>
+            <div class="mm-flex mm-justify-between">
+                <span>Total de Lotes:</span>
+                <strong>{{ total_lotes }}</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mm-card">
+    <h3 class="mm-card-title">Recepções (Últimos 30 dias)</h3>
+    <div class="mm-mt-4" style="height: 200px;">
+        <canvas id="chartRecepcoes"></canvas>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('chartRecepcoes').getContext('2d');
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: {{ recepcoes_30_dias | map(attribute='data') | list | tojson }},
+        datasets: [{
+            label: 'Recepções',
+            data: {{ recepcoes_30_dias | map(attribute='count') | list | tojson }},
+            borderColor: 'rgb(59, 130, 246)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false }
+        }
+    }
+});
+</script>
+{% endblock %}
+

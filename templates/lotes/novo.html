@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}Novo Lote — MultiMax{% endblock %}
+{% block content %}
+<div class="mm-page-header">
+    <h1 class="mm-page-title">Novo Lote</h1>
+</div>
+
+<div class="mm-card" style="max-width: 800px;">
+    <form method="POST">
+        <div class="mm-form-group">
+            <label>Código do Lote *</label>
+            <input type="text" name="lote_codigo" class="mm-form-control" required placeholder="Ex: LOTE-2024-001">
+        </div>
+        
+        <div class="mm-grid mm-grid-cols-2 mm-gap-4">
+            <div class="mm-form-group">
+                <label>Recepção</label>
+                <select name="reception_id" class="mm-form-control">
+                    <option value="">Selecione...</option>
+                    {% for rec in recepcoes %}
+                    <option value="{{ rec.id }}">{{ rec.reference_code }} - {{ rec.fornecedor }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="mm-form-group">
+                <label>Produto</label>
+                <select name="produto_id" class="mm-form-control">
+                    <option value="">Selecione...</option>
+                    {% for prod in produtos %}
+                    <option value="{{ prod.id }}">{{ prod.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="mm-grid mm-grid-cols-2 mm-gap-4">
+            <div class="mm-form-group">
+                <label>Quantidade Inicial (kg) *</label>
+                <input type="number" name="quantidade_inicial" class="mm-form-control" step="0.01" min="0" required>
+            </div>
+            
+            <div class="mm-form-group">
+                <label>Data de Validade</label>
+                <input type="date" name="data_validade" class="mm-form-control">
+            </div>
+        </div>
+        
+        <div class="mm-grid mm-grid-cols-2 mm-gap-4">
+            <div class="mm-form-group">
+                <label>Localização</label>
+                <input type="text" name="localizacao" class="mm-form-control" placeholder="Ex: Câmara Fria 1">
+            </div>
+            
+            <div class="mm-form-group">
+                <label>Temperatura Armazenamento (°C)</label>
+                <input type="number" name="temperatura_armazenamento" class="mm-form-control" step="0.1" value="-18">
+            </div>
+        </div>
+        
+        <div class="mm-grid mm-grid-cols-2 mm-gap-4">
+            <div class="mm-form-group">
+                <label>Fornecedor</label>
+                <input type="text" name="fornecedor" class="mm-form-control">
+            </div>
+            
+            <div class="mm-form-group">
+                <label>Certificado Sanitário</label>
+                <input type="text" name="certificado_sanitario" class="mm-form-control">
+            </div>
+        </div>
+        
+        <div class="mm-form-group">
+            <label>Validade do Certificado</label>
+            <input type="date" name="data_validade_certificado" class="mm-form-control">
+        </div>
+        
+        <div class="mm-flex mm-gap-3">
+            <button type="submit" class="mm-btn mm-btn-primary">Salvar</button>
+            <a href="{{ url_for('lotes.index') }}" class="mm-btn mm-btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

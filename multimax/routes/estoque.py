@@ -27,7 +27,8 @@ def index():
         produtos_query = produtos_query.filter(Produto.codigo.like(f"{cat}-%"))
     produtos_query = produtos_query.order_by(Produto.nome.asc())
     produtos_pag = produtos_query.paginate(page=ppage, per_page=12, error_out=False)
-    produtos_all = Produto.query.order_by(Produto.nome.asc()).all()
+    # Carregar apenas produtos necessários para seleção (limitado a 100 para performance)
+    produtos_all = Produto.query.order_by(Produto.nome.asc()).limit(100).all() if not search_term and not cat else []
     historico = Historico.query.order_by(Historico.data.desc()).paginate(
         page=page, per_page=10, error_out=False
     )
@@ -175,6 +176,9 @@ def lista_produtos():
 @bp.route('/produtos/adicionar', methods=['POST'])
 @login_required
 def adicionar_produto():
+    if current_user.nivel == 'visualizador':
+        flash('Visualizadores não têm permissão para fazer alterações no sistema.', 'danger')
+        return redirect(url_for('estoque.lista_produtos'))
     categoria = request.form.get('categoria', 'AV').strip().upper()
     prefix_map = {
         'CX': 'CX',  # Caixas
@@ -230,6 +234,9 @@ def adicionar_produto():
 @bp.route('/produtos/editar/<int:id>', methods=['POST'])
 @login_required
 def editar_produto(id: int):
+    if current_user.nivel == 'visualizador':
+        flash('Visualizadores não têm permissão para fazer alterações no sistema.', 'danger')
+        return redirect(url_for('estoque.lista_produtos'))
     produto = Produto.query.get_or_404(id)
     produto.nome = request.form.get('nome')
     produto.estoque_minimo = int(request.form.get('estoque_minimo', '0'))
@@ -249,6 +256,9 @@ def editar_produto(id: int):
 @bp.route('/produtos/excluir/<int:id>')
 @login_required
 def excluir_produto(id: int):
+    if current_user.nivel == 'visualizador':
+        flash('Visualizadores não têm permissão para fazer alterações no sistema.', 'danger')
+        return redirect(url_for('estoque.lista_produtos'))
     produto = Produto.query.get_or_404(id)
     db.session.delete(produto)
     db.session.commit()
@@ -258,6 +268,9 @@ def excluir_produto(id: int):
 @bp.route('/produtos/entrada/<int:id>', methods=['POST'])
 @login_required
 def entrada_produto(id: int):
+    if current_user.nivel == 'visualizador':
+        flash('Visualizadores não têm permissão para fazer alterações no sistema.', 'danger')
+        return redirect(url_for('estoque.lista_produtos'))
     produto = Produto.query.get_or_404(id)
     qtd = int(request.form.get('quantidade', '0'))
     produto.quantidade += qtd
@@ -278,6 +291,9 @@ def entrada_produto(id: int):
 @bp.route('/produtos/saida/<int:id>', methods=['POST'])
 @login_required
 def saida_produto(id: int):
+    if current_user.nivel == 'visualizador':
+        flash('Visualizadores não têm permissão para fazer alterações no sistema.', 'danger')
+        return redirect(url_for('estoque.lista_produtos'))
     produto = Produto.query.get_or_404(id)
     qtd = int(request.form.get('quantidade', '0'))
     if produto.quantidade < qtd:
@@ -303,7 +319,10 @@ def saida_produto(id: int):
 @bp.route('/adicionar', methods=['POST'])
 @login_required
 def adicionar():
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel == 'visualizador':
+        flash('Visualizadores não têm permissão para fazer alterações no sistema.', 'danger')
+        return redirect(url_for('estoque.index'))
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Você não tem permissão para adicionar produtos.', 'danger')
         return redirect(url_for('estoque.index'))
     try:
@@ -359,7 +378,10 @@ def adicionar():
 @bp.route('/entrada/<int:id>', methods=['POST'])
 @login_required
 def entrada(id: int):
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel == 'visualizador':
+        flash('Visualizadores não têm permissão para fazer alterações no sistema.', 'danger')
+        return redirect(url_for('estoque.index'))
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Você não tem permissão para registrar entrada.', 'danger')
         return redirect(url_for('estoque.index'))
     produto = Produto.query.get_or_404(id)
@@ -387,10 +409,22 @@ def entrada(id: int):
 @bp.route('/saida/<int:id>', methods=['POST'])
 @login_required
 def saida(id: int):
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel == 'visualizador':
+        flash('Visualizadores não têm permissão para fazer alterações no sistema.', 'danger')
+        return redirect(url_for('estoque.index'))
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Você não tem permissão para registrar saída.', 'danger')
         return redirect(url_for('estoque.index'))
     produto = Produto.query.get_or_404(id)
+    
+    # Verificar se há alertas de temperatura bloqueando o produto
+    from ..models import TemperatureProductAlert, ProductLot
+    lotes = ProductLot.query.filter_by(produto_id=id, ativo=True).all()
+    for lot in lotes:
+        alerta = TemperatureProductAlert.query.filter_by(lot_id=lot.id, bloqueado=True).first()
+        if alerta:
+            flash(f'Produto bloqueado por alerta de temperatura no lote {lot.lote_codigo}. Resolva o alerta antes de fazer saída.', 'danger')
+            return redirect(url_for('estoque.index'))
     try:
         quantidade = int(request.form['quantidade'])
         if quantidade <= 0:
@@ -420,11 +454,14 @@ def saida(id: int):
 @bp.route('/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar(id: int):
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Você não tem permissão para editar produtos.', 'danger')
         return redirect(url_for('estoque.index'))
     produto = Produto.query.get_or_404(id)
     if request.method == 'POST':
+        if current_user.nivel == 'visualizador':
+            flash('Visualizadores não têm permissão para fazer alterações no sistema.', 'danger')
+            return redirect(url_for('estoque.index'))
         try:
             novo_nome = request.form.get('nome', produto.nome)
             novo_codigo = request.form.get('codigo', produto.codigo)
@@ -495,7 +532,10 @@ def editar(id: int):
 @bp.route('/excluir/<int:id>')
 @login_required
 def excluir(id: int):
-    if current_user.nivel != 'admin':
+    if current_user.nivel == 'visualizador':
+        flash('Visualizadores não têm permissão para fazer alterações no sistema.', 'danger')
+        return redirect(url_for('estoque.index'))
+    if current_user.nivel not in ('admin', 'DEV'):
         flash('Você não tem permissão para excluir produtos.', 'danger')
         return redirect(url_for('estoque.index'))
     produto = Produto.query.get_or_404(id)
@@ -512,7 +552,10 @@ def excluir(id: int):
 @bp.route('/produtos/<int:id>/minimo', methods=['POST'])
 @login_required
 def atualizar_minimo(id: int):
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel == 'visualizador':
+        flash('Visualizadores não têm permissão para fazer alterações no sistema.', 'danger')
+        return redirect(url_for('estoque.index'))
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Você não tem permissão para atualizar estoque mínimo.', 'danger')
         return redirect(url_for('estoque.index'))
     produto = Produto.query.get_or_404(id)
@@ -530,7 +573,10 @@ def atualizar_minimo(id: int):
 @bp.route('/gerenciar', methods=['POST'])
 @login_required
 def gerenciar():
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel == 'visualizador':
+        flash('Visualizadores não têm permissão para fazer alterações no sistema.', 'danger')
+        return redirect(url_for('estoque.index'))
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Você não tem permissão para gerenciar estoque.', 'danger')
         return redirect(url_for('estoque.index'))
     op = (request.form.get('op') or '').strip().lower()
@@ -559,24 +605,40 @@ def gerenciar():
             produto.quantidade -= quantidade
         hist = Historico()
         hist.product_id = produto.id
-        hist.product_name = produto.nome
+        hist.product_name = produto.nome[:100] if produto.nome else ''
         hist.action = 'entrada' if op == 'entrada' else 'saida'
         hist.quantidade = quantidade
-        hist.details = (request.form.get('detalhes') or '').strip() or ('Entrada de estoque' if op=='entrada' else 'Saída de estoque')
-        hist.usuario = current_user.username
-        db.session.add(hist)
-        db.session.commit()
-        flash(f"{('Entrada' if op=='entrada' else 'Saída')} registrada para \"{produto.nome}\".", 'success' if op=='entrada' else 'warning')
-        if op == 'saida' and produto.quantidade <= produto.estoque_minimo:
-            flash(f'ALERTA: O estoque de "{produto.nome}" está abaixo do nível mínimo!', 'danger')
-            registrar_evento('estoque abaixo do mínimo', produto=produto.nome, quantidade=produto.quantidade, limite=produto.estoque_minimo)
-        if op == 'entrada':
-            registrar_evento('entrada de estoque', produto=produto.nome, quantidade=quantidade, descricao=hist.details)
-        else:
-            registrar_evento('saída de estoque', produto=produto.nome, quantidade=quantidade, descricao=hist.details)
+        detalhes = (request.form.get('detalhes') or '').strip() or ('Entrada de estoque' if op=='entrada' else 'Saída de estoque')
+        hist.details = detalhes[:255] if detalhes else ''
+        hist.usuario = current_user.username[:100] if current_user.username else ''
+        try:
+            db.session.add(hist)
+            db.session.commit()
+            flash(f"{('Entrada' if op=='entrada' else 'Saída')} registrada para \"{produto.nome}\".", 'success' if op=='entrada' else 'warning')
+            if op == 'saida' and produto.quantidade <= produto.estoque_minimo:
+                flash(f'ALERTA: O estoque de "{produto.nome}" está abaixo do nível mínimo!', 'danger')
+                try:
+                    registrar_evento('estoque abaixo do mínimo', produto=produto.nome, quantidade=produto.quantidade, limite=produto.estoque_minimo)
+                except Exception:
+                    pass  # Não falhar se o evento não puder ser registrado
+            if op == 'entrada':
+                try:
+                    registrar_evento('entrada de estoque', produto=produto.nome, quantidade=quantidade, descricao=hist.details)
+                except Exception:
+                    pass
+            else:
+                try:
+                    registrar_evento('saída de estoque', produto=produto.nome, quantidade=quantidade, descricao=hist.details)
+                except Exception:
+                    pass
+        except Exception as e:
+            db.session.rollback()
+            import logging
+            logging.getLogger(__name__).error(f"Erro ao registrar movimentação de estoque: {e}", exc_info=True)
+            flash(f'Erro ao registrar movimentação: {e}', 'danger')
         return redirect(url_for('estoque.index'))
     if op == 'excluir':
-        if current_user.nivel != 'admin':
+        if current_user.nivel not in ('admin', 'DEV'):
             flash('Você não tem permissão para excluir produtos.', 'danger')
             return redirect(url_for('estoque.index'))
         try:

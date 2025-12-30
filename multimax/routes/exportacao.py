@@ -344,7 +344,7 @@ def exportar_receita_pdf(id: int):
 @bp.route('/exportar/cronograma/pdf')
 @login_required
 def exportar_cronograma_pdf():
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Você não tem permissão para exportar o cronograma.', 'danger')
         return redirect(url_for('cronograma.cronograma'))
     try:
@@ -397,7 +397,7 @@ def exportar_cronograma_pdf():
 @bp.route('/exportar/cronograma/tarefa/<int:id>.pdf')
 @login_required
 def exportar_tarefa_pdf(id):
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Você não tem permissão para exportar tarefas.', 'danger')
         return redirect(url_for('cronograma.cronograma'))
     try:
@@ -444,7 +444,7 @@ def exportar_tarefa_pdf(id):
 @bp.route('/exportar/limpeza/historico/<int:id>.pdf')
 @login_required
 def exportar_historico_limpeza_pdf(id):
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Você não tem permissão para exportar histórico de limpezas.', 'danger')
         return redirect(url_for('cronograma.cronograma'))
     try:
@@ -775,7 +775,7 @@ def exportar_graficos_produto(id):
 @bp.route('/exportar/carnes/relatorio/<int:id>.pdf')
 @login_required
 def exportar_relatorio_carnes_pdf(id):
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Você não tem permissão para exportar relatório de carnes.', 'danger')
         return redirect(url_for('carnes.index'))
     try:
@@ -973,7 +973,7 @@ def exportar_relatorio_carnes_pdf(id):
 @bp.route('/exportar/carnes/relatorio/periodo.pdf')
 @login_required
 def exportar_relatorio_carnes_periodo():
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Você não tem permissão para exportar relatório de carnes.', 'danger')
         return redirect(url_for('carnes.index'))
     try:
@@ -1134,7 +1134,7 @@ def exportar_exemplo_pdf():
 @bp.route('/exportar/jornada/pdf')
 @login_required
 def exportar_jornada_pdf():
-    if current_user.nivel not in ['operador', 'admin']:
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Você não tem permissão para exportar relatório de jornada.', 'danger')
         return redirect(url_for('jornada.index'))
     try:
