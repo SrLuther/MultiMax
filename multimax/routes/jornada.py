@@ -237,27 +237,78 @@ def index():
                 return q.filter(col <= df_cards)
             return q
 
-        for c in colaboradores:
-            try:
-                hq = apply_range(HourBankEntry.query.filter(HourBankEntry.collaborator_id == c.id), HourBankEntry.date)
-                cq = apply_range(LeaveCredit.query.filter(LeaveCredit.collaborator_id == c.id), LeaveCredit.date)
-                aq = apply_range(LeaveAssignment.query.filter(LeaveAssignment.collaborator_id == c.id), LeaveAssignment.date)
-                vq = apply_range(LeaveConversion.query.filter(LeaveConversion.collaborator_id == c.id), LeaveConversion.date)
-                hsum = float(hq.with_entities(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).scalar() or 0.0)
-                residual_hours = (hsum % 8.0) if hsum >= 0.0 else - ((-hsum) % 8.0)
-                credits_sum = int(cq.with_entities(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).scalar() or 0)
-                assigned_sum = int(aq.with_entities(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).scalar() or 0)
-                converted_sum = int(vq.with_entities(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).scalar() or 0)
-                saldo_days = credits_sum - assigned_sum - converted_sum
-                cards_stats.append({
-                    'id': c.id,
-                    'name': c.name,
-                    'residual_hours': residual_hours,
-                    'saldo_days': saldo_days,
-                    'assigned_days': assigned_sum
-                })
-            except Exception:
-                pass
+        # Otimização: buscar todos os dados de uma vez ao invés de 4 queries por colaborador
+        if colaboradores:
+            colab_ids = [c.id for c in colaboradores]
+            
+            # Agregar horas por colaborador
+            horas_agregadas = db.session.query(
+                HourBankEntry.collaborator_id,
+                func.coalesce(func.sum(HourBankEntry.hours), 0.0).label('total_horas')
+            ).filter(
+                HourBankEntry.collaborator_id.in_(colab_ids)
+            )
+            if di_cards:
+                horas_agregadas = horas_agregadas.filter(HourBankEntry.date >= di_cards)
+            if df_cards:
+                horas_agregadas = horas_agregadas.filter(HourBankEntry.date <= df_cards)
+            horas_agregadas = horas_agregadas.group_by(HourBankEntry.collaborator_id).all()
+            horas_dict = {r.collaborator_id: float(r.total_horas) for r in horas_agregadas}
+            
+            # Agregar créditos por colaborador
+            creditos_agregados = db.session.query(
+                LeaveCredit.collaborator_id,
+                func.coalesce(func.sum(LeaveCredit.amount_days), 0).label('total')
+            ).filter(LeaveCredit.collaborator_id.in_(colab_ids))
+            if di_cards:
+                creditos_agregados = creditos_agregados.filter(LeaveCredit.date >= di_cards)
+            if df_cards:
+                creditos_agregados = creditos_agregados.filter(LeaveCredit.date <= df_cards)
+            creditos_agregados = creditos_agregados.group_by(LeaveCredit.collaborator_id).all()
+            creditos_dict = {r.collaborator_id: int(r.total) for r in creditos_agregados}
+            
+            # Agregar atribuições por colaborador
+            atribuicoes_agregadas = db.session.query(
+                LeaveAssignment.collaborator_id,
+                func.coalesce(func.sum(LeaveAssignment.days_used), 0).label('total')
+            ).filter(LeaveAssignment.collaborator_id.in_(colab_ids))
+            if di_cards:
+                atribuicoes_agregadas = atribuicoes_agregadas.filter(LeaveAssignment.date >= di_cards)
+            if df_cards:
+                atribuicoes_agregadas = atribuicoes_agregadas.filter(LeaveAssignment.date <= df_cards)
+            atribuicoes_agregadas = atribuicoes_agregadas.group_by(LeaveAssignment.collaborator_id).all()
+            atribuicoes_dict = {r.collaborator_id: int(r.total) for r in atribuicoes_agregadas}
+            
+            # Agregar conversões por colaborador
+            conversoes_agregadas = db.session.query(
+                LeaveConversion.collaborator_id,
+                func.coalesce(func.sum(LeaveConversion.amount_days), 0).label('total')
+            ).filter(LeaveConversion.collaborator_id.in_(colab_ids))
+            if di_cards:
+                conversoes_agregadas = conversoes_agregadas.filter(LeaveConversion.date >= di_cards)
+            if df_cards:
+                conversoes_agregadas = conversoes_agregadas.filter(LeaveConversion.date <= df_cards)
+            conversoes_agregadas = conversoes_agregadas.group_by(LeaveConversion.collaborator_id).all()
+            conversoes_dict = {r.collaborator_id: int(r.total) for r in conversoes_agregadas}
+            
+            # Processar resultados
+            for c in colaboradores:
+                try:
+                    hsum = horas_dict.get(c.id, 0.0)
+                    residual_hours = (hsum % 8.0) if hsum >= 0.0 else - ((-hsum) % 8.0)
+                    credits_sum = creditos_dict.get(c.id, 0)
+                    assigned_sum = atribuicoes_dict.get(c.id, 0)
+                    converted_sum = conversoes_dict.get(c.id, 0)
+                    saldo_days = credits_sum - assigned_sum - converted_sum
+                    cards_stats.append({
+                        'id': c.id,
+                        'name': c.name,
+                        'residual_hours': residual_hours,
+                        'saldo_days': saldo_days,
+                        'assigned_days': assigned_sum
+                    })
+                except Exception:
+                    pass
     except Exception:
         cards_stats = []
 

@@ -20,29 +20,29 @@ class User(UserMixin, db.Model):
 
 class Produto(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    codigo = db.Column(db.String(20), unique=True, nullable=False)
-    nome = db.Column(db.String(100), nullable=False)
-    quantidade = db.Column(db.Integer, default=0)
-    estoque_minimo = db.Column(db.Integer, default=0)
+    codigo = db.Column(db.String(20), unique=True, nullable=False, index=True)
+    nome = db.Column(db.String(100), nullable=False, index=True)
+    quantidade = db.Column(db.Integer, default=0, index=True)
+    estoque_minimo = db.Column(db.Integer, default=0, index=True)
     preco_custo = db.Column(db.Float, default=0.00)
     preco_venda = db.Column(db.Float, default=0.00)
-    data_validade = db.Column(db.Date, nullable=True)
+    data_validade = db.Column(db.Date, nullable=True, index=True)
     lote = db.Column(db.String(50), nullable=True)
-    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedor.id'), nullable=True)
-    categoria = db.Column(db.String(50), nullable=True)
+    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedor.id'), nullable=True, index=True)
+    categoria = db.Column(db.String(50), nullable=True, index=True)
     unidade = db.Column(db.String(10), default='un')
     localizacao = db.Column(db.String(50), nullable=True)
-    ativo = db.Column(db.Boolean, default=True)
+    ativo = db.Column(db.Boolean, default=True, index=True)
     
     fornecedor = db.relationship('Fornecedor', backref='produtos', lazy=True)
     historicos = db.relationship('Historico', backref='produto', lazy=True)
 
 class Historico(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    data = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
-    product_id = db.Column(db.Integer, db.ForeignKey('produto.id'))
+    data = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')), index=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('produto.id'), index=True)
     product_name = db.Column(db.String(100))
-    action = db.Column(db.String(10))
+    action = db.Column(db.String(10), index=True)
     quantidade = db.Column(db.Integer)
     details = db.Column(db.String(255))
     usuario = db.Column(db.String(100))
@@ -328,13 +328,13 @@ class TemperatureLocation(db.Model):
 class LossRecord(db.Model):
     __tablename__ = 'loss_record'
     id = db.Column(db.Integer, primary_key=True)
-    produto_id = db.Column(db.Integer, db.ForeignKey('produto.id'), nullable=True)
+    produto_id = db.Column(db.Integer, db.ForeignKey('produto.id'), nullable=True, index=True)
     produto_nome = db.Column(db.String(100), nullable=False)
     quantidade = db.Column(db.Float, nullable=False)
     unidade = db.Column(db.String(20), default='kg')
     motivo = db.Column(db.String(50), nullable=False)
     custo_estimado = db.Column(db.Float, default=0.0)
-    data_registro = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+    data_registro = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')), index=True)
     usuario = db.Column(db.String(100))
     observacao = db.Column(db.String(255))
 
@@ -578,11 +578,11 @@ class ProductLot(db.Model):
     """Controle de lotes por recepção - rastreabilidade completa"""
     __tablename__ = 'product_lot'
     id = db.Column(db.Integer, primary_key=True)
-    reception_id = db.Column(db.Integer, db.ForeignKey('meat_reception.id'), nullable=True)
-    produto_id = db.Column(db.Integer, db.ForeignKey('produto.id'), nullable=True)
-    lote_codigo = db.Column(db.String(50), unique=True, nullable=False)
-    data_recepcao = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
-    data_validade = db.Column(db.Date, nullable=True)
+    reception_id = db.Column(db.Integer, db.ForeignKey('meat_reception.id'), nullable=True, index=True)
+    produto_id = db.Column(db.Integer, db.ForeignKey('produto.id'), nullable=True, index=True)
+    lote_codigo = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    data_recepcao = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')), index=True)
+    data_validade = db.Column(db.Date, nullable=True, index=True)
     quantidade_inicial = db.Column(db.Float, default=0.0)
     quantidade_atual = db.Column(db.Float, default=0.0)
     localizacao = db.Column(db.String(50))  # câmara fria, balcão, etc
@@ -590,7 +590,7 @@ class ProductLot(db.Model):
     fornecedor = db.Column(db.String(100))
     certificado_sanitario = db.Column(db.String(100))
     data_validade_certificado = db.Column(db.Date)
-    ativo = db.Column(db.Boolean, default=True)
+    ativo = db.Column(db.Boolean, default=True, index=True)
     
     reception = db.relationship('MeatReception', backref='lots', lazy=True)
     produto = db.relationship('Produto', backref='lots', lazy=True)
@@ -633,15 +633,15 @@ class DynamicPricing(db.Model):
     """Precificação dinâmica baseada em custo, validade e demanda"""
     __tablename__ = 'dynamic_pricing'
     id = db.Column(db.Integer, primary_key=True)
-    produto_id = db.Column(db.Integer, db.ForeignKey('produto.id'), nullable=False)
+    produto_id = db.Column(db.Integer, db.ForeignKey('produto.id'), nullable=False, index=True)
     preco_base = db.Column(db.Float, nullable=False)
     preco_atual = db.Column(db.Float, nullable=False)
     margem_minima = db.Column(db.Float, default=20.0)  # percentual
     desconto_validade = db.Column(db.Float, default=0.0)  # percentual de desconto por proximidade de validade
     desconto_demanda = db.Column(db.Float, default=0.0)  # percentual de desconto por baixa demanda
     dias_para_validade = db.Column(db.Integer, default=0)
-    ativo = db.Column(db.Boolean, default=True)
-    data_atualizacao = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+    ativo = db.Column(db.Boolean, default=True, index=True)
+    data_atualizacao = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')), index=True)
     usuario = db.Column(db.String(100))
     
     produto = db.relationship('Produto', backref='dynamic_pricing', lazy=True)

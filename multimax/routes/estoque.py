@@ -32,12 +32,13 @@ def index():
     historico = Historico.query.order_by(Historico.data.desc()).paginate(
         page=page, per_page=10, error_out=False
     )
-    ids = [h.product_id for h in historico.items if h.product_id]
+    # Otimização: usar set para remover duplicatas e melhorar performance
+    ids = list(set(h.product_id for h in historico.items if h.product_id))
     code_map: dict[int, str] = {}
     if ids:
+        # Otimização: usar dict comprehension ao invés de loop
         rows = Produto.query.with_entities(Produto.id, Produto.codigo).filter(Produto.id.in_(ids)).all()
-        for pid, cod in rows:
-            code_map[int(pid)] = str(cod)
+        code_map = {int(pid): str(cod) for pid, cod in rows}
     # gráficos por produto dentro do estoque
     gq = request.args.get('gq', '').strip()
     g_produto_id = request.args.get('g_produto_id', type=int)

@@ -56,27 +56,46 @@ def get_dashboard_metrics():
     return metrics
 
 def get_stock_chart_data():
-    """Retorna dados para o gráfico de movimentações dos últimos 7 dias"""
+    """Retorna dados para o gráfico de movimentações dos últimos 7 dias - otimizado"""
     data = {'labels': [], 'entradas': [], 'saidas': []}
     try:
         today = date.today()
+        inicio_7_dias = datetime.combine(today - timedelta(days=6), datetime.min.time())
+        fim_hoje = datetime.combine(today, datetime.max.time())
+        
+        # Uma única query agrupada ao invés de 14 queries (2 por dia x 7 dias)
+        resultados = db.session.query(
+            func.date(HistoricoModel.data).label('dia'),
+            func.lower(HistoricoModel.action).label('acao'),
+            func.coalesce(func.sum(HistoricoModel.quantidade), 0).label('total')
+        ).filter(
+            HistoricoModel.data >= inicio_7_dias,
+            HistoricoModel.data <= fim_hoje,
+            func.lower(HistoricoModel.action).in_(['entrada', 'saida'])
+        ).group_by(
+            func.date(HistoricoModel.data),
+            func.lower(HistoricoModel.action)
+        ).all()
+        
+        # Criar dicionário para lookup rápido
+        dados_dict = {}
+        for r in resultados:
+            dia_str = r.dia.strftime('%d/%m')
+            if dia_str not in dados_dict:
+                dados_dict[dia_str] = {'entradas': 0, 'saidas': 0}
+            if r.acao == 'entrada':
+                dados_dict[dia_str]['entradas'] = int(r.total or 0)
+            elif r.acao == 'saida':
+                dados_dict[dia_str]['saidas'] = int(r.total or 0)
+        
+        # Preencher todos os dias na ordem correta
         for i in range(6, -1, -1):
             d = today - timedelta(days=i)
-            inicio = datetime.combine(d, datetime.min.time())
-            fim = datetime.combine(d, datetime.max.time())
-            entradas = db.session.query(func.sum(HistoricoModel.quantidade)).filter(
-                HistoricoModel.data >= inicio,
-                HistoricoModel.data <= fim,
-                func.lower(HistoricoModel.action) == 'entrada'
-            ).scalar() or 0
-            saidas = db.session.query(func.sum(HistoricoModel.quantidade)).filter(
-                HistoricoModel.data >= inicio,
-                HistoricoModel.data <= fim,
-                func.lower(HistoricoModel.action) == 'saida'
-            ).scalar() or 0
-            data['labels'].append(d.strftime('%d/%m'))
-            data['entradas'].append(int(entradas))
-            data['saidas'].append(int(saidas))
+            dia_str = d.strftime('%d/%m')
+            dados = dados_dict.get(dia_str, {'entradas': 0, 'saidas': 0})
+            data['labels'].append(dia_str)
+            data['entradas'].append(dados['entradas'])
+            data['saidas'].append(dados['saidas'])
     except Exception:
         pass
     return data
@@ -228,12 +247,15 @@ def index():
                 d = d + timedelta(days=1)
             sunday = ws + timedelta(days=6)
             try:
-                sun_ref_setting = AppSettingModel.query.filter_by(key='domingo_ref_sunday').first()
-                sun_team_setting = AppSettingModel.query.filter_by(key='domingo_team_ref').first()
+                # Otimização: buscar todos os settings de domingo de uma vez
+                domingo_keys = ['domingo_ref_sunday', 'domingo_team_ref', 'domingo_manha_team']
+                domingo_settings = {s.key: s for s in AppSettingModel.query.filter(AppSettingModel.key.in_(domingo_keys)).all()}
+                sun_ref_setting = domingo_settings.get('domingo_ref_sunday')
+                sun_team_setting = domingo_settings.get('domingo_team_ref')
                 base_team = (sun_team_setting.value.strip() if sun_team_setting and sun_team_setting.value else None)
                 if base_team not in ('1', '2'):
                     # fallback para configuração antiga, se existir
-                    sun_m = AppSettingModel.query.filter_by(key='domingo_manha_team').first()
+                    sun_m = domingo_settings.get('domingo_manha_team')
                     base_team = (sun_m.value.strip() if sun_m and sun_m.value else '1')
                     if base_team not in ('1','2'):
                         base_team = '1'

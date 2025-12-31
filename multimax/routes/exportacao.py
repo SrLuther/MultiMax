@@ -1011,11 +1011,13 @@ def exportar_relatorio_carnes_periodo():
             .order_by(MeatReception.data.asc())
             .all()
         )
-        carriers_all = MeatCarrier.query.filter(MeatCarrier.reception_id.in_([r.id for r in recs])).all() if recs else []
+        # Otimização: usar lista de IDs diretamente ao invés de list comprehension desnecessária
+        reception_ids = [r.id for r in recs] if recs else []
+        carriers_all = MeatCarrier.query.filter(MeatCarrier.reception_id.in_(reception_ids)).all() if reception_ids else []
         carriers_by_rec = {}
         for c in carriers_all:
             carriers_by_rec.setdefault(c.reception_id, []).append(c)
-        parts_all = MeatPart.query.filter(MeatPart.reception_id.in_([r.id for r in recs])).order_by(MeatPart.id.asc()).all() if recs else []
+        parts_all = MeatPart.query.filter(MeatPart.reception_id.in_(reception_ids)).order_by(MeatPart.id.asc()).all() if reception_ids else []
         parts_by_rec = {}
         for p in parts_all:
             parts_by_rec.setdefault(p.reception_id, []).append(p)

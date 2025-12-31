@@ -35,11 +35,10 @@ def index():
         func.date(MeatReception.data) >= inicio_mes
     ).count()
     
-    # Perdas do mês
-    perdas_mes = LossRecord.query.filter(
+    # Perdas do mês - otimizado: usar agregação SQL ao invés de carregar todos
+    valor_perdas = db.session.query(func.coalesce(func.sum(LossRecord.custo_estimado), 0.0)).filter(
         func.date(LossRecord.data_registro) >= inicio_mes
-    ).all()
-    valor_perdas = sum(p.custo_estimado for p in perdas_mes)
+    ).scalar() or 0.0
     
     # Alertas de temperatura
     alertas_temp = TemperatureLog.query.filter_by(alerta=True).count()
@@ -53,22 +52,31 @@ def index():
         DynamicPricing.ativo == True
     ).count()
     
-    # Rendimento médio
-    rendimentos = YieldAnalysis.query.filter(
+    # Rendimento médio - otimizado: usar AVG SQL ao invés de carregar todos
+    rendimento_medio = db.session.query(func.coalesce(func.avg(YieldAnalysis.rendimento_percentual), 0.0)).filter(
         func.date(YieldAnalysis.data_analise) >= inicio_mes
-    ).all()
-    rendimento_medio = sum(r.rendimento_percentual for r in rendimentos) / len(rendimentos) if rendimentos else 0
+    ).scalar() or 0.0
     
-    # Gráfico de recepções (últimos 30 dias)
+    # Gráfico de recepções (últimos 30 dias) - otimizado: uma query agrupada ao invés de 30
     hoje = date.today()
+    inicio_30_dias = hoje - timedelta(days=29)
+    recepcoes_agrupadas = db.session.query(
+        func.date(MeatReception.data).label('dia'),
+        func.count(MeatReception.id).label('count')
+    ).filter(
+        func.date(MeatReception.data) >= inicio_30_dias,
+        func.date(MeatReception.data) <= hoje
+    ).group_by(func.date(MeatReception.data)).all()
+    
+    # Criar dicionário para lookup rápido
+    recepcoes_dict = {r.dia: r.count for r in recepcoes_agrupadas}
+    
+    # Preencher todos os dias (mesmo os sem recepções)
     recepcoes_30_dias = []
-    for i in range(30):
+    for i in range(29, -1, -1):
         dia = hoje - timedelta(days=i)
-        count = MeatReception.query.filter(
-            func.date(MeatReception.data) == dia
-        ).count()
+        count = recepcoes_dict.get(dia, 0)
         recepcoes_30_dias.append({'data': dia.strftime('%d/%m'), 'count': count})
-    recepcoes_30_dias.reverse()
     
     return render_template('dashboard/index.html',
                          total_produtos=total_produtos,

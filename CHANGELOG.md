@@ -1,5 +1,38 @@
 # Changelog — MultiMax
 
+## [2.2] - 2025-01-XX
+
+### ⚡ Otimizações de Performance
+
+#### Redução de Queries N+1
+- **Dashboard**: Otimização de queries para gráfico de recepções - redução de ~30 queries para 1 query (97% de redução)
+- **Home**: Otimização de gráfico de movimentações - redução de 14 queries para 1 query (93% de redução)
+- **Jornada**: Otimização de queries para cards de colaboradores - redução de N*4 queries para 4 queries
+- **Estoque**: Uso de agregações SQL diretas (func.sum, func.avg) ao invés de carregar todos os registros
+- **Exportação**: Otimizações de list comprehensions e reutilização de variáveis
+
+#### Índices de Banco de Dados
+Adicionados índices estratégicos nos seguintes modelos para melhorar performance:
+- `Produto`: código, nome, quantidade, estoque_minimo, data_validade, fornecedor_id, categoria, ativo
+- `Historico`: data, product_id, action
+- `MeatReception`: data, fornecedor, tipo, reference_code, recebedor_id
+- `TemperatureLog`: local, data_registro, alerta
+- `LossRecord`: produto_id, data_registro
+- `ProductLot`: reception_id, produto_id, lote_codigo, data_recepcao, data_validade, ativo
+- `DynamicPricing`: produto_id, ativo, data_atualizacao
+
+#### Novos Utilitários
+- Criado arquivo `multimax/optimizations.py` com funções utilitárias para cache de datas
+
+### 📝 Documentação
+- Adicionado arquivo `OTIMIZACOES.md` documentando todas as otimizações implementadas
+
+### 🐛 Correções
+- Melhorias gerais de performance e otimização de queries
+- Correções de lint em diversos arquivos
+
+---
+
 ## [2.0] - 2025-01-XX
 
 ### 🎉 Novas Funcionalidades
