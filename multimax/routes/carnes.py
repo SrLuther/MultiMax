@@ -8,7 +8,16 @@ from sqlalchemy import inspect, text
 
 bp = Blueprint('carnes', __name__, url_prefix='/carnes')
 
+# ============================================================================
+# Constantes e Variáveis Globais
+# ============================================================================
+
 _schema_checked = False
+ALLOWED_TIPOS = {'bovina', 'suina', 'frango'}
+
+# ============================================================================
+# Funções auxiliares - Schema e Validação
+# ============================================================================
 
 def _check_schema_once():
     global _schema_checked
@@ -75,34 +84,58 @@ def _ensure_reception_columns():
         except Exception:
             pass
 
+# ============================================================================
+# Funções auxiliares - Processamento de dados
+# ============================================================================
+
+def _get_today_str() -> str:
+    """Retorna data de hoje formatada"""
+    try:
+        return datetime.now(ZoneInfo('America/Sao_Paulo')).date().strftime('%Y-%m-%d')
+    except Exception:
+        return datetime.now().date().strftime('%Y-%m-%d')
+
+
+def _process_reception_item(r: MeatReception) -> dict:
+    """Processa uma recepção e retorna dados formatados"""
+    carriers = {c.id: c for c in MeatCarrier.query.filter_by(reception_id=r.id).all()}
+    parts = MeatPart.query.filter_by(reception_id=r.id).all()
+    tipo = (r.tipo or '').lower()
+    
+    if tipo == 'frango':
+        total = float(r.peso_frango or 0.0)
+        return {'r': r, 'total': total, 'count': 0}
+    else:
+        total = 0.0
+        for p in parts:
+            c = carriers.get(p.carrier_id)
+            cw = c.peso if c else 0.0
+            sub = cw if cw > 0 else (p.tara or 0.0)
+            total += max(0.0, (p.peso_bruto or 0.0) - sub)
+        return {'r': r, 'total': total, 'count': len(parts)}
+
+
+def _get_receptions_list(limit: int = 20) -> list[dict]:
+    """Busca lista de recepções processadas"""
+    recs = MeatReception.query.order_by(MeatReception.data.desc()).limit(limit).all()
+    return [_process_reception_item(r) for r in recs]
+
+
+# ============================================================================
+# Rotas
+# ============================================================================
+
 @bp.route('/', strict_slashes=False)
 @login_required
 def index():
     if current_user.nivel not in ['operador', 'admin', 'DEV']:
         return redirect(url_for('estoque.index'))
+    
     _check_schema_once()
+    today_str = _get_today_str()
+    
     try:
-        today_str = datetime.now(ZoneInfo('America/Sao_Paulo')).date().strftime('%Y-%m-%d')
-    except Exception:
-        today_str = datetime.now().date().strftime('%Y-%m-%d')
-    try:
-        recs = MeatReception.query.order_by(MeatReception.data.desc()).limit(20).all()
-        items = []
-        for r in recs:
-            carriers = {c.id: c for c in MeatCarrier.query.filter_by(reception_id=r.id).all()}
-            parts = MeatPart.query.filter_by(reception_id=r.id).all()
-            tipo = (r.tipo or '').lower()
-            if tipo == 'frango':
-                total = float(r.peso_frango or 0.0)
-                items.append({'r': r, 'total': total, 'count': 0})
-            else:
-                total = 0.0
-                for p in parts:
-                    c = carriers.get(p.carrier_id)
-                    cw = c.peso if c else 0.0
-                    sub = cw if cw > 0 else (p.tara or 0.0)
-                    total += max(0.0, (p.peso_bruto or 0.0) - sub)
-                items.append({'r': r, 'total': total, 'count': len(parts)})
+        items = _get_receptions_list(limit=20)
         return render_template('carnes.html', items=items, active_page='carnes', today_str=today_str)
     except Exception as e:
         try:

@@ -57,7 +57,7 @@
     </div>
 </div>
 
-{% if current_user.nivel == 'admin' %}
+{% if current_user.nivel in ['admin', 'DEV'] %}
 <div class="mm-flex mm-gap-2 mm-mt-4">
     <a href="{{ url_for('ajuda.editar_artigo', id=article.id) }}" class="mm-btn mm-btn-outline">
         <i class="bi bi-pencil"></i> Editar

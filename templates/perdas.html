@@ -131,7 +131,7 @@
                         <th>Motivo</th>
                         <th>Custo</th>
                         <th>Usuário</th>
-                        {% if current_user.nivel == 'admin' %}
+                        {% if current_user.nivel in ['admin', 'DEV'] %}
                         <th class="text-end">Ações</th>
                         {% endif %}
                     </tr>

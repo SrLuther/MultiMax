@@ -9,50 +9,116 @@ from ..models import CleaningTask, CleaningHistory, CleaningChecklistTemplate, C
 
 bp = Blueprint('cronograma', __name__)
 
+# ============================================================================
+# Constantes
+# ============================================================================
+
+TASK_PADROES = {
+    'Limpeza Parcial da Câmara Fria': ('15 dias', 'Parcial', 'Agendar em Terça/Quinta, evitando dias 1–4 do mês.'),
+    'Limpeza Geral da Câmara Fria': ('40 dias', 'Geral', 'Higienização completa: chão, paredes, paletes, prateleiras, barras.'),
+    'Limpeza de Expositores do Açougue': ('Mensal', 'Mensal', 'Realizar após o expediente uma vez por mês.'),
+    'Limpeza da Caixa de Gordura': ('Semanal', 'Semanal', 'Agendar entre quinta e sexta-feira.'),
+}
+
+TASK_MAPPING = {
+    'Limpeza Diária Geral': (
+        'Limpeza Parcial da Câmara Fria', '15 dias', 'Parcial',
+        'Agendar em Terça/Quinta, evitando dias 1–4 do mês.'
+    ),
+    'Limpeza Parcial (Máquinas e Bancadas)': (
+        'Limpeza Geral da Câmara Fria', '40 dias', 'Geral',
+        'Higienização completa: chão, paredes, paletes, prateleiras, barras.'
+    ),
+    'Limpeza Completa da Unidade': (
+        'Limpeza de Expositores do Açougue', 'Mensal', 'Mensal',
+        'Realizar após o expediente uma vez por mês.'
+    ),
+}
+
+ALLOWED_TYPES = {'Parcial', 'Geral', 'Mensal', 'Semanal'}
+ALLOWED_FREQUENCIES = {'Semanal', '15 dias', 'Mensal', '40 dias', 'Trimestral', 'Personalizada'}
+
+# ============================================================================
+# Funções auxiliares - Cálculo de datas
+# ============================================================================
+
+def aplicar_regras_data(d):
+    """Aplica regras de ajuste de data (evitar dias 1-4 e fora de terça-sexta)"""
+    motivos = []
+    cur = d
+    if cur.day in (1, 2, 3, 4):
+        motivos.append('Ajuste: início do mês (1–4)')
+        while cur.day in (1, 2, 3, 4):
+            cur = cur + timedelta(days=1)
+    if cur.weekday() not in (1, 2, 3, 4):  # 1=Terça, 2=Quarta, 3=Quinta, 4=Sexta
+        motivos.append('Ajuste: fora de terça–sexta')
+        while cur.weekday() not in (1, 2, 3, 4):
+            cur = cur + timedelta(days=1)
+    return cur, ', '.join(motivos)
+
+
+def calcular_caixa_gordura(hoje, ultima_data):
+    """Calcula próxima data para limpeza da caixa de gordura (quinta/sexta)"""
+    wd = hoje.weekday()
+    if wd <= 3:
+        base = hoje + timedelta(days=(3 - wd))
+    elif wd == 4:
+        base = hoje
+    else:
+        base = hoje + timedelta(days=(7 - wd + 3))
+    if base <= ultima_data:
+        base = base + timedelta(days=7)
+    return base
+
+
+def calcular_frequencia_padrao(ultima_data, frequencia):
+    """Calcula próxima data baseada em frequência padrão (sem regras especiais)"""
+    if frequencia == '15 dias':
+        return ultima_data + timedelta(days=15)
+    elif frequencia == '40 dias':
+        return ultima_data + timedelta(days=40)
+    elif frequencia == 'Semanal':
+        return ultima_data + timedelta(weeks=1)
+    elif frequencia == 'Mensal':
+        return ultima_data + timedelta(days=30)
+    elif frequencia == 'Trimestral':
+        return ultima_data + timedelta(days=90)
+    else:
+        return ultima_data + timedelta(days=1)
+
+
 def calcular_proxima_prevista(ultima_data, frequencia, tipo, nome=None):
+    """Calcula a próxima data prevista para uma tarefa aplicando regras especiais"""
     hoje = datetime.now(ZoneInfo('America/Sao_Paulo')).date()
-    def aplicar_regras(d):
-        motivos = []
-        cur = d
-        if cur.day in (1,2,3,4):
-            motivos.append('Ajuste: início do mês (1–4)')
-            while cur.day in (1,2,3,4):
-                cur = cur + timedelta(days=1)
-        if cur.weekday() not in (1,2,3,4):
-            motivos.append('Ajuste: fora de terça–sexta')
-            while cur.weekday() not in (1,2,3,4):
-                cur = cur + timedelta(days=1)
-        return cur, ', '.join(motivos)
-    base = None
+    
+    # Caso especial: Limpeza da Caixa de Gordura
     if (nome or '').strip().lower() == 'limpeza da caixa de gordura':
-        b = hoje
-        wd = b.weekday()
-        if wd <= 3:
-            base = b + timedelta(days=(3 - wd))
-        elif wd == 4:
-            base = b
-        else:
-            base = b + timedelta(days=(7 - wd + 3))
-        if base <= ultima_data:
-            base = base + timedelta(days=7)
-        ajustada, _mot = aplicar_regras(base)
+        base = calcular_caixa_gordura(hoje, ultima_data)
+        ajustada, _mot = aplicar_regras_data(base)
         return ajustada
+    
+    # Frequência personalizada
     if isinstance(frequencia, str) and frequencia.lower().startswith('personalizada'):
         try:
             num = int(''.join([c for c in frequencia if c.isdigit()]))
         except Exception:
             num = 1
         base = ultima_data + timedelta(days=max(1, num))
-        ajustada, _mot = aplicar_regras(base)
+        ajustada, _mot = aplicar_regras_data(base)
         return ajustada
+    
+    # Frequências padrão
     if frequencia == '15 dias':
         base = ultima_data + timedelta(days=15)
-        ajustada, _mot = aplicar_regras(base)
-        return ajustada if ajustada > hoje else aplicar_regras(hoje + timedelta(days=1))[0]
+        ajustada, _mot = aplicar_regras_data(base)
+        return ajustada if ajustada > hoje else aplicar_regras_data(hoje + timedelta(days=1))[0]
+    
     if frequencia == '40 dias':
         base = ultima_data + timedelta(days=40)
-        ajustada, _mot = aplicar_regras(base)
+        ajustada, _mot = aplicar_regras_data(base)
         return ajustada
+    
+    # Frequências que precisam de loop (Semanal, Mensal, Trimestral)
     proxima_base = datetime.combine(ultima_data, datetime.min.time())
     while True:
         if frequencia == 'Semanal':
@@ -63,158 +129,117 @@ def calcular_proxima_prevista(ultima_data, frequencia, tipo, nome=None):
             proxima_base += timedelta(days=90)
         else:
             proxima_base += timedelta(days=1)
+        
         cand = proxima_base.date()
         if cand > hoje:
-            ajustada, _mot = aplicar_regras(cand)
+            ajustada, _mot = aplicar_regras_data(cand)
             return ajustada
         if cand > hoje + timedelta(days=365*5):
-            ajustada, _ = aplicar_regras(ultima_data + timedelta(days=1))
+            ajustada, _ = aplicar_regras_data(ultima_data + timedelta(days=1))
             return ajustada
 
 def proxima_base_sem_regra(ultima_data, frequencia, tipo, nome=None):
+    """Calcula próxima data base sem aplicar regras de ajuste"""
     hoje = datetime.now(ZoneInfo('America/Sao_Paulo')).date()
+    
     if (nome or '').strip().lower() == 'limpeza da caixa de gordura':
-        b = hoje
-        wd = b.weekday()
-        if wd <= 3:
-            base = b + timedelta(days=(3 - wd))
-        elif wd == 4:
-            base = b
-        else:
-            base = b + timedelta(days=(7 - wd + 3))
-        if base <= ultima_data:
-            base = base + timedelta(days=7)
-        return base
+        return calcular_caixa_gordura(hoje, ultima_data)
+    
     if isinstance(frequencia, str) and frequencia.lower().startswith('personalizada'):
         try:
             num = int(''.join([c for c in frequencia if c.isdigit()]))
         except Exception:
             num = 1
         return ultima_data + timedelta(days=max(1, num))
-    if frequencia == '15 dias':
-        return ultima_data + timedelta(days=15)
-    if frequencia == '40 dias':
-        return ultima_data + timedelta(days=40)
+    
+    if frequencia in ('15 dias', '40 dias', 'Semanal', 'Mensal', 'Trimestral'):
+        return calcular_frequencia_padrao(ultima_data, frequencia)
+    
+    # Fallback
     proxima_base = datetime.combine(ultima_data, datetime.min.time())
     while True:
-        if frequencia == 'Semanal':
-            proxima_base += timedelta(weeks=1)
-        elif frequencia == 'Mensal':
-            proxima_base += timedelta(days=30)
-        elif frequencia == 'Trimestral':
-            proxima_base += timedelta(days=90)
-        else:
-            proxima_base += timedelta(days=1)
+        proxima_base += timedelta(days=1)
         cand = proxima_base.date()
         if cand > hoje:
             return cand
 
-def setup_cleaning_tasks():
-    if CleaningTask.query.count() == 0:
-        hoje = date.today()
-        tarefas = [
-            ("Limpeza Parcial da Câmara Fria", "15 dias", "Parcial", "Agendar em Terça/Quinta, evitando dias 1–4 do mês."),
-            ("Limpeza Geral da Câmara Fria", "40 dias", "Geral", "Higienização completa: chão, paredes, paletes, prateleiras, barras."),
-            ("Limpeza de Expositores do Açougue", "Mensal", "Mensal", "Realizar após o expediente uma vez por mês."),
-            ("Limpeza da Caixa de Gordura", "Semanal", "Semanal", "Agendar entre quinta e sexta-feira."),
-        ]
-        for nome, freq, tipo, obs in tarefas:
-            ultima_data = hoje - timedelta(days=1)
-            proxima_data = calcular_proxima_prevista(ultima_data, freq, tipo, nome)
-            new_task = CleaningTask()
-            new_task.nome_limpeza = nome
-            new_task.frequencia = freq
-            new_task.tipo = tipo
-            new_task.ultima_data = ultima_data
-            new_task.proxima_data = proxima_data
-            new_task.observacao = obs
-            new_task.designados = "Equipe de Limpeza"
-            db.session.add(new_task)
-        db.session.commit()
+# ============================================================================
+# Funções auxiliares - Setup e migração
+# ============================================================================
 
-@bp.route('/cronograma', methods=['GET'])
-@login_required
-def cronograma():
-    if current_user.nivel not in ['operador', 'admin', 'DEV']:
-        flash('Acesso negado. Apenas Operadores e Administradores podem visualizar o cronograma.', 'danger')
-        return redirect(url_for('estoque.index'))
-    mapping = {
-        'Limpeza Diária Geral': (
-            'Limpeza Parcial da Câmara Fria', '15 dias', 'Parcial',
-            'Agendar em Terça/Quinta, evitando dias 1–4 do mês.'
-        ),
-        'Limpeza Parcial (Máquinas e Bancadas)': (
-            'Limpeza Geral da Câmara Fria', '40 dias', 'Geral',
-            'Higienização completa: chão, paredes, paletes, prateleiras, barras.'
-        ),
-        'Limpeza Completa da Unidade': (
-            'Limpeza de Expositores do Açougue', 'Mensal', 'Mensal',
-            'Realizar após o expediente uma vez por mês.'
-        ),
-    }
+def _ensure_default_tasks():
+    """Garante que as tarefas padrão existam no banco"""
     atualizados = False
-    for antigo, novo in mapping.items():
+    
+    # Migração de nomes antigos para novos
+    for antigo, novo in TASK_MAPPING.items():
         tarefa = CleaningTask.query.filter_by(nome_limpeza=antigo).first()
         if tarefa:
             tarefa.nome_limpeza = novo[0]
             tarefa.frequencia = novo[1]
             tarefa.tipo = novo[2]
             tarefa.observacao = novo[3]
-            tarefa.proxima_data = calcular_proxima_prevista(tarefa.ultima_data, tarefa.frequencia, tarefa.tipo, tarefa.nome_limpeza)
+            tarefa.proxima_data = calcular_proxima_prevista(
+                tarefa.ultima_data, tarefa.frequencia, tarefa.tipo, tarefa.nome_limpeza
+            )
             atualizados = True
-    padroes = {
-        'Limpeza Parcial da Câmara Fria': ('15 dias', 'Parcial', 'Agendar em Terça/Quinta, evitando dias 1–4 do mês.'),
-        'Limpeza Geral da Câmara Fria': ('40 dias', 'Geral', 'Higienização completa: chão, paredes, paletes, prateleiras, barras.'),
-        'Limpeza de Expositores do Açougue': ('Mensal', 'Mensal', 'Realizar após o expediente uma vez por mês.'),
-        'Limpeza da Caixa de Gordura': ('Semanal', 'Semanal', 'Agendar entre quinta e sexta-feira.'),
-    }
-    for nome, defs in padroes.items():
+    
+    # Criar tarefas padrão se não existirem
+    hoje = date.today()
+    for nome, (freq, tipo, obs) in TASK_PADROES.items():
         tarefa = CleaningTask.query.filter_by(nome_limpeza=nome).first()
         if not tarefa:
-            hoje = date.today()
             nova = CleaningTask()
             nova.nome_limpeza = nome
-            nova.frequencia = defs[0]
-            nova.tipo = defs[1]
+            nova.frequencia = freq
+            nova.tipo = tipo
             nova.ultima_data = hoje - timedelta(days=1)
-            nova.proxima_data = calcular_proxima_prevista(nova.ultima_data, nova.frequencia, nova.tipo, nome)
-            nova.observacao = defs[2]
+            nova.proxima_data = calcular_proxima_prevista(nova.ultima_data, freq, tipo, nome)
+            nova.observacao = obs
             nova.designados = 'Equipe de Limpeza'
             db.session.add(nova)
             atualizados = True
         else:
-            # não sobrescrever frequência escolhida manualmente; apenas preencher observação se faltando
+            # Preencher observação se faltando
             if not tarefa.observacao:
-                tarefa.observacao = defs[2]
+                tarefa.observacao = obs
+    
     if atualizados:
         db.session.commit()
-    tipo_sel = request.args.get('tipo', '').strip()
-    tarefas_q = CleaningTask.query
-    allowed_types = {'Parcial','Geral','Mensal','Semanal'}
-    if tipo_sel in allowed_types:
-        tarefas_q = tarefas_q.filter(CleaningTask.tipo == tipo_sel)
-    tarefas = tarefas_q.order_by(CleaningTask.proxima_data.asc()).all()
+    
+    return atualizados
+
+
+def _calcular_ajustes_tarefas(tarefas):
+    """Calcula ajustes aplicados às datas das tarefas"""
     ajustes = {}
     for t in tarefas:
         base = proxima_base_sem_regra(t.ultima_data, t.frequencia, t.tipo, t.nome_limpeza)
         parts = []
-        if base.day in (1,2,3,4):
+        if base.day in (1, 2, 3, 4):
             parts.append('ajuste: início do mês (1–4)')
-        if base.weekday() not in (1,2,3,4):
+        if base.weekday() not in (1, 2, 3, 4):
             parts.append('ajuste: fora de terça–sexta')
         if parts:
             ajustes[t.id] = ' • '.join(parts)
-    page_hist = request.args.get('hpage', 1, type=int)
-    htipo = request.args.get('htipo', '').strip()
-    allowed_types = {'Parcial','Geral','Mensal','Semanal'}
-    q = CleaningHistory.query
-    if htipo in allowed_types:
-        nomes_por_tipo = [n for n, defs in padroes.items() if defs[1] == htipo]
-        if nomes_por_tipo:
-            q = q.filter(CleaningHistory.nome_limpeza.in_(nomes_por_tipo))
-    hist_pag = q.order_by(CleaningHistory.data_conclusao.desc()).paginate(page=page_hist, per_page=5, error_out=False)
-    
+    return ajustes
+
+
+def _calcular_status_tarefas(tarefas):
+    """Calcula status (normal, urgente, atrasada) para cada tarefa"""
     hoje = date.today()
+    for t in tarefas:
+        t.status = 'normal'
+        if t.proxima_data < hoje:
+            t.status = 'atrasada'
+        elif t.proxima_data <= hoje + timedelta(days=3):
+            t.status = 'urgente'
+
+
+def _calcular_kpis():
+    """Calcula KPIs para o dashboard"""
+    hoje = date.today()
+    
     total_tarefas = CleaningTask.query.count()
     tarefas_atrasadas = CleaningTask.query.filter(CleaningTask.proxima_data < hoje).count()
     tarefas_proximas = CleaningTask.query.filter(
@@ -222,6 +247,7 @@ def cronograma():
         CleaningTask.proxima_data <= hoje + timedelta(days=7)
     ).count()
     
+    # Calcular concluídas no mês
     primeiro_dia_mes = hoje.replace(day=1)
     if hoje.month == 12:
         ultimo_dia_mes = hoje.replace(year=hoje.year+1, month=1, day=1) - timedelta(days=1)
@@ -235,22 +261,81 @@ def cronograma():
     
     taxa_cumprimento = round((concluidas_mes / max(total_tarefas, 1)) * 100) if total_tarefas > 0 else 0
     
-    kpis = {
+    return {
         'total': total_tarefas,
         'atrasadas': tarefas_atrasadas,
         'proximas': tarefas_proximas,
         'concluidas_mes': concluidas_mes,
         'taxa': min(taxa_cumprimento, 100)
     }
+
+
+def _get_tarefas_filtradas(tipo_sel=None):
+    """Busca tarefas com filtro opcional por tipo"""
+    query = CleaningTask.query
+    if tipo_sel and tipo_sel in ALLOWED_TYPES:
+        query = query.filter(CleaningTask.tipo == tipo_sel)
+    return query.order_by(CleaningTask.proxima_data.asc()).all()
+
+
+def _get_historico_filtrado(page=1, htipo=None, per_page=5):
+    """Busca histórico com filtros e paginação"""
+    query = CleaningHistory.query
     
-    for t in tarefas:
-        t.status = 'normal'
-        if t.proxima_data < hoje:
-            t.status = 'atrasada'
-        elif t.proxima_data <= hoje + timedelta(days=3):
-            t.status = 'urgente'
+    if htipo and htipo in ALLOWED_TYPES:
+        nomes_por_tipo = [n for n, (_, tipo, _) in TASK_PADROES.items() if tipo == htipo]
+        if nomes_por_tipo:
+            query = query.filter(CleaningHistory.nome_limpeza.in_(nomes_por_tipo))
     
-    return render_template('cronograma.html', cronograma_tarefas=tarefas, historico_limpezas=hist_pag.items, historico_pagination=hist_pag, active_page='cronograma', htipo=htipo, ajustes=ajustes, tipo=tipo_sel, kpis=kpis, hoje=hoje)
+    return query.order_by(CleaningHistory.data_conclusao.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+
+
+def setup_cleaning_tasks():
+    """Função legada - usar _ensure_default_tasks()"""
+    return _ensure_default_tasks()
+
+@bp.route('/cronograma', methods=['GET'])
+@login_required
+def cronograma():
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
+        flash('Acesso negado. Apenas Operadores e Administradores podem visualizar o cronograma.', 'danger')
+        return redirect(url_for('estoque.index'))
+    
+    # Garantir que tarefas padrão existam
+    _ensure_default_tasks()
+    
+    # Parâmetros de filtro
+    tipo_sel = request.args.get('tipo', '').strip()
+    page_hist = request.args.get('hpage', 1, type=int)
+    htipo = request.args.get('htipo', '').strip()
+    
+    # Buscar dados
+    tarefas = _get_tarefas_filtradas(tipo_sel)
+    ajustes = _calcular_ajustes_tarefas(tarefas)
+    _calcular_status_tarefas(tarefas)
+    
+    # Histórico
+    hist_pag = _get_historico_filtrado(page_hist, htipo, per_page=5)
+    
+    # KPIs
+    kpis = _calcular_kpis()
+    
+    hoje = date.today()
+    
+    return render_template(
+        'cronograma.html',
+        cronograma_tarefas=tarefas,
+        historico_limpezas=hist_pag.items,
+        historico_pagination=hist_pag,
+        active_page='cronograma',
+        htipo=htipo,
+        ajustes=ajustes,
+        tipo=tipo_sel,
+        kpis=kpis,
+        hoje=hoje
+    )
 
 @bp.route('/cronograma/salvar', methods=['POST'])
 @login_required

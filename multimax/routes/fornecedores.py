@@ -5,13 +5,12 @@ from ..models import Fornecedor, Produto
 
 bp = Blueprint('fornecedores', __name__, url_prefix='/fornecedores')
 
-@bp.route('/')
-@login_required
-def index():
-    if current_user.nivel not in ['operador', 'admin', 'DEV']:
-        flash('Você não tem permissão para acessar esta página.', 'danger')
-        return redirect(url_for('home.index'))
-    search = request.args.get('busca', '').strip()
+# ============================================================================
+# Funções auxiliares
+# ============================================================================
+
+def _get_fornecedores_filtrados(search: str = ''):
+    """Busca fornecedores com filtro de busca"""
     query = Fornecedor.query
     if search:
         query = query.filter(
@@ -19,7 +18,23 @@ def index():
             (Fornecedor.cnpj.contains(search)) |
             (Fornecedor.email.contains(search))
         )
-    fornecedores = query.order_by(Fornecedor.nome.asc()).all()
+    return query.order_by(Fornecedor.nome.asc()).all()
+
+
+# ============================================================================
+# Rotas
+# ============================================================================
+
+@bp.route('/')
+@login_required
+def index():
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
+        flash('Você não tem permissão para acessar esta página.', 'danger')
+        return redirect(url_for('home.index'))
+    
+    search = request.args.get('busca', '').strip()
+    fornecedores = _get_fornecedores_filtrados(search)
+    
     return render_template('fornecedores.html', fornecedores=fornecedores, busca=search, active_page='fornecedores')
 
 @bp.route('/adicionar', methods=['GET', 'POST'])

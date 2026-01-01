@@ -90,7 +90,7 @@
                     <a href="{{ url_for('ajuda.artigo', id=article.id) }}" class="mm-btn mm-btn-outline mm-btn-sm">
                         <i class="bi bi-eye"></i> Ler
                     </a>
-                    {% if current_user.nivel == 'admin' %}
+                    {% if current_user.nivel in ['admin', 'DEV'] %}
                     <a href="{{ url_for('ajuda.editar_artigo', id=article.id) }}" class="mm-btn mm-btn-outline mm-btn-sm">
                         <i class="bi bi-pencil"></i>
                     </a>

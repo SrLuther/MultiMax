@@ -9,8 +9,131 @@ from ..models import TemperatureLog, TemperatureLocation, TemperaturePhoto
 
 bp = Blueprint('temperatura', __name__, url_prefix='/temperatura')
 
+# ============================================================================
+# Funções auxiliares
+# ============================================================================
+
 def _now():
+    """Retorna datetime atual com timezone"""
     return datetime.now(ZoneInfo('America/Sao_Paulo'))
+
+
+def _parse_date_safe(date_str: str) -> datetime | None:
+    """Parse seguro de data"""
+    if not date_str:
+        return None
+    try:
+        return datetime.strptime(date_str, '%Y-%m-%d')
+    except ValueError:
+        return None
+
+
+def _calcular_temp_pct(reg: TemperatureLog):
+    """Calcula percentual da temperatura no range"""
+    try:
+        rng = float((reg.temp_max or 0.0)) - float((reg.temp_min or 0.0))
+        if rng > 0:
+            pct = (float(reg.temperatura or 0.0) - float(reg.temp_min or 0.0)) / rng * 100.0
+        else:
+            pct = 0.0
+        pct = max(0.0, min(100.0, pct))
+        reg.temp_pct = round(pct)
+    except Exception:
+        reg.temp_pct = 0
+
+
+def _get_registros_filtrados(page: int = 1, local_filter: str = '', tipo_filter: str = '',
+                              data_inicio: str = '', data_fim: str = '', apenas_alertas: bool = False,
+                              apenas_com_foto: bool = False, per_page: int = 10):
+    """Busca registros de temperatura com filtros"""
+    query = TemperatureLog.query
+    
+    if local_filter:
+        query = query.filter(TemperatureLog.local == local_filter)
+    
+    dt_ini = _parse_date_safe(data_inicio)
+    if dt_ini:
+        query = query.filter(TemperatureLog.data_registro >= dt_ini)
+    
+    if data_fim:
+        dt_fim = _parse_date_safe(data_fim)
+        if dt_fim:
+            query = query.filter(TemperatureLog.data_registro < dt_fim + timedelta(days=1))
+    
+    if apenas_alertas:
+        query = query.filter(TemperatureLog.alerta.is_(True))
+    
+    if tipo_filter:
+        locs_tipo = TemperatureLocation.query.filter(
+            TemperatureLocation.ativo.is_(True), 
+            TemperatureLocation.tipo == tipo_filter
+        ).all()
+        nomes_tipo = [l.nome for l in locs_tipo]
+        if nomes_tipo:
+            query = query.filter(TemperatureLog.local.in_(nomes_tipo))
+    
+    if apenas_com_foto:
+        try:
+            query = query.filter(TemperatureLog.fotos.any())
+        except Exception:
+            pass
+    
+    query = query.order_by(TemperatureLog.data_registro.desc())
+    return query.paginate(page=page, per_page=per_page, error_out=False)
+
+
+def _enrich_registros(registros):
+    """Adiciona percentual calculado aos registros"""
+    for reg in registros:
+        _calcular_temp_pct(reg)
+
+
+def _get_ultimos_por_local(locais):
+    """Busca último registro de temperatura por local"""
+    ultimos_por_local = {}
+    try:
+        for l in locais:
+            last = TemperatureLog.query.filter(
+                TemperatureLog.local == l.nome
+            ).order_by(TemperatureLog.data_registro.desc()).first()
+            if last:
+                ultimos_por_local[l.nome] = {
+                    'valor': float(last.temperatura or 0.0),
+                    'min': float(last.temp_min or (l.temp_min or 0.0)),
+                    'max': float(last.temp_max or (l.temp_max or 0.0)),
+                    'alerta': bool(last.alerta),
+                    'data': last.data_registro,
+                }
+    except Exception:
+        pass
+    return ultimos_por_local
+
+
+def _get_kpis_temperatura():
+    """Calcula KPIs de temperatura"""
+    now = _now()
+    return {
+        'total_registros': TemperatureLog.query.count(),
+        'total_alertas': TemperatureLog.query.filter_by(alerta=True).count(),
+        'ultimas_24h': TemperatureLog.query.filter(
+            TemperatureLog.data_registro >= now - timedelta(hours=24)
+        ).count(),
+    }
+
+
+def _get_date_strings():
+    """Retorna strings de data formatadas"""
+    now = _now()
+    return {
+        'today_str': now.strftime('%Y-%m-%d'),
+        'seven_start_str': (now - timedelta(days=6)).strftime('%Y-%m-%d'),
+        'thirty_start_str': (now - timedelta(days=29)).strftime('%Y-%m-%d'),
+    }
+
+
+# ============================================================================
+# Rotas
+# ============================================================================
 
 @bp.route('/', methods=['GET'], strict_slashes=False)
 @login_required
@@ -23,79 +146,18 @@ def index():
     apenas_alertas = request.args.get('alertas', '') == '1'
     apenas_com_foto = request.args.get('com_foto', '') == '1'
     
-    query = TemperatureLog.query
-    if local_filter:
-        query = query.filter(TemperatureLog.local == local_filter)
-    if data_inicio:
-        try:
-            dt_ini = datetime.strptime(data_inicio, '%Y-%m-%d')
-            query = query.filter(TemperatureLog.data_registro >= dt_ini)
-        except ValueError:
-            pass
-    if data_fim:
-        try:
-            dt_fim = datetime.strptime(data_fim, '%Y-%m-%d') + timedelta(days=1)
-            query = query.filter(TemperatureLog.data_registro < dt_fim)
-        except ValueError:
-            pass
-    if apenas_alertas:
-        query = query.filter(TemperatureLog.alerta.is_(True))
-    if tipo_filter:
-        locs_tipo = TemperatureLocation.query.filter(TemperatureLocation.ativo.is_(True), TemperatureLocation.tipo == tipo_filter).all()
-        nomes_tipo = [l.nome for l in locs_tipo]
-        if nomes_tipo:
-            query = query.filter(TemperatureLog.local.in_(nomes_tipo))
-    if apenas_com_foto:
-        try:
-            query = query.filter(TemperatureLog.fotos.any())
-        except Exception:
-            pass
-    
-    query = query.order_by(TemperatureLog.data_registro.desc())
-    per_page = int(current_app.config.get('PER_PAGE', 10))
-    registros_pag = query.paginate(page=page, per_page=per_page, error_out=False)
-    try:
-        for reg in registros_pag.items:
-            rng = float((reg.temp_max or 0.0)) - float((reg.temp_min or 0.0))
-            if rng > 0:
-                pct = (float(reg.temperatura or 0.0) - float(reg.temp_min or 0.0)) / rng * 100.0
-            else:
-                pct = 0.0
-            pct = max(0.0, min(100.0, pct))
-            try:
-                reg.temp_pct = round(pct)
-            except Exception:
-                reg.temp_pct = 0
-    except Exception:
-        pass
+    registros_pag = _get_registros_filtrados(
+        page, local_filter, tipo_filter, data_inicio, data_fim,
+        apenas_alertas, apenas_com_foto
+    )
+    _enrich_registros(registros_pag.items)
     
     locais = TemperatureLocation.query.filter_by(ativo=True).order_by(TemperatureLocation.nome).all()
     tipos = sorted(list({(l.tipo or '').strip() for l in locais if l.tipo}))
-    ultimos_por_local = {}
-    try:
-        for l in locais:
-            last = TemperatureLog.query.filter(TemperatureLog.local == l.nome).order_by(TemperatureLog.data_registro.desc()).first()
-            if last:
-                ultimos_por_local[l.nome] = {
-                    'valor': float(last.temperatura or 0.0),
-                    'min': float(last.temp_min or (l.temp_min or 0.0)),
-                    'max': float(last.temp_max or (l.temp_max or 0.0)),
-                    'alerta': bool(last.alerta),
-                    'data': last.data_registro,
-                }
-    except Exception:
-        ultimos_por_local = {}
+    ultimos_por_local = _get_ultimos_por_local(locais)
+    kpis = _get_kpis_temperatura()
+    date_strings = _get_date_strings()
     
-    total_registros = TemperatureLog.query.count()
-    total_alertas = TemperatureLog.query.filter_by(alerta=True).count()
-    ultimas_24h = TemperatureLog.query.filter(
-        TemperatureLog.data_registro >= _now() - timedelta(hours=24)
-    ).count()
-    
-    today_str = _now().strftime('%Y-%m-%d')
-    seven_start_str = (_now() - timedelta(days=6)).strftime('%Y-%m-%d')
-    thirty_start_str = (_now() - timedelta(days=29)).strftime('%Y-%m-%d')
-
     return render_template(
         'temperatura.html',
         active_page='temperatura',
@@ -108,14 +170,10 @@ def index():
         data_fim=data_fim,
         apenas_alertas=apenas_alertas,
         apenas_com_foto=apenas_com_foto,
-        total_registros=total_registros,
-        total_alertas=total_alertas,
-        ultimas_24h=ultimas_24h,
         tipos=tipos,
         ultimos_por_local=ultimos_por_local,
-        today_str=today_str,
-        seven_start_str=seven_start_str,
-        thirty_start_str=thirty_start_str
+        **kpis,
+        **date_strings
     )
 
 @bp.route('/registrar', methods=['POST'], strict_slashes=False)

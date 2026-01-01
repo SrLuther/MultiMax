@@ -62,7 +62,7 @@
             <button class="btn btn-primary btn-sm" type="submit">Salvar</button>
           </form>
           {% endif %}
-          {% if current_user.nivel == 'admin' %}
+          {% if current_user.nivel in ['admin', 'DEV'] %}
           <form method="post" action="{{ url_for('colaboradores.excluir_colaborador', id=c.id) }}" class="d-inline" onsubmit="return confirm('Excluir {{ c.name }}?')">
             <button class="btn btn-danger btn-sm" type="submit">Excluir</button>
           </form>

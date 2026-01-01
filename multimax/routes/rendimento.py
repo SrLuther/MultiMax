@@ -7,27 +7,45 @@ from sqlalchemy import func, desc
 
 bp = Blueprint('rendimento', __name__, url_prefix='/rendimento')
 
+# ============================================================================
+# Funções auxiliares
+# ============================================================================
+
+def _get_analises_filtradas(reception_id: int | None = None, limit: int = 100):
+    """Busca análises de rendimento com filtro"""
+    query = YieldAnalysis.query
+    if reception_id:
+        query = query.filter_by(reception_id=reception_id)
+    return query.order_by(desc(YieldAnalysis.data_analise)).limit(limit).all()
+
+
+def _get_kpis_rendimento():
+    """Calcula KPIs de rendimento"""
+    return {
+        'rendimento_medio': db.session.query(func.avg(YieldAnalysis.rendimento_percentual)).scalar() or 0,
+        'total_analises': YieldAnalysis.query.count(),
+    }
+
+
+# ============================================================================
+# Rotas
+# ============================================================================
+
 @bp.route('/', methods=['GET'])
 @login_required
 def index():
     reception_id = request.args.get('reception_id', type=int)
     
-    query = YieldAnalysis.query
-    if reception_id:
-        query = query.filter_by(reception_id=reception_id)
+    analises = _get_analises_filtradas(reception_id)
+    kpis = _get_kpis_rendimento()
     
-    analises = query.order_by(desc(YieldAnalysis.data_analise)).limit(100).all()
-    
-    # Estatísticas
-    rendimento_medio = db.session.query(func.avg(YieldAnalysis.rendimento_percentual)).scalar() or 0
-    total_analises = YieldAnalysis.query.count()
-    
-    return render_template('rendimento/index.html',
-                         analises=analises,
-                         reception_id=reception_id,
-                         rendimento_medio=rendimento_medio,
-                         total_analises=total_analises,
-                         active_page='rendimento')
+    return render_template(
+        'rendimento/index.html',
+        analises=analises,
+        reception_id=reception_id,
+        active_page='rendimento',
+        **kpis
+    )
 
 @bp.route('/analisar/<int:reception_id>', methods=['POST'])
 @login_required

@@ -7,6 +7,35 @@ from sqlalchemy import func
 
 bp = Blueprint('cortes', __name__, url_prefix='/cortes')
 
+# ============================================================================
+# Funções auxiliares
+# ============================================================================
+
+def _get_cortes_filtrados(categoria: str = '', busca: str = ''):
+    """Busca cortes com filtros"""
+    query = MeatCut.query.filter_by(ativo=True)
+    if categoria:
+        query = query.filter_by(categoria=categoria)
+    if busca:
+        query = query.filter(MeatCut.nome.ilike(f'%{busca}%'))
+    return query.order_by(MeatCut.categoria, MeatCut.nome).all()
+
+
+def _get_kpis_cortes():
+    """Calcula KPIs de cortes"""
+    hoje = datetime.now(ZoneInfo('America/Sao_Paulo')).date()
+    return {
+        'total_cortes': MeatCut.query.filter_by(ativo=True).count(),
+        'execucoes_hoje': MeatCutExecution.query.filter(
+            func.date(MeatCutExecution.data_corte) == hoje
+        ).count(),
+    }
+
+
+# ============================================================================
+# Rotas
+# ============================================================================
+
 @bp.route('/', methods=['GET'])
 @login_required
 def index():
@@ -17,27 +46,17 @@ def index():
     categoria = request.args.get('categoria', '').strip()
     busca = request.args.get('busca', '').strip()
     
-    query = MeatCut.query.filter_by(ativo=True)
-    if categoria:
-        query = query.filter_by(categoria=categoria)
-    if busca:
-        query = query.filter(MeatCut.nome.ilike(f'%{busca}%'))
+    cortes = _get_cortes_filtrados(categoria, busca)
+    kpis = _get_kpis_cortes()
     
-    cortes = query.order_by(MeatCut.categoria, MeatCut.nome).all()
-    
-    # Estatísticas
-    total_cortes = MeatCut.query.filter_by(ativo=True).count()
-    execucoes_hoje = MeatCutExecution.query.filter(
-        func.date(MeatCutExecution.data_corte) == datetime.now(ZoneInfo('America/Sao_Paulo')).date()
-    ).count()
-    
-    return render_template('cortes/index.html', 
-                         cortes=cortes, 
-                         categoria=categoria,
-                         busca=busca,
-                         total_cortes=total_cortes,
-                         execucoes_hoje=execucoes_hoje,
-                         active_page='cortes')
+    return render_template(
+        'cortes/index.html', 
+        cortes=cortes, 
+        categoria=categoria,
+        busca=busca,
+        active_page='cortes',
+        **kpis
+    )
 
 @bp.route('/novo', methods=['GET', 'POST'])
 @login_required

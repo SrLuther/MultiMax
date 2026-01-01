@@ -5,6 +5,10 @@ from ..models import Recipe, RecipeIngredient, Produto, IngredientCatalog
 
 bp = Blueprint('receitas', __name__, url_prefix='/receitas')
 
+# ============================================================================
+# Funções auxiliares
+# ============================================================================
+
 def _calcular_custo_receita(receita_id):
     ingredientes = RecipeIngredient.query.filter_by(recipe_id=receita_id).all()
     custo_total = 0.0
@@ -18,6 +22,31 @@ def _calcular_custo_receita(receita_id):
         elif ing.custo_unitario:
             custo_total += ing.custo_unitario
     return custo_total
+
+def _get_receitas_filtradas(q: str = '', page: int = 1, per_page: int = 10):
+    """Busca receitas com filtro e paginação"""
+    query = Recipe.query
+    if q:
+        query = query.filter(Recipe.nome.contains(q))
+    query = query.order_by(Recipe.created_at.desc())
+    return query.paginate(page=page, per_page=per_page, error_out=False)
+
+
+def _get_receita_detalhes(rid: int) -> tuple[Recipe | None, list, float]:
+    """Busca detalhes de uma receita (receita, ingredientes, custo)"""
+    selecionada = Recipe.query.get(rid)
+    if not selecionada:
+        return None, [], 0.0
+    
+    ingredientes = RecipeIngredient.query.filter_by(recipe_id=selecionada.id).order_by(RecipeIngredient.id.asc()).all()
+    custo_total = _calcular_custo_receita(selecionada.id)
+    
+    return selecionada, ingredientes, custo_total
+
+
+# ============================================================================
+# Rotas
+# ============================================================================
 
 @bp.route('/', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
@@ -66,25 +95,26 @@ def index():
         db.session.commit()
         flash('Receita cadastrada com sucesso.', 'success')
         return redirect(url_for('receitas.index'))
+    
     rid = request.args.get('id', type=int)
     q = (request.args.get('q') or '').strip()
     page = request.args.get('page', 1, type=int)
-    query = Recipe.query
-    if q:
-        query = query.filter(Recipe.nome.contains(q))
-    query = query.order_by(Recipe.created_at.desc())
-    per_page = int(current_app.config.get('PER_PAGE', 10))
-    receitas_pag = query.paginate(page=page, per_page=per_page, error_out=False)
-    selecionada = None
-    ingredientes = []
-    custo_total = 0.0
-    if rid:
-        selecionada = Recipe.query.get(rid)
-        if selecionada:
-            ingredientes = RecipeIngredient.query.filter_by(recipe_id=selecionada.id).order_by(RecipeIngredient.id.asc()).all()
-            custo_total = _calcular_custo_receita(selecionada.id)
+    
+    receitas_pag = _get_receitas_filtradas(q, page)
+    selecionada, ingredientes, custo_total = _get_receita_detalhes(rid) if rid else (None, [], 0.0)
     produtos = Produto.query.order_by(Produto.nome.asc()).all()
-    return render_template('receitas.html', active_page='receitas', receitas=receitas_pag.items, receitas_pag=receitas_pag, selecionada=selecionada, ingredientes=ingredientes, q=q, produtos=produtos, custo_total=custo_total)
+    
+    return render_template(
+        'receitas.html',
+        active_page='receitas',
+        receitas=receitas_pag.items,
+        receitas_pag=receitas_pag,
+        selecionada=selecionada,
+        ingredientes=ingredientes,
+        q=q,
+        produtos=produtos,
+        custo_total=custo_total
+    )
 
 @bp.route('/editar/<int:id>', methods=['POST'], strict_slashes=False)
 @login_required

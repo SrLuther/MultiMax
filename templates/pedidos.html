@@ -188,7 +188,7 @@
                                     </button>
                                 </form>
                                 {% endif %}
-                                {% if current_user.nivel == 'admin' %}
+                                {% if current_user.nivel in ['admin', 'DEV'] %}
                                 <form method="post" action="{{ url_for('pedidos.excluir', id=p.id) }}" style="display: inline;" onsubmit="return confirm('Excluir este pedido?')">
                                     <button class="mm-btn mm-btn-ghost mm-btn-sm" style="color: var(--mm-danger);" type="submit" title="Excluir">
                                         <i class="bi bi-trash"></i>

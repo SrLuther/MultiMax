@@ -17,7 +17,7 @@
 </div>
 
 <div class="temperatura-actions mm-flex mm-gap-2 mm-mt-3" style="flex-wrap: wrap;">
-    {% if current_user.nivel == 'admin' %}
+    {% if current_user.nivel in ['admin', 'DEV'] %}
     <a href="{{ url_for('temperatura.locais') }}" class="mm-btn mm-btn-outline">
         <i class="bi bi-geo-alt"></i>
         Gerenciar Locais

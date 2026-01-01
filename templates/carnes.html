@@ -584,7 +584,7 @@ F_updateTotal();
                                 <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('carnes.relatorio', id=it.r.id) }}">
                                     <i class="bi bi-file-text"></i> Relatório
                                 </a>
-                                {% if current_user.nivel == 'admin' %}
+                                {% if current_user.nivel in ['admin', 'DEV'] %}
                                 <form method="post" action="{{ url_for('carnes.excluir', id=it.r.id) }}" onsubmit="return confirm('Excluir esta recepção?')" style="display: inline;">
                                     <button type="submit" class="mm-btn mm-btn-danger mm-btn-sm">
                                         <i class="bi bi-trash"></i>

@@ -299,7 +299,7 @@
             </h3>
         </div>
         <div class="mm-card-body">
-            {% if current_user.nivel == 'admin' %}
+            {% if current_user.nivel in ['admin', 'DEV'] %}
             <form class="mm-feriado-form mm-mb-6" method="post" action="{{ url_for('colaboradores.feriado_criar') }}">
                 <div class="mm-form-row">
                     <div class="mm-form-group">

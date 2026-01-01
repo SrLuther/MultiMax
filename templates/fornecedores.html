@@ -151,7 +151,7 @@
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 {% endif %}
-                                {% if current_user.nivel == 'admin' %}
+                                {% if current_user.nivel in ['admin', 'DEV'] %}
                                 <a href="{{ url_for('fornecedores.excluir', id=f.id) }}" class="mm-btn mm-btn-ghost mm-btn-sm mm-btn-icon" style="color: var(--mm-danger);" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este fornecedor?')">
                                     <i class="bi bi-trash"></i>
                                 </a>

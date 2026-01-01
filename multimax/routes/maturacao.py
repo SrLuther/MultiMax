@@ -7,20 +7,22 @@ from sqlalchemy import func, desc
 
 bp = Blueprint('maturacao', __name__, url_prefix='/maturacao')
 
-@bp.route('/', methods=['GET'])
-@login_required
-def index():
-    status = request.args.get('status', '').strip()
-    
+# ============================================================================
+# Funções auxiliares
+# ============================================================================
+
+def _get_maturacoes_filtradas(status: str = ''):
+    """Busca maturações com filtro"""
     query = MeatMaturation.query
     if status:
         query = query.filter_by(status=status)
     else:
         query = query.filter_by(status='maturacao')
-    
-    maturacoes = query.order_by(MeatMaturation.data_inicio).all()
-    
-    # Calcular dias decorridos e status
+    return query.order_by(MeatMaturation.data_inicio).all()
+
+
+def _enrich_maturacoes(maturacoes):
+    """Adiciona cálculos de dias e status às maturações"""
     hoje = datetime.now(ZoneInfo('America/Sao_Paulo'))
     for mat in maturacoes:
         if mat.data_inicio:
@@ -35,11 +37,26 @@ def index():
                     mat.status_alerta = 'atencao'
                 else:
                     mat.status_alerta = 'normal'
+
+
+# ============================================================================
+# Rotas
+# ============================================================================
+
+@bp.route('/', methods=['GET'])
+@login_required
+def index():
+    status = request.args.get('status', '').strip()
     
-    return render_template('maturacao/index.html',
-                         maturacoes=maturacoes,
-                         status=status,
-                         active_page='maturacao')
+    maturacoes = _get_maturacoes_filtradas(status)
+    _enrich_maturacoes(maturacoes)
+    
+    return render_template(
+        'maturacao/index.html',
+        maturacoes=maturacoes,
+        status=status,
+        active_page='maturacao'
+    )
 
 @bp.route('/nova', methods=['GET', 'POST'])
 @login_required

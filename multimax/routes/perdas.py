@@ -7,8 +7,9 @@ from ..models import LossRecord, Produto
 
 bp = Blueprint('perdas', __name__, url_prefix='/perdas')
 
-def _now():
-    return datetime.now(ZoneInfo('America/Sao_Paulo'))
+# ============================================================================
+# Constantes
+# ============================================================================
 
 MOTIVOS_PERDA = [
     ('vencimento', 'Vencimento'),
@@ -21,6 +22,65 @@ MOTIVOS_PERDA = [
     ('outro', 'Outro')
 ]
 
+# ============================================================================
+# Funções auxiliares
+# ============================================================================
+
+def _now():
+    """Retorna datetime atual com timezone"""
+    return datetime.now(ZoneInfo('America/Sao_Paulo'))
+
+
+def _parse_date_safe(date_str: str) -> datetime | None:
+    """Parse seguro de data"""
+    if not date_str:
+        return None
+    try:
+        return datetime.strptime(date_str, '%Y-%m-%d')
+    except ValueError:
+        return None
+
+
+def _get_registros_filtrados(page: int = 1, motivo_filter: str = '', 
+                              data_inicio: str = '', data_fim: str = '', per_page: int = 10):
+    """Busca registros de perdas com filtros e paginação"""
+    query = LossRecord.query
+    
+    if motivo_filter:
+        query = query.filter(LossRecord.motivo == motivo_filter)
+    
+    dt_ini = _parse_date_safe(data_inicio)
+    if dt_ini:
+        query = query.filter(LossRecord.data_registro >= dt_ini)
+    
+    if data_fim:
+        dt_fim = _parse_date_safe(data_fim)
+        if dt_fim:
+            query = query.filter(LossRecord.data_registro < dt_fim + timedelta(days=1))
+    
+    query = query.order_by(LossRecord.data_registro.desc())
+    return query.paginate(page=page, per_page=per_page, error_out=False)
+
+
+def _get_kpis_perdas():
+    """Calcula KPIs de perdas"""
+    hoje = date.today()
+    inicio_mes = date(hoje.year, hoje.month, 1)
+    
+    return {
+        'total_registros': LossRecord.query.count(),
+        'custo_total': db.session.query(db.func.sum(LossRecord.custo_estimado)).scalar() or 0,
+        'custo_mes': db.session.query(db.func.sum(LossRecord.custo_estimado)).filter(
+            LossRecord.data_registro >= inicio_mes
+        ).scalar() or 0,
+        'registros_mes': LossRecord.query.filter(LossRecord.data_registro >= inicio_mes).count(),
+    }
+
+
+# ============================================================================
+# Rotas
+# ============================================================================
+
 @bp.route('/', methods=['GET'], strict_slashes=False)
 @login_required
 def index():
@@ -29,37 +89,8 @@ def index():
     data_inicio = request.args.get('data_inicio', '').strip()
     data_fim = request.args.get('data_fim', '').strip()
     
-    query = LossRecord.query
-    if motivo_filter:
-        query = query.filter(LossRecord.motivo == motivo_filter)
-    if data_inicio:
-        try:
-            dt_ini = datetime.strptime(data_inicio, '%Y-%m-%d')
-            query = query.filter(LossRecord.data_registro >= dt_ini)
-        except ValueError:
-            pass
-    if data_fim:
-        try:
-            dt_fim = datetime.strptime(data_fim, '%Y-%m-%d') + timedelta(days=1)
-            query = query.filter(LossRecord.data_registro < dt_fim)
-        except ValueError:
-            pass
-    
-    query = query.order_by(LossRecord.data_registro.desc())
-    per_page = int(current_app.config.get('PER_PAGE', 10))
-    registros_pag = query.paginate(page=page, per_page=per_page, error_out=False)
-    
-    total_registros = LossRecord.query.count()
-    custo_total = db.session.query(db.func.sum(LossRecord.custo_estimado)).scalar() or 0
-    
-    hoje = date.today()
-    inicio_mes = date(hoje.year, hoje.month, 1)
-    custo_mes = db.session.query(db.func.sum(LossRecord.custo_estimado)).filter(
-        LossRecord.data_registro >= inicio_mes
-    ).scalar() or 0
-    
-    registros_mes = LossRecord.query.filter(LossRecord.data_registro >= inicio_mes).count()
-    
+    registros_pag = _get_registros_filtrados(page, motivo_filter, data_inicio, data_fim)
+    kpis = _get_kpis_perdas()
     produtos = Produto.query.order_by(Produto.nome).all()
     
     return render_template(
@@ -72,10 +103,7 @@ def index():
         data_fim=data_fim,
         motivos=MOTIVOS_PERDA,
         produtos=produtos,
-        total_registros=total_registros,
-        custo_total=custo_total,
-        custo_mes=custo_mes,
-        registros_mes=registros_mes
+        **kpis
     )
 
 @bp.route('/registrar', methods=['POST'], strict_slashes=False)

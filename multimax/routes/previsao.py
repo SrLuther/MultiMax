@@ -5,6 +5,10 @@ from datetime import datetime, timedelta
 
 bp = Blueprint('previsao', __name__, url_prefix='/previsao')
 
+# ============================================================================
+# Funções auxiliares
+# ============================================================================
+
 def calcular_consumo_medio(produto_id: int, dias: int = 30) -> float:
     data_inicio = datetime.now() - timedelta(days=dias)
     saidas = Historico.query.filter(
@@ -76,6 +80,47 @@ def obter_tendencia(produto_id: int) -> str:
         return 'baixa'
     return 'estavel'
 
+def _calcular_status_previsao(dias_restantes: int | None) -> str:
+    """Calcula status baseado em dias restantes"""
+    if dias_restantes is None:
+        return 'ok'
+    if dias_restantes <= 7:
+        return 'critico'
+    elif dias_restantes <= 14:
+        return 'atencao'
+    return 'ok'
+
+
+def _processar_previsao_produto(produto: Produto) -> dict:
+    """Processa previsão para um produto"""
+    consumo_diario = calcular_consumo_medio(produto.id, 30)
+    dias_restantes = calcular_dias_restantes(produto, consumo_diario)
+    sugestao_compra = calcular_sugestao_compra(produto, consumo_diario, 30)
+    tendencia = obter_tendencia(produto.id)
+    status = _calcular_status_previsao(dias_restantes)
+    
+    return {
+        'produto': produto,
+        'consumo_diario': round(consumo_diario, 2),
+        'dias_restantes': dias_restantes,
+        'sugestao_compra': sugestao_compra,
+        'tendencia': tendencia,
+        'status': status
+    }
+
+
+def _organizar_previsoes_por_status(previsoes: list) -> tuple[list, list, list]:
+    """Organiza previsões por status"""
+    previsoes_criticas = [p for p in previsoes if p['status'] == 'critico']
+    previsoes_atencao = [p for p in previsoes if p['status'] == 'atencao']
+    previsoes_ok = [p for p in previsoes if p['status'] == 'ok']
+    return previsoes_criticas, previsoes_atencao, previsoes_ok
+
+
+# ============================================================================
+# Rotas
+# ============================================================================
+
 @bp.route('/')
 @login_required
 def index():
@@ -85,41 +130,18 @@ def index():
         return redirect(url_for('home.index'))
     
     produtos = Produto.query.order_by(Produto.nome.asc()).all()
-    previsoes = []
+    previsoes = [_processar_previsao_produto(p) for p in produtos]
     
-    for produto in produtos:
-        consumo_diario = calcular_consumo_medio(produto.id, 30)
-        dias_restantes = calcular_dias_restantes(produto, consumo_diario)
-        sugestao_compra = calcular_sugestao_compra(produto, consumo_diario, 30)
-        tendencia = obter_tendencia(produto.id)
-        
-        status = 'ok'
-        if dias_restantes is not None:
-            if dias_restantes <= 7:
-                status = 'critico'
-            elif dias_restantes <= 14:
-                status = 'atencao'
-        
-        previsoes.append({
-            'produto': produto,
-            'consumo_diario': round(consumo_diario, 2),
-            'dias_restantes': dias_restantes,
-            'sugestao_compra': sugestao_compra,
-            'tendencia': tendencia,
-            'status': status
-        })
-    
-    previsoes_criticas = [p for p in previsoes if p['status'] == 'critico']
-    previsoes_atencao = [p for p in previsoes if p['status'] == 'atencao']
-    previsoes_ok = [p for p in previsoes if p['status'] == 'ok']
-    
+    previsoes_criticas, previsoes_atencao, previsoes_ok = _organizar_previsoes_por_status(previsoes)
     previsoes_ordenadas = previsoes_criticas + previsoes_atencao + previsoes_ok
     
-    return render_template('previsao.html', 
-                         previsoes=previsoes_ordenadas, 
-                         total_criticos=len(previsoes_criticas),
-                         total_atencao=len(previsoes_atencao),
-                         active_page='previsao')
+    return render_template(
+        'previsao.html', 
+        previsoes=previsoes_ordenadas, 
+        total_criticos=len(previsoes_criticas),
+        total_atencao=len(previsoes_atencao),
+        active_page='previsao'
+    )
 
 @bp.route('/api/<int:produto_id>')
 @login_required

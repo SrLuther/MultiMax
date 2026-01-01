@@ -7,37 +7,64 @@ from sqlalchemy import func, desc
 
 bp = Blueprint('fornecedores_avaliacao', __name__, url_prefix='/fornecedores-avaliacao')
 
+# ============================================================================
+# Funções auxiliares
+# ============================================================================
+
+def _get_avaliacoes_filtradas(fornecedor_id: int | None = None, limit: int = 100):
+    """Busca avaliações com filtro"""
+    query = SupplierEvaluation.query
+    if fornecedor_id:
+        query = query.filter_by(fornecedor_id=fornecedor_id)
+    return query.order_by(desc(SupplierEvaluation.data_avaliacao)).limit(limit).all()
+
+
+def _calcular_medias_fornecedor(fornecedor: Fornecedor) -> dict | None:
+    """Calcula médias de avaliações de um fornecedor"""
+    avals = SupplierEvaluation.query.filter_by(fornecedor_id=fornecedor.id).all()
+    if not avals:
+        return None
+    
+    return {
+        'qualidade': sum(a.nota_qualidade for a in avals) / len(avals),
+        'preco': sum(a.nota_preco for a in avals) / len(avals),
+        'pontualidade': sum(a.nota_pontualidade for a in avals) / len(avals),
+        'atendimento': sum(a.nota_atendimento for a in avals) / len(avals),
+        'total': sum(a.nota_qualidade + a.nota_preco + a.nota_pontualidade + a.nota_atendimento for a in avals) / (len(avals) * 4)
+    }
+
+
+def _get_medias_fornecedores(fornecedores: list) -> dict:
+    """Calcula médias para todos os fornecedores"""
+    medias = {}
+    for forn in fornecedores:
+        media = _calcular_medias_fornecedor(forn)
+        if media:
+            medias[forn.id] = media
+    return medias
+
+
+# ============================================================================
+# Rotas
+# ============================================================================
+
 @bp.route('/', methods=['GET'])
 @login_required
 def index():
     fornecedor_id = request.args.get('fornecedor_id', type=int)
     
-    query = SupplierEvaluation.query
-    if fornecedor_id:
-        query = query.filter_by(fornecedor_id=fornecedor_id)
-    
-    avaliacoes = query.order_by(desc(SupplierEvaluation.data_avaliacao)).limit(100).all()
-    
-    # Calcular médias por fornecedor
+    avaliacoes = _get_avaliacoes_filtradas(fornecedor_id)
     fornecedores = Fornecedor.query.filter_by(ativo=True).all()
-    medias = {}
-    for forn in fornecedores:
-        avals = SupplierEvaluation.query.filter_by(fornecedor_id=forn.id).all()
-        if avals:
-            medias[forn.id] = {
-                'qualidade': sum(a.nota_qualidade for a in avals) / len(avals),
-                'preco': sum(a.nota_preco for a in avals) / len(avals),
-                'pontualidade': sum(a.nota_pontualidade for a in avals) / len(avals),
-                'atendimento': sum(a.nota_atendimento for a in avals) / len(avals),
-                'total': sum(a.nota_qualidade + a.nota_preco + a.nota_pontualidade + a.nota_atendimento for a in avals) / (len(avals) * 4)
-            }
+    medias = _get_medias_fornecedores(fornecedores)
     
-    return render_template('fornecedores_avaliacao/index.html',
-                         avaliacoes=avaliacoes,
-                         fornecedor_id=fornecedor_id,
-                         fornecedores=fornecedores,
-                         medias=medias,
-                         active_page='fornecedores_avaliacao')
+    return render_template(
+        'fornecedores_avaliacao/index.html',
+        avaliacoes=avaliacoes,
+        fornecedor_id=fornecedor_id,
+        fornecedores=fornecedores,
+        medias=medias,
+        active_page='fornecedores_avaliacao'
+    )
 
 @bp.route('/nova', methods=['GET', 'POST'])
 @login_required

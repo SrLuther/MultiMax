@@ -7,8 +7,52 @@ from ..models import PurchaseOrder, PurchaseOrderItem, Produto, Fornecedor
 
 bp = Blueprint('pedidos', __name__, url_prefix='/pedidos')
 
+# ============================================================================
+# Constantes
+# ============================================================================
+
+ALLOWED_STATUS = {'pendente', 'enviado', 'recebido', 'cancelado'}
+
+# ============================================================================
+# Funções auxiliares
+# ============================================================================
+
 def _now():
+    """Retorna datetime atual com timezone"""
     return datetime.now(ZoneInfo('America/Sao_Paulo'))
+
+
+def _get_pedidos_filtrados(page: int = 1, status_filter: str = '', fornecedor_filter: int | None = None, per_page: int = 10):
+    """Busca pedidos com filtros e paginação"""
+    query = PurchaseOrder.query
+    if status_filter:
+        query = query.filter(PurchaseOrder.status == status_filter)
+    if fornecedor_filter:
+        query = query.filter(PurchaseOrder.fornecedor_id == fornecedor_filter)
+    query = query.order_by(PurchaseOrder.data_criacao.desc())
+    return query.paginate(page=page, per_page=per_page, error_out=False)
+
+
+def _enrich_pedidos(pedidos):
+    """Enriquece lista de pedidos com objetos relacionados"""
+    for p in pedidos:
+        p.fornecedor_obj = Fornecedor.query.get(p.fornecedor_id)
+        p.itens = PurchaseOrderItem.query.filter_by(order_id=p.id).all()
+
+
+def _get_kpis_pedidos():
+    """Calcula KPIs de pedidos"""
+    return {
+        'total': PurchaseOrder.query.count(),
+        'pendentes': PurchaseOrder.query.filter_by(status='pendente').count(),
+        'enviados': PurchaseOrder.query.filter_by(status='enviado').count(),
+        'recebidos': PurchaseOrder.query.filter_by(status='recebido').count(),
+    }
+
+
+# ============================================================================
+# Rotas
+# ============================================================================
 
 @bp.route('/', methods=['GET'], strict_slashes=False)
 @login_required
@@ -17,26 +61,11 @@ def index():
     status_filter = request.args.get('status', '').strip()
     fornecedor_filter = request.args.get('fornecedor', '', type=int)
     
-    query = PurchaseOrder.query
-    if status_filter:
-        query = query.filter(PurchaseOrder.status == status_filter)
-    if fornecedor_filter:
-        query = query.filter(PurchaseOrder.fornecedor_id == fornecedor_filter)
-    
-    query = query.order_by(PurchaseOrder.data_criacao.desc())
-    per_page = int(current_app.config.get('PER_PAGE', 10))
-    pedidos_pag = query.paginate(page=page, per_page=per_page, error_out=False)
-    
-    for p in pedidos_pag.items:
-        p.fornecedor_obj = Fornecedor.query.get(p.fornecedor_id)
-        p.itens = PurchaseOrderItem.query.filter_by(order_id=p.id).all()
+    pedidos_pag = _get_pedidos_filtrados(page, status_filter, fornecedor_filter)
+    _enrich_pedidos(pedidos_pag.items)
     
     fornecedores = Fornecedor.query.filter_by(ativo=True).order_by(Fornecedor.nome).all()
-    
-    total_pedidos = PurchaseOrder.query.count()
-    pendentes = PurchaseOrder.query.filter_by(status='pendente').count()
-    enviados = PurchaseOrder.query.filter_by(status='enviado').count()
-    recebidos = PurchaseOrder.query.filter_by(status='recebido').count()
+    kpis = _get_kpis_pedidos()
     
     return render_template(
         'pedidos.html',
@@ -46,10 +75,7 @@ def index():
         fornecedores=fornecedores,
         status_filter=status_filter,
         fornecedor_filter=fornecedor_filter,
-        total_pedidos=total_pedidos,
-        pendentes=pendentes,
-        enviados=enviados,
-        recebidos=recebidos
+        **kpis
     )
 
 @bp.route('/novo', methods=['GET', 'POST'], strict_slashes=False)

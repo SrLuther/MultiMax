@@ -7,48 +7,70 @@ from sqlalchemy import func, desc
 
 bp = Blueprint('camara_fria', __name__, url_prefix='/camara-fria')
 
-@bp.route('/', methods=['GET'])
-@login_required
-def index():
-    localizacao = request.args.get('localizacao', '').strip()
-    
-    # Buscar todas as localizações de câmara fria
+# ============================================================================
+# Constantes
+# ============================================================================
+
+CAPACIDADE_PADRAO_KG = 10000.0
+
+# ============================================================================
+# Funções auxiliares
+# ============================================================================
+
+def _get_locais_camara_fria():
+    """Busca localizações de câmara fria"""
     locais = TemperatureLocation.query.filter_by(ativo=True, tipo='camara_fria').all()
     if not locais:
         # Se não houver locais cadastrados, usar valores padrão
         locais = [type('obj', (object,), {'nome': 'Câmara Fria Principal', 'temp_min': -18.0, 'temp_max': -12.0})()]
+    return locais
+
+
+def _calcular_ocupacao_local(local, capacidade_total: float = CAPACIDADE_PADRAO_KG) -> dict:
+    """Calcula ocupação de um local"""
+    lotes = ProductLot.query.filter_by(localizacao=local.nome, ativo=True).all()
+    capacidade_utilizada = sum(l.quantidade_atual for l in lotes)
+    percentual = (capacidade_utilizada / capacidade_total * 100) if capacidade_total > 0 else 0
     
-    ocupacoes = []
-    for local in locais:
-        # Calcular ocupação atual
-        lotes = ProductLot.query.filter_by(localizacao=local.nome, ativo=True).all()
-        capacidade_utilizada = sum(l.quantidade_atual for l in lotes)
-        
-        # Buscar capacidade total (pode ser configurável)
-        capacidade_total = 10000.0  # kg padrão - pode ser configurável
-        percentual = (capacidade_utilizada / capacidade_total * 100) if capacidade_total > 0 else 0
-        
-        # Buscar temperatura atual
-        temp_atual = None
-        temp_log = TemperatureLog.query.filter_by(local=local.nome).order_by(desc(TemperatureLog.data_registro)).first()
-        if temp_log:
-            temp_atual = temp_log.temperatura
-        
-        ocupacoes.append({
-            'localizacao': local.nome,
-            'capacidade_total': capacidade_total,
-            'capacidade_utilizada': capacidade_utilizada,
-            'percentual': percentual,
-            'temperatura_atual': temp_atual,
-            'temp_min': local.temp_min if hasattr(local, 'temp_min') else -18.0,
-            'temp_max': local.temp_max if hasattr(local, 'temp_max') else -12.0,
-            'lotes_count': len(lotes)
-        })
+    temp_atual = None
+    temp_log = TemperatureLog.query.filter_by(local=local.nome).order_by(desc(TemperatureLog.data_registro)).first()
+    if temp_log:
+        temp_atual = temp_log.temperatura
     
-    return render_template('camara_fria/index.html',
-                         ocupacoes=ocupacoes,
-                         localizacao=localizacao,
-                         active_page='camara_fria')
+    return {
+        'localizacao': local.nome,
+        'capacidade_total': capacidade_total,
+        'capacidade_utilizada': capacidade_utilizada,
+        'percentual': percentual,
+        'temperatura_atual': temp_atual,
+        'temp_min': local.temp_min if hasattr(local, 'temp_min') else -18.0,
+        'temp_max': local.temp_max if hasattr(local, 'temp_max') else -12.0,
+        'lotes_count': len(lotes)
+    }
+
+
+def _get_ocupacoes():
+    """Busca todas as ocupações de câmara fria"""
+    locais = _get_locais_camara_fria()
+    return [_calcular_ocupacao_local(local) for local in locais]
+
+
+# ============================================================================
+# Rotas
+# ============================================================================
+
+@bp.route('/', methods=['GET'])
+@login_required
+def index():
+    localizacao = request.args.get('localizacao', '').strip()
+    ocupacoes = _get_ocupacoes()
+    
+    return render_template(
+        'camara_fria/index.html',
+        ocupacoes=ocupacoes,
+        localizacao=localizacao,
+        active_page='camara_fria'
+    )
 
 @bp.route('/registrar-ocupacao', methods=['POST'])
 @login_required

@@ -7,6 +7,10 @@ from sqlalchemy import func, desc
 
 bp = Blueprint('precificacao', __name__, url_prefix='/precificacao')
 
+# ============================================================================
+# Funções auxiliares
+# ============================================================================
+
 def _calcular_preco_dinamico(produto, lot=None):
     """Calcula preço dinâmico baseado em validade e demanda"""
     preco_base = produto.preco_custo or 0.0
@@ -30,25 +34,35 @@ def _calcular_preco_dinamico(produto, lot=None):
     preco_final = preco_base * (1 + margem_minima/100) * (1 - desconto_validade/100) * (1 - desconto_demanda/100)
     return max(preco_base, preco_final)
 
+def _get_precificacoes_filtradas(busca: str = '', apenas_promocoes: bool = False, limit: int = 100):
+    """Busca precificações com filtros"""
+    query = DynamicPricing.query.filter_by(ativo=True)
+    if busca:
+        query = query.join(Produto).filter(Produto.nome.ilike(f'%{busca}%'))
+    if apenas_promocoes:
+        query = query.filter(DynamicPricing.desconto_validade > 0)
+    return query.order_by(desc(DynamicPricing.data_atualizacao)).limit(limit).all()
+
+
+# ============================================================================
+# Rotas
+# ============================================================================
+
 @bp.route('/', methods=['GET'])
 @login_required
 def index():
     busca = request.args.get('busca', '').strip()
     apenas_promocoes = request.args.get('promocoes', '') == '1'
     
-    query = DynamicPricing.query.filter_by(ativo=True)
-    if busca:
-        query = query.join(Produto).filter(Produto.nome.ilike(f'%{busca}%'))
-    if apenas_promocoes:
-        query = query.filter(DynamicPricing.desconto_validade > 0)
+    precificacoes = _get_precificacoes_filtradas(busca, apenas_promocoes)
     
-    precificacoes = query.order_by(desc(DynamicPricing.data_atualizacao)).limit(100).all()
-    
-    return render_template('precificacao/index.html',
-                         precificacoes=precificacoes,
-                         busca=busca,
-                         apenas_promocoes=apenas_promocoes,
-                         active_page='precificacao')
+    return render_template(
+        'precificacao/index.html',
+        precificacoes=precificacoes,
+        busca=busca,
+        apenas_promocoes=apenas_promocoes,
+        active_page='precificacao'
+    )
 
 @bp.route('/atualizar/<int:produto_id>', methods=['POST'])
 @login_required

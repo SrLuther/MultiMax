@@ -7,14 +7,14 @@ from sqlalchemy import func, desc
 
 bp = Blueprint('lotes', __name__, url_prefix='/lotes')
 
-@bp.route('/', methods=['GET'])
-@login_required
-def index():
-    busca = request.args.get('busca', '').strip()
-    localizacao = request.args.get('localizacao', '').strip()
-    status = request.args.get('status', '').strip()
-    
+# ============================================================================
+# Funções auxiliares
+# ============================================================================
+
+def _get_lotes_filtrados(busca: str = '', localizacao: str = '', status: str = '', limit: int = 100):
+    """Busca lotes com filtros"""
     query = ProductLot.query
+    
     if busca:
         query = query.filter(
             (ProductLot.lote_codigo.ilike(f'%{busca}%')) |
@@ -22,15 +22,15 @@ def index():
         )
     if localizacao:
         query = query.filter_by(localizacao=localizacao)
+    
+    hoje = date.today()
     if status == 'ativo':
         query = query.filter_by(ativo=True)
     elif status == 'inativo':
         query = query.filter_by(ativo=False)
     elif status == 'vencido':
-        hoje = date.today()
         query = query.filter(ProductLot.data_validade < hoje, ProductLot.ativo == True)
     elif status == 'vencendo':
-        hoje = date.today()
         vencendo = hoje + timedelta(days=3)
         query = query.filter(
             ProductLot.data_validade >= hoje,
@@ -38,28 +38,48 @@ def index():
             ProductLot.ativo == True
         )
     
-    lotes = query.order_by(desc(ProductLot.data_recepcao)).limit(100).all()
+    return query.order_by(desc(ProductLot.data_recepcao)).limit(limit).all()
+
+
+def _get_kpis_lotes():
+    """Calcula KPIs de lotes"""
+    hoje = date.today()
+    return {
+        'total_lotes': ProductLot.query.filter_by(ativo=True).count(),
+        'vencendo_hoje': ProductLot.query.filter(
+            ProductLot.data_validade == hoje,
+            ProductLot.ativo == True
+        ).count(),
+        'vencidos': ProductLot.query.filter(
+            ProductLot.data_validade < hoje,
+            ProductLot.ativo == True
+        ).count(),
+    }
+
+
+# ============================================================================
+# Rotas
+# ============================================================================
+
+@bp.route('/', methods=['GET'])
+@login_required
+def index():
+    busca = request.args.get('busca', '').strip()
+    localizacao = request.args.get('localizacao', '').strip()
+    status = request.args.get('status', '').strip()
     
-    # Estatísticas
-    total_lotes = ProductLot.query.filter_by(ativo=True).count()
-    vencendo_hoje = ProductLot.query.filter(
-        ProductLot.data_validade == date.today(),
-        ProductLot.ativo == True
-    ).count()
-    vencidos = ProductLot.query.filter(
-        ProductLot.data_validade < date.today(),
-        ProductLot.ativo == True
-    ).count()
+    lotes = _get_lotes_filtrados(busca, localizacao, status)
+    kpis = _get_kpis_lotes()
     
-    return render_template('lotes/index.html',
-                         lotes=lotes,
-                         busca=busca,
-                         localizacao=localizacao,
-                         status=status,
-                         total_lotes=total_lotes,
-                         vencendo_hoje=vencendo_hoje,
-                         vencidos=vencidos,
-                         active_page='lotes')
+    return render_template(
+        'lotes/index.html',
+        lotes=lotes,
+        busca=busca,
+        localizacao=localizacao,
+        status=status,
+        active_page='lotes',
+        **kpis
+    )
 
 @bp.route('/novo', methods=['GET', 'POST'])
 @login_required

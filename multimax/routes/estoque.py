@@ -12,40 +12,162 @@ from qrcode.constants import ERROR_CORRECT_L  # type: ignore
 
 bp = Blueprint('estoque', __name__)
 
-@bp.route('/estoque')
-@login_required
-def index():
-    search_term = request.args.get('busca', '')
-    page = request.args.get('page', 1, type=int)
-    ppage = request.args.get('ppage', 1, type=int)
-    cat = request.args.get('cat', '').strip().upper()
-    allowed = {'CX','PC','VA','AV'}
-    produtos_query = Produto.query
+# ============================================================================
+# Constantes
+# ============================================================================
+
+ALLOWED_CATEGORIES = {'CX', 'PC', 'VA', 'AV'}
+
+# ============================================================================
+# Funções auxiliares - Gráficos e agregações
+# ============================================================================
+
+def _parse_date_safe(s: str) -> date | None:
+    """Parse seguro de data"""
+    try:
+        return datetime.strptime(s, '%Y-%m-%d').date()
+    except Exception:
+        return None
+
+
+def _fetch_hist(prod_id: int, start_date: date | None = None) -> list[Historico]:
+    """Busca histórico de um produto"""
+    query = Historico.query.filter_by(product_id=prod_id)
+    if start_date:
+        query = query.filter(Historico.data >= datetime.combine(start_date, datetime.min.time()))
+    return query.order_by(Historico.data.asc()).all()
+
+
+def _agg_weekly(prod_id: int, weeks: int = 8) -> dict:
+    """Agrega histórico por semanas"""
+    end = date.today()
+    start = end - timedelta(days=7*weeks)
+    hist_w = _fetch_hist(prod_id, start)
+    buckets: OrderedDict[str, dict] = OrderedDict()
+    cursor = start - timedelta(days=start.weekday())
+    while cursor <= end:
+        key = f"{cursor.strftime('%Y-%m-%d')}"
+        buckets[key] = {'entrada': 0, 'saida': 0, 'label': f"Semana {cursor.strftime('%d/%m')}"}
+        cursor += timedelta(days=7)
+    for h in hist_w:
+        d = h.data.date()
+        monday = d - timedelta(days=d.weekday())
+        key = monday.strftime('%Y-%m-%d')
+        if key in buckets:
+            if h.action == 'entrada':
+                buckets[key]['entrada'] += h.quantidade or 0
+            elif h.action == 'saida':
+                buckets[key]['saida'] += h.quantidade or 0
+    labels = [v['label'] for v in buckets.values()]
+    entradas = [v['entrada'] for v in buckets.values()]
+    saidas = [v['saida'] for v in buckets.values()]
+    return {'labels': labels, 'entrada': entradas, 'saida': saidas}
+
+
+def _agg_monthly(prod_id: int, months: int = 12) -> dict:
+    """Agrega histórico por meses"""
+    today = date.today()
+    buckets: OrderedDict[str, dict] = OrderedDict()
+    y, m = today.year, today.month
+    for i in range(months-1, -1, -1):
+        yy = y
+        mm = m - i
+        while mm <= 0:
+            yy -= 1
+            mm += 12
+        key = f"{yy}-{mm:02d}"
+        buckets[key] = {'entrada': 0, 'saida': 0, 'label': f"{mm:02d}/{yy}"}
+    hist_m = _fetch_hist(prod_id)
+    for h in hist_m:
+        k = h.data.strftime('%Y-%m')
+        if k in buckets:
+            if h.action == 'entrada':
+                buckets[k]['entrada'] += h.quantidade or 0
+            elif h.action == 'saida':
+                buckets[k]['saida'] += h.quantidade or 0
+    labels = [v['label'] for v in buckets.values()]
+    entradas = [v['entrada'] for v in buckets.values()]
+    saidas = [v['saida'] for v in buckets.values()]
+    return {'labels': labels, 'entrada': entradas, 'saida': saidas}
+
+
+def _agg_yearly(prod_id: int, years: int = 5) -> dict:
+    """Agrega histórico por anos"""
+    this_year = date.today().year
+    buckets: OrderedDict[str, dict] = OrderedDict()
+    for yy in range(this_year - (years-1), this_year + 1):
+        key = str(yy)
+        buckets[key] = {'entrada': 0, 'saida': 0, 'label': key}
+    hist_y = _fetch_hist(prod_id)
+    for h in hist_y:
+        k = h.data.strftime('%Y')
+        if k in buckets:
+            if h.action == 'entrada':
+                buckets[k]['entrada'] += h.quantidade or 0
+            elif h.action == 'saida':
+                buckets[k]['saida'] += h.quantidade or 0
+    labels = [v['label'] for v in buckets.values()]
+    entradas = [v['entrada'] for v in buckets.values()]
+    saidas = [v['saida'] for v in buckets.values()]
+    return {'labels': labels, 'entrada': entradas, 'saida': saidas}
+
+
+def _agg_custom(prod_id: int, di: date | None, df: date | None) -> dict:
+    """Agrega histórico por período customizado"""
+    if not di or not df:
+        return {'labels': [], 'entrada': [], 'saida': []}
+    hist_c: list[Historico] = Historico.query.filter(
+        Historico.product_id == prod_id,
+        Historico.data >= datetime.combine(di, datetime.min.time()),
+        Historico.data <= datetime.combine(df, datetime.max.time())
+    ).order_by(Historico.data.asc()).all()
+    buckets: OrderedDict[str, dict] = OrderedDict()
+    cursor = di
+    while cursor <= df:
+        key = cursor.strftime('%Y-%m-%d')
+        buckets[key] = {'entrada': 0, 'saida': 0, 'label': cursor.strftime('%d/%m')}
+        cursor += timedelta(days=1)
+    for h in hist_c:
+        k = h.data.strftime('%Y-%m-%d')
+        if k in buckets:
+            if h.action == 'entrada':
+                buckets[k]['entrada'] += h.quantidade or 0
+            elif h.action == 'saida':
+                buckets[k]['saida'] += h.quantidade or 0
+    labels = [v['label'] for v in buckets.values()]
+    entradas = [v['entrada'] for v in buckets.values()]
+    saidas = [v['saida'] for v in buckets.values()]
+    return {'labels': labels, 'entrada': entradas, 'saida': saidas}
+
+
+def _get_produto_graficos(g_produto: Produto | None, g_di: date | None, g_df: date | None) -> dict | None:
+    """Gera dados de gráficos para um produto"""
+    if not g_produto:
+        return None
+    return {
+        'weekly': _agg_weekly(g_produto.id),
+        'monthly': _agg_monthly(g_produto.id),
+        'yearly': _agg_yearly(g_produto.id),
+        'custom': _agg_custom(g_produto.id, g_di, g_df),
+    }
+
+
+def _get_produtos_filtrados(search_term: str = '', cat: str = '', page: int = 1, per_page: int = 12):
+    """Busca produtos com filtros e paginação"""
+    query = Produto.query
     if search_term:
-        produtos_query = produtos_query.filter((Produto.codigo.contains(search_term)) | (Produto.nome.contains(search_term)))
-    if cat in allowed:
-        produtos_query = produtos_query.filter(Produto.codigo.like(f"{cat}-%"))
-    produtos_query = produtos_query.order_by(Produto.nome.asc())
-    produtos_pag = produtos_query.paginate(page=ppage, per_page=12, error_out=False)
-    # Carregar apenas produtos necessários para seleção (limitado a 100 para performance)
-    produtos_all = Produto.query.order_by(Produto.nome.asc()).limit(100).all() if not search_term and not cat else []
-    historico = Historico.query.order_by(Historico.data.desc()).paginate(
-        page=page, per_page=10, error_out=False
-    )
-    # Otimização: usar set para remover duplicatas e melhorar performance
-    ids = list(set(h.product_id for h in historico.items if h.product_id))
-    code_map: dict[int, str] = {}
-    if ids:
-        # Otimização: usar dict comprehension ao invés de loop
-        rows = Produto.query.with_entities(Produto.id, Produto.codigo).filter(Produto.id.in_(ids)).all()
-        code_map = {int(pid): str(cod) for pid, cod in rows}
-    # gráficos por produto dentro do estoque
-    gq = request.args.get('gq', '').strip()
-    g_produto_id = request.args.get('g_produto_id', type=int)
-    g_data_inicio_str = request.args.get('g_data_inicio', '').strip()
-    g_data_fim_str = request.args.get('g_data_fim', '').strip()
+        query = query.filter((Produto.codigo.contains(search_term)) | (Produto.nome.contains(search_term)))
+    if cat in ALLOWED_CATEGORIES:
+        query = query.filter(Produto.codigo.like(f"{cat}-%"))
+    query = query.order_by(Produto.nome.asc())
+    return query.paginate(page=page, per_page=per_page, error_out=False)
+
+
+def _get_produto_por_busca(gq: str, g_produto_id: int | None) -> tuple[Produto | None, list[Produto]]:
+    """Busca produto por ID ou query string"""
     g_produto: Produto | None = None
     g_resultados: list[Produto] = []
+    
     if g_produto_id:
         g_produto = Produto.query.get(g_produto_id)
     elif gq:
@@ -54,118 +176,54 @@ def index():
         ).order_by(Produto.nome.asc()).all()
         if len(g_resultados) == 1:
             g_produto = g_resultados[0]
-    def _parse_date_safe(s: str):
-        try:
-            return datetime.strptime(s, '%Y-%m-%d').date()
-        except Exception:
-            return None
+    
+    return g_produto, g_resultados
+
+
+def _get_historico_code_map(historico_items: list) -> dict[int, str]:
+    """Cria mapa de códigos de produtos do histórico"""
+    ids = list(set(h.product_id for h in historico_items if h.product_id))
+    code_map: dict[int, str] = {}
+    if ids:
+        rows = Produto.query.with_entities(Produto.id, Produto.codigo).filter(Produto.id.in_(ids)).all()
+        code_map = {int(pid): str(cod) for pid, cod in rows}
+    return code_map
+
+
+# ============================================================================
+# Rotas
+# ============================================================================
+
+@bp.route('/estoque')
+@login_required
+def index():
+    # Parâmetros de filtro
+    search_term = request.args.get('busca', '')
+    page = request.args.get('page', 1, type=int)
+    ppage = request.args.get('ppage', 1, type=int)
+    cat = request.args.get('cat', '').strip().upper()
+    
+    # Buscar produtos
+    produtos_pag = _get_produtos_filtrados(search_term, cat, ppage, per_page=12)
+    produtos_all = Produto.query.order_by(Produto.nome.asc()).limit(100).all() if not search_term and not cat else []
+    
+    # Buscar histórico
+    historico = Historico.query.order_by(Historico.data.desc()).paginate(page=page, per_page=10, error_out=False)
+    code_map = _get_historico_code_map(historico.items)
+    
+    # Gráficos
+    gq = request.args.get('gq', '').strip()
+    g_produto_id = request.args.get('g_produto_id', type=int)
+    g_data_inicio_str = request.args.get('g_data_inicio', '').strip()
+    g_data_fim_str = request.args.get('g_data_fim', '').strip()
+    
+    g_produto, g_resultados = _get_produto_por_busca(gq, g_produto_id)
     g_di = _parse_date_safe(g_data_inicio_str)
     g_df = _parse_date_safe(g_data_fim_str)
     if g_di and g_df and g_di > g_df:
         g_di, g_df = g_df, g_di
-    def _fetch_hist(prod_id: int, start_date: date | None = None) -> list[Historico]:
-        query = Historico.query.filter_by(product_id=prod_id)
-        if start_date:
-            query = query.filter(Historico.data >= datetime.combine(start_date, datetime.min.time()))
-        return query.order_by(Historico.data.asc()).all()
-    def _agg_weekly(prod_id: int, weeks: int = 8):
-        end = date.today()
-        start = end - timedelta(days=7*weeks)
-        hist_w = _fetch_hist(prod_id, start)
-        buckets: OrderedDict[str, dict] = OrderedDict()
-        cursor = start - timedelta(days=start.weekday())
-        while cursor <= end:
-            key = f"{cursor.strftime('%Y-%m-%d')}"
-            buckets[key] = {'entrada': 0, 'saida': 0, 'label': f"Semana {cursor.strftime('%d/%m')}"}
-            cursor += timedelta(days=7)
-        for h in hist_w:
-            d = h.data.date()
-            monday = d - timedelta(days=d.weekday())
-            key = monday.strftime('%Y-%m-%d')
-            if key in buckets:
-                if h.action == 'entrada':
-                    buckets[key]['entrada'] += h.quantidade or 0
-                elif h.action == 'saida':
-                    buckets[key]['saida'] += h.quantidade or 0
-        labels = [v['label'] for v in buckets.values()]
-        entradas = [v['entrada'] for v in buckets.values()]
-        saidas = [v['saida'] for v in buckets.values()]
-        return {'labels': labels, 'entrada': entradas, 'saida': saidas}
-    def _agg_monthly(prod_id: int, months: int = 12):
-        today = date.today()
-        buckets: OrderedDict[str, dict] = OrderedDict()
-        y, m = today.year, today.month
-        for i in range(months-1, -1, -1):
-            yy = y
-            mm = m - i
-            while mm <= 0:
-                yy -= 1
-                mm += 12
-            key = f"{yy}-{mm:02d}"
-            buckets[key] = {'entrada': 0, 'saida': 0, 'label': f"{mm:02d}/{yy}"}
-        hist_m = _fetch_hist(prod_id)
-        for h in hist_m:
-            k = h.data.strftime('%Y-%m')
-            if k in buckets:
-                if h.action == 'entrada':
-                    buckets[k]['entrada'] += h.quantidade or 0
-                elif h.action == 'saida':
-                    buckets[k]['saida'] += h.quantidade or 0
-        labels = [v['label'] for v in buckets.values()]
-        entradas = [v['entrada'] for v in buckets.values()]
-        saidas = [v['saida'] for v in buckets.values()]
-        return {'labels': labels, 'entrada': entradas, 'saida': saidas}
-    def _agg_yearly(prod_id: int, years: int = 5):
-        this_year = date.today().year
-        buckets: OrderedDict[str, dict] = OrderedDict()
-        for yy in range(this_year - (years-1), this_year + 1):
-            key = str(yy)
-            buckets[key] = {'entrada': 0, 'saida': 0, 'label': key}
-        hist_y = _fetch_hist(prod_id)
-        for h in hist_y:
-            k = h.data.strftime('%Y')
-            if k in buckets:
-                if h.action == 'entrada':
-                    buckets[k]['entrada'] += h.quantidade or 0
-                elif h.action == 'saida':
-                    buckets[k]['saida'] += h.quantidade or 0
-        labels = [v['label'] for v in buckets.values()]
-        entradas = [v['entrada'] for v in buckets.values()]
-        saidas = [v['saida'] for v in buckets.values()]
-        return {'labels': labels, 'entrada': entradas, 'saida': saidas}
-    def _agg_custom(prod_id: int, di: date | None, df: date | None):
-        if not di or not df:
-            return {'labels': [], 'entrada': [], 'saida': []}
-        hist_c: list[Historico] = Historico.query.filter(
-            Historico.product_id == prod_id,
-            Historico.data >= datetime.combine(di, datetime.min.time()),
-            Historico.data <= datetime.combine(df, datetime.max.time())
-        ).order_by(Historico.data.asc()).all()
-        buckets: OrderedDict[str, dict] = OrderedDict()
-        cursor = di
-        while cursor <= df:
-            key = cursor.strftime('%Y-%m-%d')
-            buckets[key] = {'entrada': 0, 'saida': 0, 'label': cursor.strftime('%d/%m')}
-            cursor += timedelta(days=1)
-        for h in hist_c:
-            k = h.data.strftime('%Y-%m-%d')
-            if k in buckets:
-                if h.action == 'entrada':
-                    buckets[k]['entrada'] += h.quantidade or 0
-                elif h.action == 'saida':
-                    buckets[k]['saida'] += h.quantidade or 0
-        labels = [v['label'] for v in buckets.values()]
-        entradas = [v['entrada'] for v in buckets.values()]
-        saidas = [v['saida'] for v in buckets.values()]
-        return {'labels': labels, 'entrada': entradas, 'saida': saidas}
-    charts_g = None
-    if g_produto:
-        charts_g = {
-            'weekly': _agg_weekly(g_produto.id),
-            'monthly': _agg_monthly(g_produto.id),
-            'yearly': _agg_yearly(g_produto.id),
-            'custom': _agg_custom(g_produto.id, g_di, g_df),
-        }
+    
+    charts_g = _get_produto_graficos(g_produto, g_di, g_df)
     return render_template('index.html', produtos_pag=produtos_pag, produtos_all=produtos_all, historico=historico, busca=search_term, cat=cat, hist_code_map=code_map, active_page='index', gq=gq, g_resultados=g_resultados, g_produto=g_produto, charts_g=charts_g, g_data_inicio=g_data_inicio_str, g_data_fim=g_data_fim_str)
 
 @bp.route('/produtos')

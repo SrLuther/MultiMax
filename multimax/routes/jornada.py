@@ -13,6 +13,10 @@ from openpyxl import Workbook
 bp = Blueprint('jornada', __name__, url_prefix='/jornada')
 
 
+# ============================================================================
+# Funções auxiliares
+# ============================================================================
+
 def _log_event(evento, detalhes):
     try:
         log = SystemLog()
@@ -30,12 +34,8 @@ def _log_event(evento, detalhes):
             pass
 
 
-@bp.route('/', methods=['GET'], strict_slashes=False)
-@login_required
-def index():
-    if current_user.nivel not in ['operador', 'admin', 'DEV']:
-        flash('Acesso negado.', 'danger')
-        return redirect(url_for('home.index'))
+def _ensure_collaborator_columns():
+    """Garante que as colunas matricula e departamento existem na tabela collaborator"""
     try:
         from sqlalchemy import inspect, text
         insp = inspect(db.engine)
@@ -54,40 +54,54 @@ def index():
             db.session.rollback()
         except Exception:
             pass
-    q_colab = (request.args.get('colaborador') or '').strip()
-    tipo = (request.args.get('tipo') or '').strip()
-    data_inicio = (request.args.get('inicio') or '').strip()
-    data_fim = (request.args.get('fim') or '').strip()
-    sort = (request.args.get('sort') or 'data desc').strip()
-    try:
-        page = int(request.args.get('page', '1'))
-    except Exception:
-        page = 1
-    if page < 1:
-        page = 1
 
-    query = db.session.query(RegistroJornada, Collaborator).join(Collaborator, RegistroJornada.collaborator_id == Collaborator.id)
+
+def _get_pagination_params(page_param='page', default=1, per_page=10):
+    """Extrai e valida parâmetros de paginação"""
+    try:
+        page = int(request.args.get(page_param, default))
+    except Exception:
+        page = default
+    return max(1, page), per_page
+
+
+def _parse_date_filter(date_str):
+    """Converte string de data em objeto date ou retorna None"""
+    if not date_str:
+        return None
+    try:
+        return datetime.strptime(date_str, '%Y-%m-%d').date()
+    except Exception:
+        return None
+
+
+def _build_registros_query(q_colab=None, tipo=None, data_inicio=None, data_fim=None, sort='data desc'):
+    """Constrói query para buscar registros de jornada com filtros"""
+    query = db.session.query(RegistroJornada, Collaborator).join(
+        Collaborator, RegistroJornada.collaborator_id == Collaborator.id
+    )
+    
+    # Filtro por colaborador
     if q_colab:
         try:
             cid = int(q_colab)
             query = query.filter(Collaborator.id == cid)
         except Exception:
             query = query.filter(Collaborator.name.ilike(f"%{q_colab}%"))
+    
+    # Filtro por tipo
     if tipo in ('horas', 'dias'):
         query = query.filter(RegistroJornada.tipo_registro == tipo)
-    if data_inicio:
-        try:
-            di = datetime.strptime(data_inicio, '%Y-%m-%d').date()
-            query = query.filter(RegistroJornada.data >= di)
-        except Exception:
-            pass
-    if data_fim:
-        try:
-            df = datetime.strptime(data_fim, '%Y-%m-%d').date()
-            query = query.filter(RegistroJornada.data <= df)
-        except Exception:
-            pass
-
+    
+    # Filtros de data
+    di = _parse_date_filter(data_inicio)
+    df = _parse_date_filter(data_fim)
+    if di:
+        query = query.filter(RegistroJornada.data >= di)
+    if df:
+        query = query.filter(RegistroJornada.data <= df)
+    
+    # Ordenação
     sort_map = {
         'data asc': RegistroJornada.data.asc(),
         'data desc': RegistroJornada.data.desc(),
@@ -100,236 +114,222 @@ def index():
     }
     orders = []
     for part in [p.strip() for p in sort.split(',') if p.strip()]:
-        orders.append(sort_map.get(part.lower()))
+        if part.lower() in sort_map:
+            orders.append(sort_map[part.lower()])
     if not orders:
         orders = [RegistroJornada.data.desc()]
-    query = query.order_by(*orders)
+    
+    return query.order_by(*orders)
 
-    per_page = 10
+
+def _get_resumo_periodo(q_colab=None, data_inicio=None, data_fim=None):
+    """Calcula resumo de horas e dias para um colaborador no período"""
+    if not q_colab:
+        return 0.0, 0.0, ''
+    
+    base = db.session.query(func.sum(RegistroJornada.valor)).join(
+        Collaborator, RegistroJornada.collaborator_id == Collaborator.id
+    )
+    
+    try:
+        cid = int(q_colab)
+        base = base.filter(Collaborator.id == cid)
+        col_obj = Collaborator.query.filter_by(id=cid).first()
+        resumo_colab_nome = col_obj.name if col_obj else f"ID {cid}"
+    except Exception:
+        base = base.filter(Collaborator.name.ilike(f"%{q_colab}%"))
+        resumo_colab_nome = q_colab
+    
+    di = _parse_date_filter(data_inicio)
+    df = _parse_date_filter(data_fim)
+    if di:
+        base = base.filter(RegistroJornada.data >= di)
+    if df:
+        base = base.filter(RegistroJornada.data <= df)
+    
+    sh = base.filter(RegistroJornada.tipo_registro == 'horas').scalar()
+    sd = base.filter(RegistroJornada.tipo_registro == 'dias').scalar()
+    
+    return float(sh or 0.0), float(sd or 0.0), resumo_colab_nome
+
+
+def _calculate_collaborator_stats(colaboradores, data_inicio=None, data_fim=None):
+    """Calcula estatísticas (horas residuais e saldo de dias) para cada colaborador"""
+    cards_stats = []
+    if not colaboradores:
+        return cards_stats
+    
+    try:
+        di = _parse_date_filter(data_inicio)
+        df = _parse_date_filter(data_fim)
+        colab_ids = [c.id for c in colaboradores]
+        
+        # Agregar horas
+        horas_query = db.session.query(
+            HourBankEntry.collaborator_id,
+            func.coalesce(func.sum(HourBankEntry.hours), 0.0).label('total_horas')
+        ).filter(HourBankEntry.collaborator_id.in_(colab_ids))
+        if di:
+            horas_query = horas_query.filter(HourBankEntry.date >= di)
+        if df:
+            horas_query = horas_query.filter(HourBankEntry.date <= df)
+        horas_dict = {r.collaborator_id: float(r.total_horas) for r in horas_query.group_by(HourBankEntry.collaborator_id).all()}
+        
+        # Agregar créditos
+        creditos_query = db.session.query(
+            LeaveCredit.collaborator_id,
+            func.coalesce(func.sum(LeaveCredit.amount_days), 0).label('total')
+        ).filter(LeaveCredit.collaborator_id.in_(colab_ids))
+        if di:
+            creditos_query = creditos_query.filter(LeaveCredit.date >= di)
+        if df:
+            creditos_query = creditos_query.filter(LeaveCredit.date <= df)
+        creditos_dict = {r.collaborator_id: int(r.total) for r in creditos_query.group_by(LeaveCredit.collaborator_id).all()}
+        
+        # Agregar atribuições
+        atribuicoes_query = db.session.query(
+            LeaveAssignment.collaborator_id,
+            func.coalesce(func.sum(LeaveAssignment.days_used), 0).label('total')
+        ).filter(LeaveAssignment.collaborator_id.in_(colab_ids))
+        if di:
+            atribuicoes_query = atribuicoes_query.filter(LeaveAssignment.date >= di)
+        if df:
+            atribuicoes_query = atribuicoes_query.filter(LeaveAssignment.date <= df)
+        atribuicoes_dict = {r.collaborator_id: int(r.total) for r in atribuicoes_query.group_by(LeaveAssignment.collaborator_id).all()}
+        
+        # Agregar conversões
+        conversoes_query = db.session.query(
+            LeaveConversion.collaborator_id,
+            func.coalesce(func.sum(LeaveConversion.amount_days), 0).label('total')
+        ).filter(LeaveConversion.collaborator_id.in_(colab_ids))
+        if di:
+            conversoes_query = conversoes_query.filter(LeaveConversion.date >= di)
+        if df:
+            conversoes_query = conversoes_query.filter(LeaveConversion.date <= df)
+        conversoes_dict = {r.collaborator_id: int(r.total) for r in conversoes_query.group_by(LeaveConversion.collaborator_id).all()}
+        
+        # Processar resultados
+        for c in colaboradores:
+            try:
+                hsum = horas_dict.get(c.id, 0.0)
+                residual_hours = (hsum % 8.0) if hsum >= 0.0 else -((-hsum) % 8.0)
+                credits_sum = creditos_dict.get(c.id, 0)
+                assigned_sum = atribuicoes_dict.get(c.id, 0)
+                converted_sum = conversoes_dict.get(c.id, 0)
+                saldo_days = credits_sum - assigned_sum - converted_sum
+                cards_stats.append({
+                    'id': c.id,
+                    'name': c.name,
+                    'residual_hours': residual_hours,
+                    'saldo_days': saldo_days,
+                    'assigned_days': assigned_sum
+                })
+            except Exception:
+                pass
+    except Exception:
+        pass
+    
+    return cards_stats
+
+
+def _paginate_query(query, page, per_page):
+    """Aplica paginação a uma query"""
     total = query.count()
     total_pages = max(1, (total + per_page - 1) // per_page)
     if page > total_pages:
         page = total_pages
     items = query.offset((page - 1) * per_page).limit(per_page).all()
+    return items, page, total_pages, total
 
+
+def _paginate_list(items, page, per_page):
+    """Pagina uma lista Python"""
+    total = len(items)
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    if page > total_pages:
+        page = total_pages
+    start = (page - 1) * per_page
+    end = start + per_page
+    return items[start:end], page, total_pages, total
+
+
+# ============================================================================
+# Rotas
+# ============================================================================
+
+@bp.route('/', methods=['GET'], strict_slashes=False)
+@login_required
+def index():
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('home.index'))
+    
+    _ensure_collaborator_columns()
+    
+    # Parâmetros de filtro
+    q_colab = (request.args.get('colaborador') or '').strip()
+    tipo = (request.args.get('tipo') or '').strip()
+    data_inicio = (request.args.get('inicio') or '').strip()
+    data_fim = (request.args.get('fim') or '').strip()
+    sort = (request.args.get('sort') or 'data desc').strip()
+    
+    # Paginação principal
+    page, per_page = _get_pagination_params('page', 1, 10)
+    
+    # Query e paginação de registros
+    query = _build_registros_query(q_colab, tipo, data_inicio, data_fim, sort)
+    items, page, total_pages, total = _paginate_query(query, page, per_page)
+    
+    # Colaboradores e resumo
     colaboradores = Collaborator.query.filter_by(active=True).order_by(Collaborator.name.asc()).all()
     selected_tipo = session.get('jornada_tipo', '')
-
-    resumo_horas = 0.0
-    resumo_dias = 0.0
-    resumo_colab_nome = ''
-    if q_colab:
-        base = db.session.query(func.sum(RegistroJornada.valor)).join(Collaborator, RegistroJornada.collaborator_id == Collaborator.id)
-        try:
-            cid = int(q_colab)
-            base = base.filter(Collaborator.id == cid)
-            col_obj = Collaborator.query.filter_by(id=cid).first()
-            if col_obj:
-                resumo_colab_nome = col_obj.name
-            else:
-                resumo_colab_nome = f"ID {cid}"
-        except Exception:
-            base = base.filter(Collaborator.name.ilike(f"%{q_colab}%"))
-            resumo_colab_nome = q_colab
-        if data_inicio:
-            try:
-                di = datetime.strptime(data_inicio, '%Y-%m-%d').date()
-                base = base.filter(RegistroJornada.data >= di)
-            except Exception:
-                pass
-        if data_fim:
-            try:
-                df = datetime.strptime(data_fim, '%Y-%m-%d').date()
-                base = base.filter(RegistroJornada.data <= df)
-            except Exception:
-                pass
-        sh = base.filter(RegistroJornada.tipo_registro == 'horas').scalar()
-        sd = base.filter(RegistroJornada.tipo_registro == 'dias').scalar()
-        resumo_horas = float(sh or 0.0)
-        resumo_dias = float(sd or 0.0)
-
+    resumo_horas, resumo_dias, resumo_colab_nome = _get_resumo_periodo(q_colab, data_inicio, data_fim)
+    
+    # Estatísticas dos colaboradores
+    cards_stats = _calculate_collaborator_stats(colaboradores, data_inicio, data_fim)
+    
+    # Paginação dos cards
+    try:
+        cs_collab_id = request.args.get('cs_collaborator_id', type=int)
+    except Exception:
+        cs_collab_id = None
+    cs_page, _ = _get_pagination_params('cs_page', 1, 1)
+    cs_list = [s for s in cards_stats if s.get('id') == cs_collab_id] if cs_collab_id else cards_stats
+    cs_item, cs_page, cs_total_pages, _ = _paginate_list(cs_list, cs_page, 1)
+    cs_item = cs_item[0] if cs_item else None
+    
     # Folgas (Uso)
     try:
         la_collab_id = request.args.get('la_collaborator_id', type=int)
     except Exception:
         la_collab_id = None
-    try:
-        la_page = int(request.args.get('la_page', '1'))
-    except Exception:
-        la_page = 1
-    if la_page < 1:
-        la_page = 1
     la_q = LeaveAssignment.query.order_by(LeaveAssignment.date.desc())
     if la_collab_id:
         la_q = la_q.filter(LeaveAssignment.collaborator_id == la_collab_id)
     leave_assignments_all = la_q.all()
-    sub_per_page = 10
-    la_total_pages = max(1, (len(leave_assignments_all) + sub_per_page - 1) // sub_per_page)
-    if la_page > la_total_pages:
-        la_page = la_total_pages
-    la_start = (la_page - 1) * sub_per_page
-    la_end = la_start + sub_per_page
-    leave_assignments_page = leave_assignments_all[la_start:la_end]
-
+    leave_assignments_page, la_page, la_total_pages, _ = _paginate_list(leave_assignments_all, _get_pagination_params('la_page', 1, 10)[0], 10)
+    
     # Férias
     try:
         ferias_collab_id = request.args.get('ferias_collaborator_id', type=int)
     except Exception:
         ferias_collab_id = None
-    try:
-        ferias_page = int(request.args.get('ferias_page', '1'))
-    except Exception:
-        ferias_page = 1
-    if ferias_page < 1:
-        ferias_page = 1
     ferias_q = Vacation.query.order_by(Vacation.data_inicio.desc())
     if ferias_collab_id:
         ferias_q = ferias_q.filter(Vacation.collaborator_id == ferias_collab_id)
     ferias_all = ferias_q.all()
-    ferias_total_pages = max(1, (len(ferias_all) + sub_per_page - 1) // sub_per_page)
-    if ferias_page > ferias_total_pages:
-        ferias_page = ferias_total_pages
-    ferias_start = (ferias_page - 1) * sub_per_page
-    ferias_end = ferias_start + sub_per_page
-    ferias_page_items = ferias_all[ferias_start:ferias_end]
-
+    ferias_page_items, ferias_page, ferias_total_pages, _ = _paginate_list(ferias_all, _get_pagination_params('ferias_page', 1, 10)[0], 10)
+    
     # Atestados
     try:
         at_collab_id = request.args.get('at_collaborator_id', type=int)
     except Exception:
         at_collab_id = None
-    try:
-        at_page = int(request.args.get('at_page', '1'))
-    except Exception:
-        at_page = 1
-    if at_page < 1:
-        at_page = 1
     at_q = MedicalCertificate.query.order_by(MedicalCertificate.data_inicio.desc())
     if at_collab_id:
         at_q = at_q.filter(MedicalCertificate.collaborator_id == at_collab_id)
     atestados_all = at_q.all()
-    at_total_pages = max(1, (len(atestados_all) + sub_per_page - 1) // sub_per_page)
-    if at_page > at_total_pages:
-        at_page = at_total_pages
-    at_start = (at_page - 1) * sub_per_page
-    at_end = at_start + sub_per_page
-    atestados_page = atestados_all[at_start:at_end]
-
-    # Agregação por colaborador baseada em métricas reais (residual horas e saldo de dias)
-    cards_stats = []
-    try:
-        # Interpretar filtros de data
-        try:
-            di_cards = datetime.strptime(data_inicio, '%Y-%m-%d').date() if data_inicio else None
-        except Exception:
-            di_cards = None
-        try:
-            df_cards = datetime.strptime(data_fim, '%Y-%m-%d').date() if data_fim else None
-        except Exception:
-            df_cards = None
-
-        def apply_range(q, col):
-            if di_cards and df_cards:
-                return q.filter(col.between(di_cards, df_cards))
-            if di_cards:
-                return q.filter(col >= di_cards)
-            if df_cards:
-                return q.filter(col <= df_cards)
-            return q
-
-        # Otimização: buscar todos os dados de uma vez ao invés de 4 queries por colaborador
-        if colaboradores:
-            colab_ids = [c.id for c in colaboradores]
-            
-            # Agregar horas por colaborador
-            horas_agregadas = db.session.query(
-                HourBankEntry.collaborator_id,
-                func.coalesce(func.sum(HourBankEntry.hours), 0.0).label('total_horas')
-            ).filter(
-                HourBankEntry.collaborator_id.in_(colab_ids)
-            )
-            if di_cards:
-                horas_agregadas = horas_agregadas.filter(HourBankEntry.date >= di_cards)
-            if df_cards:
-                horas_agregadas = horas_agregadas.filter(HourBankEntry.date <= df_cards)
-            horas_agregadas = horas_agregadas.group_by(HourBankEntry.collaborator_id).all()
-            horas_dict = {r.collaborator_id: float(r.total_horas) for r in horas_agregadas}
-            
-            # Agregar créditos por colaborador
-            creditos_agregados = db.session.query(
-                LeaveCredit.collaborator_id,
-                func.coalesce(func.sum(LeaveCredit.amount_days), 0).label('total')
-            ).filter(LeaveCredit.collaborator_id.in_(colab_ids))
-            if di_cards:
-                creditos_agregados = creditos_agregados.filter(LeaveCredit.date >= di_cards)
-            if df_cards:
-                creditos_agregados = creditos_agregados.filter(LeaveCredit.date <= df_cards)
-            creditos_agregados = creditos_agregados.group_by(LeaveCredit.collaborator_id).all()
-            creditos_dict = {r.collaborator_id: int(r.total) for r in creditos_agregados}
-            
-            # Agregar atribuições por colaborador
-            atribuicoes_agregadas = db.session.query(
-                LeaveAssignment.collaborator_id,
-                func.coalesce(func.sum(LeaveAssignment.days_used), 0).label('total')
-            ).filter(LeaveAssignment.collaborator_id.in_(colab_ids))
-            if di_cards:
-                atribuicoes_agregadas = atribuicoes_agregadas.filter(LeaveAssignment.date >= di_cards)
-            if df_cards:
-                atribuicoes_agregadas = atribuicoes_agregadas.filter(LeaveAssignment.date <= df_cards)
-            atribuicoes_agregadas = atribuicoes_agregadas.group_by(LeaveAssignment.collaborator_id).all()
-            atribuicoes_dict = {r.collaborator_id: int(r.total) for r in atribuicoes_agregadas}
-            
-            # Agregar conversões por colaborador
-            conversoes_agregadas = db.session.query(
-                LeaveConversion.collaborator_id,
-                func.coalesce(func.sum(LeaveConversion.amount_days), 0).label('total')
-            ).filter(LeaveConversion.collaborator_id.in_(colab_ids))
-            if di_cards:
-                conversoes_agregadas = conversoes_agregadas.filter(LeaveConversion.date >= di_cards)
-            if df_cards:
-                conversoes_agregadas = conversoes_agregadas.filter(LeaveConversion.date <= df_cards)
-            conversoes_agregadas = conversoes_agregadas.group_by(LeaveConversion.collaborator_id).all()
-            conversoes_dict = {r.collaborator_id: int(r.total) for r in conversoes_agregadas}
-            
-            # Processar resultados
-            for c in colaboradores:
-                try:
-                    hsum = horas_dict.get(c.id, 0.0)
-                    residual_hours = (hsum % 8.0) if hsum >= 0.0 else - ((-hsum) % 8.0)
-                    credits_sum = creditos_dict.get(c.id, 0)
-                    assigned_sum = atribuicoes_dict.get(c.id, 0)
-                    converted_sum = conversoes_dict.get(c.id, 0)
-                    saldo_days = credits_sum - assigned_sum - converted_sum
-                    cards_stats.append({
-                        'id': c.id,
-                        'name': c.name,
-                        'residual_hours': residual_hours,
-                        'saldo_days': saldo_days,
-                        'assigned_days': assigned_sum
-                    })
-                except Exception:
-                    pass
-    except Exception:
-        cards_stats = []
-
-    # Filtro e paginação para cards (um por página)
-    try:
-        cs_collab_id = request.args.get('cs_collaborator_id', type=int)
-    except Exception:
-        cs_collab_id = None
-    try:
-        cs_page = int(request.args.get('cs_page', '1'))
-    except Exception:
-        cs_page = 1
-    cs_list = cards_stats
-    if cs_collab_id:
-        cs_list = [s for s in cards_stats if s.get('id') == cs_collab_id]
-    cs_total_pages = max(1, len(cs_list) if cs_list else 1)
-    if cs_page < 1:
-        cs_page = 1
-    if cs_page > cs_total_pages:
-        cs_page = cs_total_pages
-    cs_item = (cs_list[cs_page - 1] if cs_list and len(cs_list) >= cs_page else None)
+    atestados_page, at_page, at_total_pages, _ = _paginate_list(atestados_all, _get_pagination_params('at_page', 1, 10)[0], 10)
 
     return render_template(
         'jornada.html',
@@ -420,6 +420,8 @@ def create():
         return redirect(url_for('jornada.index'))
     try:
         obs = (request.form.get('observacao') or '').strip()
+        
+        # Criar registro em RegistroJornada
         w = RegistroJornada()
         w.id = str(uuid4())
         w.collaborator_id = cid
@@ -430,6 +432,55 @@ def create():
         w.updated_at = w.created_at
         w.observacao = obs
         db.session.add(w)
+        
+        # Também criar nas tabelas antigas para manter compatibilidade
+        if tipo == 'horas':
+            # Criar em HourBankEntry para manter compatibilidade com cálculos
+            hb = HourBankEntry()
+            hb.collaborator_id = cid
+            hb.date = dt
+            hb.hours = val
+            hb.reason = obs
+            db.session.add(hb)
+            
+            # Aplicar conversão automática 8h -> 1 dia (se necessário)
+            try:
+                from sqlalchemy import func
+                total_hours = db.session.query(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).filter(HourBankEntry.collaborator_id == cid).scalar() or 0.0
+                total_hours = float(total_hours)
+                auto_credits = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == cid, LeaveCredit.origin == 'horas').scalar() or 0
+                auto_credits = int(auto_credits)
+                desired_credits = int(total_hours // 8.0)
+                missing = max(0, desired_credits - auto_credits)
+                if missing > 0:
+                    for _ in range(missing):
+                        lc = LeaveCredit()
+                        lc.collaborator_id = cid
+                        lc.date = date.today()
+                        lc.amount_days = 1
+                        lc.origin = 'horas'
+                        lc.notes = 'Crédito automático por 8h no banco de horas'
+                        db.session.add(lc)
+                    for _ in range(missing):
+                        adj = HourBankEntry()
+                        adj.collaborator_id = cid
+                        adj.date = date.today()
+                        adj.hours = -8.0
+                        adj.reason = 'Conversão automática: -8h por +1 dia de folga'
+                        db.session.add(adj)
+            except Exception:
+                pass  # Se der erro na conversão, continua mesmo assim
+        
+        elif tipo == 'dias':
+            # Criar em LeaveCredit para manter compatibilidade
+            lc = LeaveCredit()
+            lc.collaborator_id = cid
+            lc.date = dt
+            lc.amount_days = int(val)
+            lc.origin = 'manual'
+            lc.notes = obs
+            db.session.add(lc)
+        
         db.session.commit()
         _log_event('create', f"{tipo} {val} em {dt} para colaborador {cid}")
         flash('Registro criado.', 'success')

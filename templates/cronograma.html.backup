@@ -1,0 +1,795 @@
+{% extends 'base.html' %}
+{% block title %}Cronograma de Limpeza — MultiMax{% endblock %}
+
+{% block breadcrumb %}
+<span class="mm-breadcrumb-separator">/</span>
+<span>Cronograma de Limpeza</span>
+{% endblock %}
+
+{% block content %}
+<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
+    <div>
+        <h1 class="mm-page-title">Cronograma de Limpeza</h1>
+        <p class="mm-text-muted">Gerencie as tarefas de limpeza e higienização</p>
+    </div>
+</div>
+
+<div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
+    <div class="mm-card mm-kpi-card" style="--kpi-color: var(--mm-primary);">
+        <div class="mm-kpi-icon" style="background: rgba(0, 255, 136, 0.15); color: var(--mm-primary);">
+            <i class="bi bi-calendar-check"></i>
+        </div>
+        <div class="mm-kpi-label">Total de Tarefas</div>
+        <div class="mm-kpi-value mm-text-primary">{{ kpis.total if kpis else 0 }}</div>
+    </div>
+    
+    <div class="mm-card mm-kpi-card" style="--kpi-color: {% if kpis and kpis.atrasadas > 0 %}var(--mm-danger){% else %}var(--mm-success){% endif %};">
+        <div class="mm-kpi-icon" style="background: {% if kpis and kpis.atrasadas > 0 %}rgba(239, 68, 68, 0.15){% else %}rgba(34, 197, 94, 0.15){% endif %}; color: {% if kpis and kpis.atrasadas > 0 %}var(--mm-danger){% else %}var(--mm-success){% endif %};">
+            <i class="bi bi-exclamation-triangle"></i>
+        </div>
+        <div class="mm-kpi-label">Atrasadas</div>
+        <div class="mm-kpi-value" style="color: {% if kpis and kpis.atrasadas > 0 %}var(--mm-danger){% else %}var(--mm-success){% endif %};">{{ kpis.atrasadas if kpis else 0 }}</div>
+    </div>
+    
+    <div class="mm-card mm-kpi-card" style="--kpi-color: var(--mm-warning);">
+        <div class="mm-kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning);">
+            <i class="bi bi-clock-history"></i>
+        </div>
+        <div class="mm-kpi-label">Próximos 7 Dias</div>
+        <div class="mm-kpi-value" style="color: var(--mm-warning);">{{ kpis.proximas if kpis else 0 }}</div>
+    </div>
+    
+    <div class="mm-card mm-kpi-card" style="--kpi-color: var(--mm-info);">
+        <div class="mm-kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--mm-info);">
+            <i class="bi bi-graph-up"></i>
+        </div>
+        <div class="mm-kpi-label">Concluídas (Mês)</div>
+        <div class="mm-kpi-value" style="color: var(--mm-info);">{{ kpis.concluidas_mes if kpis else 0 }}</div>
+    </div>
+</div>
+
+<div class="mm-card mm-mb-6">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <i class="bi bi-clock-history mm-text-primary"></i>
+            Histórico de Limpezas
+        </h3>
+        <form method="get" action="{{ url_for('cronograma.cronograma') }}" class="mm-flex mm-gap-2 mm-items-center">
+            <input type="hidden" name="hpage" value="1">
+            <select name="htipo" class="mm-input mm-select" style="width: 140px;">
+                <option value="">Todos os tipos</option>
+                {% for t in ['Parcial','Geral','Mensal','Semanal'] %}
+                <option value="{{ t }}" {% if htipo == t %}selected{% endif %}>{{ t }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="mm-btn mm-btn-outline">
+                <i class="bi bi-funnel"></i>
+                Filtrar
+            </button>
+        </form>
+    </div>
+    <div class="mm-card-body">
+        {% if historico_limpezas and historico_limpezas|length > 0 %}
+        <div class="mm-historico-list">
+            {% for h in historico_limpezas %}
+            <div class="mm-historico-item">
+                <div class="mm-historico-icon">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+                <div class="mm-historico-content">
+                    <div class="mm-historico-title">{{ h.nome_limpeza }}</div>
+                    <div class="mm-historico-meta">
+                        <span class="mm-historico-date">
+                            <i class="bi bi-calendar3"></i>
+                            {{ h.data_conclusao.strftime('%d/%m/%Y %H:%M') }}
+                        </span>
+                        {% if h.designados or h.usuario_conclusao %}
+                        <span class="mm-historico-user">
+                            <i class="bi bi-person"></i>
+                            {{ h.designados or h.usuario_conclusao }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% if h.observacao %}
+                    <div class="mm-historico-obs">{{ h.observacao }}</div>
+                    {% endif %}
+                </div>
+                <div class="mm-historico-actions">
+                    <a href="{{ url_for('exportacao.exportar_historico_limpeza_pdf', id=h.id) }}" class="mm-btn mm-btn-outline mm-btn-sm" title="Exportar PDF" data-pdf-export>
+                        <i class="bi bi-file-pdf"></i>
+                    </a>
+                    {% if current_user.nivel == 'admin' %}
+                    <form method="post" action="{{ url_for('cronograma.excluir_historico', id=h.id) }}" onsubmit="return confirm('Excluir este histórico?')" style="display: inline;">
+                        <button type="submit" class="mm-btn mm-btn-danger mm-btn-sm" title="Excluir">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if historico_pagination %}
+        <div class="mm-pagination">
+            <a href="{{ url_for('cronograma.cronograma', hpage=historico_pagination.prev_num, htipo=htipo) }}" 
+               class="mm-btn mm-btn-outline mm-btn-sm {{ 'disabled' if not historico_pagination.has_prev else '' }}">
+                <i class="bi bi-chevron-left"></i>
+                Anterior
+            </a>
+            <span class="mm-pagination-info">
+                Página {{ historico_pagination.page }} de {{ historico_pagination.pages }}
+            </span>
+            <a href="{{ url_for('cronograma.cronograma', hpage=historico_pagination.next_num, htipo=htipo) }}" 
+               class="mm-btn mm-btn-outline mm-btn-sm {{ 'disabled' if not historico_pagination.has_next else '' }}">
+                Próxima
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="mm-empty-state">
+            <div class="mm-empty-icon">
+                <i class="bi bi-inbox"></i>
+            </div>
+            <h4>Sem histórico recente</h4>
+            <p class="mm-text-muted">Nenhuma limpeza registrada ainda</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="mm-card mm-mb-6">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <i class="bi bi-filter-circle mm-text-primary"></i>
+            Selecionar Tipo de Limpeza
+        </h3>
+    </div>
+    <div class="mm-card-body">
+        <form method="get" action="{{ url_for('cronograma.cronograma') }}" class="mm-flex mm-gap-4 mm-items-center" style="flex-wrap: wrap;">
+            <input type="hidden" name="hpage" value="{{ historico_pagination.page if historico_pagination else 1 }}">
+            <input type="hidden" name="htipo" value="{{ htipo }}">
+            
+            <div class="mm-tipo-selector">
+                <label class="mm-tipo-option {{ 'selected' if tipo == 'Parcial' else '' }}">
+                    <input type="radio" name="tipo" value="Parcial" {{ 'checked' if tipo == 'Parcial' else '' }}>
+                    <div class="mm-tipo-card">
+                        <i class="bi bi-snow2"></i>
+                        <span>Parcial da Câmara Fria</span>
+                    </div>
+                </label>
+                
+                <label class="mm-tipo-option {{ 'selected' if tipo == 'Geral' else '' }}">
+                    <input type="radio" name="tipo" value="Geral" {{ 'checked' if tipo == 'Geral' else '' }}>
+                    <div class="mm-tipo-card">
+                        <i class="bi bi-snow"></i>
+                        <span>Geral da Câmara Fria</span>
+                    </div>
+                </label>
+                
+                <label class="mm-tipo-option {{ 'selected' if tipo == 'Mensal' else '' }}">
+                    <input type="radio" name="tipo" value="Mensal" {{ 'checked' if tipo == 'Mensal' else '' }}>
+                    <div class="mm-tipo-card">
+                        <i class="bi bi-shop-window"></i>
+                        <span>Expositores do Açougue</span>
+                    </div>
+                </label>
+                
+                <label class="mm-tipo-option {{ 'selected' if tipo == 'Semanal' else '' }}">
+                    <input type="radio" name="tipo" value="Semanal" {{ 'checked' if tipo == 'Semanal' else '' }}>
+                    <div class="mm-tipo-card">
+                        <i class="bi bi-droplet"></i>
+                        <span>Caixa de Gordura</span>
+                    </div>
+                </label>
+            </div>
+            
+            <button type="submit" class="mm-btn mm-btn-primary">
+                <i class="bi bi-eye"></i>
+                Mostrar Tarefas
+            </button>
+        </form>
+    </div>
+</div>
+
+{% if tipo %}
+<div class="mm-card">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <i class="bi bi-list-task mm-text-primary"></i>
+            Tarefas do Cronograma
+        </h3>
+        {% if current_user.nivel != 'admin' %}
+        <span class="mm-badge mm-badge-warning">
+            <i class="bi bi-lock"></i>
+            Somente visualização
+        </span>
+        {% endif %}
+    </div>
+    <div class="mm-card-body">
+        {% if current_user.nivel != 'admin' %}
+        <div class="mm-alert mm-alert-warning mm-mb-4">
+            <i class="bi bi-info-circle"></i>
+            <div>
+                <strong>Acesso restrito</strong>
+                <p class="mm-mb-0">Somente Gerente pode concluir tarefas e editar observações/designados.</p>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if cronograma_tarefas and cronograma_tarefas|length > 0 %}
+        <div class="mm-tarefas-grid">
+            {% for tarefa in cronograma_tarefas %}
+            <div class="mm-tarefa-card {% if tarefa.status == 'atrasada' %}mm-tarefa-atrasada{% elif tarefa.status == 'urgente' %}mm-tarefa-urgente{% endif %}">
+                <div class="mm-tarefa-header">
+                    <h4 class="mm-tarefa-title">{{ tarefa.nome_limpeza }}</h4>
+                    <div class="mm-flex mm-gap-2">
+                        {% if tarefa.status == 'atrasada' %}
+                        <span class="mm-badge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;">
+                            <i class="bi bi-exclamation-triangle"></i> Atrasada
+                        </span>
+                        {% elif tarefa.status == 'urgente' %}
+                        <span class="mm-badge" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b;">
+                            <i class="bi bi-clock"></i> Urgente
+                        </span>
+                        {% endif %}
+                        {% if tarefa.frequencia %}
+                        <span class="mm-badge mm-badge-primary">{{ tarefa.frequencia }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mm-tarefa-info">
+                    {% if tarefa.nome_limpeza == 'Limpeza Parcial da Câmara Fria' %}
+                    <div class="mm-tarefa-hint mm-alert-warning">
+                        <i class="bi bi-lightbulb"></i>
+                        Agendar em Terça ou Quinta, evitando dias 1–4 do mês. Prazo máximo: 15 dias.
+                    </div>
+                    {% elif tarefa.nome_limpeza == 'Limpeza Geral da Câmara Fria' %}
+                    <div class="mm-tarefa-hint mm-alert-info">
+                        <i class="bi bi-lightbulb"></i>
+                        Higienização completa em até 40 dias desde a última geral.
+                    </div>
+                    {% elif tarefa.nome_limpeza == 'Limpeza de Expositores do Açougue' %}
+                    <div class="mm-tarefa-hint mm-alert-secondary">
+                        <i class="bi bi-lightbulb"></i>
+                        Realizar mensalmente após o expediente.
+                    </div>
+                    {% elif tarefa.nome_limpeza == 'Limpeza da Caixa de Gordura' %}
+                    <div class="mm-tarefa-hint mm-alert-primary">
+                        <i class="bi bi-lightbulb"></i>
+                        Agendar semanalmente entre quinta e sexta-feira.
+                    </div>
+                    {% endif %}
+                    
+                    {% if tarefa.observacao %}
+                    <p class="mm-tarefa-obs">{{ tarefa.observacao }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="mm-tarefa-dates">
+                    <div class="mm-date-badge mm-date-next">
+                        <i class="bi bi-calendar-event"></i>
+                        <div>
+                            <small>Próxima</small>
+                            <strong>{{ tarefa.proxima_data.strftime('%d/%m/%Y') }}</strong>
+                        </div>
+                    </div>
+                    <div class="mm-date-badge mm-date-last">
+                        <i class="bi bi-calendar-check"></i>
+                        <div>
+                            <small>Última</small>
+                            <strong>{{ tarefa.ultima_data.strftime('%d/%m/%Y') if tarefa.ultima_data else 'N/A' }}</strong>
+                        </div>
+                    </div>
+                    {% if tarefa.designados %}
+                    <div class="mm-date-badge mm-date-user">
+                        <i class="bi bi-person"></i>
+                        <div>
+                            <small>Designado</small>
+                            <strong>{{ tarefa.designados }}</strong>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                {% if ajustes and ajustes.get(tarefa.id) %}
+                <p class="mm-tarefa-ajuste">{{ ajustes.get(tarefa.id) }}</p>
+                {% endif %}
+                
+                {% if current_user.nivel == 'admin' %}
+                <div class="mm-tarefa-actions">
+                    <form method="post" action="{{ url_for('cronograma.salvar_cronograma') }}" class="mm-freq-form">
+                        <input type="hidden" name="alterar_id" value="{{ tarefa.id }}">
+                        <div class="mm-flex mm-gap-2 mm-items-center" style="flex-wrap: wrap;">
+                            <select name="nova_frequencia" class="mm-input mm-select" style="width: 130px;">
+                                {% set opts = ['Semanal','15 dias','Mensal','40 dias','Trimestral','Personalizada'] %}
+                                {% for o in opts %}
+                                <option value="{{ o }}" {% if o == tarefa.frequencia %}selected{% endif %}>{{ o }}</option>
+                                {% endfor %}
+                            </select>
+                            <input type="number" name="nova_dias" class="mm-input" min="1" placeholder="Dias" style="width: 80px;">
+                            <button type="submit" class="mm-btn mm-btn-outline mm-btn-sm">
+                                <i class="bi bi-save"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="mm-tarefa-concluir">
+                    <form method="post" action="{{ url_for('cronograma.salvar_cronograma') }}">
+                        <input type="hidden" name="concluir_id" value="{{ tarefa.id }}">
+                        <div class="mm-concluir-grid">
+                            <div class="mm-form-group">
+                                <label class="mm-label">Data de Conclusão</label>
+                                <input type="date" name="data_conclusao" class="mm-input" required>
+                            </div>
+                            <div class="mm-form-group">
+                                <label class="mm-label">Observações</label>
+                                <input type="text" name="obs_{{ tarefa.id }}" class="mm-input" placeholder="Observações opcionais">
+                            </div>
+                            <div class="mm-form-group">
+                                <label class="mm-label">Designado(s)</label>
+                                <input type="text" name="participantes_{{ tarefa.id }}" class="mm-input" placeholder="Nome(s)">
+                            </div>
+                            <div class="mm-form-group" style="align-self: end;">
+                                <button type="submit" class="mm-btn mm-btn-primary">
+                                    <i class="bi bi-check-lg"></i>
+                                    Concluir
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="mm-empty-state">
+            <div class="mm-empty-icon">
+                <i class="bi bi-calendar-x"></i>
+            </div>
+            <h4>Nenhuma tarefa encontrada</h4>
+            <p class="mm-text-muted">Não há tarefas para o tipo selecionado</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<style>
+.mm-page-header {
+    margin-bottom: var(--mm-space-6);
+}
+
+.mm-page-title {
+    font-size: var(--mm-text-2xl);
+    font-weight: var(--mm-font-bold);
+    color: var(--mm-text-primary);
+    margin: 0 0 var(--mm-space-1) 0;
+}
+
+.mm-kpi-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mm-space-3);
+}
+
+.mm-kpi-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--mm-radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.mm-historico-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mm-space-3);
+}
+
+.mm-historico-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--mm-space-4);
+    padding: var(--mm-space-4);
+    background: var(--mm-bg-secondary);
+    border-radius: var(--mm-radius-lg);
+    transition: all var(--mm-transition);
+}
+
+.mm-historico-item:hover {
+    background: var(--mm-bg-tertiary);
+}
+
+.mm-historico-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--mm-radius-full);
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--mm-success);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.mm-historico-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.mm-historico-title {
+    font-weight: var(--mm-font-semibold);
+    color: var(--mm-text-primary);
+    margin-bottom: var(--mm-space-1);
+}
+
+.mm-historico-meta {
+    display: flex;
+    gap: var(--mm-space-4);
+    font-size: var(--mm-text-sm);
+    color: var(--mm-text-muted);
+    flex-wrap: wrap;
+}
+
+.mm-historico-meta i {
+    margin-right: var(--mm-space-1);
+}
+
+.mm-historico-obs {
+    font-size: var(--mm-text-sm);
+    color: var(--mm-text-secondary);
+    margin-top: var(--mm-space-2);
+}
+
+.mm-historico-actions {
+    display: flex;
+    gap: var(--mm-space-2);
+    flex-shrink: 0;
+}
+
+.mm-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--mm-space-4);
+    margin-top: var(--mm-space-6);
+    padding-top: var(--mm-space-4);
+    border-top: 1px solid var(--mm-border);
+}
+
+.mm-pagination-info {
+    font-size: var(--mm-text-sm);
+    color: var(--mm-text-muted);
+}
+
+.mm-pagination .disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.mm-empty-state {
+    text-align: center;
+    padding: var(--mm-space-12) var(--mm-space-6);
+}
+
+.mm-empty-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto var(--mm-space-4);
+    border-radius: var(--mm-radius-full);
+    background: var(--mm-bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: var(--mm-text-muted);
+}
+
+.mm-empty-state h4 {
+    color: var(--mm-text-primary);
+    margin: 0 0 var(--mm-space-2) 0;
+}
+
+.mm-tipo-selector {
+    display: flex;
+    gap: var(--mm-space-3);
+    flex-wrap: wrap;
+}
+
+.mm-tipo-option {
+    cursor: pointer;
+}
+
+.mm-tipo-option input {
+    display: none;
+}
+
+.mm-tipo-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--mm-space-2);
+    padding: var(--mm-space-4);
+    background: var(--mm-bg-secondary);
+    border: 2px solid var(--mm-border);
+    border-radius: var(--mm-radius-lg);
+    transition: all var(--mm-transition);
+    min-width: 140px;
+    text-align: center;
+}
+
+.mm-tipo-card i {
+    font-size: 1.5rem;
+    color: var(--mm-text-muted);
+}
+
+.mm-tipo-card span {
+    font-size: var(--mm-text-sm);
+    font-weight: var(--mm-font-medium);
+    color: var(--mm-text-secondary);
+}
+
+.mm-tipo-option:hover .mm-tipo-card {
+    border-color: var(--mm-primary);
+    background: rgba(var(--mm-primary-rgb), 0.05);
+}
+
+.mm-tipo-option input:checked + .mm-tipo-card {
+    border-color: var(--mm-primary);
+    background: rgba(var(--mm-primary-rgb), 0.1);
+    box-shadow: var(--mm-shadow-glow);
+}
+
+.mm-tipo-option input:checked + .mm-tipo-card i {
+    color: var(--mm-primary);
+}
+
+.mm-tipo-option input:checked + .mm-tipo-card span {
+    color: var(--mm-primary);
+}
+
+.mm-tarefas-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mm-space-4);
+}
+
+.mm-tarefa-card {
+    background: var(--mm-bg-secondary);
+    border: 1px solid var(--mm-border);
+    border-radius: var(--mm-radius-xl);
+    padding: var(--mm-space-6);
+    transition: all var(--mm-transition);
+}
+
+.mm-tarefa-card:hover {
+    border-color: rgba(var(--mm-primary-rgb), 0.3);
+    box-shadow: var(--mm-shadow-lg);
+}
+
+.mm-tarefa-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--mm-space-4);
+    gap: var(--mm-space-3);
+    flex-wrap: wrap;
+}
+
+.mm-tarefa-title {
+    font-size: var(--mm-text-lg);
+    font-weight: var(--mm-font-semibold);
+    color: var(--mm-text-primary);
+    margin: 0;
+}
+
+.mm-tarefa-info {
+    margin-bottom: var(--mm-space-4);
+}
+
+.mm-tarefa-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--mm-space-2);
+    padding: var(--mm-space-3);
+    border-radius: var(--mm-radius);
+    font-size: var(--mm-text-sm);
+    margin-bottom: var(--mm-space-3);
+}
+
+.mm-tarefa-hint.mm-alert-warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #b45309;
+}
+
+.mm-tarefa-hint.mm-alert-info {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--mm-info);
+}
+
+.mm-tarefa-hint.mm-alert-secondary {
+    background: var(--mm-bg-tertiary);
+    color: var(--mm-text-secondary);
+}
+
+.mm-tarefa-hint.mm-alert-primary {
+    background: rgba(var(--mm-primary-rgb), 0.1);
+    color: var(--mm-primary-dark);
+}
+
+.mm-tarefa-obs {
+    font-size: var(--mm-text-sm);
+    color: var(--mm-text-secondary);
+    margin: 0;
+}
+
+.mm-tarefa-dates {
+    display: flex;
+    gap: var(--mm-space-3);
+    margin-bottom: var(--mm-space-4);
+    flex-wrap: wrap;
+}
+
+.mm-date-badge {
+    display: flex;
+    align-items: center;
+    gap: var(--mm-space-2);
+    padding: var(--mm-space-2) var(--mm-space-3);
+    border-radius: var(--mm-radius);
+    font-size: var(--mm-text-sm);
+}
+
+.mm-date-badge small {
+    display: block;
+    font-size: var(--mm-text-xs);
+    opacity: 0.8;
+}
+
+.mm-date-badge strong {
+    display: block;
+    font-weight: var(--mm-font-semibold);
+}
+
+.mm-date-next {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--mm-success);
+}
+
+.mm-date-last {
+    background: var(--mm-bg-tertiary);
+    color: var(--mm-text-secondary);
+}
+
+.mm-date-user {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--mm-info);
+}
+
+.mm-tarefa-ajuste {
+    font-size: var(--mm-text-sm);
+    color: var(--mm-text-muted);
+    margin-bottom: var(--mm-space-4);
+}
+
+.mm-tarefa-actions {
+    padding-top: var(--mm-space-4);
+    border-top: 1px solid var(--mm-border);
+    margin-bottom: var(--mm-space-4);
+}
+
+.mm-tarefa-concluir {
+    padding-top: var(--mm-space-4);
+    border-top: 1px solid var(--mm-border);
+}
+
+.mm-concluir-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr auto;
+    gap: var(--mm-space-4);
+    align-items: end;
+}
+
+.mm-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mm-space-2);
+}
+
+@media (max-width: 1024px) {
+    .mm-concluir-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .mm-historico-item {
+        flex-direction: column;
+    }
+    
+    .mm-historico-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    
+    .mm-tipo-selector {
+        width: 100%;
+    }
+    
+    .mm-tipo-card {
+        min-width: calc(50% - var(--mm-space-2));
+        flex: 1;
+    }
+    
+    .mm-concluir-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .mm-tarefa-dates {
+        flex-direction: column;
+    }
+    
+    .mm-date-badge {
+        width: 100%;
+    }
+}
+
+.mm-tarefa-atrasada {
+    border-left: 4px solid #ef4444 !important;
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.mm-tarefa-urgente {
+    border-left: 4px solid #f59e0b !important;
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.mm-calendario {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.mm-cal-header {
+    padding: var(--mm-space-2);
+    text-align: center;
+    font-weight: 600;
+    font-size: var(--mm-text-sm);
+    color: var(--mm-text-muted);
+    background: var(--mm-bg-secondary);
+}
+
+.mm-cal-day {
+    min-height: 80px;
+    padding: var(--mm-space-2);
+    background: var(--mm-bg-secondary);
+    border-radius: var(--mm-radius);
+}
+
+.mm-cal-day-num {
+    font-weight: 600;
+    margin-bottom: var(--mm-space-1);
+}
+
+.mm-cal-event {
+    font-size: 10px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mm-chart-container {
+    height: 200px;
+    position: relative;
+}
+</style>
+{% endblock %}

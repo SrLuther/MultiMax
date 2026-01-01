@@ -7,12 +7,12 @@ from sqlalchemy import func, desc
 
 bp = Blueprint('aproveitamento', __name__, url_prefix='/aproveitamento')
 
-@bp.route('/', methods=['GET'])
-@login_required
-def index():
-    status = request.args.get('status', '').strip()
-    prioridade = request.args.get('prioridade', '').strip()
-    
+# ============================================================================
+# Funções auxiliares
+# ============================================================================
+
+def _get_sugestoes_filtradas(status: str = '', prioridade: str = ''):
+    """Busca sugestões de aproveitamento com filtros"""
     query = WasteUtilization.query
     if status:
         query = query.filter_by(status=status)
@@ -20,14 +20,28 @@ def index():
         query = query.filter_by(status='pendente')
     if prioridade:
         query = query.filter_by(prioridade=int(prioridade))
+    return query.order_by(WasteUtilization.prioridade, WasteUtilization.dias_para_validade).all()
+
+
+# ============================================================================
+# Rotas
+# ============================================================================
+
+@bp.route('/', methods=['GET'])
+@login_required
+def index():
+    status = request.args.get('status', '').strip()
+    prioridade = request.args.get('prioridade', '').strip()
     
-    sugestoes = query.order_by(WasteUtilization.prioridade, WasteUtilization.dias_para_validade).all()
+    sugestoes = _get_sugestoes_filtradas(status, prioridade)
     
-    return render_template('aproveitamento/index.html',
-                         sugestoes=sugestoes,
-                         status=status,
-                         prioridade=prioridade,
-                         active_page='aproveitamento')
+    return render_template(
+        'aproveitamento/index.html',
+        sugestoes=sugestoes,
+        status=status,
+        prioridade=prioridade,
+        active_page='aproveitamento'
+    )
 
 @bp.route('/gerar-sugestoes', methods=['POST'])
 @login_required
