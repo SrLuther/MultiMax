@@ -462,6 +462,20 @@ body {
   color: var(--mm-text-primary);
 }
 
+/* Dark mode - Tabelas com descrições claras */
+[data-theme="dark"] .mm-table th {
+  color: #e5e7eb;
+}
+
+[data-theme="dark"] .mm-table td {
+  color: #f3f4f6;
+}
+
+[data-theme="dark"] .mm-table td .mm-text-muted,
+[data-theme="dark"] .mm-table td .mm-text-secondary {
+  color: #d1d5db !important;
+}
+
 .mm-table tbody tr {
   transition: background var(--mm-transition);
 }

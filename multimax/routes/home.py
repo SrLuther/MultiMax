@@ -13,7 +13,6 @@ def get_dashboard_metrics():
     metrics = {
         'total_produtos': 0,
         'produtos_baixo_estoque': 0,
-        'valor_total_estoque': 0,
         'tarefas_atrasadas': 0,
         'tarefas_proximas': 0,
         'movimentacoes_hoje': 0,
@@ -27,8 +26,6 @@ def get_dashboard_metrics():
             Produto.estoque_minimo > 0,
             Produto.quantidade <= Produto.estoque_minimo
         ).count()
-        valor = db.session.query(func.sum(Produto.quantidade * Produto.preco_custo)).scalar()
-        metrics['valor_total_estoque'] = valor or 0
         today = date.today()
         metrics['tarefas_atrasadas'] = CleaningTask.query.filter(CleaningTask.proxima_data < today).count()
         horizon = today + timedelta(days=7)

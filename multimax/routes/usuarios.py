@@ -610,7 +610,7 @@ def perfil():
                     TimeOffRecord.date <= today
                 ).order_by(TimeOffRecord.date.desc()).limit(5).all()
                 for la in (la_list or []):
-                    days = max(1, int(la.days_used or 1))
+                    days = max(1, int(la.days or 1))
                     end_date = la.date + _td(days=days - 1)
                     if end_date >= today:
                         is_on_break = True
@@ -761,88 +761,105 @@ def gestao():
         if changed:
             db.session.commit()
         # Garantir colunas necessárias em tabelas de gestão
+        # Verificar se as tabelas existem antes de inspecioná-las
         try:
-            # leave_assignment: notes
-            la_cols = [c['name'] for c in insp.get_columns('leave_assignment')]
-            la_changed = False
-            if 'notes' not in la_cols:
-                db.session.execute(text('ALTER TABLE leave_assignment ADD COLUMN notes TEXT'))
-                la_changed = True
-            if la_changed:
-                db.session.commit()
+            tables = insp.get_table_names()
+            
+            # leave_assignment: notes (tabela antiga, pode não existir)
+            if 'leave_assignment' in tables:
+                try:
+                    la_cols = [c['name'] for c in insp.get_columns('leave_assignment')]
+                    la_changed = False
+                    if 'notes' not in la_cols:
+                        db.session.execute(text('ALTER TABLE leave_assignment ADD COLUMN notes TEXT'))
+                        la_changed = True
+                    if la_changed:
+                        db.session.commit()
+                except Exception:
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
+            
+            # leave_credit: origin, notes (tabela antiga, pode não existir)
+            if 'leave_credit' in tables:
+                try:
+                    lc_cols = [c['name'] for c in insp.get_columns('leave_credit')]
+                    lc_changed = False
+                    if 'origin' not in lc_cols:
+                        db.session.execute(text('ALTER TABLE leave_credit ADD COLUMN origin TEXT'))
+                        lc_changed = True
+                    if 'notes' not in lc_cols:
+                        db.session.execute(text('ALTER TABLE leave_credit ADD COLUMN notes TEXT'))
+                        lc_changed = True
+                    if lc_changed:
+                        db.session.commit()
+                except Exception:
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
+            
+            # hour_bank_entry: reason (tabela antiga, pode não existir)
+            if 'hour_bank_entry' in tables:
+                try:
+                    hb_cols = [c['name'] for c in insp.get_columns('hour_bank_entry')]
+                    hb_changed = False
+                    if 'reason' not in hb_cols:
+                        db.session.execute(text('ALTER TABLE hour_bank_entry ADD COLUMN reason TEXT'))
+                        hb_changed = True
+                    if hb_changed:
+                        db.session.commit()
+                except Exception:
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
         except Exception:
             try:
                 db.session.rollback()
             except Exception:
                 pass
-        try:
-            # leave_credit: origin, notes
-            lc_cols = [c['name'] for c in insp.get_columns('leave_credit')]
-            lc_changed = False
-            if 'origin' not in lc_cols:
-                db.session.execute(text('ALTER TABLE leave_credit ADD COLUMN origin TEXT'))
-                lc_changed = True
-            if 'notes' not in lc_cols:
-                db.session.execute(text('ALTER TABLE leave_credit ADD COLUMN notes TEXT'))
-                lc_changed = True
-            if lc_changed:
-                db.session.commit()
-        except Exception:
-            try:
-                db.session.rollback()
-            except Exception:
-                pass
-        try:
-            # hour_bank_entry: reason
-            hb_cols = [c['name'] for c in insp.get_columns('hour_bank_entry')]
-            hb_changed = False
-            if 'reason' not in hb_cols:
-                db.session.execute(text('ALTER TABLE hour_bank_entry ADD COLUMN reason TEXT'))
-                hb_changed = True
-            if hb_changed:
-                db.session.commit()
-        except Exception:
-            try:
-                db.session.rollback()
-            except Exception:
-                pass
-        try:
             # vacation: observacao
-            vac_cols = [c['name'] for c in insp.get_columns('vacation')]
-            vac_changed = False
-            if 'observacao' not in vac_cols:
-                db.session.execute(text('ALTER TABLE vacation ADD COLUMN observacao TEXT'))
-                vac_changed = True
-            if vac_changed:
-                db.session.commit()
-        except Exception:
-            try:
-                db.session.rollback()
-            except Exception:
-                pass
-        try:
+            if 'vacation' in tables:
+                try:
+                    vac_cols = [c['name'] for c in insp.get_columns('vacation')]
+                    vac_changed = False
+                    if 'observacao' not in vac_cols:
+                        db.session.execute(text('ALTER TABLE vacation ADD COLUMN observacao TEXT'))
+                        vac_changed = True
+                    if vac_changed:
+                        db.session.commit()
+                except Exception:
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
+            
             # medical_certificate: motivo, cid, medico, foto_atestado
-            mc_cols = [c['name'] for c in insp.get_columns('medical_certificate')]
-            mc_changed = False
-            if 'motivo' not in mc_cols:
-                db.session.execute(text('ALTER TABLE medical_certificate ADD COLUMN motivo TEXT'))
-                mc_changed = True
-            if 'cid' not in mc_cols:
-                db.session.execute(text('ALTER TABLE medical_certificate ADD COLUMN cid TEXT'))
-                mc_changed = True
-            if 'medico' not in mc_cols:
-                db.session.execute(text('ALTER TABLE medical_certificate ADD COLUMN medico TEXT'))
-                mc_changed = True
-            if 'foto_atestado' not in mc_cols:
-                db.session.execute(text('ALTER TABLE medical_certificate ADD COLUMN foto_atestado TEXT'))
-                mc_changed = True
-            if mc_changed:
-                db.session.commit()
-        except Exception:
-            try:
-                db.session.rollback()
-            except Exception:
-                pass
+            if 'medical_certificate' in tables:
+                try:
+                    mc_cols = [c['name'] for c in insp.get_columns('medical_certificate')]
+                    mc_changed = False
+                    if 'motivo' not in mc_cols:
+                        db.session.execute(text('ALTER TABLE medical_certificate ADD COLUMN motivo TEXT'))
+                        mc_changed = True
+                    if 'cid' not in mc_cols:
+                        db.session.execute(text('ALTER TABLE medical_certificate ADD COLUMN cid TEXT'))
+                        mc_changed = True
+                    if 'medico' not in mc_cols:
+                        db.session.execute(text('ALTER TABLE medical_certificate ADD COLUMN medico TEXT'))
+                        mc_changed = True
+                    if 'foto_atestado' not in mc_cols:
+                        db.session.execute(text('ALTER TABLE medical_certificate ADD COLUMN foto_atestado TEXT'))
+                        mc_changed = True
+                    if mc_changed:
+                        db.session.commit()
+                except Exception:
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
     except Exception:
         try:
             db.session.rollback()
@@ -871,12 +888,50 @@ def gestao():
     for s in hist_sistema:
         logs.append({'data': s.data, 'origem': s.origem, 'evento': s.evento, 'detalhes': s.detalhes, 'usuario': s.usuario, 'produto': None, 'quantidade': None})
     logs.sort(key=lambda x: x['data'], reverse=True)
+    # Colaboradores (User e Collaborator são uma coisa só)
+    try:
+        colaboradores = Collaborator.query.order_by(Collaborator.name.asc()).all()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Erro ao buscar colaboradores: {e}", exc_info=True)
+        colaboradores = []
+    
+    # Função auxiliar para obter nome de exibição
+    def _get_display_name(collab):
+        try:
+            if collab.user_id and collab.user:
+                return collab.user.name or ''
+            return collab.name or ''
+        except Exception:
+            return ''
+    
+    # Adicionar display_name a cada colaborador
+    for c in colaboradores:
+        try:
+            c.display_name = _get_display_name(c)
+        except Exception:
+            c.display_name = ''
+    
     # Busca e paginação - mostrar colaboradores (User e Collaborator são uma coisa só)
     # Filtrar colaboradores por nome (busca no nome do User se existir, senão no do Collaborator)
     colaboradores_filtrados = colaboradores
     if q:
         # Buscar colaboradores cujo nome ou nome do usuário corresponda
-        colaboradores_filtrados = [c for c in colaboradores if q.lower() in (c.user.name.lower() if c.user else c.name.lower())]
+        try:
+            colaboradores_filtrados = []
+            for c in colaboradores:
+                try:
+                    nome_busca = ''
+                    if c.user and c.user.name:
+                        nome_busca = c.user.name.lower()
+                    elif c.name:
+                        nome_busca = c.name.lower()
+                    if q.lower() in nome_busca:
+                        colaboradores_filtrados.append(c)
+                except Exception:
+                    continue
+        except Exception:
+            colaboradores_filtrados = colaboradores
     
     # Paginação de colaboradores (substituindo users_page)
     per_users = 5
@@ -927,18 +982,6 @@ def gestao():
 
     senha_sugestao = '123456'
     roles = JobRole.query.order_by(JobRole.name.asc()).all()
-    # Colaboradores (User e Collaborator são uma coisa só)
-    colaboradores = Collaborator.query.order_by(Collaborator.name.asc()).all()
-    
-    # Função auxiliar para obter nome de exibição
-    def _get_display_name(collab):
-        if collab.user_id and collab.user:
-            return collab.user.name
-        return collab.name
-    
-    # Adicionar display_name a cada colaborador
-    for c in colaboradores:
-        c.display_name = _get_display_name(c)
     bank_balances = {}
     saldo_collab = None
     saldo_hours = None
@@ -1064,7 +1107,7 @@ def gestao():
                         saldo_items.append({
                             'tipo': 'uso',
                             'date': a.date,
-                            'amount': -int(a.days_used or 0),
+                            'amount': -int(a.days or 0),
                             'unit': 'dia',
                             'motivo': a.notes or ''
                         })
@@ -1082,11 +1125,16 @@ def gestao():
     try:
         from sqlalchemy import func
         for c in colaboradores:
-            credits_sum = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == c.id, TimeOffRecord.record_type == 'folga_adicional').scalar() or 0
-            assigned_sum = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == c.id, TimeOffRecord.record_type == 'folga_usada').scalar() or 0
-            converted_sum = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == c.id, TimeOffRecord.record_type == 'conversao').scalar() or 0
-            folgas.append({'collab': c, 'balance': int(credits_sum) - int(assigned_sum) - int(converted_sum)})
-    except Exception:
+            try:
+                credits_sum = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == c.id, TimeOffRecord.record_type == 'folga_adicional').scalar() or 0
+                assigned_sum = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == c.id, TimeOffRecord.record_type == 'folga_usada').scalar() or 0
+                converted_sum = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == c.id, TimeOffRecord.record_type == 'conversao').scalar() or 0
+                folgas.append({'collab': c, 'balance': int(credits_sum) - int(assigned_sum) - int(converted_sum)})
+            except Exception:
+                continue
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Erro ao calcular folgas: {e}", exc_info=True)
         folgas = []
     # Paginação e filtros por colaborador
     per_page = 10

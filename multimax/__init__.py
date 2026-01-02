@@ -643,7 +643,8 @@ def create_app():
             from .models import AppSetting
             import subprocess
             import json
-            import urllib.request
+            from urllib import request as urllib_request
+            from urllib import error as urllib_error
             ver = app.config.get('APP_VERSION_RESOLVED', 'dev')
             base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.dirname(__file__)))
             commits = []
@@ -662,9 +663,9 @@ def create_app():
                         commits = [line.strip() for line in rlog2.stdout.splitlines() if line.strip()]
             except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError):
                 try:
-                    req = urllib.request.Request('https://api.github.com/repos/SrLuther/MultiMax/commits?sha=main')
+                    req = urllib_request.Request('https://api.github.com/repos/SrLuther/MultiMax/commits?sha=main')
                     req.add_header('User-Agent', 'MultiMax-App')
-                    with urllib.request.urlopen(req, timeout=5) as resp:
+                    with urllib_request.urlopen(req, timeout=5) as resp:
                         raw = resp.read().decode('utf-8')
                         arr = json.loads(raw)
                         for it in arr[:20]:
@@ -672,7 +673,7 @@ def create_app():
                             msg = ((it.get('commit') or {}).get('message') or '').split('\n',1)[0]
                             if msg:
                                 commits.append(f'{h} {msg}')
-                except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError):
+                except (urllib_error.URLError, urllib_error.HTTPError, TimeoutError, json.JSONDecodeError):
                     commits = []
                 except Exception as e:
                     app.logger.warning(f"Erro ao buscar commits do GitHub: {e}")
