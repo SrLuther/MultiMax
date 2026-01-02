@@ -1,9 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from .. import db
-from ..models import Collaborator as CollaboratorModel, Shift, AppSetting, Holiday, LeaveAssignment, Vacation as VacationModel, MedicalCertificate
-from ..models import HourBankEntry
-from ..models import LeaveCredit, LeaveConversion
+from ..models import Collaborator as CollaboratorModel, Shift, AppSetting, Holiday, Vacation as VacationModel, MedicalCertificate, TimeOffRecord
 from ..services.notificacao_service import registrar_evento
 from datetime import datetime, date
 from zoneinfo import ZoneInfo
@@ -168,12 +166,13 @@ def escala():
             nm = name_by_id.get(cid) or f"ID {cid}"
             # Folga agendada
             try:
-                las = LeaveAssignment.query.filter(
-                    LeaveAssignment.collaborator_id == cid,
-                    LeaveAssignment.date <= d
-                ).order_by(LeaveAssignment.date.desc()).limit(3).all()
+                las = TimeOffRecord.query.filter(
+                    TimeOffRecord.collaborator_id == cid,
+                    TimeOffRecord.record_type == 'folga_usada',
+                    TimeOffRecord.date <= d
+                ).order_by(TimeOffRecord.date.desc()).limit(3).all()
                 for la in las or []:
-                    days = max(1, int(la.days_used or 1))
+                    days = max(1, int(la.days or 1))
                     end_date = la.date + timedelta(days=days - 1)
                     if end_date >= d:
                         conflicts.append({'type': 'Folga', 'name': nm, 'date': d})
@@ -331,7 +330,7 @@ def escala():
     except Exception:
         pass
     try:
-        las = LeaveAssignment.query.order_by(LeaveAssignment.date.asc()).all()
+        las = TimeOffRecord.query.filter(TimeOffRecord.record_type == 'folga_usada').order_by(TimeOffRecord.date.asc()).all()
         name_by_id = {c.id: c.name for c in cols}
         from datetime import timedelta
         for la in las:
@@ -823,15 +822,17 @@ def limpar_escala_semana():
         
         for shift in shifts_to_delete:
             if shift.is_sunday_holiday:
-                LeaveCredit.query.filter_by(
-                    collaborator_id=shift.collaborator_id, 
-                    date=shift.date, 
-                    origin='domingo'
+                TimeOffRecord.query.filter(
+                    TimeOffRecord.collaborator_id == shift.collaborator_id,
+                    TimeOffRecord.date == shift.date,
+                    TimeOffRecord.record_type == 'folga_adicional',
+                    TimeOffRecord.origin == 'domingo'
                 ).delete()
-                HourBankEntry.query.filter_by(
-                    collaborator_id=shift.collaborator_id,
-                    date=shift.date,
-                    reason='Hora extra domingo (entrada 5h)'
+                TimeOffRecord.query.filter(
+                    TimeOffRecord.collaborator_id == shift.collaborator_id,
+                    TimeOffRecord.date == shift.date,
+                    TimeOffRecord.record_type == 'horas',
+                    TimeOffRecord.notes == 'Hora extra domingo (entrada 5h)'
                 ).delete()
             db.session.delete(shift)
         
@@ -862,12 +863,14 @@ def folga_credito_registrar_gestao():
         flash('Dados inválidos para crédito de folga.', 'warning')
         return redirect(url_for('usuarios.gestao'))
     try:
-        lc = LeaveCredit()
+        lc = TimeOffRecord()
         lc.collaborator_id = cid
         lc.date = d
-        lc.amount_days = amount
+        lc.record_type = 'folga_adicional'
+        lc.days = amount
         lc.origin = 'manual'
         lc.notes = notes
+        lc.created_by = current_user.username if current_user.is_authenticated else 'sistema'
         db.session.add(lc)
         db.session.commit()
         flash('Crédito de folga registrado.', 'success')
@@ -897,14 +900,16 @@ def folga_credito_domingo():
         flash('Dados inválidos para crédito de domingo.', 'warning')
         return redirect(url_for('usuarios.gestao'))
     try:
-        exists = LeaveCredit.query.filter_by(collaborator_id=cid, date=d, origin='domingo').first()
+        exists = TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == cid, TimeOffRecord.date == d, TimeOffRecord.record_type == 'folga_adicional', TimeOffRecord.origin == 'domingo').first()
         if not exists:
-            lc = LeaveCredit()
+            lc = TimeOffRecord()
             lc.collaborator_id = cid
             lc.date = d
-            lc.amount_days = amount
+            lc.record_type = 'folga_adicional'
+            lc.days = amount
             lc.origin = 'domingo'
             lc.notes = notes
+            lc.created_by = current_user.username if current_user.is_authenticated else 'sistema'
             db.session.add(lc)
             db.session.commit()
             flash('Crédito de domingo registrado.', 'success')
@@ -935,10 +940,11 @@ def folga_credito_reduzir():
         return redirect(url_for('usuarios.gestao'))
     try:
         from datetime import date as _date
-        lc = LeaveCredit()
+        lc = TimeOffRecord()
         lc.collaborator_id = cid
         lc.date = _date.today()
-        lc.amount_days = -amount
+        lc.record_type = 'folga_adicional'
+        lc.days = -amount
         lc.origin = 'ajuste'
         lc.notes = notes
         db.session.add(lc)
@@ -971,9 +977,9 @@ def folga_agendar():
         return redirect(url_for('usuarios.gestao'))
     try:
         from sqlalchemy import func
-        credits_sum = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == cid).scalar() or 0
-        assigned_sum = db.session.query(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).filter(LeaveAssignment.collaborator_id == cid).scalar() or 0
-        converted_sum = db.session.query(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).filter(LeaveConversion.collaborator_id == cid).scalar() or 0
+        credits_sum = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == cid, TimeOffRecord.record_type == 'folga_adicional').scalar() or 0
+        assigned_sum = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == cid, TimeOffRecord.record_type == 'folga_usada').scalar() or 0
+        converted_sum = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == cid, TimeOffRecord.record_type == 'conversao').scalar() or 0
         folga_balance = int(credits_sum) - int(assigned_sum) - int(converted_sum)
         if folga_balance < days:
             flash(f'Saldo de folga insuficiente ({folga_balance} dia(s)). Reduza os dias ou converta em dinheiro.', 'warning')
@@ -988,11 +994,14 @@ def folga_agendar():
         except Exception:
             feriados_no_periodo = 0
         effective_days = max(0, int(days) - int(feriados_no_periodo))
-        la = LeaveAssignment()
+        la = TimeOffRecord()
         la.collaborator_id = cid
         la.date = d
-        la.days_used = effective_days
+        la.record_type = 'folga_usada'
+        la.days = effective_days
         la.notes = notes
+        la.origin = 'manual'
+        la.created_by = current_user.username if current_user.is_authenticated else 'sistema'
         db.session.add(la)
         db.session.commit()
         try:
@@ -1032,13 +1041,16 @@ def folga_converter():
         flash('Dados inválidos para conversão.', 'warning')
         return redirect(url_for('usuarios.gestao'))
     try:
-        conv = LeaveConversion()
+        conv = TimeOffRecord()
         conv.collaborator_id = cid
         conv.date = d
-        conv.amount_days = days
+        conv.record_type = 'conversao'
+        conv.days = days
         conv.amount_paid = amount_paid
         conv.rate_per_day = rate
         conv.notes = notes
+        conv.origin = 'manual'
+        conv.created_by = current_user.username if current_user.is_authenticated else 'sistema'
         db.session.add(conv)
         db.session.commit()
         flash('Conversão registrada.', 'success')

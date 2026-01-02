@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from ..password_hash import generate_password_hash, check_password_hash
 from ..filename_utils import secure_filename
 from .. import db
-from ..models import User, Produto, Historico, CleaningHistory, SystemLog, NotificationRead, HourBankEntry, Collaborator, JobRole, LeaveCredit, LeaveAssignment, LeaveConversion, Shift, CleaningTask, Vacation, MedicalCertificate, Holiday
+from ..models import User, Produto, Historico, CleaningHistory, SystemLog, NotificationRead, Collaborator, JobRole, Shift, CleaningTask, Vacation, MedicalCertificate, Holiday, TimeOffRecord
 from datetime import datetime
 from typing import cast, Sequence
 import os
@@ -47,7 +47,7 @@ def users():
         nivel = request.form.get('nivel', 'visualizador').strip()
         # Apenas DEV pode criar ou alterar usuários para admin/DEV
         if nivel in ('admin', 'DEV') and current_user.nivel != 'DEV':
-            flash('Apenas o desenvolvedor pode criar ou alterar administradores.', 'danger')
+            flash('Apenas desenvolvedores podem criar usuários com nível Gerente ou Desenvolvedor.', 'danger')
             return redirect(url_for('usuarios.gestao'))
         if not name or not password:
             flash('Nome e senha são obrigatórios.', 'warning')
@@ -257,7 +257,7 @@ def update_level(user_id):
         return redirect(url_for('usuarios.gestao'))
     # Apenas DEV pode alterar nível para admin/DEV
     if nivel in ('admin', 'DEV') and current_user.nivel != 'DEV':
-        flash('Apenas o desenvolvedor pode alterar usuários para administrador.', 'danger')
+        flash('Apenas desenvolvedores podem alterar usuários para Gerente ou Desenvolvedor.', 'danger')
         return redirect(url_for('usuarios.gestao'))
     try:
         user.nivel = nivel
@@ -453,6 +453,7 @@ def perfil():
             db.session.rollback()
         except Exception:
             pass
+    # User e Collaborator são uma coisa só - buscar colaborador vinculado ao usuário
     collab = None
     entries = []
     total = 0.0
@@ -461,33 +462,59 @@ def perfil():
     folga_credits = []
     folga_assigned = []
     folga_conversions = []
+    
+    # User e Collaborator são uma coisa só - criar colaborador se não existir
     try:
         collab = Collaborator.query.filter_by(user_id=current_user.id).first()
+        # Se não encontrar por user_id, tentar buscar pelo nome (compatibilidade)
+        if not collab:
+            collab = Collaborator.query.filter_by(name=current_user.name).first()
+        
+        # Se ainda não encontrou, criar colaborador automaticamente (User e Collaborator são a mesma coisa)
+        if not collab:
+            collab = Collaborator()
+            collab.name = current_user.name
+            collab.user_id = current_user.id
+            collab.active = True
+            collab.role = None  # Pode ser preenchido depois
+            db.session.add(collab)
+            try:
+                db.session.commit()
+                flash('Colaborador criado automaticamente. User e Collaborator são uma coisa só.', 'info')
+            except Exception as e:
+                db.session.rollback()
+                # Se falhar, continuar sem colaborador (não quebrar o perfil)
+                collab = None
         if collab:
             try:
                 from sqlalchemy import func
-                total_pre = db.session.query(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).filter(HourBankEntry.collaborator_id == collab.id).scalar() or 0.0
+                total_pre = db.session.query(func.coalesce(func.sum(TimeOffRecord.hours), 0.0)).filter(TimeOffRecord.collaborator_id == collab.id, TimeOffRecord.record_type == 'horas').scalar() or 0.0
                 total_pre = float(total_pre)
-                auto_credits_pre = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == collab.id, LeaveCredit.origin == 'horas').scalar() or 0
+                auto_credits_pre = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == collab.id, TimeOffRecord.record_type == 'folga_adicional', TimeOffRecord.origin == 'horas').scalar() or 0
                 auto_credits_pre = int(auto_credits_pre)
                 desired_pre = int(total_pre // 8.0) if total_pre > 0.0 else 0
                 missing_pre = max(0, desired_pre - auto_credits_pre)
                 if missing_pre > 0:
                     from datetime import date as _date
                     for _ in range(missing_pre):
-                        lc = LeaveCredit()
+                        lc = TimeOffRecord()
                         lc.collaborator_id = collab.id
                         lc.date = _date.today()
-                        lc.amount_days = 1
+                        lc.record_type = 'folga_adicional'
+                        lc.days = 1
                         lc.origin = 'horas'
                         lc.notes = 'Reconciliação automática: crédito por 8h acumuladas'
+                        lc.created_by = 'sistema'
                         db.session.add(lc)
                     for _ in range(missing_pre):
-                        adj = HourBankEntry()
+                        adj = TimeOffRecord()
                         adj.collaborator_id = collab.id
                         adj.date = _date.today()
+                        adj.record_type = 'horas'
                         adj.hours = -8.0
-                        adj.reason = 'Reconciliação automática: -8h por +1 dia'
+                        adj.notes = 'Reconciliação automática: -8h por +1 dia'
+                        adj.origin = 'sistema'
+                        adj.created_by = 'sistema'
                         db.session.add(adj)
                     db.session.commit()
             except Exception:
@@ -495,10 +522,10 @@ def perfil():
                     db.session.rollback()
                 except Exception:
                     pass
-            entries = HourBankEntry.query.filter_by(collaborator_id=collab.id).order_by(HourBankEntry.date.desc()).limit(50).all()
+            entries = TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == collab.id, TimeOffRecord.record_type == 'horas').order_by(TimeOffRecord.date.desc()).limit(50).all()
             try:
                 from sqlalchemy import func
-                total = db.session.query(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).filter(HourBankEntry.collaborator_id == collab.id).scalar() or 0.0
+                total = db.session.query(func.coalesce(func.sum(TimeOffRecord.hours), 0.0)).filter(TimeOffRecord.collaborator_id == collab.id, TimeOffRecord.record_type == 'horas').scalar() or 0.0
                 total = float(total)
                 if total >= 0.0:
                     residual_hours = total % 8.0
@@ -509,22 +536,22 @@ def perfil():
                 residual_hours = 0.0
             try:
                 from sqlalchemy import func
-                credits_sum = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == collab.id).scalar() or 0
-                assigned_sum = db.session.query(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).filter(LeaveAssignment.collaborator_id == collab.id).scalar() or 0
-                converted_sum = db.session.query(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).filter(LeaveConversion.collaborator_id == collab.id).scalar() or 0
+                credits_sum = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == collab.id, TimeOffRecord.record_type == 'folga_adicional').scalar() or 0
+                assigned_sum = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == collab.id, TimeOffRecord.record_type == 'folga_usada').scalar() or 0
+                converted_sum = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == collab.id, TimeOffRecord.record_type == 'conversao').scalar() or 0
                 folga_balance = int(credits_sum) - int(assigned_sum) - int(converted_sum)
             except Exception:
                 folga_balance = 0
             try:
-                folga_credits = LeaveCredit.query.filter_by(collaborator_id=collab.id).order_by(LeaveCredit.date.desc()).limit(50).all()
+                folga_credits = TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == collab.id, TimeOffRecord.record_type == 'folga_adicional').order_by(TimeOffRecord.date.desc()).limit(50).all()
             except Exception:
                 folga_credits = []
             try:
-                folga_assigned = LeaveAssignment.query.filter_by(collaborator_id=collab.id).order_by(LeaveAssignment.date.desc()).limit(50).all()
+                folga_assigned = TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == collab.id, TimeOffRecord.record_type == 'folga_usada').order_by(TimeOffRecord.date.desc()).limit(50).all()
             except Exception:
                 folga_assigned = []
             try:
-                folga_conversions = LeaveConversion.query.filter_by(collaborator_id=collab.id).order_by(LeaveConversion.date.desc()).limit(50).all()
+                folga_conversions = TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == collab.id, TimeOffRecord.record_type == 'conversao').order_by(TimeOffRecord.date.desc()).limit(50).all()
             except Exception:
                 folga_conversions = []
     except Exception:
@@ -583,10 +610,11 @@ def perfil():
             pass
         if not is_on_break:
             try:
-                la_list = LeaveAssignment.query.filter(
-                    LeaveAssignment.collaborator_id == collab.id,
-                    LeaveAssignment.date <= today
-                ).order_by(LeaveAssignment.date.desc()).limit(5).all()
+                la_list = TimeOffRecord.query.filter(
+                    TimeOffRecord.collaborator_id == collab.id,
+                    TimeOffRecord.record_type == 'folga_usada',
+                    TimeOffRecord.date <= today
+                ).order_by(TimeOffRecord.date.desc()).limit(5).all()
                 for la in (la_list or []):
                     days = max(1, int(la.days_used or 1))
                     end_date = la.date + _td(days=days - 1)
@@ -829,19 +857,44 @@ def gestao():
     for s in hist_sistema:
         logs.append({'data': s.data, 'origem': s.origem, 'evento': s.evento, 'detalhes': s.detalhes, 'usuario': s.usuario, 'produto': None, 'quantidade': None})
     logs.sort(key=lambda x: x['data'], reverse=True)
-    # Busca e paginação de usuários
-    uq = User.query
+    
+    # Buscar colaboradores primeiro
+    senha_sugestao = '123456'
+    roles = JobRole.query.order_by(JobRole.name.asc()).all()
+    colaboradores = Collaborator.query.order_by(Collaborator.name.asc()).all()
+    
+    # Busca e paginação de colaboradores/usuários (unificados)
+    # Criar lista unificada de colaboradores com informações de usuário
+    colaboradores_unificados = []
+    for colab in colaboradores:
+        user = None
+        if colab.user_id:
+            user = User.query.get(colab.user_id)
+        colaboradores_unificados.append({
+            'collaborator': colab,
+            'user': user,
+            'display_name': user.name if user else colab.name,
+            'username': user.username if user else None,
+            'nivel': user.nivel if user else None
+        })
+    
+    # Filtrar por busca
     if q:
-        uq = uq.filter(User.name.ilike(f"%{q}%"))
-    all_users: list[User] = uq.order_by(User.username.asc()).all()
+        colaboradores_unificados = [
+            item for item in colaboradores_unificados
+            if q.lower() in item['display_name'].lower() or 
+               (item['username'] and q.lower() in item['username'].lower())
+        ]
+    
     per_users = 5
-    total_users = len(all_users)
+    total_users = len(colaboradores_unificados)
     u_total_pages = max(1, (total_users + per_users - 1) // per_users)
     if u_page > u_total_pages:
         u_page = u_total_pages
     u_start = (u_page - 1) * per_users
     u_end = u_start + per_users
-    users_page = all_users[u_start:u_end]
+    users_page = colaboradores_unificados[u_start:u_end]
+    all_users = colaboradores_unificados
 
     # Paginação de logs
     per_logs = 2
@@ -877,9 +930,6 @@ def gestao():
     acc_end = acc_start + per_acc
     access_page = access_all[acc_start:acc_end]
 
-    senha_sugestao = '123456'
-    roles = JobRole.query.order_by(JobRole.name.asc()).all()
-    colaboradores = Collaborator.query.order_by(Collaborator.name.asc()).all()
     bank_balances = {}
     saldo_collab = None
     saldo_hours = None
@@ -889,7 +939,7 @@ def gestao():
     saldo_end = None
     try:
         from sqlalchemy import func
-        sums = db.session.query(HourBankEntry.collaborator_id, func.coalesce(func.sum(HourBankEntry.hours), 0.0)).group_by(HourBankEntry.collaborator_id).all()
+        sums = db.session.query(TimeOffRecord.collaborator_id, func.coalesce(func.sum(TimeOffRecord.hours), 0.0)).filter(TimeOffRecord.record_type == 'horas').group_by(TimeOffRecord.collaborator_id).all()
         for cid, total in sums:
             bank_balances[int(cid)] = float(total or 0.0)
         try:
@@ -915,28 +965,33 @@ def gestao():
             saldo_collab = Collaborator.query.get(scid)
             if saldo_collab:
                 try:
-                    hsum_pre = db.session.query(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).filter(HourBankEntry.collaborator_id == scid).scalar() or 0.0
+                    hsum_pre = db.session.query(func.coalesce(func.sum(TimeOffRecord.hours), 0.0)).filter(TimeOffRecord.collaborator_id == scid, TimeOffRecord.record_type == 'horas').scalar() or 0.0
                     hsum_pre = float(hsum_pre)
-                    auto_pre = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == scid, LeaveCredit.origin == 'horas').scalar() or 0
+                    auto_pre = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == scid, TimeOffRecord.record_type == 'folga_adicional', TimeOffRecord.origin == 'horas').scalar() or 0
                     auto_pre = int(auto_pre)
                     desired_pre = int(hsum_pre // 8.0) if hsum_pre > 0.0 else 0
                     missing_pre = max(0, desired_pre - auto_pre)
                     if missing_pre > 0:
                         from datetime import date as _date
                         for _ in range(missing_pre):
-                            lc = LeaveCredit()
+                            lc = TimeOffRecord()
                             lc.collaborator_id = scid
                             lc.date = _date.today()
-                            lc.amount_days = 1
+                            lc.record_type = 'folga_adicional'
+                            lc.days = 1
                             lc.origin = 'horas'
                             lc.notes = 'Reconciliação automática: crédito por 8h acumuladas'
+                            lc.created_by = 'sistema'
                             db.session.add(lc)
                         for _ in range(missing_pre):
-                            adj = HourBankEntry()
+                            adj = TimeOffRecord()
                             adj.collaborator_id = scid
                             adj.date = _date.today()
+                            adj.record_type = 'horas'
                             adj.hours = -8.0
-                            adj.reason = 'Reconciliação automática: -8h por +1 dia'
+                            adj.notes = 'Reconciliação automática: -8h por +1 dia'
+                            adj.origin = 'sistema'
+                            adj.created_by = 'sistema'
                             db.session.add(adj)
                         db.session.commit()
                 except Exception:
@@ -944,36 +999,40 @@ def gestao():
                         db.session.rollback()
                     except Exception:
                         pass
-                hsum = db.session.query(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).filter(HourBankEntry.collaborator_id == scid).scalar() or 0.0
-                hsum = float(hsum)
-                if hsum >= 0.0:
-                    saldo_hours = hsum % 8.0
+                # Calcular total bruto de horas (somando apenas horas positivas, sem considerar conversões negativas)
+                total_bruto_hours = float(db.session.query(func.coalesce(func.sum(func.case((TimeOffRecord.hours > 0, TimeOffRecord.hours), else_=0)), 0.0)).filter(TimeOffRecord.collaborator_id == scid, TimeOffRecord.record_type == 'horas').scalar() or 0.0)
+                # Calcular dias convertidos das horas brutas (8h = 1 dia)
+                days_from_hours = int(total_bruto_hours // 8.0) if total_bruto_hours >= 0.0 else 0
+                # Horas restantes após conversão
+                if total_bruto_hours >= 0.0:
+                    saldo_hours = total_bruto_hours % 8.0
                 else:
-                    saldo_hours = - ((-hsum) % 8.0)
-                credits_sum = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == scid).scalar() or 0
-                assigned_sum = db.session.query(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).filter(LeaveAssignment.collaborator_id == scid).scalar() or 0
-                converted_sum = db.session.query(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).filter(LeaveConversion.collaborator_id == scid).scalar() or 0
-                saldo_days = int(credits_sum) - int(assigned_sum) - int(converted_sum)
+                    saldo_hours = 0.0
+                credits_sum = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == scid, TimeOffRecord.record_type == 'folga_adicional').scalar() or 0
+                assigned_sum = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == scid, TimeOffRecord.record_type == 'folga_usada').scalar() or 0
+                converted_sum = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == scid, TimeOffRecord.record_type == 'conversao').scalar() or 0
+                # Saldo de dias = folgas adicionais + dias convertidos das horas brutas - folgas usadas - conversões em dinheiro
+                saldo_days = int(credits_sum) + days_from_hours - int(assigned_sum) - int(converted_sum)
                 try:
                     # Detalhamento por período
-                    hq = HourBankEntry.query.filter(HourBankEntry.collaborator_id == scid)
-                    cq = LeaveCredit.query.filter(LeaveCredit.collaborator_id == scid)
-                    aq = LeaveAssignment.query.filter(LeaveAssignment.collaborator_id == scid)
+                    hq = TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == scid, TimeOffRecord.record_type == 'horas')
+                    cq = TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == scid, TimeOffRecord.record_type == 'folga_adicional')
+                    aq = TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == scid, TimeOffRecord.record_type == 'folga_usada')
                     if saldo_start and saldo_end:
-                        hq = hq.filter(HourBankEntry.date.between(saldo_start, saldo_end))
-                        cq = cq.filter(LeaveCredit.date.between(saldo_start, saldo_end))
-                        aq = aq.filter(LeaveAssignment.date.between(saldo_start, saldo_end))
+                        hq = hq.filter(TimeOffRecord.date.between(saldo_start, saldo_end))
+                        cq = cq.filter(TimeOffRecord.date.between(saldo_start, saldo_end))
+                        aq = aq.filter(TimeOffRecord.date.between(saldo_start, saldo_end))
                     elif saldo_start:
-                        hq = hq.filter(HourBankEntry.date >= saldo_start)
-                        cq = cq.filter(LeaveCredit.date >= saldo_start)
-                        aq = aq.filter(LeaveAssignment.date >= saldo_start)
+                        hq = hq.filter(TimeOffRecord.date >= saldo_start)
+                        cq = cq.filter(TimeOffRecord.date >= saldo_start)
+                        aq = aq.filter(TimeOffRecord.date >= saldo_start)
                     elif saldo_end:
-                        hq = hq.filter(HourBankEntry.date <= saldo_end)
-                        cq = cq.filter(LeaveCredit.date <= saldo_end)
-                        aq = aq.filter(LeaveAssignment.date <= saldo_end)
-                    h_list = hq.order_by(HourBankEntry.date.desc()).all()
-                    c_list = cq.order_by(LeaveCredit.date.desc()).all()
-                    a_list = aq.order_by(LeaveAssignment.date.desc()).all()
+                        hq = hq.filter(TimeOffRecord.date <= saldo_end)
+                        cq = cq.filter(TimeOffRecord.date <= saldo_end)
+                        aq = aq.filter(TimeOffRecord.date <= saldo_end)
+                    h_list = hq.order_by(TimeOffRecord.date.desc()).all()
+                    c_list = cq.order_by(TimeOffRecord.date.desc()).all()
+                    a_list = aq.order_by(TimeOffRecord.date.desc()).all()
                     # Unificar itens
                     for e in h_list:
                         saldo_items.append({
@@ -981,13 +1040,13 @@ def gestao():
                             'date': e.date,
                             'amount': float(e.hours or 0.0),
                             'unit': 'h',
-                            'motivo': e.reason or ''
+                            'motivo': e.notes or ''
                         })
                     for c in c_list:
                         saldo_items.append({
                             'tipo': 'credito',
                             'date': c.date,
-                            'amount': int(c.amount_days or 0),
+                            'amount': int(c.days or 0),
                             'unit': 'dia',
                             'motivo': (c.origin or 'manual')
                                 + ((' — ' + (c.notes or '')) if c.notes else '')
@@ -1007,16 +1066,16 @@ def gestao():
         bank_balances = {}
     recent_entries = []
     try:
-        recent_entries = HourBankEntry.query.order_by(HourBankEntry.date.desc()).limit(50).all()
+        recent_entries = TimeOffRecord.query.filter(TimeOffRecord.record_type == 'horas').order_by(TimeOffRecord.date.desc()).limit(50).all()
     except Exception:
         recent_entries = []
     folgas = []
     try:
         from sqlalchemy import func
         for c in colaboradores:
-            credits_sum = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == c.id).scalar() or 0
-            assigned_sum = db.session.query(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).filter(LeaveAssignment.collaborator_id == c.id).scalar() or 0
-            converted_sum = db.session.query(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).filter(LeaveConversion.collaborator_id == c.id).scalar() or 0
+            credits_sum = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == c.id, TimeOffRecord.record_type == 'folga_adicional').scalar() or 0
+            assigned_sum = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == c.id, TimeOffRecord.record_type == 'folga_usada').scalar() or 0
+            converted_sum = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == c.id, TimeOffRecord.record_type == 'conversao').scalar() or 0
             folgas.append({'collab': c, 'balance': int(credits_sum) - int(assigned_sum) - int(converted_sum)})
     except Exception:
         folgas = []
@@ -1054,9 +1113,9 @@ def gestao():
         lc_page = 1
     if lc_page < 1:
         lc_page = 1
-    lc_q = LeaveCredit.query.order_by(LeaveCredit.date.desc())
+    lc_q = TimeOffRecord.query.filter(TimeOffRecord.record_type == 'folga_adicional').order_by(TimeOffRecord.date.desc())
     if lc_collab_id:
-        lc_q = lc_q.filter(LeaveCredit.collaborator_id == lc_collab_id)
+        lc_q = lc_q.filter(TimeOffRecord.collaborator_id == lc_collab_id)
     leave_credits_all = lc_q.all()
     lc_total_pages = max(1, (len(leave_credits_all) + per_page - 1) // per_page)
     if lc_page > lc_total_pages:
@@ -1075,9 +1134,9 @@ def gestao():
         la_page = 1
     if la_page < 1:
         la_page = 1
-    la_q = LeaveAssignment.query.order_by(LeaveAssignment.date.desc())
+    la_q = TimeOffRecord.query.filter(TimeOffRecord.record_type == 'folga_usada').order_by(TimeOffRecord.date.desc())
     if la_collab_id:
-        la_q = la_q.filter(LeaveAssignment.collaborator_id == la_collab_id)
+        la_q = la_q.filter(TimeOffRecord.collaborator_id == la_collab_id)
     leave_assignments_all = la_q.all()
     la_total_pages = max(1, (len(leave_assignments_all) + per_page - 1) // per_page)
     if la_page > la_total_pages:
@@ -1238,12 +1297,25 @@ def gestao():
 @bp.route('/gestao/colaboradores/criar', methods=['POST'])
 @login_required
 def gestao_colabs_criar():
+    """Cria colaborador e opcionalmente usuário (são uma coisa só)"""
     if current_user.nivel not in ('admin', 'DEV'):
         flash('Você não tem permissão para criar colaboradores.', 'danger')
         return redirect(url_for('usuarios.gestao'))
+    
     nome = request.form.get('name', '').strip()
     cargo = request.form.get('role', '').strip()
+    criar_acesso = request.form.get('criar_acesso') == 'on'
+    username = request.form.get('username', '').strip()
+    password = request.form.get('password', '').strip()
+    nivel = request.form.get('nivel', 'visualizador').strip()
+    
+    # Validação de nível: apenas DEV pode criar admin/DEV
+    if nivel in ('admin', 'DEV') and current_user.nivel != 'DEV':
+        flash('Apenas desenvolvedores podem criar usuários com nível Gerente ou Desenvolvedor.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    
     try:
+        # Criar colaborador
         c = Collaborator()
         c.name = nome
         c.role = cargo
@@ -1251,14 +1323,33 @@ def gestao_colabs_criar():
         c.regular_team = (request.form.get('regular_team', '').strip() or None)
         c.sunday_team = (request.form.get('sunday_team', '').strip() or None)
         c.special_team = (request.form.get('special_team', '').strip() or None)
-        uid_str = (request.form.get('user_id') or '').strip()
-        try:
-            c.user_id = int(uid_str) if uid_str else None
-        except Exception:
-            c.user_id = None
+        
+        # Se criar acesso, criar usuário e associar
+        if criar_acesso and username and password:
+            from werkzeug.security import generate_password_hash
+            u = User()
+            u.username = username
+            u.name = nome  # Usar o mesmo nome do colaborador
+            u.password_hash = generate_password_hash(password)
+            u.nivel = nivel
+            db.session.add(u)
+            db.session.flush()  # Para obter o ID do usuário
+            c.user_id = u.id
+        else:
+            # Se não criar acesso, verificar se foi passado user_id para associar usuário existente
+            uid_str = (request.form.get('user_id') or '').strip()
+            try:
+                c.user_id = int(uid_str) if uid_str else None
+            except Exception:
+                c.user_id = None
+        
         db.session.add(c)
         db.session.commit()
-        flash(f'Colaborador "{c.name}" criado.', 'success')
+        
+        if criar_acesso and username:
+            flash(f'Colaborador "{c.name}" criado com acesso ao sistema (login: {username}).', 'success')
+        else:
+            flash(f'Colaborador "{c.name}" criado.', 'success')
     except Exception as e:
         db.session.rollback()
         flash(f'Erro ao criar colaborador: {e}', 'danger')
@@ -1366,37 +1457,45 @@ def gestao_colabs_horas_adicionar():
         flash('Dados inválidos para banco de horas.', 'warning')
         return redirect(url_for('usuarios.gestao', view='colaboradores'))
     try:
-        e = HourBankEntry()
+        e = TimeOffRecord()
         e.collaborator_id = cid
         e.date = d
+        e.record_type = 'horas'
         e.hours = h
-        e.reason = reason
+        e.notes = reason
+        e.origin = 'manual'
+        e.created_by = current_user.username if current_user.is_authenticated else 'sistema'
         db.session.add(e)
         db.session.commit()
         try:
             from sqlalchemy import func
-            total_hours = db.session.query(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).filter(HourBankEntry.collaborator_id == cid).scalar() or 0.0
+            total_hours = db.session.query(func.coalesce(func.sum(TimeOffRecord.hours), 0.0)).filter(TimeOffRecord.collaborator_id == cid, TimeOffRecord.record_type == 'horas').scalar() or 0.0
             total_hours = float(total_hours)
-            auto_credits = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == cid, LeaveCredit.origin == 'horas').scalar() or 0
+            auto_credits = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == cid, TimeOffRecord.record_type == 'folga_adicional', TimeOffRecord.origin == 'horas').scalar() or 0
             auto_credits = int(auto_credits)
             desired_credits = int(total_hours // 8.0)
             missing = max(0, desired_credits - auto_credits)
             if missing > 0:
                 from datetime import date as _date
                 for _ in range(missing):
-                    lc = LeaveCredit()
+                    lc = TimeOffRecord()
                     lc.collaborator_id = cid
                     lc.date = _date.today()
-                    lc.amount_days = 1
+                    lc.record_type = 'folga_adicional'
+                    lc.days = 1
                     lc.origin = 'horas'
                     lc.notes = 'Crédito automático por 8h no banco de horas'
+                    lc.created_by = 'sistema'
                     db.session.add(lc)
                 for _ in range(missing):
-                    adj = HourBankEntry()
+                    adj = TimeOffRecord()
                     adj.collaborator_id = cid
                     adj.date = _date.today()
+                    adj.record_type = 'horas'
                     adj.hours = -8.0
-                    adj.reason = 'Conversão automática: -8h por +1 dia de folga'
+                    adj.notes = 'Conversão automática: -8h por +1 dia de folga'
+                    adj.origin = 'sistema'
+                    adj.created_by = 'sistema'
                     db.session.add(adj)
                 db.session.commit()
                 flash(f'Horas registradas. Conversão automática aplicada: +{missing} dia(s) e -{missing*8}h no banco.', 'success')
@@ -1412,33 +1511,176 @@ def gestao_colabs_horas_adicionar():
         flash(f'Erro ao registrar horas: {ex}', 'danger')
     return redirect(url_for('usuarios.gestao', view='colaboradores'))
 
+@bp.route('/gestao/colaboradores/horas/verificar-conversao', methods=['POST'])
+@login_required
+def gestao_colabs_horas_verificar_conversao():
+    """Verifica e aplica conversão automática de horas para dias, respeitando limites"""
+    if current_user.nivel not in ('admin', 'DEV'):
+        flash('Você não tem permissão para executar esta ação.', 'danger')
+        return redirect(url_for('usuarios.gestao', view='colaboradores'))
+    
+    collaborator_id = request.form.get('collaborator_id', type=int)
+    if not collaborator_id:
+        flash('Colaborador não especificado.', 'warning')
+        return redirect(url_for('usuarios.gestao', view='colaboradores'))
+    
+    collaborator = Collaborator.query.get(collaborator_id)
+    if not collaborator:
+        flash('Colaborador não encontrado.', 'danger')
+        return redirect(url_for('usuarios.gestao', view='colaboradores'))
+    
+    try:
+        from sqlalchemy import func
+        from datetime import date as _date
+        
+        # 1. Calcular total BRUTO de horas (somando apenas horas positivas, sem considerar conversões negativas)
+        total_bruto_hours = float(db.session.query(func.coalesce(func.sum(func.case((TimeOffRecord.hours > 0, TimeOffRecord.hours), else_=0)), 0.0)).filter(
+            TimeOffRecord.collaborator_id == collaborator_id,
+            TimeOffRecord.record_type == 'horas'
+        ).scalar() or 0.0)
+        
+        # 2. Calcular quantos dias já foram gerados automaticamente (origin='horas')
+        auto_credits = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(
+            TimeOffRecord.collaborator_id == collaborator_id,
+            TimeOffRecord.record_type == 'folga_adicional',
+            TimeOffRecord.origin == 'horas'
+        ).scalar() or 0
+        auto_credits = int(auto_credits)
+        
+        # 3. Calcular quantos dias deveriam ser gerados (total_bruto_horas // 8)
+        desired_credits = int(total_bruto_hours // 8.0) if total_bruto_hours >= 0.0 else 0
+        
+        # 4. Calcular quantos dias faltam gerar
+        missing_credits = max(0, desired_credits - auto_credits)
+        
+        if missing_credits == 0:
+            flash(f'Nenhuma conversão necessária. O colaborador {collaborator.name} já tem todas as horas convertidas em dias (total bruto: {total_bruto_hours:.2f}h = {desired_credits} dia(s) já convertido(s)).', 'info')
+            return redirect(url_for('usuarios.gestao', view='colaboradores', saldo_collaborator_id=collaborator_id))
+        
+        # 5. Calcular dias totais que o colaborador já tem (todos os créditos)
+        total_credits = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(
+            TimeOffRecord.collaborator_id == collaborator_id,
+            TimeOffRecord.record_type == 'folga_adicional'
+        ).scalar() or 0
+        total_credits = int(total_credits)
+        
+        # 6. Calcular folgas já usadas
+        used_days = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(
+            TimeOffRecord.collaborator_id == collaborator_id,
+            TimeOffRecord.record_type == 'folga_usada'
+        ).scalar() or 0
+        used_days = int(used_days)
+        
+        # 7. Calcular dias convertidos em dinheiro
+        converted_days = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(
+            TimeOffRecord.collaborator_id == collaborator_id,
+            TimeOffRecord.record_type == 'conversao'
+        ).scalar() or 0
+        converted_days = int(converted_days)
+        
+        # 8. Calcular saldo atual (antes da conversão)
+        current_balance = total_credits - used_days - converted_days
+        
+        # 9. Calcular saldo final após conversão
+        final_balance = current_balance + missing_credits
+        
+        # 10. Verificar limite máximo (padrão: 30 dias, pode ser configurável)
+        max_allowed_days = 30  # Limite padrão de dias permitidos
+        max_balance = max_allowed_days
+        
+        if final_balance > max_balance:
+            # Ajustar para não ultrapassar o limite
+            allowed_credits = max(0, max_balance - current_balance)
+            if allowed_credits == 0:
+                flash(
+                    f'Limite de {max_allowed_days} dias atingido para {collaborator.name}. '
+                    f'Saldo atual: {current_balance} dias. Não é possível adicionar mais dias.',
+                    'warning'
+                )
+                return redirect(url_for('usuarios.gestao', view='colaboradores', saldo_collaborator_id=collaborator_id))
+            
+            missing_credits = allowed_credits
+            flash(
+                f'Atenção: A conversão foi limitada a {allowed_credits} dia(s) para não ultrapassar o limite de {max_allowed_days} dias. '
+                f'Saldo atual: {current_balance} dias, após conversão: {current_balance + allowed_credits} dias.',
+                'warning'
+            )
+        
+        # 11. Aplicar conversão
+        converted_count = 0
+        for _ in range(missing_credits):
+            # Criar crédito de folga
+            lc = TimeOffRecord()
+            lc.collaborator_id = collaborator_id
+            lc.date = _date.today()
+            lc.record_type = 'folga_adicional'
+            lc.days = 1
+            lc.origin = 'horas'
+            lc.notes = 'Conversão automática verificada: 8h convertidas em 1 dia de folga'
+            lc.created_by = 'sistema'
+            db.session.add(lc)
+            
+            # Ajustar banco de horas (-8h)
+            adj = TimeOffRecord()
+            adj.collaborator_id = collaborator_id
+            adj.date = _date.today()
+            adj.record_type = 'horas'
+            adj.hours = -8.0
+            adj.notes = 'Conversão automática verificada: -8h por +1 dia de folga'
+            adj.origin = 'sistema'
+            adj.created_by = 'sistema'
+            db.session.add(adj)
+            converted_count += 1
+        
+        db.session.commit()
+        
+        # Recalcular saldo final
+        new_total_credits = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(
+            TimeOffRecord.collaborator_id == collaborator_id,
+            TimeOffRecord.record_type == 'folga_adicional'
+        ).scalar() or 0
+        new_balance = int(new_total_credits) - used_days - converted_days
+        
+        flash(
+            f'✅ Conversão aplicada com sucesso para {collaborator.name}! '
+            f'{converted_count} dia(s) convertido(s) de {total_bruto_hours:.2f}h brutas. '
+            f'Saldo final: {new_balance} dia(s) e {total_bruto_hours % 8.0:.2f}h restantes.',
+            'success'
+        )
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao verificar e aplicar conversão: {e}', 'danger')
+    
+    return redirect(url_for('usuarios.gestao', view='colaboradores', saldo_collaborator_id=collaborator_id))
+
 @bp.route('/gestao/colaboradores/horas/excluir/<int:id>', methods=['POST'])
 @login_required
 def gestao_colabs_horas_excluir(id: int):
     if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode excluir lançamentos.', 'danger')
         return redirect(url_for('usuarios.gestao', view='colaboradores'))
-    e = HourBankEntry.query.get_or_404(id)
+    e = TimeOffRecord.query.filter(TimeOffRecord.id == id, TimeOffRecord.record_type == 'horas').first_or_404()
     try:
         cid = int(e.collaborator_id or 0)
         db.session.delete(e)
         db.session.commit()
         try:
             from sqlalchemy import func
-            total_hours = db.session.query(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).filter(HourBankEntry.collaborator_id == cid).scalar() or 0.0
+            total_hours = db.session.query(func.coalesce(func.sum(TimeOffRecord.hours), 0.0)).filter(TimeOffRecord.collaborator_id == cid, TimeOffRecord.record_type == 'horas').scalar() or 0.0
             total_hours = float(total_hours)
-            auto_credits = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == cid, LeaveCredit.origin == 'horas').scalar() or 0
+            auto_credits = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == cid, TimeOffRecord.record_type == 'folga_adicional', TimeOffRecord.origin == 'horas').scalar() or 0
             auto_credits = int(auto_credits)
             desired_credits = int(total_hours // 8.0)
             if auto_credits > desired_credits:
                 excess = auto_credits - desired_credits
-                to_delete_credits = LeaveCredit.query.filter_by(collaborator_id=cid, origin='horas').order_by(LeaveCredit.date.desc(), LeaveCredit.id.desc()).limit(excess).all()
+                to_delete_credits = TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == cid, TimeOffRecord.record_type == 'folga_adicional', TimeOffRecord.origin == 'horas').order_by(TimeOffRecord.date.desc(), TimeOffRecord.id.desc()).limit(excess).all()
                 for lc in to_delete_credits:
                     db.session.delete(lc)
                 to_delete_adjusts = (
-                    HourBankEntry.query
-                    .filter(HourBankEntry.collaborator_id == cid, HourBankEntry.hours == -8.0, HourBankEntry.reason.like('Conversão automática:%'))
-                    .order_by(HourBankEntry.date.desc(), HourBankEntry.id.desc())
+                    TimeOffRecord.query
+                    .filter(TimeOffRecord.collaborator_id == cid, TimeOffRecord.record_type == 'horas', TimeOffRecord.hours == -8.0, TimeOffRecord.notes.like('Conversão automática:%'))
+                    .order_by(TimeOffRecord.date.desc(), TimeOffRecord.id.desc())
                     .limit(excess)
                     .all()
                 )
@@ -1450,11 +1692,14 @@ def gestao_colabs_horas_excluir(id: int):
                     missing_adj = excess - removed_adj
                     from datetime import date as _date
                     for _ in range(missing_adj):
-                        comp = HourBankEntry()
+                        comp = TimeOffRecord()
                         comp.collaborator_id = cid
                         comp.date = _date.today()
-                        comp.hours = +8.0
-                        comp.reason = 'Reversão automática: +8h pela exclusão de crédito por horas'
+                        comp.record_type = 'horas'
+                        comp.hours = 8.0
+                        comp.notes = 'Reversão automática: +8h pela exclusão de crédito por horas'
+                        comp.origin = 'sistema'
+                        comp.created_by = 'sistema'
                         db.session.add(comp)
                     db.session.commit()
                 flash(f'Lançamento excluído. Conversões automáticas revertidas: -{excess} dia(s) e +{excess*8}h no banco.', 'warning')
@@ -1462,19 +1707,24 @@ def gestao_colabs_horas_excluir(id: int):
                 missing = desired_credits - auto_credits
                 from datetime import date as _date
                 for _ in range(missing):
-                    lc = LeaveCredit()
+                    lc = TimeOffRecord()
                     lc.collaborator_id = cid
                     lc.date = _date.today()
-                    lc.amount_days = 1
+                    lc.record_type = 'folga_adicional'
+                    lc.days = 1
                     lc.origin = 'horas'
                     lc.notes = 'Crédito automático por 8h no banco de horas (ajuste pós-exclusão)'
+                    lc.created_by = 'sistema'
                     db.session.add(lc)
                 for _ in range(missing):
-                    adj = HourBankEntry()
+                    adj = TimeOffRecord()
                     adj.collaborator_id = cid
                     adj.date = _date.today()
+                    adj.record_type = 'horas'
                     adj.hours = -8.0
-                    adj.reason = 'Conversão automática: -8h por +1 dia de folga (ajuste pós-exclusão)'
+                    adj.notes = 'Conversão automática: -8h por +1 dia de folga (ajuste pós-exclusão)'
+                    adj.origin = 'sistema'
+                    adj.created_by = 'sistema'
                     db.session.add(adj)
                 db.session.commit()
                 flash(f'Lançamento excluído. Conversões automáticas ajustadas: +{missing} dia(s) e -{missing*8}h no banco.', 'info')
@@ -1496,7 +1746,7 @@ def gestao_colabs_horas_editar(id: int):
     if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode editar lançamentos.', 'danger')
         return redirect(url_for('usuarios.gestao', view='colaboradores'))
-    e = HourBankEntry.query.get_or_404(id)
+    e = TimeOffRecord.query.filter(TimeOffRecord.id == id, TimeOffRecord.record_type == 'horas').first_or_404()
     date_str = (request.form.get('date', '').strip() or '')
     hours_str = (request.form.get('hours', '0').strip() or '0')
     reason = (request.form.get('reason', '').strip() or '')
@@ -1504,7 +1754,7 @@ def gestao_colabs_horas_editar(id: int):
         if date_str:
             e.date = datetime.strptime(date_str, '%Y-%m-%d').date()
         e.hours = float(hours_str)
-        e.reason = reason
+        e.notes = reason
         db.session.commit()
         flash('Lançamento de horas atualizado.', 'info')
     except Exception as ex:
@@ -1531,12 +1781,14 @@ def gestao_colabs_folga_credito_adicionar():
         flash('Dados inválidos para crédito de folga.', 'warning')
         return redirect(url_for('usuarios.gestao', view='folgas'))
     try:
-        lc = LeaveCredit()
+        lc = TimeOffRecord()
         lc.collaborator_id = cid
         lc.date = d
-        lc.amount_days = days
+        lc.record_type = 'folga_adicional'
+        lc.days = days
         lc.origin = origin
         lc.notes = notes
+        lc.created_by = current_user.username if current_user.is_authenticated else 'sistema'
         db.session.add(lc)
         db.session.commit()
         flash(f'Crédito de {days} dia(s) de folga registrado.', 'success')
@@ -1551,7 +1803,7 @@ def gestao_colabs_folga_credito_editar(id: int):
     if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode editar créditos de folga.', 'danger')
         return redirect(url_for('usuarios.gestao', view='folgas'))
-    lc = LeaveCredit.query.get_or_404(id)
+    lc = TimeOffRecord.query.filter(TimeOffRecord.id == id, TimeOffRecord.record_type == 'folga_adicional').first_or_404()
     date_str = (request.form.get('date', '').strip() or '')
     days_str = (request.form.get('amount_days', '').strip() or '')
     notes = (request.form.get('notes', '').strip() or '')
@@ -1574,7 +1826,7 @@ def gestao_colabs_folga_credito_excluir(id: int):
     if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode excluir créditos de folga.', 'danger')
         return redirect(url_for('usuarios.gestao', view='folgas'))
-    lc = LeaveCredit.query.get_or_404(id)
+    lc = TimeOffRecord.query.filter(TimeOffRecord.id == id, TimeOffRecord.record_type == 'folga_adicional').first_or_404()
     try:
         db.session.delete(lc)
         db.session.commit()
@@ -1611,20 +1863,23 @@ def gestao_colabs_folga_uso_adicionar():
         effective_days = max(0, int(days) - int(feriados_no_periodo))
 
         from sqlalchemy import func
-        credits_sum = int(db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == cid).scalar() or 0)
-        assigned_sum = int(db.session.query(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).filter(LeaveAssignment.collaborator_id == cid).scalar() or 0)
-        converted_sum = int(db.session.query(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).filter(LeaveConversion.collaborator_id == cid).scalar() or 0)
+        credits_sum = int(db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == cid, TimeOffRecord.record_type == 'folga_adicional').scalar() or 0)
+        assigned_sum = int(db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == cid, TimeOffRecord.record_type == 'folga_usada').scalar() or 0)
+        converted_sum = int(db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(TimeOffRecord.collaborator_id == cid, TimeOffRecord.record_type == 'conversao').scalar() or 0)
         saldo_days = credits_sum - assigned_sum - converted_sum
 
         if effective_days < 1 or effective_days > saldo_days:
             flash('Saldo insuficiente de folgas.', 'warning')
             return redirect(url_for('usuarios.gestao', view='folgas'))
 
-        la = LeaveAssignment()
+        la = TimeOffRecord()
         la.collaborator_id = cid
         la.date = d
-        la.days_used = effective_days
+        la.record_type = 'folga_usada'
+        la.days = effective_days
         la.notes = notes
+        la.origin = 'manual'
+        la.created_by = current_user.username if current_user.is_authenticated else 'sistema'
         db.session.add(la)
         db.session.commit()
         flash(f'Uso de {effective_days} dia(s) de folga registrado.', 'success')
@@ -1639,7 +1894,7 @@ def gestao_colabs_folga_uso_editar(id: int):
     if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode editar uso de folga.', 'danger')
         return redirect(url_for('usuarios.gestao', view='folgas'))
-    la = LeaveAssignment.query.get_or_404(id)
+    la = TimeOffRecord.query.filter(TimeOffRecord.id == id, TimeOffRecord.record_type == 'folga_usada').first_or_404()
     date_str = (request.form.get('date', '').strip() or '')
     days_str = (request.form.get('days_used', '').strip() or '')
     notes = (request.form.get('notes', '').strip() or '')
@@ -1655,7 +1910,7 @@ def gestao_colabs_folga_uso_editar(id: int):
                 feriados_no_periodo = Holiday.query.filter(Holiday.date >= la.date, Holiday.date <= end_d).count()
             except Exception:
                 feriados_no_periodo = 0
-            la.days_used = max(0, int(new_days) - int(feriados_no_periodo))
+            la.days = max(0, int(new_days) - int(feriados_no_periodo))
         la.notes = notes
         db.session.commit()
         flash('Uso de folga atualizado.', 'info')
@@ -1670,7 +1925,7 @@ def gestao_colabs_folga_uso_excluir(id: int):
     if current_user.nivel not in ('admin', 'DEV'):
         flash('Apenas Gerente pode excluir uso de folga.', 'danger')
         return redirect(url_for('usuarios.gestao', view='folgas'))
-    la = LeaveAssignment.query.get_or_404(id)
+    la = TimeOffRecord.query.filter(TimeOffRecord.id == id, TimeOffRecord.record_type == 'folga_usada').first_or_404()
     try:
         db.session.delete(la)
         db.session.commit()
@@ -1782,7 +2037,7 @@ def gestao_ferias_adicionar():
     except Exception as e:
         db.session.rollback()
         flash(f'Erro ao registrar férias: {e}', 'danger')
-    return redirect(url_for('usuarios.gestao') + '#ferias')
+    return redirect(url_for('jornada.index', collaborator_id=cid))
 
 
 @bp.route('/gestao/ferias/<int:id>/excluir', methods=['POST'])
@@ -1799,7 +2054,7 @@ def gestao_ferias_excluir(id: int):
     except Exception as e:
         db.session.rollback()
         flash(f'Erro ao excluir: {e}', 'danger')
-    return redirect(url_for('usuarios.gestao') + '#ferias')
+    return redirect(url_for('jornada.index', collaborator_id=v.collaborator_id))
 
 
 ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'}
@@ -1876,7 +2131,7 @@ def gestao_atestado_adicionar():
     except Exception as e:
         db.session.rollback()
         flash(f'Erro ao registrar atestado: {e}', 'danger')
-    return redirect(url_for('usuarios.gestao') + '#atestados')
+    return redirect(url_for('jornada.index', collaborator_id=cid))
 
 
 @bp.route('/gestao/atestado/<int:id>/excluir', methods=['POST'])
@@ -1898,4 +2153,4 @@ def gestao_atestado_excluir(id: int):
     except Exception as e:
         db.session.rollback()
         flash(f'Erro ao excluir: {e}', 'danger')
-    return redirect(url_for('usuarios.gestao') + '#atestados')
+    return redirect(url_for('jornada.index', collaborator_id=m.collaborator_id))

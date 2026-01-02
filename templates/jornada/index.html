@@ -1,0 +1,1481 @@
+{% extends 'base.html' %}
+{% block title %}Jornada — MultiMax{% endblock %}
+
+{% block content %}
+<div class="jornada-container">
+    <!-- Hero Header -->
+    <div class="jornada-hero">
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1 class="hero-title">
+                    <span class="gradient-text">Sistema de Jornada</span>
+                </h1>
+                <p class="hero-subtitle">Gestão integrada de horas, folgas e colaboradores</p>
+            </div>
+            <div class="hero-actions">
+                {% if current_user.nivel in ('admin', 'DEV', 'operador') %}
+                <a class="btn-hero" href="{{ url_for('jornada.novo') }}">
+                    <i class="bi bi-plus-circle"></i>
+                    <span>Novo Registro</span>
+                </a>
+                <a class="btn-hero btn-hero-outline" href="{{ url_for('jornada.export', collaborator_id=collaborator_id, inicio=data_inicio, fim=data_fim) }}">
+                    <i class="bi bi-download"></i>
+                    <span>Exportar</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-card">
+        <div class="card-header">
+            <div class="card-title">
+                <i class="bi bi-funnel"></i>
+                <span>Filtros</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="filters-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="bi bi-person"></i>
+                            Colaborador/Usuário
+                        </label>
+                        <select name="collaborator_id" class="form-input" onchange="this.form.submit()">
+                            <option value="">— Todos —</option>
+                            {% for colab in colaboradores %}
+                            <option value="{{ colab.id }}" {% if collaborator_id == colab.id %}selected{% endif %}>
+                                {% if colab.user_id and colab.user %}{{ colab.user.name }}{% else %}{{ colab.name }}{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="bi bi-tag"></i>
+                            Tipo
+                        </label>
+                        <select name="tipo" class="form-input">
+                            <option value="">— Todos —</option>
+                            <option value="horas" {% if record_type == 'horas' %}selected{% endif %}>Horas</option>
+                            <option value="folga_adicional" {% if record_type == 'folga_adicional' %}selected{% endif %}>Folga Adicional</option>
+                            <option value="folga_usada" {% if record_type == 'folga_usada' %}selected{% endif %}>Folga Usada</option>
+                            <option value="conversao" {% if record_type == 'conversao' %}selected{% endif %}>Conversão</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="bi bi-calendar-event"></i>
+                            Data Início
+                        </label>
+                        <input type="date" name="inicio" class="form-input" value="{{ data_inicio }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="bi bi-calendar-check"></i>
+                            Data Fim
+                        </label>
+                        <input type="date" name="fim" class="form-input" value="{{ data_fim }}">
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Estatísticas Gerais -->
+    {% if all_stats %}
+    <div class="summary-card">
+        <div class="card-header">
+            <div class="card-title">
+                <i class="bi bi-graph-up"></i>
+                <span>Resumo Geral</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="summary-table-wrapper">
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th>Colaborador/Usuário</th>
+                            <th>Horas Residuais</th>
+                            <th>Saldo de Folgas</th>
+                            <th>Folgas Usadas</th>
+                            <th>Conversões</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in all_stats %}
+                        <tr>
+                            <td>
+                                <div class="colab-info">
+                                    <div class="colab-avatar-small">{{ (item.display_name or item.collaborator.name)[:2].upper() }}</div>
+                                    <div>
+                                        <strong>{{ item.display_name or item.collaborator.name }}</strong>
+                                        {% if item.collaborator.role %}
+                                        <div class="colab-role">{{ item.collaborator.role }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="stat-value stat-hours">{{ "%.2f"|format(item.balance.residual_hours) }}h</span>
+                            </td>
+                            <td>
+                                <span class="stat-badge stat-success">{{ item.balance.saldo_days }} dias</span>
+                            </td>
+                            <td>
+                                <span class="stat-badge stat-warning">{{ item.balance.assigned_sum }} dias</span>
+                            </td>
+                            <td>
+                                <span class="stat-badge stat-info">{{ item.balance.converted_sum }} dias</span>
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ url_for('jornada.index', collaborator_id=item.collaborator.id) }}" class="action-btn action-outline" title="Ver detalhes">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Detalhes do Colaborador Selecionado -->
+    {% if selected_collaborator and stats %}
+    <div class="collaborator-card">
+        <div class="card-header">
+            <div class="card-title">
+                <div class="colab-info">
+                    <div class="colab-avatar-large">{{ (selected_collaborator.user.name if selected_collaborator.user_id and selected_collaborator.user else selected_collaborator.name)[:2].upper() }}</div>
+                    <div>
+                        <h3 class="colab-name">
+                            {% if selected_collaborator.user_id and selected_collaborator.user %}{{ selected_collaborator.user.name }}{% else %}{{ selected_collaborator.name }}{% endif %}
+                        </h3>
+                        {% if selected_collaborator.role %}
+                        <p class="colab-role">{{ selected_collaborator.role }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% if current_user.nivel in ('admin', 'DEV') %}
+            <form method="POST" action="{{ url_for('jornada.converter_horas') }}" class="convert-form">
+                <input type="hidden" name="collaborator_id" value="{{ selected_collaborator.id }}">
+                <button type="submit" class="btn-action btn-success">
+                    <i class="bi bi-arrow-repeat"></i>
+                    Converter Horas em Dias
+                </button>
+            </form>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <div class="stats-grid">
+                <div class="stat-card stat-primary">
+                    <div class="stat-icon">
+                        <i class="bi bi-clock"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-label">Horas Residuais</div>
+                        <div class="stat-value-large">{{ "%.2f"|format(stats.residual_hours) }}h</div>
+                    </div>
+                </div>
+                <div class="stat-card stat-success">
+                    <div class="stat-icon">
+                        <i class="bi bi-calendar-check"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-label">Saldo de Folgas</div>
+                        <div class="stat-value-large">{{ stats.saldo_days }} dias</div>
+                    </div>
+                </div>
+                <div class="stat-card stat-warning">
+                    <div class="stat-icon">
+                        <i class="bi bi-calendar-x"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-label">Folgas Usadas</div>
+                        <div class="stat-value-large">{{ stats.assigned_sum }} dias</div>
+                    </div>
+                </div>
+                <div class="stat-card stat-info">
+                    <div class="stat-icon">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-label">Conversões</div>
+                        <div class="stat-value-large">{{ stats.converted_sum }} dias</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stats-grid-secondary">
+                <div class="stat-card-secondary">
+                    <div class="stat-label">Total Bruto de Horas</div>
+                    <div class="stat-value-secondary">{{ "%.2f"|format(stats.total_bruto_hours) }}h</div>
+                </div>
+                <div class="stat-card-secondary">
+                    <div class="stat-label">Dias Convertidos das Horas</div>
+                    <div class="stat-value-secondary">{{ stats.days_from_hours }} dias</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Registros -->
+    {% if records %}
+    <div class="records-card">
+        <div class="card-header">
+            <div class="card-title">
+                <i class="bi bi-table"></i>
+                <span>Registros</span>
+                {% if selected_collaborator %}
+                <span class="card-subtitle">- {{ selected_collaborator.name }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="records-table-wrapper">
+                <table class="records-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Tipo</th>
+                            <th>Valor</th>
+                            <th>Origem</th>
+                            <th>Observações</th>
+                            <th>Criado por</th>
+                            {% if current_user.nivel in ('admin', 'DEV') %}
+                            <th class="text-end">Ações</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                        <tr>
+                            <td class="record-date">{{ record.date.strftime('%d/%m/%Y') }}</td>
+                            <td>
+                                {% if record.record_type == 'horas' %}
+                                <span class="type-badge type-hours">Horas</span>
+                                {% elif record.record_type == 'folga_adicional' %}
+                                <span class="type-badge type-folga-adicional">Folga Adicional</span>
+                                {% elif record.record_type == 'folga_usada' %}
+                                <span class="type-badge type-folga-usada">Folga Usada</span>
+                                {% elif record.record_type == 'conversao' %}
+                                <span class="type-badge type-conversao">Conversão</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.record_type == 'horas' %}
+                                <span class="record-value">{{ "%.2f"|format(record.hours or 0) }}h</span>
+                                {% elif record.record_type in ('folga_adicional', 'folga_usada') %}
+                                <span class="record-value">{{ record.days or 0 }} dia(s)</span>
+                                {% elif record.record_type == 'conversao' %}
+                                <span class="record-value">R$ {{ "%.2f"|format(record.amount_paid or 0) }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="record-origin">{{ record.origin or '-' }}</td>
+                            <td class="record-notes">{{ record.notes or '-' }}</td>
+                            <td class="record-creator">{{ record.created_by or '-' }}</td>
+                            {% if current_user.nivel in ('admin', 'DEV') %}
+                            <td class="text-end">
+                                <div class="record-actions">
+                                    <a href="{{ url_for('jornada.editar', id=record.id) }}" class="action-btn action-outline" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('jornada.excluir', id=record.id) }}" onsubmit="return confirm('Tem certeza que deseja excluir este registro?');" style="display: inline;">
+                                        <button type="submit" class="action-btn action-danger" title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% elif selected_collaborator %}
+    <div class="empty-card">
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="bi bi-inbox"></i>
+            </div>
+            <h3 class="empty-title">Nenhum registro encontrado</h3>
+            <p class="empty-text">Nenhum registro encontrado para este colaborador no período selecionado.</p>
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-card">
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="bi bi-people"></i>
+            </div>
+            <h3 class="empty-title">Selecione um colaborador</h3>
+            <p class="empty-text">Selecione um colaborador para ver os registros.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Férias e Atestados (apenas se colaborador selecionado) -->
+    {% if selected_collaborator %}
+    <div class="vacations-certificates-grid">
+        <!-- Férias -->
+        <div class="vacations-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="bi bi-airplane"></i>
+                    <span>Férias</span>
+                </div>
+                {% if current_user.nivel in ('admin', 'DEV', 'operador') %}
+                <button class="btn-action btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovaFerias">
+                    <i class="bi bi-plus-circle"></i>
+                    Nova Férias
+                </button>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if ferias_list and ferias_list|length > 0 %}
+                <div class="vacations-table-wrapper">
+                    <table class="vacations-table">
+                        <thead>
+                            <tr>
+                                <th>Início</th>
+                                <th>Fim</th>
+                                <th>Dias</th>
+                                <th>Observações</th>
+                                {% if current_user.nivel in ('admin', 'DEV', 'operador') %}
+                                <th class="text-end">Ações</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for f in ferias_list %}
+                            <tr>
+                                <td class="vacation-date">{{ f.data_inicio.strftime('%d/%m/%Y') }}</td>
+                                <td class="vacation-date">{{ f.data_fim.strftime('%d/%m/%Y') }}</td>
+                                <td>
+                                    <span class="vacation-badge">{{ (f.data_fim - f.data_inicio).days + 1 }} dias</span>
+                                </td>
+                                <td class="vacation-notes">{{ f.observacao or '-' }}</td>
+                                {% if current_user.nivel in ('admin', 'DEV', 'operador') %}
+                                <td class="text-end">
+                                    <form method="POST" action="{{ url_for('jornada.ferias_excluir', id=f.id) }}" onsubmit="return confirm('Excluir estas férias?');" style="display: inline;">
+                                        <button type="submit" class="action-btn action-danger" title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state-small">
+                    <div class="empty-icon-small">
+                        <i class="bi bi-inbox"></i>
+                    </div>
+                    <p class="empty-text-small">Nenhuma férias registrada</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Atestados -->
+        <div class="certificates-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="bi bi-file-medical"></i>
+                    <span>Atestados Médicos</span>
+                </div>
+                {% if current_user.nivel in ('admin', 'DEV', 'operador') %}
+                <button class="btn-action btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovoAtestado">
+                    <i class="bi bi-plus-circle"></i>
+                    Novo Atestado
+                </button>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if atestados_list and atestados_list|length > 0 %}
+                <div class="certificates-table-wrapper">
+                    <table class="certificates-table">
+                        <thead>
+                            <tr>
+                                <th>Início</th>
+                                <th>Fim</th>
+                                <th>Dias</th>
+                                <th>Motivo</th>
+                                {% if current_user.nivel in ('admin', 'DEV', 'operador') %}
+                                <th class="text-end">Ações</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for a in atestados_list %}
+                            <tr>
+                                <td class="certificate-date">{{ a.data_inicio.strftime('%d/%m/%Y') }}</td>
+                                <td class="certificate-date">{{ a.data_fim.strftime('%d/%m/%Y') }}</td>
+                                <td>
+                                    <span class="certificate-badge">{{ a.dias or ((a.data_fim - a.data_inicio).days + 1) }} dias</span>
+                                </td>
+                                <td class="certificate-reason">
+                                    {{ a.motivo or '-' }}
+                                    {% if a.cid %}
+                                    <div class="certificate-cid">CID: {{ a.cid }}</div>
+                                    {% endif %}
+                                </td>
+                                {% if current_user.nivel in ('admin', 'DEV', 'operador') %}
+                                <td class="text-end">
+                                    <div class="certificate-actions">
+                                        {% if a.foto_atestado %}
+                                        <a href="{{ url_for('static', filename='uploads/atestados/' + a.foto_atestado) }}" target="_blank" class="action-btn action-info" title="Ver foto">
+                                            <i class="bi bi-image"></i>
+                                        </a>
+                                        {% endif %}
+                                        <form method="POST" action="{{ url_for('jornada.atestado_excluir', id=a.id) }}" onsubmit="return confirm('Excluir este atestado?');" style="display: inline;">
+                                            <button type="submit" class="action-btn action-danger" title="Excluir">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state-small">
+                    <div class="empty-icon-small">
+                        <i class="bi bi-inbox"></i>
+                    </div>
+                    <p class="empty-text-small">Nenhum atestado registrado</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Modais de Férias e Atestados -->
+    {% if current_user.nivel in ('admin', 'DEV', 'operador') %}
+    <!-- Modal Nova Férias -->
+    <div class="modal fade" id="modalNovaFerias" tabindex="-1">
+        <div class="modal-dialog">
+            <form method="POST" action="{{ url_for('jornada.ferias_adicionar') }}">
+                <div class="modal-content modern-modal">
+                    <div class="modal-header-warning">
+                        <h5 class="modal-title">
+                            <i class="bi bi-airplane"></i>
+                            Nova Férias
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="collaborator_id" value="{{ selected_collaborator.id }}">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="bi bi-calendar-event"></i>
+                                Data Início <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" name="data_inicio" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="bi bi-calendar-check"></i>
+                                Data Fim <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" name="data_fim" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="bi bi-chat-left-text"></i>
+                                Observações
+                            </label>
+                            <textarea name="observacao" class="form-textarea" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-modal btn-outline" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn-modal btn-warning">
+                            <i class="bi bi-save"></i>
+                            Salvar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Novo Atestado -->
+    <div class="modal fade" id="modalNovoAtestado" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <form method="POST" action="{{ url_for('jornada.atestado_adicionar') }}" enctype="multipart/form-data">
+                <div class="modal-content modern-modal">
+                    <div class="modal-header-danger">
+                        <h5 class="modal-title">
+                            <i class="bi bi-file-medical"></i>
+                            Novo Atestado Médico
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="collaborator_id" value="{{ selected_collaborator.id }}">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="bi bi-calendar-event"></i>
+                                    Data Início <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" name="data_inicio" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="bi bi-calendar-check"></i>
+                                    Data Fim <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" name="data_fim" class="form-input" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="bi bi-tag"></i>
+                                    CID
+                                </label>
+                                <input type="text" name="cid" class="form-input" placeholder="Ex: A00.0">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="bi bi-person-badge"></i>
+                                    Médico
+                                </label>
+                                <input type="text" name="medico" class="form-input" placeholder="Nome do médico">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="bi bi-chat-left-text"></i>
+                                Motivo
+                            </label>
+                            <textarea name="motivo" class="form-textarea" rows="2" placeholder="Motivo do atestado"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="bi bi-image"></i>
+                                Foto do Atestado
+                            </label>
+                            <input type="file" name="foto_atestado" class="form-input" accept="image/*">
+                            <small class="form-hint">Formatos: PNG, JPG, JPEG, GIF, WEBP, BMP (máx. 10MB)</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-modal btn-outline" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn-modal btn-danger">
+                            <i class="bi bi-save"></i>
+                            Salvar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+
+<style>
+:root {
+    --jornada-primary: #667eea;
+    --jornada-secondary: #764ba2;
+    --jornada-success: #10b981;
+    --jornada-warning: #f59e0b;
+    --jornada-danger: #ef4444;
+    --jornada-info: #3b82f6;
+    --jornada-bg: #f8fafc;
+    --jornada-card-bg: #ffffff;
+    --jornada-text: #1e293b;
+    --jornada-text-muted: #64748b;
+    --jornada-border: #e2e8f0;
+    --jornada-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --jornada-shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] {
+    --jornada-bg: #0f172a;
+    --jornada-card-bg: #1e293b;
+    --jornada-text: #f1f5f9;
+    --jornada-text-muted: #94a3b8;
+    --jornada-border: #334155;
+}
+
+.jornada-container {
+    padding: 2rem;
+    background: var(--jornada-bg);
+    min-height: 100vh;
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Hero */
+.jornada-hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 24px;
+    padding: 3rem 2.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--jornada-shadow-lg);
+    position: relative;
+    overflow: hidden;
+}
+
+.jornada-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: pulse 15s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+.hero-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.hero-title {
+    font-size: 3rem;
+    font-weight: 800;
+    margin: 0;
+    color: white;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.gradient-text {
+    background: linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero-subtitle {
+    font-size: 1.25rem;
+    color: rgba(255,255,255,0.9);
+    margin-top: 0.5rem;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.btn-hero {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 2rem;
+    background: white;
+    color: var(--jornada-primary);
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border: none;
+    cursor: pointer;
+}
+
+.btn-hero:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    color: var(--jornada-secondary);
+}
+
+.btn-hero-outline {
+    background: transparent;
+    color: white;
+    border: 2px solid white;
+    box-shadow: none;
+}
+
+.btn-hero-outline:hover {
+    background: white;
+    color: var(--jornada-primary);
+}
+
+/* Cards */
+.filters-card,
+.summary-card,
+.collaborator-card,
+.records-card,
+.empty-card,
+.vacations-card,
+.certificates-card {
+    background: var(--jornada-card-bg);
+    border-radius: 20px;
+    box-shadow: var(--jornada-shadow);
+    margin-bottom: 2rem;
+    overflow: hidden;
+}
+
+.card-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--jornada-border);
+    background: var(--jornada-bg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.card-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--jornada-text);
+}
+
+.card-subtitle {
+    color: var(--jornada-text-muted);
+    font-weight: 400;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* Forms */
+.filters-form {
+    margin: 0;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--jornada-text);
+}
+
+.form-input,
+.form-textarea {
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--jornada-border);
+    border-radius: 12px;
+    font-size: 0.875rem;
+    background: var(--jornada-card-bg);
+    color: var(--jornada-text);
+    transition: all 0.3s ease;
+    font-family: inherit;
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: var(--jornada-primary);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-hint {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--jornada-text-muted);
+}
+
+/* Summary Table */
+.summary-table-wrapper {
+    overflow-x: auto;
+}
+
+.summary-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.summary-table thead {
+    background: var(--jornada-bg);
+}
+
+.summary-table th {
+    padding: 1rem;
+    text-align: left;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--jornada-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.summary-table td {
+    padding: 1rem;
+    color: var(--jornada-text);
+    font-size: 0.875rem;
+}
+
+.colab-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.colab-avatar-small {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.colab-avatar-large {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.colab-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--jornada-text);
+    margin: 0;
+}
+
+.colab-role {
+    font-size: 0.875rem;
+    color: var(--jornada-text-muted);
+    margin: 0.25rem 0 0 0;
+}
+
+.stat-value {
+    font-weight: 600;
+    color: var(--jornada-text);
+}
+
+.stat-hours {
+    color: var(--jornada-primary);
+}
+
+.stat-badge {
+    display: inline-block;
+    padding: 0.375rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.stat-success {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--jornada-success);
+}
+
+.stat-warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--jornada-warning);
+}
+
+.stat-info {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--jornada-info);
+}
+
+/* Collaborator Stats */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-card {
+    position: relative;
+    padding: 1.5rem;
+    background: var(--jornada-bg);
+    border-radius: 16px;
+    border: 1px solid var(--jornada-border);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--jornada-shadow);
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    border-radius: 16px 16px 0 0;
+}
+
+.stat-primary::before { background: linear-gradient(90deg, #667eea, #764ba2); }
+.stat-success::before { background: linear-gradient(90deg, #10b981, #059669); }
+.stat-warning::before { background: linear-gradient(90deg, #f59e0b, #f97316); }
+.stat-info::before { background: linear-gradient(90deg, #3b82f6, #2563eb); }
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.stat-primary .stat-icon { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.stat-success .stat-icon { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+.stat-warning .stat-icon { background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%); }
+.stat-info .stat-icon { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--jornada-text-muted);
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+}
+
+.stat-value-large {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--jornada-text);
+    line-height: 1;
+}
+
+.stats-grid-secondary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.stat-card-secondary {
+    padding: 1.25rem;
+    background: var(--jornada-bg);
+    border-radius: 12px;
+    border: 1px solid var(--jornada-border);
+}
+
+.stat-value-secondary {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--jornada-text);
+    margin-top: 0.5rem;
+}
+
+.convert-form {
+    display: inline-block;
+}
+
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    border: 2px solid;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: transparent;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border-color: transparent;
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Records Table */
+.records-table-wrapper {
+    overflow-x: auto;
+}
+
+.records-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.records-table thead {
+    background: var(--jornada-bg);
+}
+
+.records-table th {
+    padding: 1rem;
+    text-align: left;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--jornada-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.records-table td {
+    padding: 1rem;
+    color: var(--jornada-text);
+    font-size: 0.875rem;
+}
+
+.record-date {
+    font-family: 'Courier New', monospace;
+    color: var(--jornada-text-muted);
+}
+
+.type-badge {
+    display: inline-block;
+    padding: 0.375rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.type-hours {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--jornada-info);
+}
+
+.type-folga-adicional {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--jornada-success);
+}
+
+.type-folga-usada {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--jornada-warning);
+}
+
+.type-conversao {
+    background: rgba(102, 126, 234, 0.15);
+    color: var(--jornada-primary);
+}
+
+.record-value {
+    font-weight: 600;
+    color: var(--jornada-text);
+}
+
+.record-origin,
+.record-notes,
+.record-creator {
+    color: var(--jornada-text-muted);
+}
+
+.record-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    font-size: 0.875rem;
+}
+
+.action-outline {
+    background: var(--jornada-bg);
+    color: var(--jornada-text);
+    border: 2px solid var(--jornada-border);
+}
+
+.action-outline:hover {
+    background: var(--jornada-primary);
+    color: white;
+    border-color: var(--jornada-primary);
+}
+
+.action-info {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--jornada-info);
+}
+
+.action-info:hover {
+    background: var(--jornada-info);
+    color: white;
+}
+
+.action-danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--jornada-danger);
+}
+
+.action-danger:hover {
+    background: var(--jornada-danger);
+    color: white;
+}
+
+.text-end { text-align: right; }
+
+/* Vacations & Certificates */
+.vacations-certificates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.vacations-table-wrapper,
+.certificates-table-wrapper {
+    overflow-x: auto;
+}
+
+.vacations-table,
+.certificates-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.vacations-table thead,
+.certificates-table thead {
+    background: var(--jornada-bg);
+}
+
+.vacations-table th,
+.certificates-table th {
+    padding: 1rem;
+    text-align: left;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--jornada-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.vacations-table td,
+.certificates-table td {
+    padding: 1rem;
+    color: var(--jornada-text);
+    font-size: 0.875rem;
+}
+
+.vacation-date,
+.certificate-date {
+    font-family: 'Courier New', monospace;
+    color: var(--jornada-text-muted);
+}
+
+.vacation-badge {
+    display: inline-block;
+    padding: 0.375rem 0.75rem;
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--jornada-warning);
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.certificate-badge {
+    display: inline-block;
+    padding: 0.375rem 0.75rem;
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--jornada-danger);
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.vacation-notes,
+.certificate-reason {
+    color: var(--jornada-text-muted);
+}
+
+.certificate-cid {
+    font-size: 0.75rem;
+    color: var(--jornada-text-muted);
+    margin-top: 0.25rem;
+}
+
+.certificate-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+/* Empty States */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+}
+
+.empty-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(102, 126, 234, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: var(--jornada-primary);
+    margin-bottom: 1.5rem;
+}
+
+.empty-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--jornada-text);
+    margin: 0 0 0.5rem 0;
+}
+
+.empty-text {
+    color: var(--jornada-text-muted);
+    margin: 0;
+}
+
+.empty-state-small {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    text-align: center;
+}
+
+.empty-icon-small {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(102, 126, 234, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--jornada-primary);
+    margin-bottom: 1rem;
+}
+
+.empty-text-small {
+    color: var(--jornada-text-muted);
+    margin: 0;
+}
+
+/* Modals */
+.modern-modal {
+    background: var(--jornada-card-bg);
+    border-radius: 20px;
+    border: 1px solid var(--jornada-border);
+    box-shadow: var(--jornada-shadow-lg);
+}
+
+.modal-header-warning {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--jornada-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 20px 20px 0 0;
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+    color: white;
+}
+
+.modal-header-danger {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--jornada-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 20px 20px 0 0;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+}
+
+.modal-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.modal-body {
+    padding: 2rem;
+}
+
+.modal-footer {
+    padding: 1.5rem 2rem;
+    border-top: 1px solid var(--jornada-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.btn-modal {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid;
+}
+
+.btn-modal.btn-outline {
+    background: var(--jornada-card-bg);
+    color: var(--jornada-text);
+    border-color: var(--jornada-border);
+}
+
+.btn-modal.btn-outline:hover {
+    background: var(--jornada-bg);
+}
+
+.btn-modal.btn-warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+    color: white;
+    border-color: transparent;
+}
+
+.btn-modal.btn-warning:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.btn-modal.btn-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    border-color: transparent;
+}
+
+.btn-modal.btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.text-danger {
+    color: var(--jornada-danger);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .jornada-container {
+        padding: 1rem;
+    }
+
+    .hero-content {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .hero-title {
+        font-size: 2rem;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-grid-secondary {
+        grid-template-columns: 1fr;
+    }
+
+    .vacations-certificates-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}

@@ -28,13 +28,11 @@ class Produto(db.Model):
     preco_venda = db.Column(db.Float, default=0.00)
     data_validade = db.Column(db.Date, nullable=True, index=True)
     lote = db.Column(db.String(50), nullable=True)
-    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedor.id'), nullable=True, index=True)
     categoria = db.Column(db.String(50), nullable=True, index=True)
     unidade = db.Column(db.String(10), default='un')
     localizacao = db.Column(db.String(50), nullable=True)
     ativo = db.Column(db.Boolean, default=True, index=True)
     
-    fornecedor = db.relationship('Fornecedor', backref='produtos', lazy=True)
     historicos = db.relationship('Historico', backref='produto', lazy=True)
 
 class Historico(db.Model):
@@ -154,18 +152,6 @@ class AppSetting(db.Model):
     key = db.Column(db.String(50), unique=True, nullable=False)
     value = db.Column(db.Text)
 
-class Fornecedor(db.Model):
-    __tablename__ = 'fornecedor'
-    id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(100), nullable=False)
-    cnpj = db.Column(db.String(20), unique=True, nullable=True)
-    telefone = db.Column(db.String(20), nullable=True)
-    email = db.Column(db.String(100), nullable=True)
-    endereco = db.Column(db.String(200), nullable=True)
-    observacao = db.Column(db.Text, nullable=True)
-    ativo = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
-
 class Collaborator(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -183,8 +169,7 @@ class Collaborator(db.Model):
     
     user = db.relationship('User', backref='collaborator', lazy=True)
     shifts = db.relationship('Shift', backref='collaborator', lazy=True)
-    leave_credits = db.relationship('LeaveCredit', backref='collaborator', lazy=True)
-    hour_bank_entries = db.relationship('HourBankEntry', backref='collaborator', lazy=True)
+    # Relacionamentos antigos removidos - usar time_off_records
 
 class Shift(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -198,20 +183,21 @@ class Shift(db.Model):
     is_sunday_holiday = db.Column(db.Boolean, default=False)
     auto_generated = db.Column(db.Boolean, default=False)
 
-class LeaveCredit(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'))
-    date = db.Column(db.Date, nullable=False)
-    amount_days = db.Column(db.Integer, default=1)
-    origin = db.Column(db.String(20))
-    notes = db.Column(db.String(255))
+# Modelos antigos removidos - usar TimeOffRecord
+# class LeaveCredit(db.Model):
+#     id = db.Column(db.Integer, primary_key=True)
+#     collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'))
+#     date = db.Column(db.Date, nullable=False)
+#     amount_days = db.Column(db.Integer, default=1)
+#     origin = db.Column(db.String(20))
+#     notes = db.Column(db.String(255))
 
-class HourBankEntry(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'))
-    date = db.Column(db.Date, nullable=False)
-    hours = db.Column(db.Float, nullable=False)
-    reason = db.Column(db.String(255))
+# class HourBankEntry(db.Model):
+#     id = db.Column(db.Integer, primary_key=True)
+#     collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'))
+#     date = db.Column(db.Date, nullable=False)
+#     hours = db.Column(db.Float, nullable=False)
+#     reason = db.Column(db.String(255))
 
 class TemporaryEntry(db.Model):
     __tablename__ = 'temporary_entry'
@@ -235,21 +221,39 @@ class JobRole(db.Model):
     name = db.Column(db.String(100), unique=True, nullable=False)
     nivel = db.Column(db.String(20), nullable=False)
 
-class LeaveAssignment(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'))
-    date = db.Column(db.Date, nullable=False)
-    days_used = db.Column(db.Integer, default=1)
-    notes = db.Column(db.String(255))
+# class LeaveAssignment(db.Model):
+#     id = db.Column(db.Integer, primary_key=True)
+#     collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'))
+#     date = db.Column(db.Date, nullable=False)
+#     days_used = db.Column(db.Integer, default=1)
+#     notes = db.Column(db.String(255))
 
-class LeaveConversion(db.Model):
+class TimeOffRecord(db.Model):
+    """Tabela unificada para armazenar horas extras, folgas adicionais e folgas usadas"""
+    __tablename__ = 'time_off_record'
     id = db.Column(db.Integer, primary_key=True)
-    collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'))
-    date = db.Column(db.Date, nullable=False)
-    amount_days = db.Column(db.Integer, nullable=False)
-    amount_paid = db.Column(db.Float, nullable=False)
-    rate_per_day = db.Column(db.Float, default=65.0)
-    notes = db.Column(db.String(255))
+    collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'), nullable=False, index=True)
+    date = db.Column(db.Date, nullable=False, index=True)
+    record_type = db.Column(db.String(20), nullable=False, index=True)  # 'horas', 'folga_adicional', 'folga_usada', 'conversao'
+    hours = db.Column(db.Float, nullable=True)  # Para registros de horas
+    days = db.Column(db.Integer, nullable=True)  # Para registros de folgas
+    amount_paid = db.Column(db.Float, nullable=True)  # Para conversões em dinheiro
+    rate_per_day = db.Column(db.Float, nullable=True)  # Para conversões
+    origin = db.Column(db.String(50), nullable=True)  # Origem do registro (ex: 'horas', 'manual', 'excel')
+    notes = db.Column(db.String(500), nullable=True)  # Observações/razão
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+    created_by = db.Column(db.String(100), nullable=True)  # Usuário que criou o registro
+    
+    collaborator = db.relationship('Collaborator', backref='time_off_records', lazy=True)
+
+# class LeaveConversion(db.Model):
+#     id = db.Column(db.Integer, primary_key=True)
+#     collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'))
+#     date = db.Column(db.Date, nullable=False)
+#     amount_days = db.Column(db.Integer, nullable=False)
+#     amount_paid = db.Column(db.Float, nullable=False)
+#     rate_per_day = db.Column(db.Float, default=65.0)
+#     notes = db.Column(db.String(255))
 
 class Holiday(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -302,69 +306,6 @@ class RecipeIngredient(db.Model):
     quantidade_kg = db.Column(db.Float, default=0.0)
     custo_unitario = db.Column(db.Float, default=0.0)
 
-class TemperatureLog(db.Model):
-    __tablename__ = 'temperature_log'
-    id = db.Column(db.Integer, primary_key=True)
-    local = db.Column(db.String(100), nullable=False)
-    temperatura = db.Column(db.Float, nullable=False)
-    temp_min = db.Column(db.Float, default=-18.0)
-    temp_max = db.Column(db.Float, default=-12.0)
-    data_registro = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
-    usuario = db.Column(db.String(100))
-    observacao = db.Column(db.String(255))
-    alerta = db.Column(db.Boolean, default=False)
-    
-    fotos = db.relationship('TemperaturePhoto', backref='temperature_log', lazy=True, cascade='all, delete-orphan')
-
-class TemperatureLocation(db.Model):
-    __tablename__ = 'temperature_location'
-    id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(100), nullable=False, unique=True)
-    temp_min = db.Column(db.Float, default=-18.0)
-    temp_max = db.Column(db.Float, default=-12.0)
-    ativo = db.Column(db.Boolean, default=True)
-    tipo = db.Column(db.String(50))
-
-class LossRecord(db.Model):
-    __tablename__ = 'loss_record'
-    id = db.Column(db.Integer, primary_key=True)
-    produto_id = db.Column(db.Integer, db.ForeignKey('produto.id'), nullable=True, index=True)
-    produto_nome = db.Column(db.String(100), nullable=False)
-    quantidade = db.Column(db.Float, nullable=False)
-    unidade = db.Column(db.String(20), default='kg')
-    motivo = db.Column(db.String(50), nullable=False)
-    custo_estimado = db.Column(db.Float, default=0.0)
-    data_registro = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')), index=True)
-    usuario = db.Column(db.String(100))
-    observacao = db.Column(db.String(255))
-
-class PurchaseOrder(db.Model):
-    __tablename__ = 'purchase_order'
-    id = db.Column(db.Integer, primary_key=True)
-    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedor.id'), nullable=False)
-    data_criacao = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
-    data_prevista = db.Column(db.Date)
-    status = db.Column(db.String(20), default='pendente')
-    valor_total = db.Column(db.Float, default=0.0)
-    observacao = db.Column(db.Text)
-    usuario = db.Column(db.String(100))
-    auto_gerado = db.Column(db.Boolean, default=False)
-    
-    fornecedor = db.relationship('Fornecedor', backref='pedidos', lazy=True)
-    items = db.relationship('PurchaseOrderItem', backref='order', lazy=True, cascade='all, delete-orphan')
-
-class PurchaseOrderItem(db.Model):
-    __tablename__ = 'purchase_order_item'
-    id = db.Column(db.Integer, primary_key=True)
-    order_id = db.Column(db.Integer, db.ForeignKey('purchase_order.id'), nullable=False)
-    produto_id = db.Column(db.Integer, db.ForeignKey('produto.id'), nullable=True)
-    produto_nome = db.Column(db.String(100), nullable=False)
-    quantidade = db.Column(db.Float, nullable=False)
-    unidade = db.Column(db.String(20), default='un')
-    preco_unitario = db.Column(db.Float, default=0.0)
-    subtotal = db.Column(db.Float, default=0.0)
-
-
 class UserLogin(db.Model):
     __tablename__ = 'user_login'
     id = db.Column(db.Integer, primary_key=True)
@@ -408,15 +349,6 @@ class MedicalCertificate(db.Model):
     collaborator = db.relationship('Collaborator', backref='medical_certificates', lazy=True)
 
 
-class TemperaturePhoto(db.Model):
-    __tablename__ = 'temperature_photo'
-    id = db.Column(db.Integer, primary_key=True)
-    temperature_log_id = db.Column(db.Integer, db.ForeignKey('temperature_log.id'), nullable=False)
-    filename = db.Column(db.String(255), nullable=False)
-    uploaded_by = db.Column(db.String(100))
-    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
-
-
 class IngredientCatalog(db.Model):
     __tablename__ = 'ingredient_catalog'
     id = db.Column(db.Integer, primary_key=True)
@@ -443,14 +375,14 @@ class CustomSchedule(db.Model):
     substituto = db.relationship('Collaborator', foreign_keys=[substituto_id])
 
 
-class HelpArticle(db.Model):
-    __tablename__ = 'help_article'
-    id = db.Column(db.Integer, primary_key=True)
-    titulo = db.Column(db.String(200), nullable=False)
-    conteudo = db.Column(db.Text, nullable=False)
-    categoria = db.Column(db.String(50), default='Geral')
-    ordem = db.Column(db.Integer, default=0)
-    ativo = db.Column(db.Boolean, default=True)
+# class HelpArticle(db.Model):
+#     __tablename__ = 'help_article'
+#     id = db.Column(db.Integer, primary_key=True)
+#     titulo = db.Column(db.String(200), nullable=False)
+#     conteudo = db.Column(db.Text, nullable=False)
+#     categoria = db.Column(db.String(50), default='Geral')
+#     ordem = db.Column(db.Integer, default=0)
+#     ativo = db.Column(db.Boolean, default=True)
 
 class RegistroJornada(db.Model):
     __tablename__ = 'registro_jornada'
@@ -487,13 +419,13 @@ class RegistroJornadaChange(db.Model):
     
 
 
-class ArticleVote(db.Model):
-    __tablename__ = 'article_vote'
-    id = db.Column(db.Integer, primary_key=True)
-    article_id = db.Column(db.Integer, db.ForeignKey('help_article.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    util = db.Column(db.Boolean, nullable=False)
-    voted_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+# class ArticleVote(db.Model):
+#     __tablename__ = 'article_vote'
+#     id = db.Column(db.Integer, primary_key=True)
+#     article_id = db.Column(db.Integer, db.ForeignKey('help_article.id'), nullable=False)
+#     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+#     util = db.Column(db.Boolean, nullable=False)
+#     voted_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
 
 
 class Suggestion(db.Model):
@@ -517,266 +449,3 @@ class SuggestionVote(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     voted_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
 
-
-# ========== NOVOS MODELOS PARA FUNCIONALIDADES DE AÇOUGUE E CÂMARA FRIA ==========
-
-class MeatCut(db.Model):
-    """Cadastro de tipos de cortes de carne"""
-    __tablename__ = 'meat_cut'
-    id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(100), nullable=False)
-    categoria = db.Column(db.String(20), nullable=False)  # bovina, suina, frango
-    tipo_corte = db.Column(db.String(50))  # picanha, alcatra, etc
-    rendimento_esperado = db.Column(db.Float, default=0.0)  # percentual
-    preco_base_kg = db.Column(db.Float, default=0.0)
-    tempo_preparo_minutos = db.Column(db.Integer, default=0)
-    instrucoes = db.Column(db.Text)
-    equipamentos = db.Column(db.String(255))
-    ativo = db.Column(db.Boolean, default=True)
-    criado_em = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
-
-
-class MeatCutExecution(db.Model):
-    """Execução de corte - registro de quando um corte foi feito"""
-    __tablename__ = 'meat_cut_execution'
-    id = db.Column(db.Integer, primary_key=True)
-    reception_id = db.Column(db.Integer, db.ForeignKey('meat_reception.id'), nullable=False)
-    cut_id = db.Column(db.Integer, db.ForeignKey('meat_cut.id'), nullable=False)
-    part_id = db.Column(db.Integer, db.ForeignKey('meat_part.id'), nullable=True)
-    peso_entrada = db.Column(db.Float, nullable=False)
-    peso_saida = db.Column(db.Float, nullable=False)
-    rendimento_real = db.Column(db.Float)  # calculado automaticamente
-    data_corte = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
-    responsavel = db.Column(db.String(100))
-    observacao = db.Column(db.String(255))
-    
-    reception = db.relationship('MeatReception', backref='cut_executions', lazy=True)
-    cut = db.relationship('MeatCut', backref='executions', lazy=True)
-    part = db.relationship('MeatPart', backref='cut_executions', lazy=True)
-
-
-class MeatMaturation(db.Model):
-    """Controle de maturação de carnes"""
-    __tablename__ = 'meat_maturation'
-    id = db.Column(db.Integer, primary_key=True)
-    reception_id = db.Column(db.Integer, db.ForeignKey('meat_reception.id'), nullable=False)
-    part_id = db.Column(db.Integer, db.ForeignKey('meat_part.id'), nullable=True)
-    data_inicio = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
-    data_prevista_pronto = db.Column(db.DateTime(timezone=True))
-    data_pronto = db.Column(db.DateTime(timezone=True), nullable=True)
-    dias_maturacao = db.Column(db.Integer, default=0)
-    temperatura_ideal = db.Column(db.Float, default=2.0)
-    umidade_ideal = db.Column(db.Float, default=85.0)
-    status = db.Column(db.String(20), default='maturacao')  # maturacao, pronto, cancelado
-    observacao = db.Column(db.String(255))
-    
-    reception = db.relationship('MeatReception', backref='maturations', lazy=True)
-    part = db.relationship('MeatPart', backref='maturations', lazy=True)
-
-
-class ProductLot(db.Model):
-    """Controle de lotes por recepção - rastreabilidade completa"""
-    __tablename__ = 'product_lot'
-    id = db.Column(db.Integer, primary_key=True)
-    reception_id = db.Column(db.Integer, db.ForeignKey('meat_reception.id'), nullable=True, index=True)
-    produto_id = db.Column(db.Integer, db.ForeignKey('produto.id'), nullable=True, index=True)
-    lote_codigo = db.Column(db.String(50), unique=True, nullable=False, index=True)
-    data_recepcao = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')), index=True)
-    data_validade = db.Column(db.Date, nullable=True, index=True)
-    quantidade_inicial = db.Column(db.Float, default=0.0)
-    quantidade_atual = db.Column(db.Float, default=0.0)
-    localizacao = db.Column(db.String(50))  # câmara fria, balcão, etc
-    temperatura_armazenamento = db.Column(db.Float)
-    fornecedor = db.Column(db.String(100))
-    certificado_sanitario = db.Column(db.String(100))
-    data_validade_certificado = db.Column(db.Date)
-    ativo = db.Column(db.Boolean, default=True, index=True)
-    
-    reception = db.relationship('MeatReception', backref='lots', lazy=True)
-    produto = db.relationship('Produto', backref='lots', lazy=True)
-    movements = db.relationship('LotMovement', backref='lot', lazy=True, cascade='all, delete-orphan')
-
-
-class LotMovement(db.Model):
-    """Movimentações de lotes (entrada/saída da câmara fria)"""
-    __tablename__ = 'lot_movement'
-    id = db.Column(db.Integer, primary_key=True)
-    lot_id = db.Column(db.Integer, db.ForeignKey('product_lot.id'), nullable=False)
-    tipo = db.Column(db.String(20), nullable=False)  # entrada, saida, transferencia
-    quantidade = db.Column(db.Float, nullable=False)
-    origem = db.Column(db.String(50))
-    destino = db.Column(db.String(50))
-    data_movimento = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
-    usuario = db.Column(db.String(100))
-    observacao = db.Column(db.String(255))
-
-
-class TemperatureProductAlert(db.Model):
-    """Alertas de temperatura que bloqueiam produtos"""
-    __tablename__ = 'temperature_product_alert'
-    id = db.Column(db.Integer, primary_key=True)
-    temperature_log_id = db.Column(db.Integer, db.ForeignKey('temperature_log.id'), nullable=False)
-    lot_id = db.Column(db.Integer, db.ForeignKey('product_lot.id'), nullable=True)
-    produto_id = db.Column(db.Integer, db.ForeignKey('produto.id'), nullable=True)
-    bloqueado = db.Column(db.Boolean, default=True)
-    data_alerta = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
-    data_resolucao = db.Column(db.DateTime(timezone=True), nullable=True)
-    resolvido_por = db.Column(db.String(100))
-    observacao = db.Column(db.String(255))
-    
-    temperature_log = db.relationship('TemperatureLog', backref='product_alerts', lazy=True)
-    lot = db.relationship('ProductLot', backref='temperature_alerts', lazy=True)
-    produto = db.relationship('Produto', backref='temperature_alerts', lazy=True)
-
-
-class DynamicPricing(db.Model):
-    """Precificação dinâmica baseada em custo, validade e demanda"""
-    __tablename__ = 'dynamic_pricing'
-    id = db.Column(db.Integer, primary_key=True)
-    produto_id = db.Column(db.Integer, db.ForeignKey('produto.id'), nullable=False, index=True)
-    preco_base = db.Column(db.Float, nullable=False)
-    preco_atual = db.Column(db.Float, nullable=False)
-    margem_minima = db.Column(db.Float, default=20.0)  # percentual
-    desconto_validade = db.Column(db.Float, default=0.0)  # percentual de desconto por proximidade de validade
-    desconto_demanda = db.Column(db.Float, default=0.0)  # percentual de desconto por baixa demanda
-    dias_para_validade = db.Column(db.Integer, default=0)
-    ativo = db.Column(db.Boolean, default=True, index=True)
-    data_atualizacao = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')), index=True)
-    usuario = db.Column(db.String(100))
-    
-    produto = db.relationship('Produto', backref='dynamic_pricing', lazy=True)
-    history = db.relationship('PricingHistory', backref='pricing', lazy=True, cascade='all, delete-orphan')
-
-
-class PricingHistory(db.Model):
-    """Histórico de alterações de preço"""
-    __tablename__ = 'pricing_history'
-    id = db.Column(db.Integer, primary_key=True)
-    pricing_id = db.Column(db.Integer, db.ForeignKey('dynamic_pricing.id'), nullable=False)
-    preco_anterior = db.Column(db.Float)
-    preco_novo = db.Column(db.Float)
-    motivo = db.Column(db.String(100))
-    data_alteracao = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
-    usuario = db.Column(db.String(100))
-
-
-class WasteUtilization(db.Model):
-    """Sugestões de aproveitamento de produtos próximos ao vencimento"""
-    __tablename__ = 'waste_utilization'
-    id = db.Column(db.Integer, primary_key=True)
-    produto_id = db.Column(db.Integer, db.ForeignKey('produto.id'), nullable=False)
-    lot_id = db.Column(db.Integer, db.ForeignKey('product_lot.id'), nullable=True)
-    tipo = db.Column(db.String(50))  # receita, promocao, doacao, descarte
-    sugestao = db.Column(db.Text, nullable=False)
-    receita_id = db.Column(db.Integer, db.ForeignKey('recipe.id'), nullable=True)
-    dias_para_validade = db.Column(db.Integer)
-    prioridade = db.Column(db.Integer, default=1)  # 1=alta, 2=média, 3=baixa
-    status = db.Column(db.String(20), default='pendente')  # pendente, aplicado, descartado
-    data_sugestao = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
-    data_aplicacao = db.Column(db.DateTime(timezone=True), nullable=True)
-    usuario_aplicacao = db.Column(db.String(100))
-    
-    produto = db.relationship('Produto', backref='waste_utilizations', lazy=True)
-    lot = db.relationship('ProductLot', backref='waste_utilizations', lazy=True)
-    receita = db.relationship('Recipe', backref='waste_utilizations', lazy=True)
-
-
-class ColdRoomOccupancy(db.Model):
-    """Controle de ocupação da câmara fria"""
-    __tablename__ = 'cold_room_occupancy'
-    id = db.Column(db.Integer, primary_key=True)
-    localizacao = db.Column(db.String(50), nullable=False)
-    capacidade_total_kg = db.Column(db.Float, nullable=False)
-    capacidade_utilizada_kg = db.Column(db.Float, default=0.0)
-    percentual_ocupacao = db.Column(db.Float, default=0.0)
-    data_registro = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
-    temperatura_atual = db.Column(db.Float)
-    observacao = db.Column(db.String(255))
-
-
-class TraceabilityRecord(db.Model):
-    """Registros de rastreabilidade completa"""
-    __tablename__ = 'traceability_record'
-    id = db.Column(db.Integer, primary_key=True)
-    lot_id = db.Column(db.Integer, db.ForeignKey('product_lot.id'), nullable=False)
-    reception_id = db.Column(db.Integer, db.ForeignKey('meat_reception.id'), nullable=True)
-    etapa = db.Column(db.String(50), nullable=False)  # recepcao, corte, maturacao, armazenamento, venda
-    data_etapa = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
-    responsavel = db.Column(db.String(100))
-    temperatura = db.Column(db.Float)
-    observacao = db.Column(db.String(255))
-    certificado_anexo = db.Column(db.String(255))
-    
-    lot = db.relationship('ProductLot', backref='traceability_records', lazy=True)
-    reception = db.relationship('MeatReception', backref='traceability_records', lazy=True)
-
-
-class SupplierEvaluation(db.Model):
-    """Avaliação de fornecedores"""
-    __tablename__ = 'supplier_evaluation'
-    id = db.Column(db.Integer, primary_key=True)
-    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedor.id'), nullable=False)
-    reception_id = db.Column(db.Integer, db.ForeignKey('meat_reception.id'), nullable=True)
-    nota_qualidade = db.Column(db.Integer, default=5)  # 1-10
-    nota_preco = db.Column(db.Integer, default=5)
-    nota_pontualidade = db.Column(db.Integer, default=5)
-    nota_atendimento = db.Column(db.Integer, default=5)
-    observacao = db.Column(db.Text)
-    data_avaliacao = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
-    avaliador = db.Column(db.String(100))
-    
-    fornecedor = db.relationship('Fornecedor', backref='evaluations', lazy=True)
-    reception = db.relationship('MeatReception', backref='supplier_evaluations', lazy=True)
-
-
-class SanitaryCertificate(db.Model):
-    """Certificados sanitários"""
-    __tablename__ = 'sanitary_certificate'
-    id = db.Column(db.Integer, primary_key=True)
-    reception_id = db.Column(db.Integer, db.ForeignKey('meat_reception.id'), nullable=True)
-    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedor.id'), nullable=True)
-    numero_certificado = db.Column(db.String(100), nullable=False)
-    tipo = db.Column(db.String(50))  # SIF, SIM, etc
-    data_emissao = db.Column(db.Date)
-    data_validade = db.Column(db.Date, nullable=False)
-    arquivo_anexo = db.Column(db.String(255))
-    observacao = db.Column(db.String(255))
-    ativo = db.Column(db.Boolean, default=True)
-    criado_em = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
-    
-    reception = db.relationship('MeatReception', backref='sanitary_certificates', lazy=True)
-    fornecedor = db.relationship('Fornecedor', backref='sanitary_certificates', lazy=True)
-
-
-class YieldAnalysis(db.Model):
-    """Análise de rendimento por recepção"""
-    __tablename__ = 'yield_analysis'
-    id = db.Column(db.Integer, primary_key=True)
-    reception_id = db.Column(db.Integer, db.ForeignKey('meat_reception.id'), nullable=False)
-    peso_entrada = db.Column(db.Float, nullable=False)
-    peso_saida = db.Column(db.Float, nullable=False)
-    rendimento_percentual = db.Column(db.Float)  # calculado
-    perdas_kg = db.Column(db.Float, default=0.0)
-    tipo_perda = db.Column(db.String(50))  # ossos, aparas, desperdicio
-    data_analise = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
-    responsavel = db.Column(db.String(100))
-    observacao = db.Column(db.String(255))
-    
-    reception = db.relationship('MeatReception', backref='yield_analyses', lazy=True)
-
-
-class TemperatureCertificate(db.Model):
-    """Certificados de temperatura para fiscalização"""
-    __tablename__ = 'temperature_certificate'
-    id = db.Column(db.Integer, primary_key=True)
-    periodo_inicio = db.Column(db.DateTime(timezone=True), nullable=False)
-    periodo_fim = db.Column(db.DateTime(timezone=True), nullable=False)
-    localizacao = db.Column(db.String(100), nullable=False)
-    temperatura_media = db.Column(db.Float)
-    temperatura_min = db.Column(db.Float)
-    temperatura_max = db.Column(db.Float)
-    registros_count = db.Column(db.Integer, default=0)
-    arquivo_pdf = db.Column(db.String(255))
-    gerado_por = db.Column(db.String(100))
-    gerado_em = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
-    observacao = db.Column(db.String(255))

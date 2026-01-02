@@ -28,15 +28,6 @@
     <input type="text" name="lote" class="form-control" value="{{ produto.lote or '' }}" placeholder="Ex: L2024-001">
   </div>
   <div class="col-md-6">
-    <label class="form-label">Fornecedor</label>
-    <select name="fornecedor_id" class="form-select">
-      <option value="">-- Selecionar Fornecedor --</option>
-      {% for f in fornecedores %}
-      <option value="{{ f.id }}" {% if produto.fornecedor_id == f.id %}selected{% endif %}>{{ f.nome }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="col-md-6">
     <label class="form-label">Ajuste de Quantidade</label>
     <input type="number" name="ajuste" class="form-control" value="0">
     <div class="form-text">Valores positivos = entrada, negativos = saída.</div>

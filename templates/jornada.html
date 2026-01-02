@@ -16,7 +16,11 @@
         <p class="mm-text-muted">Gestão completa de horas trabalhadas, folgas, férias e atestados</p>
     </div>
     <div class="mm-flex mm-gap-2">
-        {% if current_user.nivel in ('admin', 'DEV') %}
+        {% if current_user.nivel in ('admin', 'DEV', 'operador') %}
+        <a class="mm-btn mm-btn-success" href="{{ url_for('jornada.unificado') }}">
+            <i class="bi bi-calendar-check"></i>
+            Gestão Unificada
+        </a>
         <button type="button" class="mm-btn mm-btn-primary" id="btnOpenModal" aria-haspopup="dialog">
             <i class="bi bi-plus-circle"></i>
             Novo Registro
@@ -31,30 +35,30 @@
 
 <!-- Tabs Navigation -->
 <div class="mm-tabs mm-mb-4" role="tablist">
-    <button class="mm-tab active" data-tab="resumo" role="tab" aria-selected="true" aria-controls="tab-resumo">
+    <button class="mm-tab {% if active_tab == 'resumo' %}active{% endif %}" data-tab="resumo" role="tab" aria-selected="{{ 'true' if active_tab == 'resumo' else 'false' }}" aria-controls="tab-resumo">
         <i class="bi bi-graph-up"></i>
         Resumo
     </button>
-    <button class="mm-tab" data-tab="registros" role="tab" aria-selected="false" aria-controls="tab-registros">
+    <button class="mm-tab {% if active_tab == 'registros' %}active{% endif %}" data-tab="registros" role="tab" aria-selected="{{ 'true' if active_tab == 'registros' else 'false' }}" aria-controls="tab-registros">
         <i class="bi bi-table"></i>
         Registros
     </button>
-    <button class="mm-tab" data-tab="folgas" role="tab" aria-selected="false" aria-controls="tab-folgas">
+    <button class="mm-tab {% if active_tab == 'folgas' %}active{% endif %}" data-tab="folgas" role="tab" aria-selected="{{ 'true' if active_tab == 'folgas' else 'false' }}" aria-controls="tab-folgas">
         <i class="bi bi-calendar-minus"></i>
         Folgas
     </button>
-    <button class="mm-tab" data-tab="ferias" role="tab" aria-selected="false" aria-controls="tab-ferias">
+    <button class="mm-tab {% if active_tab == 'ferias' %}active{% endif %}" data-tab="ferias" role="tab" aria-selected="{{ 'true' if active_tab == 'ferias' else 'false' }}" aria-controls="tab-ferias">
         <i class="bi bi-sun"></i>
         Férias
     </button>
-    <button class="mm-tab" data-tab="atestados" role="tab" aria-selected="false" aria-controls="tab-atestados">
+    <button class="mm-tab {% if active_tab == 'atestados' %}active{% endif %}" data-tab="atestados" role="tab" aria-selected="{{ 'true' if active_tab == 'atestados' else 'false' }}" aria-controls="tab-atestados">
         <i class="bi bi-file-medical"></i>
         Atestados
     </button>
 </div>
 
 <!-- Tab: Resumo -->
-<div id="tab-resumo" class="mm-tab-content active" role="tabpanel" aria-labelledby="tab-resumo">
+<div id="tab-resumo" class="mm-tab-content {% if active_tab == 'resumo' %}active{% endif %}" role="tabpanel" aria-labelledby="tab-resumo">
     <div class="mm-card mm-mb-4">
         <div class="mm-card-header">
             <h3 class="mm-card-title">
@@ -138,7 +142,7 @@
 </div>
 
 <!-- Tab: Registros -->
-<div id="tab-registros" class="mm-tab-content" role="tabpanel" aria-labelledby="tab-registros">
+<div id="tab-registros" class="mm-tab-content {% if active_tab == 'registros' %}active{% endif %}" role="tabpanel" aria-labelledby="tab-registros">
     <div class="mm-card">
         <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
             <h3 class="mm-card-title">
@@ -150,6 +154,7 @@
         <div class="mm-card-body">
             <!-- Filtros -->
             <form class="mm-filter-form mm-mb-4" method="get" action="{{ url_for('jornada.index') }}">
+                <input type="hidden" name="tab" value="registros">
                 <div class="mm-filter-grid">
                     <div>
                         <label class="mm-label">Colaborador</label>
@@ -219,10 +224,30 @@
                 <table class="mm-table">
                     <thead>
                         <tr>
-                            <th>Colaborador</th>
-                            <th>Tipo</th>
-                            <th>Valor</th>
-                            <th>Data</th>
+                            <th>
+                                <a href="{{ url_for('jornada.index', tab='registros', colaborador=q_colab, tipo=tipo, inicio=data_inicio, fim=data_fim, sort='colaborador desc' if sort == 'colaborador asc' else 'colaborador asc') }}" class="mm-text-decoration-none mm-text-inherit mm-flex mm-items-center mm-gap-1">
+                                    Colaborador
+                                    {% if sort == 'colaborador asc' %}<i class="bi bi-sort-alpha-down"></i>{% elif sort == 'colaborador desc' %}<i class="bi bi-sort-alpha-down-alt"></i>{% else %}<i class="bi bi-arrow-down-up mm-text-muted" style="opacity: 0.3;"></i>{% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="{{ url_for('jornada.index', tab='registros', colaborador=q_colab, tipo=tipo, inicio=data_inicio, fim=data_fim, sort='tipo desc' if sort == 'tipo asc' else 'tipo asc') }}" class="mm-text-decoration-none mm-text-inherit mm-flex mm-items-center mm-gap-1">
+                                    Tipo
+                                    {% if sort == 'tipo asc' %}<i class="bi bi-sort-alpha-down"></i>{% elif sort == 'tipo desc' %}<i class="bi bi-sort-alpha-down-alt"></i>{% else %}<i class="bi bi-arrow-down-up mm-text-muted" style="opacity: 0.3;"></i>{% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="{{ url_for('jornada.index', tab='registros', colaborador=q_colab, tipo=tipo, inicio=data_inicio, fim=data_fim, sort='valor desc' if sort == 'valor asc' else 'valor asc') }}" class="mm-text-decoration-none mm-text-inherit mm-flex mm-items-center mm-gap-1">
+                                    Valor
+                                    {% if sort == 'valor asc' %}<i class="bi bi-sort-numeric-down"></i>{% elif sort == 'valor desc' %}<i class="bi bi-sort-numeric-down-alt"></i>{% else %}<i class="bi bi-arrow-down-up mm-text-muted" style="opacity: 0.3;"></i>{% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="{{ url_for('jornada.index', tab='registros', colaborador=q_colab, tipo=tipo, inicio=data_inicio, fim=data_fim, sort='data asc' if sort == 'data desc' else 'data desc') }}" class="mm-text-decoration-none mm-text-inherit mm-flex mm-items-center mm-gap-1">
+                                    Data
+                                    {% if sort == 'data asc' %}<i class="bi bi-sort-numeric-down"></i>{% elif sort == 'data desc' %}<i class="bi bi-sort-numeric-down-alt"></i>{% else %}<i class="bi bi-arrow-down-up mm-text-muted" style="opacity: 0.3;"></i>{% endif %}
+                                </a>
+                            </th>
                             <th>Observações</th>
                             {% if current_user.nivel in ('admin', 'DEV') %}
                             <th class="text-end">Ações</th>
@@ -289,12 +314,12 @@
             {% if total_pages > 1 %}
             <div class="mm-pagination mm-mt-4">
                 <a class="mm-btn mm-btn-sm mm-btn-outline {% if page <= 1 %}mm-disabled{% endif %}" 
-                   href="{{ url_for('jornada.index') }}?page={{ page-1 if page>1 else 1 }}&colaborador={{ q_colab }}&tipo={{ tipo }}&inicio={{ data_inicio }}&fim={{ data_fim }}&sort={{ sort }}">
+                   href="{{ url_for('jornada.index') }}?tab=registros&page={{ page-1 if page>1 else 1 }}&colaborador={{ q_colab }}&tipo={{ tipo }}&inicio={{ data_inicio }}&fim={{ data_fim }}&sort={{ sort }}">
                     <i class="bi bi-chevron-left"></i> Anterior
                 </a>
                 <span class="mm-text-sm mm-text-muted">Página {{ page }} de {{ total_pages }}</span>
                 <a class="mm-btn mm-btn-sm mm-btn-outline {% if page >= total_pages %}mm-disabled{% endif %}" 
-                   href="{{ url_for('jornada.index') }}?page={{ page+1 if page<total_pages else total_pages }}&colaborador={{ q_colab }}&tipo={{ tipo }}&inicio={{ data_inicio }}&fim={{ data_fim }}&sort={{ sort }}">
+                   href="{{ url_for('jornada.index') }}?tab=registros&page={{ page+1 if page<total_pages else total_pages }}&colaborador={{ q_colab }}&tipo={{ tipo }}&inicio={{ data_inicio }}&fim={{ data_fim }}&sort={{ sort }}">
                     Próxima <i class="bi bi-chevron-right"></i>
                 </a>
             </div>

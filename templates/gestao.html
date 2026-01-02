@@ -1,89 +1,221 @@
 {% extends 'base.html' %}
 {% block title %}Gestão — MultiMax{% endblock %}
 
-{% block breadcrumb %}
-<span class="mm-breadcrumb-separator">/</span>
-<span>Gestão</span>
-{% endblock %}
-
 {% block content %}
-<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
-    <div>
-        <h1 class="mm-page-title">Gestão de Colaboradores</h1>
-        <p class="mm-text-muted">Gerencie usuários, cargos, colaboradores e banco de horas</p>
+<div class="gestao-container">
+    <!-- Hero Header -->
+    <div class="gestao-hero">
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1 class="hero-title">
+                    <span class="gradient-text">Gestão</span>
+                </h1>
+                <p class="hero-subtitle">Gerencie colaboradores, usuários, cargos e permissões do sistema</p>
+            </div>
+            <div class="hero-actions">
+                <button class="btn-hero" data-bs-toggle="modal" data-bs-target="#modalNovoUsuario">
+                    <i class="bi bi-person-plus"></i>
+                    <span>Novo Colaborador</span>
+                </button>
+            </div>
     </div>
 </div>
 
-<div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
-    <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--mm-info);">
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+        <div class="kpi-card kpi-success">
+            <div class="kpi-icon">
             <i class="bi bi-people"></i>
         </div>
-        <div class="mm-kpi-label">Usuários</div>
-        <div class="mm-kpi-value" style="color: var(--mm-info);">{{ users_page|length if users_page else 0 }}</div>
+            <div class="kpi-content">
+                <div class="kpi-label">Colaboradores/Usuários</div>
+                <div class="kpi-value">{{ colaboradores|length if colaboradores else 0 }}</div>
+            </div>
+            <div class="kpi-decoration"></div>
     </div>
     
-    <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-success);">
-            <i class="bi bi-person-badge"></i>
+        <div class="kpi-card kpi-info">
+            <div class="kpi-icon">
+                <i class="bi bi-person-check"></i>
         </div>
-        <div class="mm-kpi-label">Colaboradores</div>
-        <div class="mm-kpi-value mm-text-success">{{ colaboradores|length if colaboradores else 0 }}</div>
+            <div class="kpi-content">
+                <div class="kpi-label">Com Acesso ao Sistema</div>
+                <div class="kpi-value">{{ colaboradores|selectattr('user_id')|list|length if colaboradores else 0 }}</div>
+            </div>
+            <div class="kpi-decoration"></div>
     </div>
     
-    <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning);">
+        <div class="kpi-card kpi-warning">
+            <div class="kpi-icon">
             <i class="bi bi-award"></i>
         </div>
-        <div class="mm-kpi-label">Cargos</div>
-        <div class="mm-kpi-value" style="color: var(--mm-warning);">{{ roles|length if roles else 0 }}</div>
+            <div class="kpi-content">
+                <div class="kpi-label">Cargos</div>
+                <div class="kpi-value">{{ roles|length if roles else 0 }}</div>
+            </div>
+            <div class="kpi-decoration"></div>
     </div>
     
-    <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(var(--mm-primary-rgb), 0.15); color: var(--mm-primary);">
+        <div class="kpi-card kpi-primary">
+            <div class="kpi-icon">
             <i class="bi bi-check-circle"></i>
         </div>
-        <div class="mm-kpi-label">Ativos</div>
-        <div class="mm-kpi-value mm-text-primary">{{ colaboradores|selectattr('active')|list|length if colaboradores else 0 }}</div>
+            <div class="kpi-content">
+                <div class="kpi-label">Ativos</div>
+                <div class="kpi-value">{{ colaboradores|selectattr('active')|list|length if colaboradores else 0 }}</div>
+            </div>
+            <div class="kpi-decoration"></div>
     </div>
 </div>
 
-
-
-<div class="mm-card mm-mb-6">
-    <div class="mm-card-header">
-        <h3 class="mm-card-title">
-            <i class="bi bi-activity mm-text-primary"></i>
-            Histórico de Modificações
-        </h3>
+    <!-- Main Content Grid -->
+    <div class="content-grid">
+        <!-- Colaboradores/Usuários Card -->
+        <div class="management-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="bi bi-people"></i>
+                    <span>Gerenciar Colaboradores/Usuários</span>
+                    <span class="card-badge">{{ users_page|length if users_page else 0 }}</span>
     </div>
-    <div class="mm-card-body">
-        <div class="mm-table-wrapper">
-            <table class="mm-table">
+                <div class="card-actions">
+                    <form method="get" action="{{ url_for('usuarios.gestao') }}" class="search-form-inline">
+                        <input type="hidden" name="u_page" value="1">
+                        <input type="hidden" name="l_page" value="{{ l_page }}">
+                        <div class="search-input-wrapper">
+                            <i class="bi bi-search search-icon"></i>
+                            <input type="text" name="q" class="search-input" placeholder="Buscar por nome..." value="{{ q }}">
+                        </div>
+                        <button type="submit" class="search-button">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </form>
+                    <button class="btn-action btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovoUsuario">
+                        <i class="bi bi-plus-lg"></i>
+                        Novo
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-wrapper">
+                    <table class="modern-table">
                 <thead>
                     <tr>
-                        <th style="width: 12rem">Data/Hora</th>
-                        <th style="width: 14rem">Usuário</th>
-                        <th style="width: 10rem">Origem</th>
-                        <th style="width: 10rem">Evento</th>
-                        <th>Detalhes</th>
+                                <th>Nome</th>
+                                <th>Login</th>
+                                <th>Nível</th>
+                                <th>Status</th>
+                                <th class="text-end">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for l in logs_page %}
-                    <tr>
-                        <td>{{ l.data.strftime('%d/%m/%Y %H:%M') }}</td>
-                        <td>{{ l.usuario or '-' }}</td>
-                        <td>{{ l.origem }}</td>
-                        <td>{{ l.evento }}</td>
-                        <td>{{ l.detalhes or '-' }}</td>
+                            {% for item in users_page %}
+                            <tr>
+                                <td>
+                                    <div class="user-info">
+                                        <div class="user-avatar">
+                                            <i class="bi bi-person-circle"></i>
+                                        </div>
+                                        <strong>{{ item.display_name }}</strong>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if item.username %}
+                                    <span class="badge badge-success">
+                                        <i class="bi bi-check-circle"></i>
+                                        {{ item.username }}
+                                    </span>
+                                    {% else %}
+                                    <span class="badge badge-secondary">
+                                        <i class="bi bi-x-circle"></i>
+                                        Sem acesso
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.nivel %}
+                                        {% if item.nivel == 'DEV' %}
+                                        <span class="badge badge-dev">Desenvolvedor</span>
+                                        {% elif item.nivel == 'admin' %}
+                                        <span class="badge badge-primary">Gerente</span>
+                                        {% elif item.nivel == 'operador' %}
+                                        <span class="badge badge-info">Operador</span>
+                                        {% else %}
+                                        <span class="badge badge-secondary">Visualizador</span>
+                                        {% endif %}
+                                    {% else %}
+                                    <span class="badge badge-secondary">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.collaborator.active %}
+                                    <span class="badge badge-success">Ativo</span>
+                                    {% else %}
+                                    <span class="badge badge-secondary">Inativo</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <div class="actions-group">
+                                        {% if item.user %}
+                                        <div class="action-dropdown">
+                                            <button class="action-btn action-primary" type="button" data-bs-toggle="dropdown">
+                                                <i class="bi bi-gear"></i>
+                                            </button>
+                                            <div class="dropdown-menu">
+                                                <form method="post" action="{{ url_for('usuarios.update_level', user_id=item.user.id) }}" class="dropdown-form">
+                                                    <label class="dropdown-label">Nível de Acesso</label>
+                                                    <select name="nivel" class="form-input-sm">
+                                                        <option value="visualizador" {% if item.nivel == 'visualizador' %}selected{% endif %}>Visualizador</option>
+                                                        <option value="operador" {% if item.nivel == 'operador' %}selected{% endif %}>Operador</option>
+                                                        <option value="admin" {% if item.nivel == 'admin' %}selected{% endif %}>Gerente</option>
+                                                        {% if current_user.nivel == 'DEV' %}
+                                                        <option value="DEV" {% if item.nivel == 'DEV' %}selected{% endif %}>Desenvolvedor</option>
+                                                        {% endif %}
+                                                    </select>
+                                                    <button type="submit" class="btn-sm btn-primary">Atualizar</button>
+                                                </form>
+                                                <div class="dropdown-divider"></div>
+                                                <form method="post" action="{{ url_for('usuarios.update_password', user_id=item.user.id) }}" class="dropdown-form">
+                                                    <label class="dropdown-label">Nova Senha</label>
+                                                    <input type="password" name="new_password" class="form-input-sm" placeholder="Nova senha" required>
+                                                    <button type="submit" class="btn-sm btn-primary">
+                                                        <i class="bi bi-key"></i>
+                                                        Alterar
+                                                    </button>
+                                                </form>
+                                                <div class="dropdown-divider"></div>
+                                                <form method="post" action="{{ url_for('usuarios.reset_password', user_id=item.user.id) }}" class="dropdown-form">
+                                                    <button type="submit" class="btn-sm btn-outline">
+                                                        <i class="bi bi-arrow-clockwise"></i>
+                                                        Redefinir Senha
+                                                    </button>
+                                                </form>
+                                                {% if item.user.id != current_user.id %}
+                                                <div class="dropdown-divider"></div>
+                                                <form method="post" action="{{ url_for('usuarios.excluir_user', user_id=item.user.id) }}" class="dropdown-form" onsubmit="return confirm('Excluir {{ item.display_name }}?')">
+                                                    <button type="submit" class="btn-sm btn-danger">
+                                                        <i class="bi bi-trash"></i>
+                                                        Excluir
+                                                    </button>
+                                                </form>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% else %}
+                                        <a href="{{ url_for('usuarios.gestao') }}?view=colaboradores&colab_id={{ item.collaborator.id }}" class="action-btn action-outline">
+                                            <i class="bi bi-person-plus"></i>
+                                            Criar Acesso
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="5" class="mm-empty-cell">
-                            <div class="mm-empty-inline">
-                                <i class="bi bi-card-list"></i>
-                                <span>Sem modificações registradas</span>
+                                <td colspan="5" class="empty-cell">
+                                    <div class="empty-state">
+                                        <i class="bi bi-people"></i>
+                                        <span>Nenhum colaborador/usuário encontrado</span>
                             </div>
                         </td>
                     </tr>
@@ -91,72 +223,92 @@
                 </tbody>
             </table>
         </div>
-        <div class="mm-pagination">
-            <span class="mm-pagination-info">Página {{ l_page }} de {{ l_total_pages }}</span>
-            <div class="mm-pagination-btns">
-                <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('usuarios.gestao') }}?l_page={{ l_page-1 if l_page>1 else 1 }}&u_page={{ u_page }}&q={{ q }}&view={{ view }}">
+                {% if u_total_pages > 1 %}
+                <div class="pagination-wrapper">
+                    <div class="pagination-info">Página {{ u_page }} de {{ u_total_pages }}</div>
+                    <div class="pagination">
+                        <a href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page-1 if u_page>1 else 1 }}&l_page={{ l_page }}&q={{ q }}" 
+                           class="pagination-btn {% if u_page <= 1 %}disabled{% endif %}">
                     <i class="bi bi-chevron-left"></i>
+                            <span>Anterior</span>
                 </a>
-                <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('usuarios.gestao') }}?l_page={{ l_page+1 if l_page<l_total_pages else l_total_pages }}&u_page={{ u_page }}&q={{ q }}&view={{ view }}">
+                        <a href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page+1 if u_page<u_total_pages else u_total_pages }}&l_page={{ l_page }}&q={{ q }}" 
+                           class="pagination-btn {% if u_page >= u_total_pages %}disabled{% endif %}">
+                            <span>Próxima</span>
                     <i class="bi bi-chevron-right"></i>
                 </a>
             </div>
         </div>
+                {% endif %}
     </div>
 </div>
 
-<div class="mm-card mm-mb-6">
-    <div class="mm-card-header">
-        <h3 class="mm-card-title">
-            <i class="bi bi-calculator mm-text-primary"></i>
-            Resumo de Saldo por Colaborador
-        </h3>
-        <form method="get" action="{{ url_for('usuarios.gestao') }}" class="mm-flex mm-gap-2 mm-items-center">
+        <!-- Saldo por Colaborador Card -->
+        <div class="management-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="bi bi-calculator"></i>
+                    <span>Resumo de Saldo</span>
+                </div>
+                <form method="get" action="{{ url_for('usuarios.gestao') }}" class="saldo-filter-form">
             <input type="hidden" name="u_page" value="{{ u_page }}">
             <input type="hidden" name="l_page" value="{{ l_page }}">
             <input type="hidden" name="view" value="">
-            <select name="saldo_collaborator_id" class="mm-input mm-select" style="min-width: 220px;">
-                <option value="">— selecionar colaborador —</option>
+                    <select name="saldo_collaborator_id" class="form-select-sm">
+                        <option value="">— Selecionar colaborador —</option>
                 {% for c in colaboradores %}
                 <option value="{{ c.id }}" {% if saldo_collab and saldo_collab.id == c.id %}selected{% endif %}>{{ c.name }}</option>
                 {% endfor %}
             </select>
-            <input type="date" name="saldo_start" class="mm-input" value="{{ saldo_start and saldo_start.strftime('%Y-%m-%d') or '' }}">
-            <input type="date" name="saldo_end" class="mm-input" value="{{ saldo_end and saldo_end.strftime('%Y-%m-%d') or '' }}">
-            <button type="submit" class="mm-btn mm-btn-outline">
+                    <input type="date" name="saldo_start" class="form-input-sm" value="{{ saldo_start and saldo_start.strftime('%Y-%m-%d') or '' }}">
+                    <input type="date" name="saldo_end" class="form-input-sm" value="{{ saldo_end and saldo_end.strftime('%Y-%m-%d') or '' }}">
+                    <button type="submit" class="btn-sm btn-primary">
                 <i class="bi bi-search"></i>
                 Buscar
             </button>
         </form>
     </div>
-    <div class="mm-card-body">
+            <div class="card-body">
         {% if saldo_collab %}
-        <div class="mm-saldo-info">
-            <div class="mm-saldo-name">{{ saldo_collab.name }}</div>
-            <div class="mm-saldo-badges">
-                <span class="mm-badge mm-badge-primary">
+                <div class="saldo-info">
+                    <div class="saldo-header">
+                        <div class="saldo-name">{{ saldo_collab.name }}</div>
+                        <div class="saldo-badges">
+                            <span class="badge badge-primary badge-lg">
                     <i class="bi bi-calendar-day"></i>
-                    Dias de folga: {{ saldo_days }}
+                                {{ saldo_days }} dias
                 </span>
-                {% set hrs_cls = 'mm-badge' %}
-                {% if saldo_hours > 0 %}{% set hrs_cls = 'mm-badge mm-badge-success' %}{% elif saldo_hours < 0 %}{% set hrs_cls = 'mm-badge mm-badge-danger' %}{% endif %}
+                            {% set hrs_cls = 'badge badge-secondary badge-lg' %}
+                            {% if saldo_hours > 0 %}{% set hrs_cls = 'badge badge-success badge-lg' %}{% elif saldo_hours < 0 %}{% set hrs_cls = 'badge badge-danger badge-lg' %}{% endif %}
                 <span class="{{ hrs_cls }}">
                     <i class="bi bi-clock"></i>
-                    Horas (residual): {{ '%.2f'|format(saldo_hours or 0.0) }}h
+                                {{ '%.2f'|format(saldo_hours or 0.0) }}h
                 </span>
             </div>
-            <div class="mm-saldo-rule">
+                    </div>
+                    <div class="saldo-rule">
                 <i class="bi bi-info-circle"></i>
-                Regra: a cada 8h acumuladas vira +1 dia e as horas são reiniciadas.
+                        <span>Regra: a cada 8h acumuladas vira +1 dia e as horas são reiniciadas.</span>
             </div>
+                    {% if current_user.nivel in ['admin', 'DEV'] %}
+                    <form method="post" action="{{ url_for('usuarios.gestao_colabs_horas_verificar_conversao') }}" 
+                          onsubmit="return confirm('Converter horas em dias? O sistema verificará quantas horas já foram convertidas e converterá apenas as horas que faltam (8h = 1 dia).');"
+                          class="conversion-form">
+                        <input type="hidden" name="collaborator_id" value="{{ saldo_collab.id }}">
+                        <button type="submit" class="btn-action btn-success">
+                            <i class="bi bi-arrow-repeat"></i>
+                            Converter Horas em Dias
+                        </button>
+                    </form>
+                    {% endif %}
         </div>
-        <div class="mm-table-wrapper mm-mt-4">
-            <table class="mm-table">
+                <div class="table-wrapper">
+                    <table class="modern-table">
                 <thead>
                     <tr>
                         <th>Tipo</th>
                         <th>Data</th>
-                        <th style="text-align: center;">Valor</th>
+                                <th class="text-center">Valor</th>
                         <th>Motivo</th>
                     </tr>
                 </thead>
@@ -165,22 +317,22 @@
                     <tr>
                         <td>
                             {% if it.tipo == 'horas' %}
-                            <span class="mm-badge mm-badge-info">Horas</span>
+                                    <span class="badge badge-info">Horas</span>
                             {% elif it.tipo == 'credito' %}
-                            <span class="mm-badge mm-badge-success">Crédito</span>
+                                    <span class="badge badge-success">Crédito</span>
                             {% else %}
-                            <span class="mm-badge mm-badge-danger">Uso</span>
+                                    <span class="badge badge-danger">Uso</span>
                             {% endif %}
                         </td>
                         <td>{{ it.date.strftime('%d/%m/%Y') }}</td>
-                        <td style="text-align: center;">
+                                <td class="text-center">
                             {% if it.unit == 'h' %}
                             {{ '%.2f'|format(it.amount) }}h
                             {% else %}
                             {% if it.amount >= 0 %}
-                            <span class="mm-badge mm-badge-success">+{{ it.amount }}</span>
+                                    <span class="badge badge-success">+{{ it.amount }}</span>
                             {% else %}
-                            <span class="mm-badge mm-badge-danger">{{ it.amount }}</span>
+                                    <span class="badge badge-danger">{{ it.amount }}</span>
                             {% endif %}
                             {% endif %}
                         </td>
@@ -188,8 +340,8 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="4" class="mm-empty-cell">
-                            <div class="mm-empty-inline">
+                                <td colspan="4" class="empty-cell">
+                                    <div class="empty-state">
                                 <i class="bi bi-list"></i>
                                 <span>Nenhum registro no período selecionado</span>
                             </div>
@@ -200,114 +352,102 @@
             </table>
         </div>
         {% else %}
-        <div class="mm-empty-inline">
+                <div class="empty-state">
             <i class="bi bi-person-circle"></i>
             <span>Selecione um colaborador para ver o saldo.</span>
         </div>
         {% endif %}
+            </div>
     </div>
 </div>
 
-{% if not view or view == 'usuarios' %}
-<div class="mm-card mm-mb-6" id="gerenciar-usuarios">
-    <div class="mm-card-header">
-        <h3 class="mm-card-title">
-            <i class="bi bi-people mm-text-primary"></i>
-            Gerenciar Usuários
-        </h3>
-        <div class="mm-flex mm-gap-2 mm-items-center" style="flex-wrap: wrap;">
-            <form method="get" action="{{ url_for('usuarios.gestao') }}" class="mm-flex mm-gap-2">
-                <input type="hidden" name="u_page" value="1">
-                <input type="hidden" name="l_page" value="{{ l_page }}">
-                <input type="text" name="q" class="mm-input" placeholder="Buscar por nome" value="{{ q }}" style="width: 180px;">
-                <button type="submit" class="mm-btn mm-btn-outline mm-btn-sm">
-                    <i class="bi bi-search"></i>
-                </button>
-            </form>
-            <button class="mm-btn mm-btn-primary mm-btn-sm" data-bs-toggle="modal" data-bs-target="#modalNovoUsuario">
+    <!-- Cargos e Permissões Card -->
+    <div class="management-card">
+        <div class="card-header">
+            <div class="card-title">
+                <i class="bi bi-award"></i>
+                <span>Cargos e Permissões</span>
+                <span class="card-badge">{{ roles|length if roles else 0 }}</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <form method="post" action="{{ url_for('usuarios.gestao_role_criar') }}" class="role-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Nome do Cargo</label>
+                        <input type="text" name="name" class="form-input" placeholder="Ex: Atendente" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Permissão</label>
+                        <select name="nivel" class="form-input">
+                            <option value="visualizador">Visualizador</option>
+                            <option value="operador">Operador</option>
+                            <option value="admin">Gerente</option>
+                        </select>
+                    </div>
+                    <div class="form-group form-group-action">
+                        <button class="btn-action btn-primary" type="submit">
                 <i class="bi bi-plus-lg"></i>
-                Novo Usuário
-            </button>
-            <button class="mm-btn mm-btn-outline mm-btn-sm" data-bs-toggle="modal" data-bs-target="#modalNovoColab">
-                <i class="bi bi-person-plus"></i>
-                Novo Colaborador
+                            Adicionar
             </button>
         </div>
     </div>
-    <div class="mm-card-body">
-        <div class="mm-table-wrapper">
-            <table class="mm-table">
+            </form>
+            
+            <div class="table-wrapper">
+                <table class="modern-table">
                 <thead>
                     <tr>
-                        <th>Login</th>
                         <th>Nome</th>
-                        <th>Nível</th>
-                        <th>Ações</th>
+                            <th>Permissão</th>
+                            <th class="text-end">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for u in users_page %}
-                    <tr>
-                        <td><strong>{{ u.username }}</strong></td>
-                        <td>{{ u.name }}</td>
-                        <td>
-                            {% if u.nivel == 'admin' %}
-                            <span class="mm-badge mm-badge-primary">Gerente</span>
-                            {% elif u.nivel == 'operador' %}
-                            <span class="mm-badge mm-badge-info">Operador</span>
+                        {% for r in roles %}
+                        <tr>
+                            <td><strong>{{ r.name }}</strong></td>
+                            <td>
+                                {% if r.nivel == 'DEV' %}
+                                <span class="badge badge-dev">Desenvolvedor</span>
+                                {% elif r.nivel == 'admin' %}
+                                <span class="badge badge-primary">Gerente</span>
+                                {% elif r.nivel == 'operador' %}
+                                <span class="badge badge-info">Operador</span>
                             {% else %}
-                            <span class="mm-badge">Visualizador</span>
+                                <span class="badge badge-secondary">Visualizador</span>
                             {% endif %}
                         </td>
-                        <td>
-                            <div class="mm-actions-group">
-                                <form method="post" action="{{ url_for('usuarios.update_level', user_id=u.id) }}" class="mm-inline-form mm-flex mm-gap-2 mm-items-center">
-                                    <select name="nivel" class="mm-input mm-select" style="width: 120px;">
-                                        <option value="visualizador" {% if u.nivel == 'visualizador' %}selected{% endif %}>Visualizador</option>
-                                        <option value="operador" {% if u.nivel == 'operador' %}selected{% endif %}>Operador</option>
-                                        <option value="admin" {% if u.nivel == 'admin' %}selected{% endif %}>Gerente</option>
+                            <td class="text-end">
+                                <div class="actions-group">
+                                    <form method="post" action="{{ url_for('usuarios.gestao_role_editar', id=r.id) }}" class="inline-form">
+                                        <input type="text" name="name" class="form-input-sm" value="{{ r.name }}" style="width: 140px;">
+                                        <select name="nivel" class="form-input-sm" style="width: 120px;">
+                                            <option value="visualizador" {% if r.nivel=='visualizador' %}selected{% endif %}>Visualizador</option>
+                                            <option value="operador" {% if r.nivel=='operador' %}selected{% endif %}>Operador</option>
+                                            <option value="admin" {% if r.nivel=='admin' %}selected{% endif %}>Gerente</option>
+                                            {% if current_user.nivel == 'DEV' %}
+                                            <option value="DEV" {% if r.nivel=='DEV' %}selected{% endif %}>Desenvolvedor</option>
+                                            {% endif %}
                                     </select>
-                                    <button type="submit" class="mm-btn mm-btn-primary mm-btn-sm">Atualizar</button>
-                                </form>
-                                <form method="post" action="{{ url_for('usuarios.gestao_usuarios_associar') }}" class="mm-inline-form mm-flex mm-gap-2 mm-items-center">
-                                    <input type="hidden" name="user_id" value="{{ u.id }}">
-                                    <select name="collaborator_id" class="mm-input mm-select" style="width: 140px;">
-                                        <option value="">— colaborador —</option>
-                                        {% for c in colaboradores %}
-                                        <option value="{{ c.id }}" {% if c.user_id == u.id %}selected{% endif %}>{{ c.name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                    <button type="submit" class="mm-btn mm-btn-outline mm-btn-sm">Associar</button>
-                                </form>
-                                <form method="post" action="{{ url_for('usuarios.update_password', user_id=u.id) }}" class="mm-inline-form mm-flex mm-gap-2 mm-items-center">
-                                    <input type="password" name="new_password" class="mm-input" placeholder="Nova senha" style="width: 120px;" required>
-                                    <button type="submit" class="mm-btn mm-btn-outline mm-btn-sm">
-                                        <i class="bi bi-key"></i>
+                                        <button class="action-btn action-primary" type="submit">
+                                            <i class="bi bi-save"></i>
                                     </button>
                                 </form>
-                                <form method="post" action="{{ url_for('usuarios.reset_password', user_id=u.id) }}" class="mm-inline-form">
-                                    <button type="submit" class="mm-btn mm-btn-outline mm-btn-sm" title="Redefinir senha">
-                                        <i class="bi bi-arrow-clockwise"></i>
-                                    </button>
-                                </form>
-                                {% if u.id != current_user.id %}
-                                <form method="post" action="{{ url_for('usuarios.excluir_user', user_id=u.id) }}" class="mm-inline-form" onsubmit="return confirm('Excluir {{ u.name }} ({{ u.username }})?')">
-                                    <button type="submit" class="mm-btn mm-btn-danger mm-btn-sm">
+                                    <form method="post" action="{{ url_for('usuarios.gestao_role_excluir', id=r.id) }}" class="inline-form" onsubmit="return confirm('Excluir cargo {{ r.name }}?')">
+                                        <button class="action-btn action-danger" type="submit">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
-                                {% else %}
-                                <span class="mm-badge mm-badge-warning">Você</span>
-                                {% endif %}
                             </div>
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="4" class="mm-empty-cell">
-                            <div class="mm-empty-inline">
-                                <i class="bi bi-people"></i>
-                                <span>Nenhum usuário</span>
+                            <td colspan="3" class="empty-cell">
+                                <div class="empty-state">
+                                    <i class="bi bi-award"></i>
+                                    <span>Nenhum cargo cadastrado</span>
                             </div>
                         </td>
                     </tr>
@@ -315,166 +455,210 @@
                 </tbody>
             </table>
         </div>
-        <div class="mm-pagination">
-            <span class="mm-pagination-info">Página {{ u_page }} de {{ u_total_pages }}</span>
-            <div class="mm-pagination-btns">
-                <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page-1 if u_page>1 else 1 }}&l_page={{ l_page }}&q={{ q }}">
-                    <i class="bi bi-chevron-left"></i>
-                </a>
-                <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page+1 if u_page<u_total_pages else u_total_pages }}&l_page={{ l_page }}&q={{ q }}">
-                    <i class="bi bi-chevron-right"></i>
-                </a>
             </div>
         </div>
+
+    <!-- Histórico de Modificações Card -->
+    <div class="management-card">
+        <div class="card-header">
+            <div class="card-title">
+                <i class="bi bi-activity"></i>
+                <span>Histórico de Modificações</span>
+    </div>
+            </div>
+        <div class="card-body">
+            <div class="table-wrapper">
+                <table class="modern-table">
+                <thead>
+                    <tr>
+                            <th>Data/Hora</th>
+                            <th>Usuário</th>
+                            <th>Origem</th>
+                            <th>Evento</th>
+                            <th>Detalhes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                        {% for l in logs_page %}
+                        <tr>
+                            <td class="text-muted">{{ l.data.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>{{ l.usuario or '-' }}</td>
+                            <td><span class="badge badge-secondary">{{ l.origem }}</span></td>
+                            <td><span class="badge badge-info">{{ l.evento }}</span></td>
+                            <td>{{ l.detalhes or '-' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                            <td colspan="5" class="empty-cell">
+                                <div class="empty-state">
+                                    <i class="bi bi-card-list"></i>
+                                    <span>Sem modificações registradas</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+            {% if l_total_pages > 1 %}
+            <div class="pagination-wrapper">
+                <div class="pagination-info">Página {{ l_page }} de {{ l_total_pages }}</div>
+                <div class="pagination">
+                    <a href="{{ url_for('usuarios.gestao') }}?l_page={{ l_page-1 if l_page>1 else 1 }}&u_page={{ u_page }}&q={{ q }}&view={{ view }}" 
+                       class="pagination-btn {% if l_page <= 1 %}disabled{% endif %}">
+                        <i class="bi bi-chevron-left"></i>
+                        <span>Anterior</span>
+                    </a>
+                    <a href="{{ url_for('usuarios.gestao') }}?l_page={{ l_page+1 if l_page<l_total_pages else l_total_pages }}&u_page={{ u_page }}&q={{ q }}&view={{ view }}" 
+                       class="pagination-btn {% if l_page >= l_total_pages %}disabled{% endif %}">
+                        <span>Próxima</span>
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
     </div>
 </div>
 {% endif %}
-
-{% if not view or view == 'roles' %}
-<div class="mm-card mm-mb-6" id="cargos-permissoes">
-    <div class="mm-card-header">
-        <h3 class="mm-card-title">
-            <i class="bi bi-award mm-text-primary"></i>
-            Cargos e Permissões
-        </h3>
+        </div>
     </div>
-    <div class="mm-card-body">
-        <form method="post" action="{{ url_for('usuarios.gestao_role_criar') }}" class="mm-form-row mm-mb-6">
-            <div class="mm-form-group" style="flex: 2;">
-                <label class="mm-label">Nome do Cargo</label>
-                <input type="text" name="name" class="mm-input" placeholder="Ex: Atendente" required>
-            </div>
-            <div class="mm-form-group">
-                <label class="mm-label">Permissão</label>
-                <select name="nivel" class="mm-input mm-select">
-                    <option value="visualizador">Visualizador</option>
-                    <option value="operador">Operador</option>
-                    <option value="admin">Gerente</option>
-                </select>
-            </div>
-            <div class="mm-form-group" style="align-self: end;">
-                <button class="mm-btn mm-btn-primary" type="submit">
-                    <i class="bi bi-plus-lg"></i>
-                    Adicionar
-                </button>
+</div>
+
+<!-- Modal Novo Colaborador/Usuário -->
+<div class="modal fade" id="modalNovoUsuario" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <form method="post" action="{{ url_for('usuarios.gestao_colabs_criar') }}" id="formNovoColabUsuario">
+            <div class="modal-content modern-modal">
+                <div class="modal-header-success">
+                    <h5 class="modal-title">
+                        <i class="bi bi-person-plus"></i>
+                        Novo Colaborador/Usuário
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="bi bi-person"></i>
+                            Nome <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="name" class="form-input" required>
+                        <small class="form-hint">Nome completo do colaborador</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="bi bi-briefcase"></i>
+                            Cargo
+                        </label>
+                        <input type="text" name="role" class="form-input" placeholder="Ex: Atendente, Gerente...">
+                    </div>
+                    <div class="divider"></div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="criarAcesso" name="criar_acesso" onchange="toggleAcessoFields()">
+                            <span>Criar acesso ao sistema</span>
+                        </label>
+                    </div>
+                    <div id="acessoFields" style="display: none;">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="bi bi-person-badge"></i>
+                                Login <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="username" id="usernameField" class="form-input">
+                            <small class="form-hint">Nome de usuário para login</small>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="bi bi-key"></i>
+                                Senha <span class="text-danger">*</span>
+                            </label>
+                            <input type="password" name="password" id="passwordField" class="form-input">
+                            <small class="form-hint">Senha inicial do usuário</small>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="bi bi-shield-check"></i>
+                                Nível de Acesso
+                            </label>
+                            <select name="nivel" id="nivelField" class="form-input">
+                                <option value="visualizador">Visualizador</option>
+                                <option value="operador">Operador</option>
+                                <option value="admin">Gerente</option>
+                                {% if current_user.nivel == 'DEV' %}
+                                <option value="DEV">Desenvolvedor</option>
+                                {% endif %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-modal btn-outline" type="button" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn-modal btn-primary" type="submit">
+                        <i class="bi bi-check-lg"></i>
+                        Criar
+                    </button>
+                </div>
             </div>
         </form>
-        
-        <div class="mm-table-wrapper">
-            <table class="mm-table">
-                <thead>
-                    <tr>
-                        <th>Nome</th>
-                        <th>Permissão</th>
-                        <th style="text-align: right;">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for r in roles %}
-                    <tr>
-                        <td><strong>{{ r.name }}</strong></td>
-                        <td>
-                            {% if r.nivel == 'admin' %}
-                            <span class="mm-badge mm-badge-primary">Gerente</span>
-                            {% elif r.nivel == 'operador' %}
-                            <span class="mm-badge mm-badge-info">Operador</span>
-                            {% else %}
-                            <span class="mm-badge">Visualizador</span>
-                            {% endif %}
-                        </td>
-                        <td style="text-align: right;">
-                            <div class="mm-flex mm-gap-2 mm-items-center" style="justify-content: flex-end;">
-                                <form method="post" action="{{ url_for('usuarios.gestao_role_editar', id=r.id) }}" class="mm-inline-form mm-flex mm-gap-2 mm-items-center">
-                                    <input type="text" name="name" class="mm-input" value="{{ r.name }}" style="width: 140px;">
-                                    <select name="nivel" class="mm-input mm-select" style="width: 120px;">
-                                        <option value="visualizador" {% if r.nivel=='visualizador' %}selected{% endif %}>Visualizador</option>
-                                        <option value="operador" {% if r.nivel=='operador' %}selected{% endif %}>Operador</option>
-                                        <option value="admin" {% if r.nivel=='admin' %}selected{% endif %}>Gerente</option>
-                                    </select>
-                                    <button class="mm-btn mm-btn-primary mm-btn-sm" type="submit">
-                                        <i class="bi bi-save"></i>
-                                    </button>
-                                </form>
-                                <form method="post" action="{{ url_for('usuarios.gestao_role_excluir', id=r.id) }}" class="mm-inline-form" onsubmit="return confirm('Excluir cargo {{ r.name }}?')">
-                                    <button class="mm-btn mm-btn-danger mm-btn-sm" type="submit">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="3" class="mm-empty-cell">
-                            <div class="mm-empty-inline">
-                                <i class="bi bi-award"></i>
-                                <span>Nenhum cargo</span>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
     </div>
 </div>
-{% endif %}
 
-{% if not view or view == 'colaboradores' %}
 {% for c in colaboradores %}
+<!-- Modal Editar Colaborador -->
 <div class="modal fade" id="modalEditColab{{ c.id }}" tabindex="-1">
     <div class="modal-dialog">
         <form method="post" action="{{ url_for('usuarios.gestao_colabs_editar', id=c.id) }}">
-            <div class="modal-content mm-modal">
-                <div class="modal-header mm-modal-header">
-                    <h5 class="modal-title">Editar Colaborador</h5>
+            <div class="modal-content modern-modal">
+                <div class="modal-header-warning">
+                    <h5 class="modal-title">
+                        <i class="bi bi-pencil"></i>
+                        Editar Colaborador
+                    </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body mm-modal-body">
-                    <div class="mm-form-group mm-mb-4">
-                        <label class="mm-label">Nome</label>
-                        <input type="text" name="name" class="mm-input" value="{{ c.name }}" required>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Nome</label>
+                        <input type="text" name="name" class="form-input" value="{{ c.name }}" required>
                     </div>
-                    <div class="mm-form-group mm-mb-4">
-                        <label class="mm-label">Cargo</label>
-                        <input type="text" name="role" class="mm-input" value="{{ c.role or '' }}">
+                    <div class="form-group">
+                        <label class="form-label">Cargo</label>
+                        <input type="text" name="role" class="form-input" value="{{ c.role or '' }}">
                     </div>
-                    <div class="mm-form-group mm-mb-4">
-                        <label class="mm-label">Usuário Associado</label>
-                        <select name="user_id" class="mm-input mm-select">
-                            <option value="">—</option>
+                    <div class="form-group">
+                        <label class="form-label">Acesso ao Sistema (Usuário)</label>
+                        <select name="user_id" class="form-input">
+                            <option value="">— Sem acesso —</option>
                             {% for u in users %}
-                            <option value="{{ u.id }}" {% if c.user_id == u.id %}selected{% endif %}>{{ u.username }}</option>
+                            <option value="{{ u.id }}" {% if c.user_id == u.id %}selected{% endif %}>{{ u.username }} ({{ u.name }})</option>
                             {% endfor %}
                         </select>
+                        <small class="form-hint">Selecione um usuário existente para dar acesso ao sistema</small>
                     </div>
-                    <div class="mm-switch-group mm-mb-4">
-                        <label class="mm-switch">
+                    <div class="form-group">
+                        <label class="checkbox-label">
                             <input type="checkbox" name="active" {% if c.active %}checked{% endif %}>
-                            <span class="mm-switch-slider"></span>
-                        </label>
                         <span>Ativo</span>
+                        </label>
                     </div>
-                    <div class="mm-form-row">
-                        <div class="mm-form-group">
-                            <label class="mm-label">Equipe 1/2</label>
-                            <select name="regular_team" class="mm-input mm-select">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Equipe 1/2</label>
+                            <select name="regular_team" class="form-input">
                                 <option value="" {% if not c.regular_team %}selected{% endif %}>—</option>
                                 <option value="1" {% if c.regular_team=='1' %}selected{% endif %}>1</option>
                                 <option value="2" {% if c.regular_team=='2' %}selected{% endif %}>2</option>
                             </select>
                         </div>
-                        <div class="mm-form-group">
-                            <label class="mm-label">Domingo 1/2</label>
-                            <select name="sunday_team" class="mm-input mm-select">
+                        <div class="form-group">
+                            <label class="form-label">Domingo 1/2</label>
+                            <select name="sunday_team" class="form-input">
                                 <option value="" {% if not c.sunday_team %}selected{% endif %}>—</option>
                                 <option value="1" {% if c.sunday_team=='1' %}selected{% endif %}>1</option>
                                 <option value="2" {% if c.sunday_team=='2' %}selected{% endif %}>2</option>
                             </select>
                         </div>
-                        <div class="mm-form-group">
-                            <label class="mm-label">Especial 1/2</label>
-                            <select name="special_team" class="mm-input mm-select">
+                        <div class="form-group">
+                            <label class="form-label">Especial 1/2</label>
+                            <select name="special_team" class="form-input">
                                 <option value="" {% if not c.special_team %}selected{% endif %}>—</option>
                                 <option value="1" {% if c.special_team=='1' %}selected{% endif %}>1</option>
                                 <option value="2" {% if c.special_team=='2' %}selected{% endif %}>2</option>
@@ -482,9 +666,9 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer mm-modal-footer">
-                    <button class="mm-btn mm-btn-outline" type="button" data-bs-dismiss="modal">Cancelar</button>
-                    <button class="mm-btn mm-btn-primary" type="submit">Salvar</button>
+                <div class="modal-footer">
+                    <button class="btn-modal btn-outline" type="button" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn-modal btn-primary" type="submit">Salvar</button>
                 </div>
             </div>
         </form>
@@ -492,375 +676,963 @@
 </div>
 {% endfor %}
 
-{% endif %}
-
-
-
-
-
-
-
-
-
-
 <style>
-.mm-page-header {
-    margin-bottom: var(--mm-space-6);
+:root {
+    --gestao-primary: #667eea;
+    --gestao-secondary: #764ba2;
+    --gestao-success: #10b981;
+    --gestao-warning: #f59e0b;
+    --gestao-danger: #ef4444;
+    --gestao-info: #3b82f6;
+    --gestao-bg: #f8fafc;
+    --gestao-card-bg: #ffffff;
+    --gestao-text: #1e293b;
+    --gestao-text-muted: #64748b;
+    --gestao-border: #e2e8f0;
+    --gestao-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --gestao-shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
-.mm-page-title {
-    font-size: var(--mm-text-2xl);
-    font-weight: var(--mm-font-bold);
-    color: var(--mm-text-primary);
-    margin: 0 0 var(--mm-space-1) 0;
+[data-theme="dark"] {
+    --gestao-bg: #0f172a;
+    --gestao-card-bg: #1e293b;
+    --gestao-text: #f1f5f9;
+    --gestao-text-muted: #94a3b8;
+    --gestao-border: #334155;
 }
 
-.mm-kpi-card {
-    display: flex;
-    flex-direction: column;
-    gap: var(--mm-space-3);
+.gestao-container {
+    padding: 2rem;
+    background: var(--gestao-bg);
+    min-height: 100vh;
+    animation: fadeIn 0.5s ease-in;
 }
 
-.mm-kpi-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--mm-radius-lg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-.mm-nav-tabs {
-    display: flex;
-    gap: var(--mm-space-2);
-    flex-wrap: wrap;
-    padding: var(--mm-space-4);
-    background: var(--mm-bg-card);
-    border-radius: var(--mm-radius-xl);
-    border: 1px solid var(--mm-border);
-}
-
-.mm-nav-tab {
-    display: flex;
-    align-items: center;
-    gap: var(--mm-space-2);
-    padding: var(--mm-space-2) var(--mm-space-4);
-    font-size: var(--mm-text-sm);
-    font-weight: var(--mm-font-medium);
-    color: var(--mm-text-secondary);
-    background: var(--mm-bg-secondary);
-    border-radius: var(--mm-radius-md);
-    text-decoration: none;
-    transition: all var(--mm-transition);
-}
-
-.mm-nav-tab:hover {
-    background: rgba(var(--mm-primary-rgb), 0.1);
-    color: var(--mm-primary);
-}
-
-.mm-form-row {
-    display: flex;
-    gap: var(--mm-space-4);
-    flex-wrap: wrap;
-    align-items: flex-start;
-}
-
-.mm-form-group {
-    display: flex;
-    flex-direction: column;
-    gap: var(--mm-space-2);
-    flex: 1;
-    min-width: 120px;
-}
-
-.mm-saldo-info {
-    display: flex;
-    flex-direction: column;
-    gap: var(--mm-space-3);
-}
-
-.mm-saldo-name {
-    font-size: var(--mm-text-lg);
-    font-weight: var(--mm-font-semibold);
-    color: var(--mm-text-primary);
-}
-
-.mm-saldo-badges {
-    display: flex;
-    gap: var(--mm-space-3);
-    flex-wrap: wrap;
-}
-
-.mm-saldo-badges .mm-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--mm-space-2);
-    padding: var(--mm-space-2) var(--mm-space-3);
-}
-
-.mm-saldo-rule {
-    display: flex;
-    align-items: center;
-    gap: var(--mm-space-2);
-    font-size: var(--mm-text-sm);
-    color: var(--mm-text-muted);
-}
-
-.mm-empty-inline {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--mm-space-2);
-    color: var(--mm-text-muted);
-    padding: var(--mm-space-4);
-}
-
-.mm-empty-inline i {
-    font-size: 1.25rem;
-}
-
-.mm-empty-cell {
-    text-align: center;
-    padding: var(--mm-space-8) !important;
-}
-
-.mm-actions-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--mm-space-2);
-    align-items: center;
-}
-
-.mm-inline-form {
-    display: inline-flex;
-}
-
-.mm-pagination {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: var(--mm-space-4);
-    padding-top: var(--mm-space-4);
-    border-top: 1px solid var(--mm-border);
-}
-
-.mm-pagination-info {
-    font-size: var(--mm-text-sm);
-    color: var(--mm-text-muted);
-}
-
-.mm-pagination-btns {
-    display: flex;
-    gap: var(--mm-space-2);
-}
-
-.mm-modal {
-    background: var(--mm-bg-card);
-    border: 1px solid var(--mm-border);
-    border-radius: var(--mm-radius-xl);
-}
-
-.mm-modal-header {
-    background: linear-gradient(135deg, var(--mm-primary) 0%, var(--mm-primary-dark) 100%);
-    color: #0f172a;
-    border-radius: var(--mm-radius-xl) var(--mm-radius-xl) 0 0;
-    border-bottom: none;
-}
-
-.mm-modal-body {
-    padding: var(--mm-space-6);
-}
-
-.mm-modal-footer {
-    padding: var(--mm-space-4) var(--mm-space-6);
-    border-top: 1px solid var(--mm-border);
-    background: var(--mm-bg-secondary);
-    border-radius: 0 0 var(--mm-radius-xl) var(--mm-radius-xl);
-}
-
-.mm-switch-group {
-    display: flex;
-    align-items: center;
-    gap: var(--mm-space-3);
-}
-
-.mm-switch {
+/* Hero */
+.gestao-hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 24px;
+    padding: 3rem 2.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--gestao-shadow-lg);
     position: relative;
-    display: inline-block;
-    width: 48px;
-    height: 24px;
+    overflow: hidden;
 }
 
-.mm-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.mm-switch-slider {
+.gestao-hero::before {
+    content: '';
     position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: pulse 15s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+.hero-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.hero-title {
+    font-size: 3rem;
+    font-weight: 800;
+    margin: 0;
+    color: white;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.gradient-text {
+    background: linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero-subtitle {
+    font-size: 1.25rem;
+    color: rgba(255,255,255,0.9);
+    margin-top: 0.5rem;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.btn-hero {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 2rem;
+    background: white;
+    color: var(--gestao-primary);
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border: none;
     cursor: pointer;
+}
+
+.btn-hero:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    color: var(--gestao-secondary);
+}
+
+/* KPI Cards */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.kpi-card {
+    position: relative;
+    padding: 2rem;
+    background: var(--gestao-card-bg);
+    border-radius: 20px;
+    box-shadow: var(--gestao-shadow);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--gestao-shadow-lg);
+}
+
+.kpi-card::before {
+    content: '';
+    position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    bottom: 0;
-    background-color: var(--mm-bg-tertiary);
-    transition: .3s;
-    border-radius: 24px;
+    height: 4px;
 }
 
-.mm-switch-slider:before {
+.kpi-primary::before { background: linear-gradient(90deg, #667eea, #764ba2); }
+.kpi-warning::before { background: linear-gradient(90deg, #f59e0b, #f97316); }
+.kpi-success::before { background: linear-gradient(90deg, #10b981, #059669); }
+.kpi-info::before { background: linear-gradient(90deg, #3b82f6, #2563eb); }
+
+.kpi-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.kpi-primary .kpi-icon { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.kpi-warning .kpi-icon { background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%); }
+.kpi-success .kpi-icon { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+.kpi-info .kpi-icon { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+
+.kpi-label {
+    font-size: 0.875rem;
+    color: var(--gestao-text-muted);
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.kpi-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--gestao-text);
+    line-height: 1;
+}
+
+.kpi-decoration {
     position: absolute;
-    content: "";
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    transition: .3s;
+    bottom: -20px;
+    right: -20px;
+    width: 120px;
+    height: 120px;
     border-radius: 50%;
+    opacity: 0.1;
+    background: var(--gestao-primary);
 }
 
-.mm-switch input:checked + .mm-switch-slider {
-    background-color: var(--mm-primary);
+/* Content Grid */
+.content-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
 }
 
-.mm-switch input:checked + .mm-switch-slider:before {
-    transform: translateX(24px);
+/* Management Cards */
+.management-card {
+    background: var(--gestao-card-bg);
+    border-radius: 20px;
+    box-shadow: var(--gestao-shadow);
+    overflow: hidden;
 }
 
-.mm-mb-4 {
-    margin-bottom: var(--mm-space-4);
+.card-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--gestao-border);
+    background: var(--gestao-bg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
-.mm-divider {
+.card-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--gestao-text);
+}
+
+.card-title i {
+    font-size: 1.25rem;
+    color: var(--gestao-primary);
+}
+
+.card-badge {
+    padding: 0.25rem 0.75rem;
+    background: var(--gestao-primary);
+    color: white;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.card-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.search-form-inline {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.search-input-wrapper {
+    position: relative;
+}
+
+.search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gestao-text-muted);
+}
+
+.search-input {
+    padding: 0.625rem 0.75rem 0.625rem 2.25rem;
+    border: 2px solid var(--gestao-border);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background: var(--gestao-card-bg);
+    color: var(--gestao-text);
+    width: 200px;
+}
+
+.search-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.625rem 1rem;
+    background: var(--gestao-primary);
+    color: white;
     border: none;
-    border-top: 1px solid var(--mm-border);
-    margin: var(--mm-space-6) 0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
 
-.mm-text-lg {
-    font-size: var(--mm-text-lg);
+.search-button:hover {
+    background: var(--gestao-secondary);
+    transform: translateY(-2px);
 }
 
-.mm-font-semibold {
-    font-weight: var(--mm-font-semibold);
+.saldo-filter-form {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
+.form-select-sm,
+.form-input-sm {
+    padding: 0.625rem 0.75rem;
+    border: 2px solid var(--gestao-border);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background: var(--gestao-card-bg);
+    color: var(--gestao-text);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* Tables */
+.table-wrapper {
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+
+.modern-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.modern-table thead {
+    background: var(--gestao-bg);
+}
+
+.modern-table th {
+    padding: 1rem;
+    text-align: left;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--gestao-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.modern-table tbody tr {
+    border-bottom: 1px solid var(--gestao-border);
+    transition: background 0.2s ease;
+}
+
+.modern-table tbody tr:hover {
+    background: var(--gestao-bg);
+}
+
+.modern-table td {
+    padding: 1rem;
+    color: var(--gestao-text);
+    font-size: 0.875rem;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(102, 126, 234, 0.15);
+    color: var(--gestao-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-success {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--gestao-success);
+}
+
+.badge-secondary {
+    background: var(--gestao-bg);
+    color: var(--gestao-text-muted);
+}
+
+.badge-primary {
+    background: rgba(102, 126, 234, 0.15);
+    color: var(--gestao-primary);
+}
+
+.badge-info {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--gestao-info);
+}
+
+.badge-danger {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--gestao-danger);
+}
+
+.badge-dev {
+    background: rgba(220, 53, 69, 0.15);
+    color: #dc3545;
+}
+
+.badge-lg {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+.actions-group {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    font-size: 0.875rem;
+}
+
+.action-primary {
+    background: rgba(102, 126, 234, 0.1);
+    color: var(--gestao-primary);
+}
+
+.action-primary:hover {
+    background: var(--gestao-primary);
+    color: white;
+}
+
+.action-outline {
+    background: transparent;
+    color: var(--gestao-text);
+    border: 2px solid var(--gestao-border);
+}
+
+.action-outline:hover {
+    background: var(--gestao-bg);
+    border-color: var(--gestao-primary);
+}
+
+.action-danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--gestao-danger);
+}
+
+.action-danger:hover {
+    background: var(--gestao-danger);
+    color: white;
+}
+
+.action-dropdown {
+    position: relative;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.5rem;
+    background: var(--gestao-card-bg);
+    border: 1px solid var(--gestao-border);
+    border-radius: 12px;
+    box-shadow: var(--gestao-shadow-lg);
+    padding: 0.75rem;
+    min-width: 250px;
+    z-index: 1000;
+    display: none;
+}
+
+.action-dropdown:hover .dropdown-menu {
+    display: block;
+}
+
+.dropdown-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.dropdown-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--gestao-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: var(--gestao-border);
+    margin: 0.5rem 0;
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: var(--gestao-primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--gestao-secondary);
+    transform: translateY(-2px);
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--gestao-text);
+    border: 2px solid var(--gestao-border);
+}
+
+.btn-outline:hover {
+    background: var(--gestao-bg);
+}
+
+.btn-danger {
+    background: var(--gestao-danger);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+.btn-success {
+    background: var(--gestao-success);
+    color: white;
+}
+
+.btn-success:hover {
+    background: #059669;
+}
+
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.empty-cell {
+    text-align: center;
+    padding: 3rem !important;
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--gestao-text-muted);
+}
+
+.empty-state i {
+    font-size: 2rem;
+    opacity: 0.5;
+}
+
+/* Saldo Info */
+.saldo-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: var(--gestao-bg);
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+}
+
+.saldo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.saldo-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--gestao-text);
+}
+
+.saldo-badges {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.saldo-rule {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--gestao-text-muted);
+}
+
+.conversion-form {
+    margin-top: 0.5rem;
+}
+
+/* Role Form */
+.role-form {
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+    background: var(--gestao-bg);
+    border-radius: 12px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr auto;
+    gap: 1rem;
+    align-items: end;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group-action {
+    display: flex;
+    align-items: flex-end;
+}
+
+.form-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--gestao-text);
+}
+
+.form-input {
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--gestao-border);
+    border-radius: 12px;
+    font-size: 0.875rem;
+    background: var(--gestao-card-bg);
+    color: var(--gestao-text);
+    transition: all 0.3s ease;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--gestao-primary);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-hint {
+    font-size: 0.75rem;
+    color: var(--gestao-text-muted);
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--gestao-primary);
+    cursor: pointer;
+}
+
+.divider {
+    height: 1px;
+    background: var(--gestao-border);
+    margin: 1.5rem 0;
+}
+
+.inline-form {
+    display: inline-flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+/* Pagination */
+.pagination-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--gestao-border);
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.pagination-info {
+    color: var(--gestao-text-muted);
+    font-size: 0.875rem;
+}
+
+.pagination {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.pagination-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    background: var(--gestao-card-bg);
+    color: var(--gestao-text);
+    border: 2px solid var(--gestao-border);
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.pagination-btn:hover:not(.disabled) {
+    background: var(--gestao-primary);
+    color: white;
+    border-color: var(--gestao-primary);
+}
+
+.pagination-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Modals */
+.modern-modal {
+    background: var(--gestao-card-bg);
+    border-radius: 20px;
+    border: 1px solid var(--gestao-border);
+    box-shadow: var(--gestao-shadow-lg);
+}
+
+.modal-header-success {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--gestao-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 20px 20px 0 0;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+}
+
+.modal-header-warning {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--gestao-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 20px 20px 0 0;
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+    color: white;
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.modal-body {
+    padding: 2rem;
+}
+
+.modal-footer {
+    padding: 1.5rem 2rem;
+    border-top: 1px solid var(--gestao-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    background: var(--gestao-bg);
+    border-radius: 0 0 20px 20px;
+}
+
+.btn-modal {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid;
+}
+
+.btn-modal.btn-outline {
+    background: var(--gestao-card-bg);
+    color: var(--gestao-text);
+    border-color: var(--gestao-border);
+}
+
+.btn-modal.btn-outline:hover {
+    background: var(--gestao-bg);
+}
+
+.btn-modal.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: transparent;
+}
+
+.btn-modal.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.text-center { text-align: center; }
+.text-end { text-align: right; }
+.text-muted { color: var(--gestao-text-muted); }
+
+/* Responsive */
 @media (max-width: 1024px) {
-    .mm-actions-group {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .mm-form-row {
-        flex-direction: column;
-    }
-    
-    .mm-form-group {
-        width: 100%;
+    .content-grid {
+        grid-template-columns: 1fr;
     }
 }
 
 @media (max-width: 768px) {
-    .mm-nav-tabs {
+    .gestao-container {
+        padding: 1rem;
+    }
+
+    .hero-content {
         flex-direction: column;
+        text-align: center;
+    }
+
+    .hero-title {
+        font-size: 2rem;
+    }
+
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
     }
     
-    .mm-nav-tab {
+    .card-actions {
         width: 100%;
+    }
+
+    .search-form-inline {
+        width: 100%;
+    }
+
+    .search-input {
+        width: 100%;
+    }
+
+    .saldo-filter-form {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .actions-group {
+        flex-wrap: wrap;
+    }
+
+    .pagination-wrapper {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .pagination {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .pagination-btn {
+        flex: 1;
     }
 }
 </style>
 
 <script>
-(function(){
-    try {
-        document.querySelectorAll('.progress-bar[data-width]').forEach(function(el){
-            var v = parseInt(el.getAttribute('data-width') || '0', 10);
-            if (isNaN(v) || v < 0) v = 0;
-            if (v > 100) v = 100;
-            el.style.width = v + '%';
-            el.setAttribute('aria-valuenow', String(v));
-        });
-    } catch (e) {}
-})();
+function toggleAcessoFields() {
+    const checkbox = document.getElementById('criarAcesso');
+    const fields = document.getElementById('acessoFields');
+    const username = document.getElementById('usernameField');
+    const password = document.getElementById('passwordField');
+    
+    if (checkbox.checked) {
+        fields.style.display = 'block';
+        username.required = true;
+        password.required = true;
+    } else {
+        fields.style.display = 'none';
+        username.required = false;
+        password.required = false;
+        username.value = '';
+        password.value = '';
+    }
+}
 </script>
-
-<div class="modal fade" id="modalNovoUsuario" tabindex="-1">
-    <div class="modal-dialog">
-        <form method="post" action="{{ url_for('usuarios.users') }}">
-            <div class="modal-content mm-modal">
-                <div class="modal-header mm-modal-header">
-                    <h5 class="modal-title">Novo Usuário</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body mm-modal-body">
-                    <div class="mm-form-group mm-mb-4">
-                        <label class="mm-label">Login</label>
-                        <input type="text" name="username" class="mm-input" required>
-                    </div>
-                    <div class="mm-form-group mm-mb-4">
-                        <label class="mm-label">Nome</label>
-                        <input type="text" name="name" class="mm-input" required>
-                    </div>
-                    <div class="mm-form-group mm-mb-4">
-                        <label class="mm-label">Senha</label>
-                        <input type="password" name="password" class="mm-input" required>
-                    </div>
-                    <div class="mm-form-group">
-                        <label class="mm-label">Nível</label>
-                        <select name="nivel" class="mm-input mm-select">
-                            <option value="visualizador">Visualizador</option>
-                            <option value="operador">Operador</option>
-                            <option value="admin">Gerente</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer mm-modal-footer">
-                    <button class="mm-btn mm-btn-outline" type="button" data-bs-dismiss="modal">Cancelar</button>
-                    <button class="mm-btn mm-btn-primary" type="submit">Criar Usuário</button>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div class="modal fade" id="modalNovoColab" tabindex="-1">
-    <div class="modal-dialog">
-        <form method="post" action="{{ url_for('usuarios.gestao_colabs_criar') }}">
-            <div class="modal-content mm-modal">
-                <div class="modal-header mm-modal-header">
-                    <h5 class="modal-title">Novo Colaborador</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body mm-modal-body">
-                    <div class="mm-form-group mm-mb-4">
-                        <label class="mm-label">Nome</label>
-                        <input type="text" name="name" class="mm-input" required>
-                    </div>
-                    <div class="mm-form-group mm-mb-4">
-                        <label class="mm-label">Cargo</label>
-                        <input type="text" name="role" class="mm-input">
-                    </div>
-                    <div class="mm-form-group">
-                        <label class="mm-label">Usuário Associado (opcional)</label>
-                        <select name="user_id" class="mm-input mm-select">
-                            <option value="">—</option>
-                            {% for u in users %}
-                            <option value="{{ u.id }}">{{ u.username }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer mm-modal-footer">
-                    <button class="mm-btn mm-btn-outline" type="button" data-bs-dismiss="modal">Cancelar</button>
-                    <button class="mm-btn mm-btn-primary" type="submit">Criar Colaborador</button>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
 {% endblock %}

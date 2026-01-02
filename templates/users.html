@@ -21,7 +21,17 @@
             <tr>
                 <td>{{ u.username }}</td>
                 <td>{{ u.name }}</td>
-                <td>{{ u.nivel }}</td>
+                <td>
+                    {% if u.nivel == 'DEV' %}
+                    <span class="badge" style="background: #dc3545; color: white;">Desenvolvedor</span>
+                    {% elif u.nivel == 'admin' %}
+                    <span class="badge bg-primary">Gerente</span>
+                    {% elif u.nivel == 'operador' %}
+                    <span class="badge bg-info">Operador</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Visualizador</span>
+                    {% endif %}
+                </td>
                 <td>
                     <div class="d-flex flex-wrap align-items-center gap-2">
                         <!-- Formulário de Atualização de Nível -->
@@ -30,6 +40,9 @@
                                 <option value="visualizador" {% if u.nivel == 'visualizador' %}selected{% endif %}>Visualizador</option>
                                 <option value="operador" {% if u.nivel == 'operador' %}selected{% endif %}>Operador</option>
                                 <option value="admin" {% if u.nivel == 'admin' %}selected{% endif %}>Gerente</option>
+                                {% if current_user.nivel == 'DEV' %}
+                                <option value="DEV" {% if u.nivel == 'DEV' %}selected{% endif %}>Desenvolvedor</option>
+                                {% endif %}
                             </select>
                             <button type="submit" class="btn btn-primary btn-sm">Atualizar</button>
                         </form>
@@ -91,6 +104,9 @@
                             <option value="visualizador">Visualizador</option>
                             <option value="operador">Operador</option>
                             <option value="admin">Gerente</option>
+                            {% if current_user.nivel == 'DEV' %}
+                            <option value="DEV">Desenvolvedor</option>
+                            {% endif %}
                         </select>
                     </div>
                 </div>

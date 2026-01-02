@@ -2,125 +2,128 @@
 {% block title %}Relatórios - MultiMax{% endblock %}
 {% block content %}
 
-<div class="mm-alert mm-alert-warning" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05)); border-left: 4px solid var(--mm-warning); border-radius: var(--mm-radius-lg); padding: var(--mm-space-4); margin-bottom: var(--mm-space-4); box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);">
-    <i class="bi bi-exclamation-triangle-fill" style="font-size: 1.5rem; color: var(--mm-warning);"></i>
-    <div style="flex: 1;">
-        <strong style="display: block; margin-bottom: var(--mm-space-1); color: var(--mm-warning); font-size: var(--mm-text-lg);">⚠️ Página em Construção</strong>
-        <span style="color: var(--mm-text-secondary);">Essa página está em construção e elaboração de raciocínio lógico e ainda não foi finalizada, logo, muitas coisas podem mudar</span>
+<div class="relatorios-container">
+    <!-- Hero Header -->
+    <div class="relatorios-hero">
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1 class="hero-title">
+                    <span class="gradient-text">Relatórios</span>
+                </h1>
+                <p class="hero-subtitle">Exportação e importação de dados do sistema</p>
+            </div>
+        </div>
     </div>
-</div>
-<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
-    <div>
-        <h1 class="mm-page-title">Relatórios</h1>
-        <p class="mm-text-muted">Exportação e importação de dados do sistema</p>
-    </div>
-</div>
 
-<div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
-    <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--mm-info);">
-            <i class="bi bi-file-earmark-spreadsheet"></i>
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+        <div class="kpi-card kpi-info">
+            <div class="kpi-icon">
+                <i class="bi bi-file-earmark-spreadsheet"></i>
+            </div>
+            <div class="kpi-content">
+                <div class="kpi-label">Tipo de Arquivo</div>
+                <div class="kpi-value">Excel</div>
+            </div>
+            <div class="kpi-decoration"></div>
         </div>
-        <div class="mm-kpi-label">Tipo de Arquivo</div>
-        <div class="mm-kpi-value">Excel</div>
-    </div>
-    <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-success);">
-            <i class="bi bi-download"></i>
+        
+        <div class="kpi-card kpi-success">
+            <div class="kpi-icon">
+                <i class="bi bi-download"></i>
+            </div>
+            <div class="kpi-content">
+                <div class="kpi-label">Exportação</div>
+                <div class="kpi-value">Sistema Unificado</div>
+            </div>
+            <div class="kpi-decoration"></div>
         </div>
-        <div class="mm-kpi-label">Exportação</div>
-        <div class="mm-kpi-value">3 Tipos</div>
-    </div>
-    <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(0, 212, 255, 0.15); color: var(--mm-accent-cyan);">
-            <i class="bi bi-upload"></i>
+        
+        <div class="kpi-card kpi-primary">
+            <div class="kpi-icon">
+                <i class="bi bi-upload"></i>
+            </div>
+            <div class="kpi-content">
+                <div class="kpi-label">Importação</div>
+                <div class="kpi-value">Sistema Unificado</div>
+            </div>
+            <div class="kpi-decoration"></div>
         </div>
-        <div class="mm-kpi-label">Importação</div>
-        <div class="mm-kpi-value">Produtos</div>
-    </div>
-    <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning);">
-            <i class="bi bi-shield-check"></i>
+        
+        <div class="kpi-card kpi-warning">
+            <div class="kpi-icon">
+                <i class="bi bi-shield-check"></i>
+            </div>
+            <div class="kpi-content">
+                <div class="kpi-label">Backup</div>
+                <div class="kpi-value">Seguro</div>
+            </div>
+            <div class="kpi-decoration"></div>
         </div>
-        <div class="mm-kpi-label">Backup</div>
-        <div class="mm-kpi-value">Seguro</div>
     </div>
-</div>
 
-<div class="mm-grid mm-grid-cols-3 mm-gap-6 mm-mb-6">
-    <div class="mm-card mm-card-gradient" style="border-top: 3px solid var(--mm-primary);">
-        <div class="mm-card-body" style="text-align: center;">
-            <div class="mm-kpi-icon" style="background: rgba(0, 255, 136, 0.15); color: var(--mm-primary); margin: 0 auto var(--mm-space-4);">
+    <!-- Export Cards -->
+    <div class="export-grid">
+        <div class="export-card export-primary">
+            <div class="export-icon">
                 <i class="bi bi-box-seam"></i>
             </div>
-            <h4 class="mm-font-semibold mm-mb-2">Produtos</h4>
-            <p class="mm-text-muted mm-mb-4" style="font-size: var(--mm-text-sm);">Exporte todos os produtos cadastrados com informações completas de estoque.</p>
-            <a href="{{ url_for('relatorios.exportar_produtos') }}" class="mm-btn mm-btn-primary" style="width: 100%;">
-                <i class="bi bi-download"></i>
-                Exportar Produtos
-            </a>
+            <div class="export-content">
+                <h3 class="export-title">Produtos</h3>
+                <p class="export-description">Exporte todos os produtos cadastrados com informações completas de estoque.</p>
+                <a href="{{ url_for('relatorios.exportar_produtos') }}" class="export-button">
+                    <i class="bi bi-download"></i>
+                    Exportar Produtos
+                </a>
+            </div>
         </div>
-    </div>
-    
-    <div class="mm-card mm-card-gradient" style="border-top: 3px solid var(--mm-success);">
-        <div class="mm-card-body" style="text-align: center;">
-            <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-success); margin: 0 auto var(--mm-space-4);">
+        
+        <div class="export-card export-success">
+            <div class="export-icon">
                 <i class="bi bi-clock-history"></i>
             </div>
-            <h4 class="mm-font-semibold mm-mb-2">Histórico</h4>
-            <p class="mm-text-muted mm-mb-4" style="font-size: var(--mm-text-sm);">Exporte o histórico completo de entradas e saídas do estoque.</p>
-            <a href="{{ url_for('relatorios.exportar_historico') }}" class="mm-btn mm-btn-secondary" style="width: 100%;">
-                <i class="bi bi-download"></i>
-                Exportar Histórico
-            </a>
-        </div>
-    </div>
-    
-    <div class="mm-card mm-card-gradient" style="border-top: 3px solid var(--mm-warning);">
-        <div class="mm-card-body" style="text-align: center;">
-            <div class="mm-kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning); margin: 0 auto var(--mm-space-4);">
-                <i class="bi bi-building"></i>
+            <div class="export-content">
+                <h3 class="export-title">Histórico</h3>
+                <p class="export-description">Exporte o histórico completo de entradas e saídas do estoque.</p>
+                <a href="{{ url_for('relatorios.exportar_historico') }}" class="export-button">
+                    <i class="bi bi-download"></i>
+                    Exportar Histórico
+                </a>
             </div>
-            <h4 class="mm-font-semibold mm-mb-2">Fornecedores</h4>
-            <p class="mm-text-muted mm-mb-4" style="font-size: var(--mm-text-sm);">Exporte todos os fornecedores cadastrados no sistema.</p>
-            <a href="{{ url_for('relatorios.exportar_fornecedores') }}" class="mm-btn mm-btn-outline" style="width: 100%; border-color: var(--mm-warning); color: var(--mm-warning);">
-                <i class="bi bi-download"></i>
-                Exportar Fornecedores
-            </a>
         </div>
     </div>
-</div>
 
-<div class="mm-grid mm-grid-cols-2 mm-gap-6">
-    <div class="mm-card">
-        <div class="mm-card-header">
-            <h3 class="mm-card-title">
-                <i class="bi bi-upload me-2"></i>Importar Produtos
-            </h3>
-            <span class="mm-badge mm-badge-info">Excel</span>
+    <!-- Import Products -->
+    <div class="import-card">
+        <div class="card-header">
+            <div class="card-title">
+                <i class="bi bi-upload"></i>
+                <span>Importar Produtos</span>
+                <span class="card-badge">Excel</span>
+            </div>
         </div>
-        <div class="mm-card-body">
-            <div style="text-align: center; margin-bottom: var(--mm-space-6);">
-                <div class="mm-kpi-icon" style="background: rgba(0, 212, 255, 0.15); color: var(--mm-accent-cyan); margin: 0 auto var(--mm-space-4);">
+        <div class="card-body">
+            <div class="import-intro">
+                <div class="import-icon-large">
                     <i class="bi bi-file-earmark-arrow-up"></i>
                 </div>
-                <p class="mm-text-muted" style="font-size: var(--mm-text-sm);">
+                <p class="import-description">
                     Importe produtos a partir de uma planilha Excel. Produtos existentes serão atualizados automaticamente.
                 </p>
             </div>
             
-            <div class="mm-flex mm-flex-col mm-gap-4">
-                <a href="{{ url_for('relatorios.modelo_produtos') }}" class="mm-btn mm-btn-outline" style="width: 100%;">
+            <div class="import-actions">
+                <a href="{{ url_for('relatorios.modelo_produtos') }}" class="btn-import btn-outline">
                     <i class="bi bi-file-earmark-excel"></i>
                     Baixar Modelo Excel
                 </a>
                 {% if current_user.nivel in ['admin', 'DEV'] %}
-                <a href="{{ url_for('relatorios.importar_produtos') }}" class="mm-btn mm-btn-primary" style="width: 100%;">
+                <a href="{{ url_for('relatorios.importar_produtos') }}" class="btn-import btn-primary">
                     <i class="bi bi-upload"></i>
                     Importar Produtos
                 </a>
                 {% else %}
-                <button class="mm-btn mm-btn-outline" style="width: 100%; opacity: 0.5; cursor: not-allowed;" disabled>
+                <button class="btn-import btn-disabled" disabled>
                     <i class="bi bi-lock"></i>
                     Apenas Administradores
                 </button>
@@ -128,52 +131,231 @@
             </div>
         </div>
     </div>
-    
-    <div class="mm-card">
-        <div class="mm-card-header">
-            <h3 class="mm-card-title">
-                <i class="bi bi-lightbulb me-2"></i>Dicas de Uso
-            </h3>
+
+    <!-- Registros Unificados -->
+    <div class="unified-card">
+        <div class="card-header unified-header">
+            <div class="card-title">
+                <i class="bi bi-stars"></i>
+                <span>Registros Unificados (Horas e Folgas)</span>
+            </div>
         </div>
-        <div class="mm-card-body">
-            <div class="mm-tips-list">
-                <div class="mm-tip-item mm-flex mm-gap-4 mm-mb-4">
-                    <div class="mm-tip-icon" style="width: 40px; height: 40px; background: rgba(0, 255, 136, 0.1); border-radius: var(--mm-radius); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                        <i class="bi bi-check-lg" style="color: var(--mm-primary);"></i>
+        <div class="card-body">
+            <div class="unified-alert">
+                <i class="bi bi-lightbulb-fill"></i>
+                <div>
+                    <strong>💡 Recomendado</strong>
+                    <p>Use o sistema unificado para importar/exportar todos os tipos de registros (horas, folgas adicionais, folgas usadas e conversões) em um único arquivo Excel. Isso facilita o gerenciamento e garante consistência dos dados.</p>
+                </div>
+            </div>
+            
+            <div class="unified-grid">
+                <div class="unified-item unified-model">
+                    <div class="unified-icon">
+                        <i class="bi bi-file-earmark-excel"></i>
                     </div>
-                    <div>
-                        <h6 class="mm-font-medium mm-mb-1">Backup Regular</h6>
-                        <p class="mm-text-muted" style="font-size: var(--mm-text-sm); margin: 0;">Use a exportação de produtos para manter backups regulares dos dados.</p>
+                    <div class="unified-label">Modelo Excel</div>
+                    <p class="unified-description">Baixe o modelo com todos os campos necessários</p>
+                    <a href="{{ url_for('relatorios.modelo_registros_unificados') }}" class="unified-button">
+                        <i class="bi bi-download"></i>
+                        Baixar Modelo
+                    </a>
+                </div>
+                
+                <div class="unified-item unified-export">
+                    <div class="unified-icon">
+                        <i class="bi bi-file-earmark-arrow-down"></i>
+                    </div>
+                    <div class="unified-label">Exportar Dados</div>
+                    <p class="unified-description">Exporte todos os registros unificados</p>
+                    <a href="{{ url_for('relatorios.exportar_registros_unificados') }}" class="unified-button">
+                        <i class="bi bi-download"></i>
+                        Exportar Dados
+                    </a>
+                </div>
+                
+                <div class="unified-item unified-import">
+                    <div class="unified-icon">
+                        <i class="bi bi-upload"></i>
+                    </div>
+                    <div class="unified-label">Importar Registros</div>
+                    <p class="unified-description">Importe com validação e relatório de erros</p>
+                    {% if current_user.nivel in ['admin', 'DEV'] %}
+                    <a href="{{ url_for('relatorios.importar_registros_unificados') }}" class="unified-button">
+                        <i class="bi bi-upload"></i>
+                        Importar Registros
+                    </a>
+                    {% else %}
+                    <button class="unified-button unified-disabled" disabled>
+                        <i class="bi bi-lock"></i>
+                        Apenas Administradores
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="unified-types">
+                <h4 class="types-title">
+                    <i class="bi bi-list-check"></i>
+                    Tipos de Registros Suportados:
+                </h4>
+                <div class="types-grid">
+                    <div class="type-item type-hours">
+                        <div class="type-icon">
+                            <i class="bi bi-clock"></i>
+                        </div>
+                        <div class="type-name">Horas Extras</div>
+                        <div class="type-description">Registros de horas trabalhadas</div>
+                    </div>
+                    <div class="type-item type-folga-adicional">
+                        <div class="type-icon">
+                            <i class="bi bi-calendar-plus"></i>
+                        </div>
+                        <div class="type-name">Folgas Adicionais</div>
+                        <div class="type-description">Créditos de folgas concedidos</div>
+                    </div>
+                    <div class="type-item type-folga-usada">
+                        <div class="type-icon">
+                            <i class="bi bi-calendar-check"></i>
+                        </div>
+                        <div class="type-name">Folgas Usadas</div>
+                        <div class="type-description">Folgas utilizadas pelos colaboradores</div>
+                    </div>
+                    <div class="type-item type-conversao">
+                        <div class="type-icon">
+                            <i class="bi bi-cash-coin"></i>
+                        </div>
+                        <div class="type-name">Conversões</div>
+                        <div class="type-description">Conversão de folgas em dinheiro</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exportação/Importação Genérica (Admin/DEV) -->
+    {% if current_user.nivel in ['admin', 'DEV'] %}
+    <div class="generic-card">
+        <div class="card-header">
+            <div class="card-title">
+                <i class="bi bi-file-earmark-spreadsheet"></i>
+                <span>Exportação e Importação Genérica de Tabelas</span>
+                <span class="card-badge badge-warning">Admin/DEV</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <p class="generic-description">Selecione uma tabela para exportar ou importar dados. A importação atualiza registros existentes pelo ID.</p>
+            
+            <div class="generic-grid">
+                <!-- Export -->
+                <div class="generic-box">
+                    <h4 class="generic-box-title">
+                        <i class="bi bi-download"></i>
+                        Exportar Dados
+                    </h4>
+                    <div class="form-group">
+                        <label class="form-label">Tabela</label>
+                        <select id="exportTable" class="form-input">
+                            <option value="users">Usuários</option>
+                            <option value="produtos">Produtos</option>
+                            <option value="colaboradores">Colaboradores</option>
+                            <option value="cargos">Cargos</option>
+                            <option value="feriados">Feriados</option>
+                            <option value="receitas">Receitas</option>
+                            <option value="ingredientes_catalogo">Ingredientes (Catálogo)</option>
+                            <option value="tarefas_limpeza">Tarefas de Limpeza</option>
+                            <option value="checklist_templates">Checklist Templates</option>
+                        </select>
+                    </div>
+                    <button onclick="doExport()" class="btn-generic btn-primary">
+                        <i class="bi bi-download"></i>
+                        Exportar Excel
+                    </button>
+                </div>
+                
+                <!-- Import -->
+                <div class="generic-box">
+                    <h4 class="generic-box-title">
+                        <i class="bi bi-upload"></i>
+                        Importar Dados
+                    </h4>
+                    <form id="importForm" method="post" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label class="form-label">Tabela</label>
+                            <select id="importTable" name="table_name" class="form-input" onchange="updateImportAction()">
+                                <option value="users">Usuários</option>
+                                <option value="produtos">Produtos</option>
+                                <option value="colaboradores">Colaboradores</option>
+                                <option value="cargos">Cargos</option>
+                                <option value="feriados">Feriados</option>
+                                <option value="receitas">Receitas</option>
+                                <option value="ingredientes_catalogo">Ingredientes (Catálogo)</option>
+                                <option value="tarefas_limpeza">Tarefas de Limpeza</option>
+                                <option value="checklist_templates">Checklist Templates</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Arquivo Excel (.xlsx)</label>
+                            <input type="file" name="file" accept=".xlsx" class="form-input" required>
+                        </div>
+                        <button type="submit" class="btn-generic btn-warning" onclick="return confirm('ATENÇÃO: Isso atualizará o banco de dados. Tem certeza?')">
+                            <i class="bi bi-upload"></i>
+                            Importar Excel
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Dicas de Uso -->
+    <div class="tips-card">
+        <div class="card-header">
+            <div class="card-title">
+                <i class="bi bi-lightbulb"></i>
+                <span>Dicas de Uso</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="tips-grid">
+                <div class="tip-item">
+                    <div class="tip-icon tip-success">
+                        <i class="bi bi-check-lg"></i>
+                    </div>
+                    <div class="tip-content">
+                        <h5 class="tip-title">Backup Regular</h5>
+                        <p class="tip-text">Use a exportação de produtos para manter backups regulares dos dados.</p>
                     </div>
                 </div>
                 
-                <div class="mm-tip-item mm-flex mm-gap-4 mm-mb-4">
-                    <div class="mm-tip-icon" style="width: 40px; height: 40px; background: rgba(59, 130, 246, 0.1); border-radius: var(--mm-radius); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                        <i class="bi bi-clock-history" style="color: var(--mm-info);"></i>
+                <div class="tip-item">
+                    <div class="tip-icon tip-info">
+                        <i class="bi bi-clock-history"></i>
                     </div>
-                    <div>
-                        <h6 class="mm-font-medium mm-mb-1">Histórico Completo</h6>
-                        <p class="mm-text-muted" style="font-size: var(--mm-text-sm); margin: 0;">O relatório de histórico inclui todas as entradas e saídas do estoque.</p>
-                    </div>
-                </div>
-                
-                <div class="mm-tip-item mm-flex mm-gap-4 mm-mb-4">
-                    <div class="mm-tip-icon" style="width: 40px; height: 40px; background: rgba(245, 158, 11, 0.1); border-radius: var(--mm-radius); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                        <i class="bi bi-file-earmark-excel" style="color: var(--mm-warning);"></i>
-                    </div>
-                    <div>
-                        <h6 class="mm-font-medium mm-mb-1">Modelo de Importação</h6>
-                        <p class="mm-text-muted" style="font-size: var(--mm-text-sm); margin: 0;">Baixe o modelo antes de importar para garantir o formato correto.</p>
+                    <div class="tip-content">
+                        <h5 class="tip-title">Histórico Completo</h5>
+                        <p class="tip-text">O relatório de histórico inclui todas as entradas e saídas do estoque.</p>
                     </div>
                 </div>
                 
-                <div class="mm-tip-item mm-flex mm-gap-4">
-                    <div class="mm-tip-icon" style="width: 40px; height: 40px; background: rgba(168, 85, 247, 0.1); border-radius: var(--mm-radius); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                        <i class="bi bi-arrow-repeat" style="color: var(--mm-accent-purple);"></i>
+                <div class="tip-item">
+                    <div class="tip-icon tip-warning">
+                        <i class="bi bi-file-earmark-excel"></i>
                     </div>
-                    <div>
-                        <h6 class="mm-font-medium mm-mb-1">Atualização Automática</h6>
-                        <p class="mm-text-muted" style="font-size: var(--mm-text-sm); margin: 0;">Produtos existentes são atualizados automaticamente na importação.</p>
+                    <div class="tip-content">
+                        <h5 class="tip-title">Modelo de Importação</h5>
+                        <p class="tip-text">Baixe o modelo antes de importar para garantir o formato correto.</p>
+                    </div>
+                </div>
+                
+                <div class="tip-item">
+                    <div class="tip-icon tip-primary">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </div>
+                    <div class="tip-content">
+                        <h5 class="tip-title">Atualização Automática</h5>
+                        <p class="tip-text">Produtos existentes são atualizados automaticamente na importação.</p>
                     </div>
                 </div>
             </div>
@@ -182,20 +364,855 @@
 </div>
 
 <style>
-.mm-kpi-icon {
+:root {
+    --relatorios-primary: #667eea;
+    --relatorios-secondary: #764ba2;
+    --relatorios-success: #10b981;
+    --relatorios-warning: #f59e0b;
+    --relatorios-danger: #ef4444;
+    --relatorios-info: #3b82f6;
+    --relatorios-bg: #f8fafc;
+    --relatorios-card-bg: #ffffff;
+    --relatorios-text: #1e293b;
+    --relatorios-text-muted: #64748b;
+    --relatorios-border: #e2e8f0;
+    --relatorios-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --relatorios-shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] {
+    --relatorios-bg: #0f172a;
+    --relatorios-card-bg: #1e293b;
+    --relatorios-text: #f1f5f9;
+    --relatorios-text-muted: #94a3b8;
+    --relatorios-border: #334155;
+}
+
+.relatorios-container {
+    padding: 2rem;
+    background: var(--relatorios-bg);
+    min-height: 100vh;
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Hero */
+.relatorios-hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 24px;
+    padding: 3rem 2.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--relatorios-shadow-lg);
+    position: relative;
+    overflow: hidden;
+}
+
+.relatorios-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: pulse 15s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+.hero-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+}
+
+.hero-title {
+    font-size: 3rem;
+    font-weight: 800;
+    margin: 0;
+    color: white;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.gradient-text {
+    background: linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero-subtitle {
+    font-size: 1.25rem;
+    color: rgba(255,255,255,0.9);
+    margin-top: 0.5rem;
+}
+
+/* KPI Cards */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.kpi-card {
+    position: relative;
+    padding: 2rem;
+    background: var(--relatorios-card-bg);
+    border-radius: 20px;
+    box-shadow: var(--relatorios-shadow);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--relatorios-shadow-lg);
+}
+
+.kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+}
+
+.kpi-primary::before { background: linear-gradient(90deg, #667eea, #764ba2); }
+.kpi-warning::before { background: linear-gradient(90deg, #f59e0b, #f97316); }
+.kpi-info::before { background: linear-gradient(90deg, #3b82f6, #2563eb); }
+.kpi-success::before { background: linear-gradient(90deg, #10b981, #059669); }
+
+.kpi-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.kpi-primary .kpi-icon { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.kpi-warning .kpi-icon { background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%); }
+.kpi-info .kpi-icon { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+.kpi-success .kpi-icon { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+
+.kpi-label {
+    font-size: 0.875rem;
+    color: var(--relatorios-text-muted);
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.kpi-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--relatorios-text);
+    line-height: 1;
+}
+
+.kpi-decoration {
+    position: absolute;
+    bottom: -20px;
+    right: -20px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    opacity: 0.1;
+    background: var(--relatorios-primary);
+}
+
+/* Export Cards */
+.export-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.export-card {
+    position: relative;
+    padding: 2rem;
+    background: var(--relatorios-card-bg);
+    border-radius: 20px;
+    box-shadow: var(--relatorios-shadow);
+    text-align: center;
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.export-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+}
+
+.export-primary::before { background: linear-gradient(90deg, #667eea, #764ba2); }
+.export-success::before { background: linear-gradient(90deg, #10b981, #059669); }
+
+.export-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--relatorios-shadow-lg);
+}
+
+.export-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: white;
+    margin: 0 auto 1.5rem;
+}
+
+.export-primary .export-icon { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.export-success .export-icon { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+
+.export-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--relatorios-text);
+    margin: 0 0 0.75rem 0;
+}
+
+.export-description {
+    font-size: 0.875rem;
+    color: var(--relatorios-text-muted);
+    margin: 0 0 1.5rem 0;
+    line-height: 1.6;
+}
+
+.export-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    width: 100%;
+    justify-content: center;
+}
+
+.export-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.export-success .export-button {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.export-success .export-button:hover {
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Import Card */
+.import-card {
+    background: var(--relatorios-card-bg);
+    border-radius: 20px;
+    box-shadow: var(--relatorios-shadow);
+    margin-bottom: 2rem;
+    overflow: hidden;
+}
+
+.card-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--relatorios-border);
+    background: var(--relatorios-bg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.card-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--relatorios-text);
+}
+
+.card-badge {
+    padding: 0.25rem 0.75rem;
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--relatorios-info);
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+}
+
+.badge-warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--relatorios-warning);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.import-intro {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.import-icon-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--relatorios-info);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    margin: 0 auto 1rem;
+}
+
+.import-description {
+    font-size: 0.875rem;
+    color: var(--relatorios-text-muted);
+    margin: 0;
+}
+
+.import-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.btn-import {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: 2px solid;
+}
+
+.btn-outline {
+    background: var(--relatorios-card-bg);
+    color: var(--relatorios-text);
+    border-color: var(--relatorios-border);
+}
+
+.btn-outline:hover {
+    background: var(--relatorios-bg);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: transparent;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-disabled {
+    background: var(--relatorios-bg);
+    color: var(--relatorios-text-muted);
+    border-color: var(--relatorios-border);
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Unified Card */
+.unified-card {
+    background: var(--relatorios-card-bg);
+    border-radius: 20px;
+    box-shadow: var(--relatorios-shadow);
+    margin-bottom: 2rem;
+    overflow: hidden;
+    border: 2px solid var(--relatorios-primary);
+}
+
+.unified-header {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
+}
+
+.unified-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 4px solid var(--relatorios-primary);
+    border-radius: 12px;
+    margin-bottom: 2rem;
+}
+
+.unified-alert i {
+    font-size: 1.5rem;
+    color: var(--relatorios-primary);
+    flex-shrink: 0;
+}
+
+.unified-alert strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--relatorios-primary);
+    font-size: 1rem;
+}
+
+.unified-alert p {
+    margin: 0;
+    color: var(--relatorios-text-muted);
+    font-size: 0.875rem;
+    line-height: 1.6;
+}
+
+.unified-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.unified-item {
+    padding: 1.5rem;
+    background: var(--relatorios-bg);
+    border-radius: 16px;
+    border: 1px solid var(--relatorios-border);
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.unified-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--relatorios-shadow);
+}
+
+.unified-model {
+    border-color: rgba(59, 130, 246, 0.2);
+}
+
+.unified-export {
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+.unified-import {
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+.unified-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    color: white;
+    margin: 0 auto 1rem;
+}
+
+.unified-model .unified-icon {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.unified-export .unified-icon {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.unified-import .unified-icon {
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+}
+
+.unified-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--relatorios-text);
+    margin-bottom: 0.5rem;
+}
+
+.unified-description {
+    font-size: 0.75rem;
+    color: var(--relatorios-text-muted);
+    margin: 0 0 1rem 0;
+}
+
+.unified-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    width: 100%;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+}
+
+.unified-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.unified-model .unified-button {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.unified-export .unified-button {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.unified-import .unified-button {
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+}
+
+.unified-disabled {
+    background: var(--relatorios-bg);
+    color: var(--relatorios-text-muted);
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.unified-disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.unified-types {
+    padding-top: 2rem;
+    border-top: 1px solid var(--relatorios-border);
+}
+
+.types-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--relatorios-text);
+    margin: 0 0 1.5rem 0;
+}
+
+.types-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.type-item {
+    padding: 1rem;
+    background: var(--relatorios-bg);
+    border-radius: 12px;
+    border-left: 3px solid;
+    transition: all 0.3s ease;
+}
+
+.type-item:hover {
+    transform: translateX(4px);
+    box-shadow: var(--relatorios-shadow);
+}
+
+.type-hours {
+    border-left-color: #8b5cf6;
+    background: rgba(139, 92, 246, 0.1);
+}
+
+.type-folga-adicional {
+    border-left-color: var(--relatorios-success);
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.type-folga-usada {
+    border-left-color: var(--relatorios-danger);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.type-conversao {
+    border-left-color: var(--relatorios-warning);
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.type-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.type-hours .type-icon { color: #8b5cf6; }
+.type-folga-adicional .type-icon { color: var(--relatorios-success); }
+.type-folga-usada .type-icon { color: var(--relatorios-danger); }
+.type-conversao .type-icon { color: var(--relatorios-warning); }
+
+.type-name {
+    font-weight: 600;
+    color: var(--relatorios-text);
+    margin-bottom: 0.25rem;
+}
+
+.type-description {
+    font-size: 0.75rem;
+    color: var(--relatorios-text-muted);
+    margin: 0;
+}
+
+/* Generic Card */
+.generic-card {
+    background: var(--relatorios-card-bg);
+    border-radius: 20px;
+    box-shadow: var(--relatorios-shadow);
+    margin-bottom: 2rem;
+    overflow: hidden;
+}
+
+.generic-description {
+    color: var(--relatorios-text-muted);
+    margin-bottom: 2rem;
+}
+
+.generic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.generic-box {
+    padding: 1.5rem;
+    background: var(--relatorios-bg);
+    border-radius: 16px;
+    border: 1px solid var(--relatorios-border);
+}
+
+.generic-box-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--relatorios-text);
+    margin: 0 0 1.5rem 0;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.form-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--relatorios-text);
+}
+
+.form-input {
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--relatorios-border);
+    border-radius: 12px;
+    font-size: 0.875rem;
+    background: var(--relatorios-card-bg);
+    color: var(--relatorios-text);
+    transition: all 0.3s ease;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--relatorios-primary);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.btn-generic {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    width: 100%;
+}
+
+.btn-generic.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-generic.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-generic.btn-warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+    color: white;
+}
+
+.btn-generic.btn-warning:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+/* Tips Card */
+.tips-card {
+    background: var(--relatorios-card-bg);
+    border-radius: 20px;
+    box-shadow: var(--relatorios-shadow);
+    margin-bottom: 2rem;
+    overflow: hidden;
+}
+
+.tips-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.tip-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--relatorios-bg);
+    border-radius: 12px;
+    border: 1px solid var(--relatorios-border);
+    transition: all 0.3s ease;
+}
+
+.tip-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--relatorios-shadow);
+}
+
+.tip-icon {
     width: 48px;
     height: 48px;
-    border-radius: var(--mm-radius-lg);
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.25rem;
-    margin-bottom: var(--mm-space-3);
+    color: white;
+    flex-shrink: 0;
 }
-.me-2 { margin-right: 0.5rem; }
-.mm-mb-1 { margin-bottom: var(--mm-space-1); }
-.mm-mb-2 { margin-bottom: var(--mm-space-2); }
-.mm-mb-4 { margin-bottom: var(--mm-space-4); }
-.mm-mb-6 { margin-bottom: var(--mm-space-6); }
+
+.tip-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.tip-info {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.tip-warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+}
+
+.tip-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.tip-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--relatorios-text);
+    margin: 0 0 0.5rem 0;
+}
+
+.tip-text {
+    font-size: 0.875rem;
+    color: var(--relatorios-text-muted);
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .relatorios-container {
+        padding: 1rem;
+    }
+
+    .hero-title {
+        font-size: 2rem;
+    }
+
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .export-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .import-actions {
+        flex-direction: column;
+    }
+
+    .unified-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .types-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .generic-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tips-grid {
+        grid-template-columns: 1fr;
+    }
+}
 </style>
+
+<script>
+function doExport() {
+    var table = document.getElementById('exportTable').value;
+    var url = "{{ url_for('relatorios.exportar_tabela', table_name='TABLE') }}".replace('TABLE', table);
+    window.location.href = url;
+}
+function updateImportAction() {
+    var table = document.getElementById('importTable').value;
+    var url = "{{ url_for('relatorios.importar_tabela', table_name='TABLE') }}".replace('TABLE', table);
+    var form = document.getElementById('importForm');
+    form.action = url;
+}
+document.addEventListener('DOMContentLoaded', updateImportAction);
+</script>
 {% endblock %}

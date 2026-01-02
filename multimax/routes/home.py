@@ -4,7 +4,7 @@ from datetime import datetime, date, timedelta
 from sqlalchemy import func
 from .. import db
 from ..models import Historico as HistoricoModel, CleaningTask, CleaningHistory, MeatReception, SystemLog, AppSetting as AppSettingModel, Holiday, Produto, NotificationRead
-from ..models import LeaveCredit, Collaborator
+from ..models import TimeOffRecord, Collaborator
 
 bp = Blueprint('home', __name__, url_prefix='/home')
 
@@ -407,10 +407,10 @@ def index():
     except Exception:
         pass
     try:
-        credits = LeaveCredit.query.order_by(LeaveCredit.date.desc()).limit(100).all()
+        credits = TimeOffRecord.query.filter(TimeOffRecord.record_type == 'folga_adicional').order_by(TimeOffRecord.date.desc()).limit(100).all()
         for lc in credits:
             events.append({
-                'title': f"🏖️ Crédito de Folga: +{lc.amount_days}",
+                'title': f"🏖️ Crédito de Folga: +{lc.days}",
                 'start': lc.date.strftime('%Y-%m-%d'),
                 'color': '#ffa94d',
                 'url': url_for('colaboradores.escala'),
