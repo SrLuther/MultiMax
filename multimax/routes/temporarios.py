@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
 from .. import db
-from ..models import TemporaryEntry, LeaveCredit, HourBankEntry, Collaborator, RegistroJornada
+from ..models import TemporaryEntry, Collaborator, RegistroJornada, TimeOffRecord
 from uuid import uuid4
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -88,12 +88,14 @@ def update():
                 created_days = False
                 created_hours = False
                 if item.kind == 'folga_credit':
-                    lc = LeaveCredit()
+                    lc = TimeOffRecord()
                     lc.collaborator_id = item.collaborator_id
                     lc.date = item.date
-                    lc.amount_days = max(1, int(item.amount_days or 1))
+                    lc.record_type = 'folga_adicional'
+                    lc.days = max(1, int(item.amount_days or 1))
                     lc.origin = item.source or 'temporario'
                     lc.notes = item.reason or ''
+                    lc.created_by = current_user.username if current_user.is_authenticated else 'sistema'
                     db.session.add(lc)
                     w = RegistroJornada()
                     w.id = str(uuid4())
@@ -105,11 +107,14 @@ def update():
                     db.session.add(w)
                     created_days = True
                 elif item.kind == 'hour_bank':
-                    hb = HourBankEntry()
+                    hb = TimeOffRecord()
                     hb.collaborator_id = item.collaborator_id
                     hb.date = item.date
+                    hb.record_type = 'horas'
                     hb.hours = float(item.hours or 0)
-                    hb.reason = item.reason or ''
+                    hb.notes = item.reason or ''
+                    hb.origin = 'temporario'
+                    hb.created_by = current_user.username if current_user.is_authenticated else 'sistema'
                     db.session.add(hb)
                     w = RegistroJornada()
                     w.id = str(uuid4())
@@ -121,18 +126,23 @@ def update():
                     db.session.add(w)
                     created_hours = True
                 elif item.kind == 'folga_hour_both':
-                    lc = LeaveCredit()
+                    lc = TimeOffRecord()
                     lc.collaborator_id = item.collaborator_id
                     lc.date = item.date
-                    lc.amount_days = max(1, int(item.amount_days or 1))
+                    lc.record_type = 'folga_adicional'
+                    lc.days = max(1, int(item.amount_days or 1))
                     lc.origin = item.source or 'temporario'
                     lc.notes = item.reason or ''
+                    lc.created_by = current_user.username if current_user.is_authenticated else 'sistema'
                     db.session.add(lc)
-                    hb = HourBankEntry()
+                    hb = TimeOffRecord()
                     hb.collaborator_id = item.collaborator_id
                     hb.date = item.date
+                    hb.record_type = 'horas'
                     hb.hours = float(item.hours or 1.0)
-                    hb.reason = item.reason or 'Hora extra combinada'
+                    hb.notes = item.reason or 'Hora extra combinada'
+                    hb.origin = 'temporario'
+                    hb.created_by = current_user.username if current_user.is_authenticated else 'sistema'
                     db.session.add(hb)
                     w1 = RegistroJornada()
                     w1.id = str(uuid4())
@@ -164,13 +174,16 @@ def update():
                         w.data = item.date
                         w.observacao = item.reason or ''
                         db.session.add(w)
-                    exists_hb = HourBankEntry.query.filter_by(collaborator_id=item.collaborator_id, date=item.date).first()
+                    exists_hb = TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == item.collaborator_id, TimeOffRecord.date == item.date, TimeOffRecord.record_type == 'horas').first()
                     if not exists_hb:
-                        hb = HourBankEntry()
+                        hb = TimeOffRecord()
                         hb.collaborator_id = item.collaborator_id
                         hb.date = item.date
+                        hb.record_type = 'horas'
                         hb.hours = float(item.hours or 0)
-                        hb.reason = item.reason or ''
+                        hb.notes = item.reason or ''
+                        hb.origin = 'temporario'
+                        hb.created_by = current_user.username if current_user.is_authenticated else 'sistema'
                         db.session.add(hb)
                 if (int(item.amount_days or 0) > 0) and not created_days:
                     exists_d = RegistroJornada.query.filter_by(collaborator_id=item.collaborator_id, tipo_registro='dias', data=item.date).first()
@@ -183,14 +196,16 @@ def update():
                         w.data = item.date
                         w.observacao = item.reason or ''
                         db.session.add(w)
-                    exists_lc = LeaveCredit.query.filter_by(collaborator_id=item.collaborator_id, date=item.date).first()
+                    exists_lc = TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == item.collaborator_id, TimeOffRecord.date == item.date, TimeOffRecord.record_type == 'folga_adicional').first()
                     if not exists_lc:
-                        lc = LeaveCredit()
+                        lc = TimeOffRecord()
                         lc.collaborator_id = item.collaborator_id
                         lc.date = item.date
-                        lc.amount_days = max(1, int(item.amount_days or 1))
+                        lc.record_type = 'folga_adicional'
+                        lc.days = max(1, int(item.amount_days or 1))
                         lc.origin = item.source or 'temporario'
                         lc.notes = item.reason or ''
+                        lc.created_by = current_user.username if current_user.is_authenticated else 'sistema'
                         db.session.add(lc)
                 item.status = 'aprovado'
                 item.updated_at = datetime.now(ZoneInfo('America/Sao_Paulo'))
@@ -229,12 +244,14 @@ def approve():
         return redirect(url_for('temporarios.index'))
     try:
         if item.kind == 'folga_credit':
-            lc = LeaveCredit()
+            lc = TimeOffRecord()
             lc.collaborator_id = item.collaborator_id
             lc.date = item.date
-            lc.amount_days = max(1, int(item.amount_days or 1))
+            lc.record_type = 'folga_adicional'
+            lc.days = max(1, int(item.amount_days or 1))
             lc.origin = item.source or 'temporario'
             lc.notes = item.reason or ''
+            lc.created_by = current_user.username if current_user.is_authenticated else 'sistema'
             db.session.add(lc)
             w = RegistroJornada()
             w.id = str(uuid4())
@@ -245,11 +262,14 @@ def approve():
             w.observacao = item.reason or ''
             db.session.add(w)
         elif item.kind == 'hour_bank':
-            hb = HourBankEntry()
+            hb = TimeOffRecord()
             hb.collaborator_id = item.collaborator_id
             hb.date = item.date
+            hb.record_type = 'horas'
             hb.hours = float(item.hours or 0)
-            hb.reason = item.reason or ''
+            hb.notes = item.reason or ''
+            hb.origin = 'temporario'
+            hb.created_by = current_user.username if current_user.is_authenticated else 'sistema'
             db.session.add(hb)
             w = RegistroJornada()
             w.id = str(uuid4())
@@ -260,18 +280,23 @@ def approve():
             w.observacao = item.reason or ''
             db.session.add(w)
         elif item.kind == 'folga_hour_both':
-            lc = LeaveCredit()
+            lc = TimeOffRecord()
             lc.collaborator_id = item.collaborator_id
             lc.date = item.date
-            lc.amount_days = max(1, int(item.amount_days or 1))
+            lc.record_type = 'folga_adicional'
+            lc.days = max(1, int(item.amount_days or 1))
             lc.origin = item.source or 'temporario'
             lc.notes = item.reason or ''
+            lc.created_by = current_user.username if current_user.is_authenticated else 'sistema'
             db.session.add(lc)
-            hb = HourBankEntry()
+            hb = TimeOffRecord()
             hb.collaborator_id = item.collaborator_id
             hb.date = item.date
+            hb.record_type = 'horas'
             hb.hours = float(item.hours or 1.0)
-            hb.reason = item.reason or 'Hora extra combinada'
+            hb.notes = item.reason or 'Hora extra combinada'
+            hb.origin = 'temporario'
+            hb.created_by = current_user.username if current_user.is_authenticated else 'sistema'
             db.session.add(hb)
             w1 = RegistroJornada()
             w1.id = str(uuid4())

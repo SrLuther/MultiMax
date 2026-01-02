@@ -3,7 +3,10 @@ from flask_login import login_required, current_user
 import os
 import shutil
 import time
+from datetime import datetime, date
+from .. import db
 from ..models import UserLogin
+
 try:
     import psutil  # type: ignore
 except Exception:
@@ -129,6 +132,8 @@ def backup_now():
         ok = False
     flash('Backup criado.' if ok else 'Falha ao criar backup.', 'success' if ok else 'danger')
     return redirect(url_for('dbadmin.index'))
+
+
 
 @bp.route('/download/<path:name>', methods=['GET'], strict_slashes=False)
 @login_required

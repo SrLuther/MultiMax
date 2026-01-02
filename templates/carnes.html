@@ -1,242 +1,413 @@
 {% extends 'base.html' %}
 {% block title %}Carnes — MultiMax{% endblock %}
-{% block content %}
 
-<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
+{% block content %}
+<div class="carnes-container">
+    <!-- Hero Header -->
+    <div class="carnes-hero">
+        <div class="carnes-hero-content">
     <div>
-        <h1 class="mm-page-title">Recepção de Carnes</h1>
-        <p class="mm-text-muted">Controle de entrada de carnes bovinas, suínas e frangos</p>
+                <h1 class="carnes-title">
+                    <i class="bi bi-basket carn-title-icon"></i>
+                    Recepção de Carnes
+                </h1>
+                <p class="carnes-subtitle">Controle completo de entrada de carnes bovinas, suínas e frangos</p>
     </div>
     {% if not nova %}
-    <a href="{{ url_for('carnes.nova') }}" class="mm-btn mm-btn-primary">
+            <div class="carnes-hero-actions">
+                <a href="{{ url_for('carnes.nova') }}" class="btn-action btn-action-primary">
         <i class="bi bi-plus-lg"></i>
-        Nova Recepção
+                    <span>Nova Recepção</span>
     </a>
+            </div>
     {% endif %}
+        </div>
 </div>
 
-<div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
-    <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-danger);">
-        <div class="mm-flex mm-items-center mm-justify-between">
-            <div>
-                <div class="mm-kpi-label">Bovina</div>
-                <div class="mm-kpi-value" style="color: var(--mm-danger);">
+    <!-- KPIs Cards -->
+    <div class="kpis-grid-carnes">
+        <div class="kpi-card-carnes kpi-bovina">
+            <div class="kpi-icon-carnes">
                     <i class="bi bi-box-seam"></i>
                 </div>
+            <div class="kpi-content-carnes">
+                <div class="kpi-label-carnes">Bovina</div>
+                <div class="kpi-value-carnes">🐄</div>
             </div>
-            <div class="mm-kpi-icon" style="background: rgba(239, 68, 68, 0.15); color: var(--mm-danger);">
-                <span style="font-size: 1.5rem;">🐄</span>
-            </div>
-        </div>
+            <div class="kpi-decoration-carnes"></div>
     </div>
     
-    <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-accent-pink);">
-        <div class="mm-flex mm-items-center mm-justify-between">
-            <div>
-                <div class="mm-kpi-label">Suína</div>
-                <div class="mm-kpi-value" style="color: var(--mm-accent-pink);">
+        <div class="kpi-card-carnes kpi-suina">
+            <div class="kpi-icon-carnes">
                     <i class="bi bi-box-seam"></i>
                 </div>
+            <div class="kpi-content-carnes">
+                <div class="kpi-label-carnes">Suína</div>
+                <div class="kpi-value-carnes">🐷</div>
             </div>
-            <div class="mm-kpi-icon" style="background: rgba(236, 72, 153, 0.15); color: var(--mm-accent-pink);">
-                <span style="font-size: 1.5rem;">🐷</span>
-            </div>
-        </div>
+            <div class="kpi-decoration-carnes"></div>
     </div>
     
-    <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-warning);">
-        <div class="mm-flex mm-items-center mm-justify-between">
-            <div>
-                <div class="mm-kpi-label">Frango</div>
-                <div class="mm-kpi-value" style="color: var(--mm-warning);">
+        <div class="kpi-card-carnes kpi-frango">
+            <div class="kpi-icon-carnes">
                     <i class="bi bi-box-seam"></i>
                 </div>
+            <div class="kpi-content-carnes">
+                <div class="kpi-label-carnes">Frango</div>
+                <div class="kpi-value-carnes">🐔</div>
             </div>
-            <div class="mm-kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning);">
-                <span style="font-size: 1.5rem;">🐔</span>
-            </div>
-        </div>
+            <div class="kpi-decoration-carnes"></div>
     </div>
     
-    <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-primary);">
-        <div class="mm-flex mm-items-center mm-justify-between">
-            <div>
-                <div class="mm-kpi-label">{{ 'Cadastro' if nova else 'Registros' }}</div>
-                <div class="mm-kpi-value" style="color: var(--mm-primary);">
-                    {% if nova %}Em andamento{% else %}{{ items|length if items else 0 }}{% endif %}
-                </div>
-            </div>
-            <div class="mm-kpi-icon" style="background: rgba(0, 255, 136, 0.15); color: var(--mm-primary);">
+        <div class="kpi-card-carnes kpi-primary">
+            <div class="kpi-icon-carnes">
                 <i class="bi bi-{% if nova %}pencil{% else %}list-check{% endif %}"></i>
             </div>
+            <div class="kpi-content-carnes">
+                <div class="kpi-label-carnes">{{ 'Cadastro' if nova else 'Registros' }}</div>
+                <div class="kpi-value-carnes">{% if nova %}Em andamento{% else %}{{ items|length if items else 0 }}{% endif %}</div>
         </div>
+            <div class="kpi-decoration-carnes"></div>
     </div>
 </div>
 
 {% if nova %}
-<div class="mm-alert mm-alert-info mm-mb-6" style="display: flex; align-items: center; gap: var(--mm-space-3);">
-    <i class="bi bi-info-circle" style="font-size: 1.25rem;"></i>
-    <span>Cadastros separados por tipo: Bovina, Suína e Frango.</span>
+    <!-- Modo Cadastro -->
+    <div class="alert-modern alert-info-modern">
+        <i class="bi bi-info-circle"></i>
+        <div>
+            <strong>Cadastros separados por tipo</strong>
+            <p>Bovina, Suína e Frango possuem formulários específicos abaixo.</p>
+        </div>
 </div>
 
-<div class="mm-card mm-mb-6" style="border-left: 4px solid var(--mm-danger);">
-    <div class="mm-card-header">
-        <h3 class="mm-card-title">
-            <span style="margin-right: 0.5rem;">🐄</span> Bovina
-        </h3>
+    <!-- Formulário Bovina -->
+    <div class="tipo-form-card tipo-bovina">
+        <div class="tipo-form-header">
+            <div class="tipo-form-title">
+                <span class="tipo-emoji">🐄</span>
+                <h2>Bovina</h2>
     </div>
-    <div class="mm-card-body">
-        <form id="carnesFormBovina" method="post" action="{{ url_for('carnes.nova') }}" class="mm-form">
+        </div>
+        <div class="tipo-form-body">
+            <form id="carnesFormBovina" method="post" action="{{ url_for('carnes.nova') }}" class="form-modern">
             <input type="hidden" name="tipo" value="bovina">
-            <div class="mm-form-row mm-grid mm-grid-cols-3 mm-gap-4">
-                <div class="mm-form-group">
-                    <label class="mm-label">Fornecedor</label>
-                    <input type="text" name="fornecedor" class="mm-input" required>
+                
+                <div class="form-row-modern">
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-building"></i>
+                            Fornecedor <span class="required">*</span>
+                        </label>
+                        <input type="text" name="fornecedor" class="form-input-modern" required>
                 </div>
-                <div class="mm-form-group" style="grid-column: span 2;">
-                    <label class="mm-label">Observação</label>
-                    <input type="text" name="observacao" class="mm-input">
+                    <div class="form-group-modern form-group-wide">
+                        <label class="form-label-modern">
+                            <i class="bi bi-chat-left-text"></i>
+                            Observação
+                        </label>
+                        <input type="text" name="observacao" class="form-input-modern">
                 </div>
             </div>
-            <div class="mm-form-row mm-grid mm-grid-cols-4 mm-gap-4 mm-mt-4">
-                <div class="mm-form-group">
-                    <label class="mm-label">Peso na Nota (kg)</label>
-                    <input type="number" step="0.01" name="peso_nota" class="mm-input">
+
+                <div class="form-row-modern">
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-scale"></i>
+                            Peso na Nota (kg)
+                        </label>
+                        <input type="number" step="0.01" name="peso_nota" class="form-input-modern" oninput="B_updateTotal()">
                 </div>
             </div>
             
-            <div class="mm-card mm-mt-4" style="background: var(--mm-bg-secondary);">
-                <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
-                    <span class="mm-font-medium">Entregador</span>
-                    <button type="button" class="mm-btn mm-btn-outline mm-btn-sm" onclick="B_addCarrier()">
-                        <i class="bi bi-plus"></i> Adicionar Entregador
+                <div class="section-card-modern">
+                    <div class="section-header-modern">
+                        <h3 class="section-title-modern">
+                            <i class="bi bi-truck"></i>
+                            Entregador
+                        </h3>
+                        <button type="button" class="btn-section-modern" onclick="B_addCarrier()">
+                            <i class="bi bi-plus"></i>
+                            Adicionar Entregador
                     </button>
                 </div>
-                <div class="mm-card-body" id="B_carriers"></div>
+                    <div class="section-body-modern" id="B_carriers"></div>
             </div>
             
-            <div class="mm-card mm-mt-4" style="background: var(--mm-bg-secondary);">
-                <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
-                    <span class="mm-font-medium">Romaneios e partes</span>
-                    <button type="button" class="mm-btn mm-btn-primary mm-btn-sm" onclick="B_addAnimal()">
-                        <i class="bi bi-plus"></i> Adicionar Romaneio
+                <div class="section-card-modern">
+                    <div class="section-header-modern">
+                        <h3 class="section-title-modern">
+                            <i class="bi bi-list-ul"></i>
+                            Romaneios e Partes
+                        </h3>
+                        <button type="button" class="btn-section-modern btn-primary-section" onclick="B_addAnimal()">
+                            <i class="bi bi-plus"></i>
+                            Adicionar Romaneio
                     </button>
                 </div>
-                <div class="mm-card-body" id="B_animals"></div>
+                    <div class="section-body-modern" id="B_animals"></div>
             </div>
             
-            <div class="mm-grid mm-grid-cols-3 mm-gap-4 mm-mt-4">
-                <div class="mm-stat-box" style="background: rgba(0, 255, 136, 0.1); padding: var(--mm-space-4); border-radius: var(--mm-radius-lg);">
-                    <strong>Total líquido:</strong> <span id="B_totalLiquido">0.00</span> kg
+                <div class="stats-grid-modern">
+                    <div class="stat-card-modern stat-success">
+                        <div class="stat-label-modern">Total líquido</div>
+                        <div class="stat-value-modern"><span id="B_totalLiquido">0.00</span> kg</div>
                 </div>
-                <div class="mm-stat-box" style="background: rgba(59, 130, 246, 0.1); padding: var(--mm-space-4); border-radius: var(--mm-radius-lg);">
-                    <strong>Peso na Nota:</strong> <span id="B_pesoNotaEcho">0.00</span> kg
+                    <div class="stat-card-modern stat-info">
+                        <div class="stat-label-modern">Peso na Nota</div>
+                        <div class="stat-value-modern"><span id="B_pesoNotaEcho">0.00</span> kg</div>
                 </div>
-                <div class="mm-stat-box" style="background: rgba(239, 68, 68, 0.1); padding: var(--mm-space-4); border-radius: var(--mm-radius-lg);">
-                    <strong>Perda no transporte:</strong> <span id="B_perdaTransporte">0.00</span> kg
+                    <div class="stat-card-modern stat-danger">
+                        <div class="stat-label-modern">Perda no transporte</div>
+                        <div class="stat-value-modern"><span id="B_perdaTransporte">0.00</span> kg</div>
                 </div>
             </div>
             
-            <div class="mm-flex mm-justify-end mm-mt-4">
-                <button type="submit" id="B_saveAllBtn" class="mm-btn mm-btn-primary" disabled>
-                    <i class="bi bi-check-lg"></i> Salvar Recepção
+                <div class="form-actions-modern">
+                    <button type="submit" id="B_saveAllBtn" class="btn-save-modern" disabled>
+                        <i class="bi bi-check-lg"></i>
+                        Salvar Recepção
                 </button>
             </div>
         </form>
     </div>
 </div>
 
-<div class="mm-card mm-mb-6" style="border-left: 4px solid var(--mm-accent-pink);">
-    <div class="mm-card-header">
-        <h3 class="mm-card-title">
-            <span style="margin-right: 0.5rem;">🐷</span> Suína
-        </h3>
+    <!-- Formulário Suína -->
+    <div class="tipo-form-card tipo-suina">
+        <div class="tipo-form-header">
+            <div class="tipo-form-title">
+                <span class="tipo-emoji">🐷</span>
+                <h2>Suína</h2>
     </div>
-    <div class="mm-card-body">
-        <form id="carnesFormSuina" method="post" action="{{ url_for('carnes.nova') }}" class="mm-form">
+        </div>
+        <div class="tipo-form-body">
+            <form id="carnesFormSuina" method="post" action="{{ url_for('carnes.nova') }}" class="form-modern">
             <input type="hidden" name="tipo" value="suina">
-            <div class="mm-form-row mm-grid mm-grid-cols-3 mm-gap-4">
-                <div class="mm-form-group">
-                    <label class="mm-label">Fornecedor</label>
-                    <input type="text" name="fornecedor" class="mm-input" required>
+                
+                <div class="form-row-modern">
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-building"></i>
+                            Fornecedor <span class="required">*</span>
+                        </label>
+                        <input type="text" name="fornecedor" class="form-input-modern" required>
                 </div>
-                <div class="mm-form-group" style="grid-column: span 2;">
-                    <label class="mm-label">Observação</label>
-                    <input type="text" name="observacao" class="mm-input">
+                    <div class="form-group-modern form-group-wide">
+                        <label class="form-label-modern">
+                            <i class="bi bi-chat-left-text"></i>
+                            Observação
+                        </label>
+                        <input type="text" name="observacao" class="form-input-modern">
                 </div>
             </div>
             
-            <div class="mm-card mm-mt-4" style="background: var(--mm-bg-secondary);">
-                <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
-                    <span class="mm-font-medium">Pesos</span>
-                    <button type="button" class="mm-btn mm-btn-primary mm-btn-sm" onclick="S_addAnimal()">
-                        <i class="bi bi-plus"></i> Adicionar Peso
+                <div class="section-card-modern">
+                    <div class="section-header-modern">
+                        <h3 class="section-title-modern">
+                            <i class="bi bi-scale"></i>
+                            Pesos
+                        </h3>
+                        <button type="button" class="btn-section-modern btn-primary-section" onclick="S_addAnimal()">
+                            <i class="bi bi-plus"></i>
+                            Adicionar Peso
                     </button>
                 </div>
-                <div class="mm-card-body" id="S_animals"></div>
+                    <div class="section-body-modern" id="S_animals"></div>
             </div>
             
-            <div class="mm-grid mm-grid-cols-2 mm-gap-4 mm-mt-4">
-                <div class="mm-stat-box" style="background: rgba(0, 255, 136, 0.1); padding: var(--mm-space-4); border-radius: var(--mm-radius-lg);">
-                    <strong>Total líquido estimado:</strong> <span id="S_totalLiquido">0.00</span> kg
+                <div class="stats-grid-modern">
+                    <div class="stat-card-modern stat-success">
+                        <div class="stat-label-modern">Total líquido estimado</div>
+                        <div class="stat-value-modern"><span id="S_totalLiquido">0.00</span> kg</div>
                 </div>
             </div>
             
-            <div class="mm-flex mm-justify-end mm-mt-4">
-                <button type="submit" id="S_saveAllBtn" class="mm-btn mm-btn-primary" disabled>
-                    <i class="bi bi-check-lg"></i> Salvar Recepção
+                <div class="form-actions-modern">
+                    <button type="submit" id="S_saveAllBtn" class="btn-save-modern" disabled>
+                        <i class="bi bi-check-lg"></i>
+                        Salvar Recepção
                 </button>
             </div>
         </form>
     </div>
 </div>
 
-<div class="mm-card mm-mb-6" style="border-left: 4px solid var(--mm-warning);">
-    <div class="mm-card-header">
-        <h3 class="mm-card-title">
-            <span style="margin-right: 0.5rem;">🐔</span> Frango
-        </h3>
+    <!-- Formulário Frango -->
+    <div class="tipo-form-card tipo-frango">
+        <div class="tipo-form-header">
+            <div class="tipo-form-title">
+                <span class="tipo-emoji">🐔</span>
+                <h2>Frango</h2>
     </div>
-    <div class="mm-card-body">
-        <form id="carnesFormFrango" method="post" action="{{ url_for('carnes.nova') }}" class="mm-form">
+        </div>
+        <div class="tipo-form-body">
+            <form id="carnesFormFrango" method="post" action="{{ url_for('carnes.nova') }}" class="form-modern">
             <input type="hidden" name="tipo" value="frango">
             <input type="hidden" name="peso_frango" id="F_peso_total_hidden" value="0">
-            <div class="mm-form-row mm-grid mm-grid-cols-3 mm-gap-4">
-                <div class="mm-form-group">
-                    <label class="mm-label">Fornecedor</label>
-                    <input type="text" name="fornecedor" class="mm-input" required>
+                
+                <div class="form-row-modern">
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-building"></i>
+                            Fornecedor <span class="required">*</span>
+                        </label>
+                        <input type="text" name="fornecedor" class="form-input-modern" required>
                 </div>
-                <div class="mm-form-group" style="grid-column: span 2;">
-                    <label class="mm-label">Observação</label>
-                    <input type="text" name="observacao" class="mm-input">
+                    <div class="form-group-modern form-group-wide">
+                        <label class="form-label-modern">
+                            <i class="bi bi-chat-left-text"></i>
+                            Observação
+                        </label>
+                        <input type="text" name="observacao" class="form-input-modern">
                 </div>
             </div>
             
-            <div class="mm-card mm-mt-4" style="background: var(--mm-bg-secondary);">
-                <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
-                    <span class="mm-font-medium">Pesos</span>
-                    <button type="button" class="mm-btn mm-btn-primary mm-btn-sm" onclick="F_addPeso()">
-                        <i class="bi bi-plus"></i> Adicionar Peso
+                <div class="section-card-modern">
+                    <div class="section-header-modern">
+                        <h3 class="section-title-modern">
+                            <i class="bi bi-scale"></i>
+                            Pesos
+                        </h3>
+                        <button type="button" class="btn-section-modern btn-primary-section" onclick="F_addPeso()">
+                            <i class="bi bi-plus"></i>
+                            Adicionar Peso
                     </button>
                 </div>
-                <div class="mm-card-body" id="F_pesos"></div>
+                    <div class="section-body-modern" id="F_pesos"></div>
             </div>
             
-            <div class="mm-grid mm-grid-cols-2 mm-gap-4 mm-mt-4">
-                <div class="mm-stat-box" style="background: rgba(0, 255, 136, 0.1); padding: var(--mm-space-4); border-radius: var(--mm-radius-lg);">
-                    <strong>Total de pesos:</strong> <span id="F_totalLiquido">0.00</span> kg
+                <div class="stats-grid-modern">
+                    <div class="stat-card-modern stat-success">
+                        <div class="stat-label-modern">Total de pesos</div>
+                        <div class="stat-value-modern"><span id="F_totalLiquido">0.00</span> kg</div>
                 </div>
             </div>
             
-            <div class="mm-flex mm-justify-end mm-mt-4">
-                <button type="submit" id="F_saveAllBtn" class="mm-btn mm-btn-primary" disabled>
-                    <i class="bi bi-check-lg"></i> Salvar Recepção
+                <div class="form-actions-modern">
+                    <button type="submit" id="F_saveAllBtn" class="btn-save-modern" disabled>
+                        <i class="bi bi-check-lg"></i>
+                        Salvar Recepção
                 </button>
             </div>
         </form>
     </div>
 </div>
 
+    {% else %}
+    <!-- Modo Listagem -->
+    <div class="recepcoes-section">
+        <div class="section-header-modern">
+            <h2 class="section-title-modern">
+                <i class="bi bi-list-ul"></i>
+                Recepções Registradas
+            </h2>
+            <form class="export-form-modern" method="get" action="{{ url_for('exportacao.exportar_relatorio_carnes_periodo') }}">
+                <div class="export-controls">
+                    <select name="tipo" class="filter-select-modern">
+                        <option value="frango">Frango</option>
+                        <option value="suina">Suína</option>
+                        <option value="bovina">Bovina</option>
+                    </select>
+                    <input type="date" name="data" class="filter-input-modern" value="{{ today_str }}">
+                    <button type="submit" name="escopo" value="dia" class="btn-export-modern btn-export-primary">
+                        <i class="bi bi-calendar-day"></i>
+                        Diário
+                    </button>
+                    <button type="submit" name="escopo" value="semana" class="btn-export-modern">
+                        <i class="bi bi-calendar-week"></i>
+                        Semanal
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="recepcoes-card-modern">
+            {% if items and items|length > 0 %}
+            <div class="recepcoes-table-wrapper">
+                <table class="recepcoes-table-modern">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Fornecedor</th>
+                            <th>Tipo</th>
+                            <th class="text-center">Partes</th>
+                            <th class="text-end">Total (kg)</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for it in items %}
+                        <tr class="recepcao-row-modern">
+                            <td class="recepcao-date">
+                                <i class="bi bi-calendar3"></i>
+                                {{ it.r.data.strftime('%d/%m/%Y %H:%M') }}
+                            </td>
+                            <td class="recepcao-fornecedor">
+                                <strong>{{ it.r.fornecedor }}</strong>
+                            </td>
+                            <td>
+                                {% if it.r.tipo == 'bovina' %}
+                                <span class="badge-tipo badge-bovina">
+                                    <i class="bi bi-circle-fill"></i>
+                                    Bovina
+                                </span>
+                                {% elif it.r.tipo == 'suina' %}
+                                <span class="badge-tipo badge-suina">
+                                    <i class="bi bi-circle-fill"></i>
+                                    Suína
+                                </span>
+                                {% else %}
+                                <span class="badge-tipo badge-frango">
+                                    <i class="bi bi-circle-fill"></i>
+                                    Frango
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center recepcao-count">{{ it.count }}</td>
+                            <td class="text-end recepcao-total">
+                                <strong>{{ '%.2f'|format(it.total) }}</strong> kg
+                            </td>
+                            <td class="text-center">
+                                <div class="recepcao-actions">
+                                    <a class="btn-action-small btn-info-small" href="{{ url_for('carnes.relatorio', id=it.r.id) }}" title="Ver Relatório">
+                                        <i class="bi bi-file-text"></i>
+                                    </a>
+                                    {% if current_user.nivel in ['admin', 'DEV'] %}
+                                    <form method="post" action="{{ url_for('carnes.excluir', id=it.r.id) }}" onsubmit="return confirm('Excluir esta recepção?')" style="display: inline;">
+                                        <button type="submit" class="btn-action-small btn-danger-small" title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state-modern">
+                <div class="empty-icon-modern">
+                    <i class="bi bi-inbox"></i>
+                </div>
+                <h3 class="empty-title-modern">Sem registros de recepção</h3>
+                <p class="empty-text-modern">Nenhuma recepção foi registrada ainda. Clique em "Nova Recepção" para começar.</p>
+                <a href="{{ url_for('carnes.nova') }}" class="btn-empty-action">
+                    <i class="bi bi-plus-lg"></i>
+                    Nova Recepção
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- JavaScript mantido do original -->
 <script>
 // Bovina
 function B_carrierOptions(){
@@ -255,18 +426,21 @@ function B_updateCarrierSelects(){
 function B_addCarrier(){
   const wrap = document.getElementById('B_carriers');
   const row = document.createElement('div');
-  row.className = 'mm-grid mm-grid-cols-3 mm-gap-4 mm-mb-4';
+  row.className = 'form-row-modern';
   row.innerHTML = `
-    <div class="mm-form-group">
-      <label class="mm-label">Nome</label>
-      <input type="text" name="carrier_nome" class="mm-input" required>
+    <div class="form-group-modern">
+      <label class="form-label-modern">Nome</label>
+      <input type="text" name="carrier_nome" class="form-input-modern" required oninput="B_updateCarrierSelects()">
     </div>
-    <div class="mm-form-group">
-      <label class="mm-label">Peso (kg)</label>
-      <input type="number" step="0.01" name="carrier_peso" class="mm-input" required>
+    <div class="form-group-modern">
+      <label class="form-label-modern">Peso (kg)</label>
+      <input type="number" step="0.01" name="carrier_peso" class="form-input-modern" required oninput="B_updateTotal()">
     </div>
-    <div class="mm-form-group mm-flex mm-items-end">
-      <button type="button" class="mm-btn mm-btn-danger mm-btn-sm" onclick="this.closest('.mm-grid').remove(); B_updateTotal();">Remover</button>
+    <div class="form-group-modern form-group-action">
+      <button type="button" class="btn-remove-modern" onclick="this.closest('.form-row-modern').remove(); B_updateTotal();">
+        <i class="bi bi-trash"></i>
+        Remover
+      </button>
     </div>`;
   wrap.appendChild(row);
   B_updateTotal();
@@ -275,8 +449,7 @@ function B_addAnimal(){
   const idx = document.querySelectorAll('#B_animals .animal-block').length + 1;
   const wrap = document.getElementById('B_animals');
   const blk = document.createElement('div');
-  blk.className = 'animal-block mm-card mm-mb-4';
-  blk.style.background = 'var(--mm-bg-card)';
+  blk.className = 'animal-block animal-block-modern';
   const parts = [
     {cat:'dianteiro',lado:'1'},
     {cat:'dianteiro',lado:'2'},
@@ -284,28 +457,28 @@ function B_addAnimal(){
     {cat:'traseiro',lado:'2'}
   ];
   blk.innerHTML = `
-    <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
+    <div class="animal-header-modern">
       <strong>Romaneio #${idx}</strong>
-      <button type="button" class="mm-btn mm-btn-danger mm-btn-sm" onclick="B_deleteAnimalIfEmpty(this)">Excluir Romaneio</button>
+      <button type="button" class="btn-remove-modern" onclick="B_deleteAnimalIfEmpty(this)">Excluir Romaneio</button>
     </div>
-    <div class="mm-card-body">
-      <div class="mm-grid mm-grid-cols-4 mm-gap-4">${parts.map((p)=>{
+    <div class="animal-body-modern">
+      <div class="parts-grid-modern">${parts.map((p)=>{
         return `
-        <div class="part-card mm-card" style="background: var(--mm-bg-secondary); padding: var(--mm-space-3);">
-          <div class="mm-text-muted mm-mb-2" style="font-size: var(--mm-text-xs);">${(p.lado==='1'||p.lado==='2') ? (p.cat.charAt(0).toUpperCase()+p.cat.slice(1)+' '+p.lado) : (p.cat+' — '+p.lado)}</div>
+        <div class="part-card-modern">
+          <div class="part-label-modern">${(p.lado==='1'||p.lado==='2') ? (p.cat.charAt(0).toUpperCase()+p.cat.slice(1)+' '+p.lado) : (p.cat+' — '+p.lado)}</div>
           <input type="hidden" name="part_categoria" value="${p.cat}">
           <input type="hidden" name="part_lado" value="${p.lado}">
           <input type="hidden" name="animal_numero" value="${idx}">
-          <div class="mm-form-group mm-mb-2">
-            <label class="mm-label">Peso bruto (kg)</label>
-            <input type="number" step="0.01" name="part_peso_bruto" class="mm-input" oninput="B_updateTotal()">
+          <div class="form-group-modern">
+            <label class="form-label-modern">Peso bruto (kg)</label>
+            <input type="number" step="0.01" name="part_peso_bruto" class="form-input-modern" oninput="B_updateTotal()">
           </div>
-          <div class="mm-form-group mm-mb-2">
-            <label class="mm-label">Entregador</label>
-            <select name="part_carrier" class="mm-input mm-select" onchange="B_updateTotal()">${B_carrierOptions()}</select>
+          <div class="form-group-modern">
+            <label class="form-label-modern">Entregador</label>
+            <select name="part_carrier" class="form-input-modern" onchange="B_updateTotal()">${B_carrierOptions()}</select>
           </div>
           <input type="hidden" name="part_tara" value="0">
-          <button type="button" class="mm-btn mm-btn-secondary mm-btn-sm" style="width: 100%;" onclick="B_savePart(this)">Salvar parte</button>
+          <button type="button" class="btn-save-part-modern" onclick="B_savePart(this)">Salvar parte</button>
         </div>`;
       }).join('')}</div>
     </div>`;
@@ -323,14 +496,14 @@ function B_partFields(container){
 }
 function B_partKey(f){ return `recepcao-bov:${f.animal}:${f.cat}:${f.lado}`; }
 function B_savePart(btn){
-  const container = btn.closest('.part-card');
+  const container = btn.closest('.part-card-modern');
   if (!container) return;
   const f = B_partFields(container);
   try { localStorage.setItem(B_partKey(f), JSON.stringify(f)); } catch(e) {}
   btn.disabled = true; setTimeout(function(){ btn.disabled = false; }, 600);
 }
 function B_restorePartDraftsForBlock(blk){
-  const cards = blk.querySelectorAll('.part-card');
+  const cards = blk.querySelectorAll('.part-card-modern');
   cards.forEach(function(card){
     const f = B_partFields(card);
     const raw = localStorage.getItem(B_partKey(f));
@@ -351,16 +524,16 @@ function B_isAnimalEmpty(blk){
   return true;
 }
 function B_refreshAnimalDeleteStates(){
-  const btns = document.querySelectorAll('#B_animals .mm-btn-danger');
-  btns.forEach(function(b){ const blk = b.closest('.animal-block'); if(blk) b.disabled = !B_isAnimalEmpty(blk); });
+  const btns = document.querySelectorAll('#B_animals .btn-remove-modern');
+  btns.forEach(function(b){ const blk = b.closest('.animal-block-modern'); if(blk) b.disabled = !B_isAnimalEmpty(blk); });
 }
 function B_deleteAnimalIfEmpty(btn){
-  const blk = btn.closest('.animal-block'); if (!blk) return;
+  const blk = btn.closest('.animal-block-modern'); if (!blk) return;
   if (B_isAnimalEmpty(blk)) { blk.parentNode.removeChild(blk); B_updateSaveState(); B_updateTotal(); }
 }
 function B_updateSaveState(){
   const btn = document.querySelector('#B_saveAllBtn'); if (!btn) return;
-  const blocks = document.querySelectorAll('#B_animals .animal-block');
+  const blocks = document.querySelectorAll('#B_animals .animal-block-modern');
   if (blocks.length === 0) { btn.disabled = true; return; }
   let anyHasWeight = false;
   blocks.forEach(function(blk){ const inputs = blk.querySelectorAll('input[name="part_peso_bruto"]'); inputs.forEach(function(i){ if (i.value && parseFloat(i.value) > 0) anyHasWeight = true; }); });
@@ -391,66 +564,65 @@ B_addCarrier(); B_updateTotal(); B_updateSaveState(); B_refreshAnimalDeleteState
 
 // Suína
 function S_addAnimal(){
-  const idx = document.querySelectorAll('#S_animals .animal-block').length + 1;
+  const idx = document.querySelectorAll('#S_animals .animal-block-modern').length + 1;
   const wrap = document.getElementById('S_animals');
   const blk = document.createElement('div');
-  blk.className = 'animal-block mm-card mm-mb-4';
-  blk.style.background = 'var(--mm-bg-card)';
+  blk.className = 'animal-block-modern';
   const parts = [{cat:'carcaça',lado:'peso1'}];
   blk.innerHTML = `
-    <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
+    <div class="animal-header-modern">
       <strong>Peso #${idx}</strong>
-      <button type="button" class="mm-btn mm-btn-danger mm-btn-sm" onclick="S_deleteAnimalIfEmpty(this)">Excluir Peso</button>
+      <button type="button" class="btn-remove-modern" onclick="S_deleteAnimalIfEmpty(this)">Excluir Peso</button>
     </div>
-    <div class="mm-card-body">
-      <div class="mm-grid mm-grid-cols-4 mm-gap-4">${parts.map((p)=>{
+    <div class="animal-body-modern">
+      <div class="parts-grid-modern">${parts.map((p)=>{
         return `
-        <div class="part-card mm-card" style="background: var(--mm-bg-secondary); padding: var(--mm-space-3);">
-          <div class="mm-text-muted mm-mb-2" style="font-size: var(--mm-text-xs);">${p.lado==='peso1' ? 'Primeiro peso' : ('Peso '+String(p.lado).slice(-1))}</div>
+        <div class="part-card-modern">
+          <div class="part-label-modern">${p.lado==='peso1' ? 'Primeiro peso' : ('Peso '+String(p.lado).slice(-1))}</div>
           <input type="hidden" name="part_categoria" value="${p.cat}">
           <input type="hidden" name="part_lado" value="${p.lado}">
           <input type="hidden" name="animal_numero" value="${idx}">
-          <div class="mm-form-group mm-mb-2">
-            <label class="mm-label">Peso bruto (kg)</label>
-            <input type="number" step="0.01" name="part_peso_bruto" class="mm-input" oninput="S_updateTotal()">
+          <div class="form-group-modern">
+            <label class="form-label-modern">Peso bruto (kg)</label>
+            <input type="number" step="0.01" name="part_peso_bruto" class="form-input-modern" oninput="S_updateTotal()">
           </div>
-          <div class="mm-form-group mm-mb-2">
-            <label class="mm-label">Tara da caixa (kg)</label>
-            <input type="number" step="0.01" name="part_tara" class="mm-input" oninput="S_updateTotal()">
+          <div class="form-group-modern">
+            <label class="form-label-modern">Tara da caixa (kg)</label>
+            <input type="number" step="0.01" name="part_tara" class="form-input-modern" oninput="S_updateTotal()">
           </div>
           <input type="hidden" name="part_carrier" value="-1">
-          <button type="button" class="mm-btn mm-btn-secondary mm-btn-sm" style="width: 100%;" onclick="S_savePart(this)">Salvar parte</button>
+          <button type="button" class="btn-save-part-modern" onclick="S_savePart(this)">Salvar parte</button>
         </div>`;
       }).join('')}</div>
-      <div class="mm-mt-4">
-        <button type="button" class="mm-btn mm-btn-outline mm-btn-sm" onclick="S_addSuinaPeso(this)">Adicionar Peso</button>
+      <div class="mt-4">
+        <button type="button" class="btn-add-peso-modern" onclick="S_addSuinaPeso(this)">Adicionar Peso</button>
       </div>
     </div>`;
   wrap.appendChild(blk);
   S_restorePartDraftsForBlock(blk);
 }
 function S_addSuinaPeso(btn){
-  const blk = btn.closest('.animal-block'); if (!blk) return;
+  const blk = btn.closest('.animal-block-modern'); if (!blk) return;
   const existing = Array.from(blk.querySelectorAll('input[name="part_lado"]')).filter(i => (i.value||'').toLowerCase().indexOf('peso')===0).length;
   const next = existing + 1;
-  const cont = blk.querySelector('.mm-grid');
+  const cont = blk.querySelector('.parts-grid-modern');
   const animal = blk.querySelector('input[name="animal_numero"]').value;
   const card = `
-    <div class="part-card mm-card" style="background: var(--mm-bg-secondary); padding: var(--mm-space-3);">
-      <div class="mm-text-muted mm-mb-2" style="font-size: var(--mm-text-xs);">${next === 1 ? 'Primeiro peso' : ('Peso '+next)}</div>
+    <div class="part-card-modern">
+      <div class="part-label-modern">${next === 1 ? 'Primeiro peso' : ('Peso '+next)}</div>
       <input type="hidden" name="part_categoria" value="carcaça">
       <input type="hidden" name="part_lado" value="peso${next}">
       <input type="hidden" name="animal_numero" value="${animal}">
-      <div class="mm-form-group mm-mb-2">
-        <label class="mm-label">Peso bruto (kg)</label>
-        <input type="number" step="0.01" name="part_peso_bruto" class="mm-input" oninput="S_updateTotal()">
+      <div class="form-group-modern">
+        <label class="form-label-modern">Peso bruto (kg)</label>
+        <input type="number" step="0.01" name="part_peso_bruto" class="form-input-modern" oninput="S_updateTotal()">
       </div>
-      <div class="mm-form-group mm-mb-2">
-        <label class="mm-label">Tara da caixa (kg)</label>
-        <input type="number" step="0.01" name="part_tara" class="mm-input" oninput="S_updateTotal()">
+      <div class="form-group-modern">
+        <label class="form-label-modern">Tara da caixa (kg)</label>
+        <input type="number" step="0.01" name="part_tara" class="form-input-modern" oninput="S_updateTotal()">
       </div>
       <input type="hidden" name="part_carrier" value="-1">
-      <button type="button" class="mm-btn mm-btn-secondary mm-btn-sm" style="width: 100%;" onclick="S_savePart(this)">Salvar parte</button>
+      <button type="button" class="btn-save-part-modern" onclick="S_savePart(this)">Salvar parte</button>
     </div>`;
   cont.insertAdjacentHTML('beforeend', card);
   S_updateTotal(); S_refreshAnimalDeleteStates();
@@ -464,9 +636,9 @@ function S_partFields(container){
   return {animal, cat, lado, peso, tara};
 }
 function S_partKey(f){ return `recepcao-sui:${f.animal}:${f.cat}:${f.lado}`; }
-function S_savePart(btn){ const c = btn.closest('.part-card'); if (!c) return; const f = S_partFields(c); try { localStorage.setItem(S_partKey(f), JSON.stringify(f)); } catch(e) {} btn.disabled = true; setTimeout(function(){ btn.disabled = false; }, 600); }
+function S_savePart(btn){ const c = btn.closest('.part-card-modern'); if (!c) return; const f = S_partFields(c); try { localStorage.setItem(S_partKey(f), JSON.stringify(f)); } catch(e) {} btn.disabled = true; setTimeout(function(){ btn.disabled = false; }, 600); }
 function S_restorePartDraftsForBlock(blk){
-  const cards = blk.querySelectorAll('.part-card');
+  const cards = blk.querySelectorAll('.part-card-modern');
   cards.forEach(function(card){
     const f = S_partFields(card);
     const raw = localStorage.getItem(S_partKey(f));
@@ -480,9 +652,9 @@ function S_isAnimalEmpty(blk){
   const tas = blk.querySelectorAll('input[name="part_tara"]'); for (let i=0;i<tas.length;i++){ if ((tas[i].value||'').trim() !== '') return false; }
   return true;
 }
-function S_refreshAnimalDeleteStates(){ const btns = document.querySelectorAll('#S_animals .mm-btn-danger'); btns.forEach(function(b){ const blk = b.closest('.animal-block'); if(blk) b.disabled = !S_isAnimalEmpty(blk); }); }
-function S_deleteAnimalIfEmpty(btn){ const blk = btn.closest('.animal-block'); if (!blk) return; if (S_isAnimalEmpty(blk)) { blk.parentNode.removeChild(blk); S_updateSaveState(); S_updateTotal(); } }
-function S_updateSaveState(){ const btn = document.querySelector('#S_saveAllBtn'); if (!btn) return; const blocks = document.querySelectorAll('#S_animals .animal-block'); btn.disabled = blocks.length === 0; }
+function S_refreshAnimalDeleteStates(){ const btns = document.querySelectorAll('#S_animals .btn-remove-modern'); btns.forEach(function(b){ const blk = b.closest('.animal-block-modern'); if(blk) b.disabled = !S_isAnimalEmpty(blk); }); }
+function S_deleteAnimalIfEmpty(btn){ const blk = btn.closest('.animal-block-modern'); if (!blk) return; if (S_isAnimalEmpty(blk)) { blk.parentNode.removeChild(blk); S_updateSaveState(); S_updateTotal(); } }
+function S_updateSaveState(){ const btn = document.querySelector('#S_saveAllBtn'); if (!btn) return; const blocks = document.querySelectorAll('#S_animals .animal-block-modern'); btn.disabled = blocks.length === 0; }
 function S_updateTotal(){
   let total = 0.0;
   const parts = document.querySelectorAll('#S_animals input[name="part_peso_bruto"]');
@@ -499,20 +671,20 @@ S_updateTotal();
 function F_addPeso(){
   const wrap = document.getElementById('F_pesos');
   const row = document.createElement('div');
-  row.className = 'mm-grid mm-grid-cols-3 mm-gap-4 mm-mb-4';
+  row.className = 'form-row-modern';
   row.innerHTML = `
-    <div class="mm-form-group">
-      <label class="mm-label">Peso (kg)</label>
-      <input type="number" step="0.01" name="frango_peso_item" class="mm-input" oninput="F_updateTotal()">
+    <div class="form-group-modern">
+      <label class="form-label-modern">Peso (kg)</label>
+      <input type="number" step="0.01" name="frango_peso_item" class="form-input-modern" oninput="F_updateTotal()">
     </div>
-    <div class="mm-form-group mm-flex mm-items-end">
-      <button type="button" class="mm-btn mm-btn-danger mm-btn-sm" onclick="F_removePeso(this)">Remover</button>
+    <div class="form-group-modern form-group-action">
+      <button type="button" class="btn-remove-modern" onclick="F_removePeso(this)">Remover</button>
     </div>`;
   wrap.appendChild(row);
   F_updateTotal();
 }
 function F_removePeso(btn){
-  const row = btn.closest('.mm-grid'); if (!row) return; row.remove(); F_updateTotal();
+  const row = btn.closest('.form-row-modern'); if (!row) return; row.remove(); F_updateTotal();
 }
 function F_updateTotal(){
   const items = Array.from(document.querySelectorAll('#F_pesos input[name="frango_peso_item"]'));
@@ -529,110 +701,948 @@ function F_updateTotal(){
 F_updateTotal();
 </script>
 
-{% else %}
-
-<div class="mm-card">
-    <div class="mm-card-header mm-flex mm-items-center mm-justify-between" style="flex-wrap: wrap; gap: var(--mm-space-4);">
-        <h3 class="mm-card-title">
-            <i class="bi bi-list-ul me-2"></i>Recepções Registradas
-        </h3>
-        <form class="mm-flex mm-items-center mm-gap-4" method="get" action="{{ url_for('exportacao.exportar_relatorio_carnes_periodo') }}">
-            <div class="mm-flex mm-items-center mm-gap-2">
-                <span class="mm-text-muted">Tipo:</span>
-                <select name="tipo" class="mm-input mm-select" style="width: auto; min-width: 120px;">
-                    <option value="frango">Frango</option>
-                    <option value="suina">Suína</option>
-                    <option value="bovina">Bovina</option>
-                </select>
-            </div>
-            <input type="date" name="data" class="mm-input" style="width: auto;" value="{{ today_str }}">
-            <button type="submit" name="escopo" value="dia" class="mm-btn mm-btn-primary mm-btn-sm">Diário</button>
-            <button type="submit" name="escopo" value="semana" class="mm-btn mm-btn-outline mm-btn-sm">Semanal</button>
-        </form>
-    </div>
-    <div class="mm-card-body" style="padding: 0;">
-        <div class="mm-table-wrapper">
-            <table class="mm-table">
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Fornecedor</th>
-                        <th>Tipo</th>
-                        <th class="text-center">Partes</th>
-                        <th class="text-end">Total (kg)</th>
-                        <th class="text-center">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for it in items %}
-                    <tr>
-                        <td>{{ it.r.data.strftime('%d/%m/%Y %H:%M') }}</td>
-                        <td><strong>{{ it.r.fornecedor }}</strong></td>
-                        <td>
-                            {% if it.r.tipo == 'bovina' %}
-                            <span class="mm-badge mm-badge-danger">Bovina</span>
-                            {% elif it.r.tipo == 'suina' %}
-                            <span class="mm-badge mm-badge-warning">Suína</span>
-                            {% else %}
-                            <span class="mm-badge mm-badge-info">Frango</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-center">{{ it.count }}</td>
-                        <td class="text-end"><strong>{{ '%.2f'|format(it.total) }}</strong></td>
-                        <td class="text-center">
-                            <div class="mm-flex mm-items-center mm-justify-center mm-gap-2">
-                                <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('carnes.relatorio', id=it.r.id) }}">
-                                    <i class="bi bi-file-text"></i> Relatório
-                                </a>
-                                {% if current_user.nivel in ['admin', 'DEV'] %}
-                                <form method="post" action="{{ url_for('carnes.excluir', id=it.r.id) }}" onsubmit="return confirm('Excluir esta recepção?')" style="display: inline;">
-                                    <button type="submit" class="mm-btn mm-btn-danger mm-btn-sm">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
-                                {% endif %}
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                    {% if items|length == 0 %}
-                    <tr>
-                        <td colspan="6">
-                            <div class="mm-empty-state" style="text-align: center; padding: var(--mm-space-8);">
-                                <div style="width: 60px; height: 60px; margin: 0 auto var(--mm-space-4); background: rgba(0, 255, 136, 0.1); border-radius: var(--mm-radius-full); display: flex; align-items: center; justify-content: center;">
-                                    <i class="bi bi-inbox" style="font-size: 1.5rem; color: var(--mm-primary);"></i>
-                                </div>
-                                <p class="mm-text-muted">Sem registros de recepção</p>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-{% endif %}
-
 <style>
-.mm-kpi-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--mm-radius-lg);
+/* Container */
+.carnes-container {
+    padding: 2rem;
+    max-width: 1600px;
+    margin: 0 auto;
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Hero Header */
+.carnes-hero {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    border-radius: 20px;
+    padding: 3rem 2.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 40px rgba(239, 68, 68, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.carnes-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: rotate 20s linear infinite;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.carnes-hero-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+}
+
+.carnes-title {
+    font-size: 3rem;
+    font-weight: 800;
+    color: white;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.carn-title-icon {
+    font-size: 3.5rem;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.carnes-subtitle {
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-top: 0.5rem;
+}
+
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.75rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.btn-action-primary {
+    background: white;
+    color: #ef4444;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.btn-action-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+/* KPIs */
+.kpis-grid-carnes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.kpi-card-carnes {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.kpi-card-carnes:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+}
+
+.kpi-card-carnes::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--kpi-color), var(--kpi-color-light));
+}
+
+.kpi-bovina { --kpi-color: #ef4444; --kpi-color-light: #f87171; }
+.kpi-suina { --kpi-color: #ec4899; --kpi-color-light: #f472b6; }
+.kpi-frango { --kpi-color: #f59e0b; --kpi-color-light: #fbbf24; }
+.kpi-primary { --kpi-color: #667eea; --kpi-color-light: #764ba2; }
+
+.kpi-icon-carnes {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.25rem;
+    font-size: 1.75rem;
+    color: white;
+    background: linear-gradient(135deg, var(--kpi-color), var(--kpi-color-light));
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
 }
-.mm-mt-4 { margin-top: var(--mm-space-4); }
-.mm-mb-2 { margin-bottom: var(--mm-space-2); }
-.mm-mb-4 { margin-bottom: var(--mm-space-4); }
-.mm-mb-6 { margin-bottom: var(--mm-space-6); }
-.mm-justify-end { justify-content: flex-end; }
-.mm-justify-center { justify-content: center; }
-.text-center { text-align: center; }
-.text-end { text-align: right; }
-.me-2 { margin-right: 0.5rem; }
+
+.kpi-content-carnes {
+    position: relative;
+    z-index: 1;
+}
+
+.kpi-label-carnes {
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.kpi-value-carnes {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1.2;
+}
+
+.kpi-decoration-carnes {
+    position: absolute;
+    bottom: -20px;
+    right: -20px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--kpi-color-light), transparent);
+    opacity: 0.1;
+}
+
+/* Alert */
+.alert-modern {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+}
+
+.alert-info-modern {
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 4px solid #3b82f6;
+    color: #1e40af;
+}
+
+.alert-modern i {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.alert-modern strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 1rem;
+}
+
+.alert-modern p {
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+/* Tipo Form Cards */
+.tipo-form-card {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.tipo-form-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--tipo-color);
+}
+
+.tipo-bovina { --tipo-color: #ef4444; }
+.tipo-suina { --tipo-color: #ec4899; }
+.tipo-frango { --tipo-color: #f59e0b; }
+
+.tipo-form-header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.tipo-form-title {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.tipo-emoji {
+    font-size: 2.5rem;
+}
+
+.tipo-form-title h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+}
+
+/* Forms */
+.form-modern {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-row-modern {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    align-items: end;
+}
+
+.form-group-modern {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group-wide {
+    grid-column: span 2;
+}
+
+.form-group-action {
+    align-self: end;
+}
+
+.form-label-modern {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-label-modern i {
+    color: #667eea;
+}
+
+.required {
+    color: #ef4444;
+}
+
+.form-input-modern {
+    padding: 0.75rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.form-input-modern:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Section Cards */
+.section-card-modern {
+    background: #f9fafb;
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+}
+
+.section-header-modern {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.section-title-modern {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.section-title-modern i {
+    color: #667eea;
+}
+
+.btn-section-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: #f3f4f6;
+    color: #374151;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+}
+
+.btn-section-modern:hover {
+    background: #e5e7eb;
+    transform: translateY(-2px);
+}
+
+.btn-primary-section {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-color: transparent;
+}
+
+.btn-primary-section:hover {
+    background: linear-gradient(135deg, #764ba2, #667eea);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.section-body-modern {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Animal Blocks */
+.animal-block-modern {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 2px solid #e5e7eb;
+    transition: all 0.3s ease;
+}
+
+.animal-block-modern:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+}
+
+.animal-header-modern {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.animal-header-modern strong {
+    font-size: 1.125rem;
+    color: #1f2937;
+}
+
+.animal-body-modern {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.parts-grid-modern {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.part-card-modern {
+    background: #f9fafb;
+    border-radius: 10px;
+    padding: 1rem;
+    border: 1px solid #e5e7eb;
+}
+
+.part-label-modern {
+    font-size: 0.75rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+}
+
+.btn-save-part-modern {
+    width: 100%;
+    padding: 0.5rem;
+    background: #f3f4f6;
+    color: #374151;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+}
+
+.btn-save-part-modern:hover {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.btn-remove-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #fee2e2;
+    color: #dc2626;
+    border: 2px solid #fecaca;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+}
+
+.btn-remove-modern:hover {
+    background: #dc2626;
+    color: white;
+    border-color: #dc2626;
+}
+
+.btn-remove-modern:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-add-peso-modern {
+    padding: 0.625rem 1.25rem;
+    background: #f3f4f6;
+    color: #374151;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+}
+
+.btn-add-peso-modern:hover {
+    background: #e5e7eb;
+}
+
+/* Stats Grid */
+.stats-grid-modern {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.stat-card-modern {
+    padding: 1.25rem;
+    border-radius: 12px;
+    border: 2px solid transparent;
+}
+
+.stat-success {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+.stat-info {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.2);
+}
+
+.stat-danger {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.stat-label-modern {
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.stat-value-modern {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+/* Form Actions */
+.form-actions-modern {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 1rem;
+    border-top: 2px solid #f3f4f6;
+}
+
+.btn-save-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 2rem;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+}
+
+.btn-save-modern:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.btn-save-modern:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Recepções List */
+.recepcoes-section {
+    margin-bottom: 2rem;
+}
+
+.export-form-modern {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.export-controls {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.filter-select-modern,
+.filter-input-modern {
+    padding: 0.625rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background: white;
+}
+
+.filter-select-modern:focus,
+.filter-input-modern:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.btn-export-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: white;
+    color: #374151;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+    text-decoration: none;
+}
+
+.btn-export-modern:hover {
+    background: #f3f4f6;
+    transform: translateY(-2px);
+}
+
+.btn-export-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-color: transparent;
+}
+
+.btn-export-primary:hover {
+    background: linear-gradient(135deg, #764ba2, #667eea);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.recepcoes-card-modern {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.recepcoes-table-wrapper {
+    overflow-x: auto;
+}
+
+.recepcoes-table-modern {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.recepcoes-table-modern thead {
+    background: #f9fafb;
+}
+
+.recepcoes-table-modern th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.recepcao-row-modern {
+    border-bottom: 1px solid #f3f4f6;
+    transition: background 0.2s ease;
+}
+
+.recepcao-row-modern:hover {
+    background: #f9fafb;
+}
+
+.recepcoes-table-modern td {
+    padding: 1rem;
+    color: #1f2937;
+}
+
+.recepcao-date {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.recepcao-fornecedor {
+    font-weight: 600;
+}
+
+.badge-tipo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-bovina {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.badge-suina {
+    background: #fce7f3;
+    color: #db2777;
+}
+
+.badge-frango {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.badge-tipo i {
+    font-size: 0.5rem;
+}
+
+.recepcao-count {
+    font-weight: 600;
+    color: #374151;
+}
+
+.recepcao-total {
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.recepcao-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.btn-action-small {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f3f4f6;
+    color: #374151;
+    border: none;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.btn-action-small:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.btn-info-small:hover {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-danger-small:hover {
+    background: #ef4444;
+    color: white;
+}
+
+/* Empty State */
+.empty-state-modern {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.empty-icon-modern {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: #667eea;
+}
+
+.empty-title-modern {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 0.5rem 0;
+}
+
+.empty-text-modern {
+    font-size: 1rem;
+    color: #6b7280;
+    margin: 0 0 1.5rem 0;
+}
+
+.btn-empty-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    text-decoration: none;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-empty-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.text-center {
+    text-align: center;
+}
+
+.text-end {
+    text-align: right;
+}
+
+.mt-4 {
+    margin-top: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .form-row-modern {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-group-wide {
+        grid-column: span 1;
+    }
+    
+    .parts-grid-modern {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .carnes-container {
+        padding: 1rem;
+    }
+
+    .carnes-hero {
+        padding: 2rem 1.5rem;
+    }
+
+    .carnes-title {
+        font-size: 2rem;
+    }
+
+    .kpis-grid-carnes {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .recepcoes-table-wrapper {
+        overflow-x: scroll;
+    }
+
+    .export-controls {
+        width: 100%;
+    }
+
+    .export-controls > * {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+/* Dark Mode */
+[data-theme="dark"] .kpi-card-carnes,
+[data-theme="dark"] .tipo-form-card,
+[data-theme="dark"] .recepcoes-card-modern,
+[data-theme="dark"] .section-card-modern,
+[data-theme="dark"] .animal-block-modern,
+[data-theme="dark"] .part-card-modern {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+[data-theme="dark"] .kpi-value-carnes,
+[data-theme="dark"] .tipo-form-title h2,
+[data-theme="dark"] .section-title-modern,
+[data-theme="dark"] .recepcao-fornecedor,
+[data-theme="dark"] .empty-title-modern {
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .kpi-label-carnes,
+[data-theme="dark"] .form-label-modern,
+[data-theme="dark"] .recepcao-date,
+[data-theme="dark"] .empty-text-modern {
+    color: #9ca3af;
+}
+
+[data-theme="dark"] .form-input-modern,
+[data-theme="dark"] .filter-select-modern,
+[data-theme="dark"] .filter-input-modern {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .recepcoes-table-modern thead {
+    background: #374151;
+}
+
+[data-theme="dark"] .recepcao-row-modern:hover {
+    background: #374151;
+}
 </style>
 {% endblock %}

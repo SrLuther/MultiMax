@@ -134,28 +134,10 @@ def create_app():
     from .routes.exportacao import bp as exportacao_bp
     from .routes.usuarios import bp as usuarios_bp
     from .routes.carnes import bp as carnes_bp
-    from .routes.cortes import bp as cortes_bp
-    from .routes.lotes import bp as lotes_bp
-    from .routes.maturacao import bp as maturacao_bp
-    from .routes.precificacao import bp as precificacao_bp
-    from .routes.aproveitamento import bp as aproveitamento_bp
-    from .routes.camara_fria import bp as camara_fria_bp
-    from .routes.integracao_temp import bp as integracao_temp_bp
-    from .routes.dashboard import bp as dashboard_bp
-    from .routes.certificados import bp as certificados_bp
-    from .routes.rendimento import bp as rendimento_bp
-    from .routes.fornecedores_avaliacao import bp as fornecedores_avaliacao_bp
     from .routes.colaboradores import bp as colaboradores_bp
     from .routes.receitas import bp as receitas_bp
-    from .routes.fornecedores import bp as fornecedores_bp
     from .routes.relatorios import bp as relatorios_bp
-    from .routes.previsao import bp as previsao_bp
     from .routes.api import bp as api_bp
-    from .routes.temperatura import bp as temperatura_bp
-    from .routes.validade import bp as validade_bp
-    from .routes.pedidos import bp as pedidos_bp
-    from .routes.perdas import bp as perdas_bp
-    from .routes.ajuda import bp as ajuda_bp
     from .routes.jornada import bp as jornada_bp
     try:
         from .routes.temporarios import bp as temporarios_bp
@@ -181,28 +163,10 @@ def create_app():
     app.register_blueprint(exportacao_bp)
     app.register_blueprint(usuarios_bp)
     app.register_blueprint(carnes_bp)
-    app.register_blueprint(cortes_bp)
-    app.register_blueprint(lotes_bp)
-    app.register_blueprint(maturacao_bp)
-    app.register_blueprint(precificacao_bp)
-    app.register_blueprint(aproveitamento_bp)
-    app.register_blueprint(camara_fria_bp)
-    app.register_blueprint(integracao_temp_bp)
-    app.register_blueprint(dashboard_bp)
-    app.register_blueprint(certificados_bp)
-    app.register_blueprint(rendimento_bp)
-    app.register_blueprint(fornecedores_avaliacao_bp)
     app.register_blueprint(colaboradores_bp)
     app.register_blueprint(receitas_bp)
-    app.register_blueprint(fornecedores_bp)
     app.register_blueprint(relatorios_bp)
-    app.register_blueprint(previsao_bp)
     app.register_blueprint(api_bp)
-    app.register_blueprint(temperatura_bp)
-    app.register_blueprint(validade_bp)
-    app.register_blueprint(pedidos_bp)
-    app.register_blueprint(perdas_bp)
-    app.register_blueprint(ajuda_bp)
     app.register_blueprint(jornada_bp)
     if temporarios_bp:
         app.register_blueprint(temporarios_bp)
@@ -752,7 +716,6 @@ def create_app():
                 db.session.execute(text('CREATE INDEX IF NOT EXISTS idx_historico_product ON historico (product_id)'))
                 db.session.execute(text('CREATE INDEX IF NOT EXISTS idx_historico_data ON historico (data)'))
                 db.session.execute(text('CREATE INDEX IF NOT EXISTS idx_historico_action ON historico (action)'))
-                db.session.execute(text('CREATE INDEX IF NOT EXISTS idx_fornecedor_nome ON fornecedor (nome)'))
                 db.session.commit()
             except Exception:
                 try:
@@ -835,7 +798,6 @@ def create_app():
                     db.session.execute(text('create index if not exists idx_produto_quantidade on produto (quantidade)'))
                     db.session.execute(text('create index if not exists idx_produto_minimo on produto (estoque_minimo)'))
                     db.session.execute(text('create index if not exists idx_historico_action on historico (action)'))
-                    db.session.execute(text('create index if not exists idx_fornecedor_nome on fornecedor (nome)'))
                     db.session.commit()
                 except Exception:
                     try:
@@ -1163,6 +1125,167 @@ def create_app():
             if 'observacao' not in rj_cols:
                 db.session.execute(text('ALTER TABLE registro_jornada ADD COLUMN observacao TEXT'))
                 db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+
+        # Criar tabela unificada TimeOffRecord se não existir
+        try:
+            from sqlalchemy import inspect, text
+            insp = inspect(db.engine)
+            tables = set(insp.get_table_names())
+            if 'time_off_record' not in tables:
+                if is_sqlite:
+                    db.session.execute(text('''
+                        CREATE TABLE IF NOT EXISTS time_off_record (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            collaborator_id INTEGER NOT NULL,
+                            date DATE NOT NULL,
+                            record_type TEXT NOT NULL,
+                            hours REAL,
+                            days INTEGER,
+                            amount_paid REAL,
+                            rate_per_day REAL,
+                            origin TEXT,
+                            notes TEXT,
+                            created_at TIMESTAMP,
+                            created_by TEXT,
+                            FOREIGN KEY (collaborator_id) REFERENCES collaborator(id)
+                        )
+                    '''))
+                    db.session.execute(text('CREATE INDEX IF NOT EXISTS idx_timeoff_collab ON time_off_record (collaborator_id)'))
+                    db.session.execute(text('CREATE INDEX IF NOT EXISTS idx_timeoff_date ON time_off_record (date)'))
+                    db.session.execute(text('CREATE INDEX IF NOT EXISTS idx_timeoff_type ON time_off_record (record_type)'))
+                else:
+                    db.session.execute(text('''
+                        CREATE TABLE IF NOT EXISTS time_off_record (
+                            id SERIAL PRIMARY KEY,
+                            collaborator_id INTEGER NOT NULL,
+                            date DATE NOT NULL,
+                            record_type VARCHAR(20) NOT NULL,
+                            hours REAL,
+                            days INTEGER,
+                            amount_paid REAL,
+                            rate_per_day REAL,
+                            origin VARCHAR(50),
+                            notes VARCHAR(500),
+                            created_at TIMESTAMPTZ,
+                            created_by VARCHAR(100),
+                            FOREIGN KEY (collaborator_id) REFERENCES collaborator(id)
+                        )
+                    '''))
+                    db.session.execute(text('CREATE INDEX IF NOT EXISTS idx_timeoff_collab ON time_off_record (collaborator_id)'))
+                    db.session.execute(text('CREATE INDEX IF NOT EXISTS idx_timeoff_date ON time_off_record (date)'))
+                    db.session.execute(text('CREATE INDEX IF NOT EXISTS idx_timeoff_type ON time_off_record (record_type)'))
+                db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+        
+        # Migrar dados das tabelas antigas para TimeOffRecord (apenas uma vez)
+        try:
+            from sqlalchemy import inspect, text
+            from datetime import datetime as _dt
+            insp = inspect(db.engine)
+            tables = set(insp.get_table_names())
+            
+            # Verificar se já foi migrado (verificando se há dados em time_off_record mas ainda há dados nas antigas)
+            if 'time_off_record' in tables and ('hour_bank_entry' in tables or 'leave_credit' in tables or 'leave_assignment' in tables or 'leave_conversion' in tables):
+                # Verificar se já migrou
+                count_unified = db.session.execute(text('SELECT COUNT(*) FROM time_off_record')).scalar() or 0
+                count_old = 0
+                if 'hour_bank_entry' in tables:
+                    count_old += db.session.execute(text('SELECT COUNT(*) FROM hour_bank_entry')).scalar() or 0
+                if 'leave_credit' in tables:
+                    count_old += db.session.execute(text('SELECT COUNT(*) FROM leave_credit')).scalar() or 0
+                if 'leave_assignment' in tables:
+                    count_old += db.session.execute(text('SELECT COUNT(*) FROM leave_assignment')).scalar() or 0
+                if 'leave_conversion' in tables:
+                    count_old += db.session.execute(text('SELECT COUNT(*) FROM leave_conversion')).scalar() or 0
+                
+                # Se há dados antigos mas não há na unificada, fazer migração
+                if count_old > 0 and count_unified == 0:
+                    now_func = "datetime('now')" if is_sqlite else "NOW()"
+                    
+                    # Migrar HourBankEntry
+                    if 'hour_bank_entry' in tables:
+                        db.session.execute(text(f'''
+                            INSERT INTO time_off_record (collaborator_id, date, record_type, hours, notes, origin, created_at, created_by)
+                            SELECT collaborator_id, date, 'horas', hours, COALESCE(reason, 'Horas extras'), 'migrado', {now_func}, 'sistema'
+                            FROM hour_bank_entry
+                            WHERE NOT EXISTS (
+                                SELECT 1 FROM time_off_record tor 
+                                WHERE tor.collaborator_id = hour_bank_entry.collaborator_id 
+                                AND tor.date = hour_bank_entry.date 
+                                AND tor.record_type = 'horas'
+                                AND tor.hours = hour_bank_entry.hours
+                            )
+                        '''))
+                    
+                    # Migrar LeaveCredit
+                    if 'leave_credit' in tables:
+                        db.session.execute(text(f'''
+                            INSERT INTO time_off_record (collaborator_id, date, record_type, days, notes, origin, created_at, created_by)
+                            SELECT collaborator_id, date, 'folga_adicional', COALESCE(amount_days, 1), COALESCE(notes, 'Folga adicional'), COALESCE(origin, 'migrado'), {now_func}, 'sistema'
+                            FROM leave_credit
+                            WHERE NOT EXISTS (
+                                SELECT 1 FROM time_off_record tor 
+                                WHERE tor.collaborator_id = leave_credit.collaborator_id 
+                                AND tor.date = leave_credit.date 
+                                AND tor.record_type = 'folga_adicional'
+                                AND tor.days = COALESCE(leave_credit.amount_days, 1)
+                            )
+                        '''))
+                    
+                    # Migrar LeaveAssignment
+                    if 'leave_assignment' in tables:
+                        db.session.execute(text(f'''
+                            INSERT INTO time_off_record (collaborator_id, date, record_type, days, notes, origin, created_at, created_by)
+                            SELECT collaborator_id, date, 'folga_usada', COALESCE(days_used, 1), COALESCE(notes, 'Folga usada'), 'migrado', {now_func}, 'sistema'
+                            FROM leave_assignment
+                            WHERE NOT EXISTS (
+                                SELECT 1 FROM time_off_record tor 
+                                WHERE tor.collaborator_id = leave_assignment.collaborator_id 
+                                AND tor.date = leave_assignment.date 
+                                AND tor.record_type = 'folga_usada'
+                                AND tor.days = COALESCE(leave_assignment.days_used, 1)
+                            )
+                        '''))
+                    
+                    # Migrar LeaveConversion
+                    if 'leave_conversion' in tables:
+                        db.session.execute(text(f'''
+                            INSERT INTO time_off_record (collaborator_id, date, record_type, days, amount_paid, rate_per_day, notes, origin, created_at, created_by)
+                            SELECT collaborator_id, date, 'conversao', amount_days, amount_paid, COALESCE(rate_per_day, 65.0), COALESCE(notes, 'Conversão em dinheiro'), 'migrado', {now_func}, 'sistema'
+                            FROM leave_conversion
+                            WHERE NOT EXISTS (
+                                SELECT 1 FROM time_off_record tor 
+                                WHERE tor.collaborator_id = leave_conversion.collaborator_id 
+                                AND tor.date = leave_conversion.date 
+                                AND tor.record_type = 'conversao'
+                                AND tor.days = leave_conversion.amount_days
+                            )
+                        '''))
+                    
+                    db.session.commit()
+                    
+                    # Após migração bem-sucedida, excluir tabelas antigas
+                    try:
+                        if 'hour_bank_entry' in tables:
+                            db.session.execute(text('DROP TABLE IF EXISTS hour_bank_entry'))
+                        if 'leave_credit' in tables:
+                            db.session.execute(text('DROP TABLE IF EXISTS leave_credit'))
+                        if 'leave_assignment' in tables:
+                            db.session.execute(text('DROP TABLE IF EXISTS leave_assignment'))
+                        if 'leave_conversion' in tables:
+                            db.session.execute(text('DROP TABLE IF EXISTS leave_conversion'))
+                        db.session.commit()
+                    except Exception:
+                        db.session.rollback()
         except Exception:
             try:
                 db.session.rollback()

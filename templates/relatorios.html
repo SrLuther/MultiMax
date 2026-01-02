@@ -1,126 +1,138 @@
 {% extends 'base.html' %}
-{% block title %}Relatórios - MultiMax{% endblock %}
+{% block title %}Relatórios — MultiMax{% endblock %}
+
 {% block content %}
-
-<div class="mm-alert mm-alert-warning" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05)); border-left: 4px solid var(--mm-warning); border-radius: var(--mm-radius-lg); padding: var(--mm-space-4); margin-bottom: var(--mm-space-4); box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);">
-    <i class="bi bi-exclamation-triangle-fill" style="font-size: 1.5rem; color: var(--mm-warning);"></i>
-    <div style="flex: 1;">
-        <strong style="display: block; margin-bottom: var(--mm-space-1); color: var(--mm-warning); font-size: var(--mm-text-lg);">⚠️ Página em Construção</strong>
-        <span style="color: var(--mm-text-secondary);">Essa página está em construção e elaboração de raciocínio lógico e ainda não foi finalizada, logo, muitas coisas podem mudar</span>
-    </div>
-</div>
-<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
-    <div>
-        <h1 class="mm-page-title">Relatórios</h1>
-        <p class="mm-text-muted">Exportação e importação de dados do sistema</p>
-    </div>
-</div>
-
-<div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
-    <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--mm-info);">
-            <i class="bi bi-file-earmark-spreadsheet"></i>
+<div class="relatorios-container">
+    <!-- Hero Header -->
+    <div class="relatorios-hero">
+        <div class="relatorios-hero-content">
+            <div>
+                <h1 class="relatorios-title">
+                    <i class="bi bi-file-earmark-spreadsheet relatorios-title-icon"></i>
+                    Relatórios
+                </h1>
+                <p class="relatorios-subtitle">Exportação e importação completa de dados do sistema</p>
+            </div>
         </div>
-        <div class="mm-kpi-label">Tipo de Arquivo</div>
-        <div class="mm-kpi-value">Excel</div>
     </div>
-    <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-success);">
+
+    <!-- Alert Construção -->
+    <div class="alert-modern alert-warning-modern">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <div>
+            <strong>⚠️ Página em Construção</strong>
+            <p>Essa página está em construção e elaboração de raciocínio lógico e ainda não foi finalizada, logo, muitas coisas podem mudar.</p>
+        </div>
+    </div>
+
+    <!-- KPIs Cards -->
+    <div class="kpis-grid-relatorios">
+        <div class="kpi-card-relatorios kpi-info">
+            <div class="kpi-icon-relatorios">
+                <i class="bi bi-file-earmark-spreadsheet"></i>
+            </div>
+            <div class="kpi-content-relatorios">
+                <div class="kpi-label-relatorios">Tipo de Arquivo</div>
+                <div class="kpi-value-relatorios">Excel</div>
+            </div>
+            <div class="kpi-decoration-relatorios"></div>
+        </div>
+        
+        <div class="kpi-card-relatorios kpi-success">
+            <div class="kpi-icon-relatorios">
+                <i class="bi bi-download"></i>
+            </div>
+            <div class="kpi-content-relatorios">
+                <div class="kpi-label-relatorios">Exportação</div>
+                <div class="kpi-value-relatorios">Sistema Unificado</div>
+            </div>
+            <div class="kpi-decoration-relatorios"></div>
+        </div>
+        
+        <div class="kpi-card-relatorios kpi-cyan">
+            <div class="kpi-icon-relatorios">
+                <i class="bi bi-upload"></i>
+            </div>
+            <div class="kpi-content-relatorios">
+                <div class="kpi-label-relatorios">Importação</div>
+                <div class="kpi-value-relatorios">Sistema Unificado</div>
+            </div>
+            <div class="kpi-decoration-relatorios"></div>
+        </div>
+        
+        <div class="kpi-card-relatorios kpi-warning">
+            <div class="kpi-icon-relatorios">
+                <i class="bi bi-shield-check"></i>
+            </div>
+            <div class="kpi-content-relatorios">
+                <div class="kpi-label-relatorios">Backup</div>
+                <div class="kpi-value-relatorios">Seguro</div>
+            </div>
+            <div class="kpi-decoration-relatorios"></div>
+        </div>
+    </div>
+
+    <!-- Exportação -->
+    <div class="exportacao-section-modern">
+        <h2 class="section-title-large-modern">
             <i class="bi bi-download"></i>
-        </div>
-        <div class="mm-kpi-label">Exportação</div>
-        <div class="mm-kpi-value">3 Tipos</div>
-    </div>
-    <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(0, 212, 255, 0.15); color: var(--mm-accent-cyan);">
-            <i class="bi bi-upload"></i>
-        </div>
-        <div class="mm-kpi-label">Importação</div>
-        <div class="mm-kpi-value">Produtos</div>
-    </div>
-    <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning);">
-            <i class="bi bi-shield-check"></i>
-        </div>
-        <div class="mm-kpi-label">Backup</div>
-        <div class="mm-kpi-value">Seguro</div>
-    </div>
-</div>
-
-<div class="mm-grid mm-grid-cols-3 mm-gap-6 mm-mb-6">
-    <div class="mm-card mm-card-gradient" style="border-top: 3px solid var(--mm-primary);">
-        <div class="mm-card-body" style="text-align: center;">
-            <div class="mm-kpi-icon" style="background: rgba(0, 255, 136, 0.15); color: var(--mm-primary); margin: 0 auto var(--mm-space-4);">
-                <i class="bi bi-box-seam"></i>
-            </div>
-            <h4 class="mm-font-semibold mm-mb-2">Produtos</h4>
-            <p class="mm-text-muted mm-mb-4" style="font-size: var(--mm-text-sm);">Exporte todos os produtos cadastrados com informações completas de estoque.</p>
-            <a href="{{ url_for('relatorios.exportar_produtos') }}" class="mm-btn mm-btn-primary" style="width: 100%;">
-                <i class="bi bi-download"></i>
-                Exportar Produtos
-            </a>
-        </div>
-    </div>
-    
-    <div class="mm-card mm-card-gradient" style="border-top: 3px solid var(--mm-success);">
-        <div class="mm-card-body" style="text-align: center;">
-            <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-success); margin: 0 auto var(--mm-space-4);">
-                <i class="bi bi-clock-history"></i>
-            </div>
-            <h4 class="mm-font-semibold mm-mb-2">Histórico</h4>
-            <p class="mm-text-muted mm-mb-4" style="font-size: var(--mm-text-sm);">Exporte o histórico completo de entradas e saídas do estoque.</p>
-            <a href="{{ url_for('relatorios.exportar_historico') }}" class="mm-btn mm-btn-secondary" style="width: 100%;">
-                <i class="bi bi-download"></i>
-                Exportar Histórico
-            </a>
-        </div>
-    </div>
-    
-    <div class="mm-card mm-card-gradient" style="border-top: 3px solid var(--mm-warning);">
-        <div class="mm-card-body" style="text-align: center;">
-            <div class="mm-kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning); margin: 0 auto var(--mm-space-4);">
-                <i class="bi bi-building"></i>
-            </div>
-            <h4 class="mm-font-semibold mm-mb-2">Fornecedores</h4>
-            <p class="mm-text-muted mm-mb-4" style="font-size: var(--mm-text-sm);">Exporte todos os fornecedores cadastrados no sistema.</p>
-            <a href="{{ url_for('relatorios.exportar_fornecedores') }}" class="mm-btn mm-btn-outline" style="width: 100%; border-color: var(--mm-warning); color: var(--mm-warning);">
-                <i class="bi bi-download"></i>
-                Exportar Fornecedores
-            </a>
-        </div>
-    </div>
-</div>
-
-<div class="mm-grid mm-grid-cols-2 mm-gap-6">
-    <div class="mm-card">
-        <div class="mm-card-header">
-            <h3 class="mm-card-title">
-                <i class="bi bi-upload me-2"></i>Importar Produtos
-            </h3>
-            <span class="mm-badge mm-badge-info">Excel</span>
-        </div>
-        <div class="mm-card-body">
-            <div style="text-align: center; margin-bottom: var(--mm-space-6);">
-                <div class="mm-kpi-icon" style="background: rgba(0, 212, 255, 0.15); color: var(--mm-accent-cyan); margin: 0 auto var(--mm-space-4);">
-                    <i class="bi bi-file-earmark-arrow-up"></i>
+            Exportação de Dados
+        </h2>
+        <div class="exportacao-grid-modern">
+            <div class="export-card-modern export-primary">
+                <div class="export-icon-modern">
+                    <i class="bi bi-box-seam"></i>
                 </div>
-                <p class="mm-text-muted" style="font-size: var(--mm-text-sm);">
-                    Importe produtos a partir de uma planilha Excel. Produtos existentes serão atualizados automaticamente.
-                </p>
+                <h3 class="export-title-modern">Produtos</h3>
+                <p class="export-description-modern">Exporte todos os produtos cadastrados com informações completas de estoque.</p>
+                <a href="{{ url_for('relatorios.exportar_produtos') }}" class="btn-export-modern">
+                    <i class="bi bi-download"></i>
+                    Exportar Produtos
+                </a>
             </div>
             
-            <div class="mm-flex mm-flex-col mm-gap-4">
-                <a href="{{ url_for('relatorios.modelo_produtos') }}" class="mm-btn mm-btn-outline" style="width: 100%;">
+            <div class="export-card-modern export-success">
+                <div class="export-icon-modern">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+                <h3 class="export-title-modern">Histórico</h3>
+                <p class="export-description-modern">Exporte o histórico completo de entradas e saídas do estoque.</p>
+                <a href="{{ url_for('relatorios.exportar_historico') }}" class="btn-export-modern">
+                    <i class="bi bi-download"></i>
+                    Exportar Histórico
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Importação de Produtos -->
+    <div class="importacao-section-modern">
+        <h2 class="section-title-large-modern">
+            <i class="bi bi-upload"></i>
+            Importação de Produtos
+        </h2>
+        <div class="importacao-card-modern">
+            <div class="importacao-header-modern">
+                <div class="importacao-icon-large-modern">
+                    <i class="bi bi-file-earmark-arrow-up"></i>
+                </div>
+                <div class="importacao-info-modern">
+                    <h3 class="importacao-title-modern">Importar Produtos</h3>
+                    <p class="importacao-description-modern">Importe produtos a partir de uma planilha Excel. Produtos existentes serão atualizados automaticamente.</p>
+                </div>
+            </div>
+            <div class="importacao-actions-modern">
+                <a href="{{ url_for('relatorios.modelo_produtos') }}" class="btn-import-modern btn-modelo-modern">
                     <i class="bi bi-file-earmark-excel"></i>
                     Baixar Modelo Excel
                 </a>
                 {% if current_user.nivel in ['admin', 'DEV'] %}
-                <a href="{{ url_for('relatorios.importar_produtos') }}" class="mm-btn mm-btn-primary" style="width: 100%;">
+                <a href="{{ url_for('relatorios.importar_produtos') }}" class="btn-import-modern btn-primary-import-modern">
                     <i class="bi bi-upload"></i>
                     Importar Produtos
                 </a>
                 {% else %}
-                <button class="mm-btn mm-btn-outline" style="width: 100%; opacity: 0.5; cursor: not-allowed;" disabled>
+                <button class="btn-import-modern btn-disabled-modern" disabled>
                     <i class="bi bi-lock"></i>
                     Apenas Administradores
                 </button>
@@ -128,52 +140,248 @@
             </div>
         </div>
     </div>
-    
-    <div class="mm-card">
-        <div class="mm-card-header">
-            <h3 class="mm-card-title">
-                <i class="bi bi-lightbulb me-2"></i>Dicas de Uso
+
+    <!-- Registros Unificados -->
+    <div class="unificados-card-modern">
+        <div class="unificados-header-modern">
+            <div class="unificados-badge-modern">
+                <i class="bi bi-stars"></i>
+                Sistema Unificado
+            </div>
+            <h2 class="unificados-title-modern">Registros Unificados</h2>
+            <p class="unificados-subtitle-modern">
+                <i class="bi bi-info-circle"></i>
+                Sistema unificado para gerenciar horas extras, folgas adicionais, folgas usadas e conversões em um único lugar
+            </p>
+        </div>
+        <div class="unificados-body-modern">
+            <div class="unificados-grid-modern">
+                <div class="unificado-card-modern unificado-modelo">
+                    <div class="unificado-icon-modern">
+                        <i class="bi bi-file-earmark-excel"></i>
+                    </div>
+                    <h3 class="unificado-title-modern">Modelo Excel</h3>
+                    <p class="unificado-description-modern">Baixe o modelo com todos os campos necessários para importação.</p>
+                    <a href="{{ url_for('relatorios.modelo_registros_unificados') }}" class="btn-unificado-modern">
+                        <i class="bi bi-download"></i>
+                        Baixar Modelo
+                    </a>
+                </div>
+                
+                <div class="unificado-card-modern unificado-export">
+                    <div class="unificado-icon-modern">
+                        <i class="bi bi-file-earmark-arrow-down"></i>
+                    </div>
+                    <h3 class="unificado-title-modern">Exportar Dados</h3>
+                    <p class="unificado-description-modern">Exporte todos os registros unificados do sistema.</p>
+                    <a href="{{ url_for('relatorios.exportar_registros_unificados') }}" class="btn-unificado-modern">
+                        <i class="bi bi-download"></i>
+                        Exportar Dados
+                    </a>
+                </div>
+                
+                <div class="unificado-card-modern unificado-import">
+                    <div class="unificado-icon-modern">
+                        <i class="bi bi-upload"></i>
+                    </div>
+                    <h3 class="unificado-title-modern">Importar Registros</h3>
+                    <p class="unificado-description-modern">Importe com validação e relatório de erros detalhado.</p>
+                    {% if current_user.nivel in ['admin', 'DEV'] %}
+                    <a href="{{ url_for('relatorios.importar_registros_unificados') }}" class="btn-unificado-modern">
+                        <i class="bi bi-upload"></i>
+                        Importar Registros
+                    </a>
+                    {% else %}
+                    <button class="btn-unificado-modern btn-disabled-modern" disabled>
+                        <i class="bi bi-lock"></i>
+                        Apenas Administradores
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="tipos-registros-modern">
+                <h4 class="tipos-title-modern">
+                    <i class="bi bi-list-check"></i>
+                    Tipos de Registros Suportados
+                </h4>
+                <div class="tipos-grid-modern">
+                    <div class="tipo-item-modern tipo-horas">
+                        <div class="tipo-icon-modern">
+                            <i class="bi bi-clock"></i>
+                        </div>
+                        <div class="tipo-content-modern">
+                            <div class="tipo-name-modern">Horas Extras</div>
+                            <div class="tipo-desc-modern">Registros de horas trabalhadas</div>
+                        </div>
+                    </div>
+                    <div class="tipo-item-modern tipo-folga-adicional">
+                        <div class="tipo-icon-modern">
+                            <i class="bi bi-calendar-plus"></i>
+                        </div>
+                        <div class="tipo-content-modern">
+                            <div class="tipo-name-modern">Folgas Adicionais</div>
+                            <div class="tipo-desc-modern">Créditos de folgas concedidos</div>
+                        </div>
+                    </div>
+                    <div class="tipo-item-modern tipo-folga-usada">
+                        <div class="tipo-icon-modern">
+                            <i class="bi bi-calendar-check"></i>
+                        </div>
+                        <div class="tipo-content-modern">
+                            <div class="tipo-name-modern">Folgas Usadas</div>
+                            <div class="tipo-desc-modern">Folgas utilizadas pelos colaboradores</div>
+                        </div>
+                    </div>
+                    <div class="tipo-item-modern tipo-conversao">
+                        <div class="tipo-icon-modern">
+                            <i class="bi bi-cash-coin"></i>
+                        </div>
+                        <div class="tipo-content-modern">
+                            <div class="tipo-name-modern">Conversões</div>
+                            <div class="tipo-desc-modern">Conversão de folgas em dinheiro</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exportação/Importação Genérica (Admin/DEV) -->
+    {% if current_user.nivel in ['admin', 'DEV'] %}
+    <div class="generica-card-modern">
+        <div class="generica-header-modern">
+            <div class="generica-badge-modern">
+                <i class="bi bi-gear"></i>
+                Admin/DEV
+            </div>
+            <h2 class="generica-title-modern">Exportação e Importação Genérica</h2>
+            <p class="generica-subtitle-modern">Selecione uma tabela para exportar ou importar dados. A importação atualiza registros existentes pelo ID.</p>
+        </div>
+        <div class="generica-body-modern">
+            <div class="generica-grid-modern">
+                <!-- Export -->
+                <div class="generica-box-modern generica-export">
+                    <div class="generica-box-header-modern">
+                        <i class="bi bi-download"></i>
+                        <h4 class="generica-box-title-modern">Exportar Dados</h4>
+                    </div>
+                    <div class="generica-box-body-modern">
+                        <div class="form-group-modern">
+                            <label class="form-label-modern">
+                                <i class="bi bi-table"></i>
+                                Tabela
+                            </label>
+                            <select id="exportTable" class="form-input-modern">
+                                <option value="users">Usuários</option>
+                                <option value="produtos">Produtos</option>
+                                <option value="colaboradores">Colaboradores</option>
+                                <option value="cargos">Cargos</option>
+                                <option value="feriados">Feriados</option>
+                                <option value="receitas">Receitas</option>
+                                <option value="ingredientes_catalogo">Ingredientes (Catálogo)</option>
+                                <option value="tarefas_limpeza">Tarefas de Limpeza</option>
+                                <option value="checklist_templates">Checklist Templates</option>
+                            </select>
+                        </div>
+                        <button onclick="doExport()" class="btn-generica-modern btn-export-generica-modern">
+                            <i class="bi bi-download"></i>
+                            Exportar Excel
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Import -->
+                <div class="generica-box-modern generica-import">
+                    <div class="generica-box-header-modern">
+                        <i class="bi bi-upload"></i>
+                        <h4 class="generica-box-title-modern">Importar Dados</h4>
+                    </div>
+                    <div class="generica-box-body-modern">
+                        <form id="importForm" method="post" enctype="multipart/form-data">
+                            <div class="form-group-modern">
+                                <label class="form-label-modern">
+                                    <i class="bi bi-table"></i>
+                                    Tabela
+                                </label>
+                                <select id="importTable" name="table_name" class="form-input-modern" onchange="updateImportAction()">
+                                    <option value="users">Usuários</option>
+                                    <option value="produtos">Produtos</option>
+                                    <option value="colaboradores">Colaboradores</option>
+                                    <option value="cargos">Cargos</option>
+                                    <option value="feriados">Feriados</option>
+                                    <option value="receitas">Receitas</option>
+                                    <option value="ingredientes_catalogo">Ingredientes (Catálogo)</option>
+                                    <option value="tarefas_limpeza">Tarefas de Limpeza</option>
+                                    <option value="checklist_templates">Checklist Templates</option>
+                                </select>
+                            </div>
+                            <div class="form-group-modern">
+                                <label class="form-label-modern">
+                                    <i class="bi bi-file-earmark-excel"></i>
+                                    Arquivo Excel (.xlsx)
+                                </label>
+                                <input type="file" name="file" accept=".xlsx" class="form-input-modern" required>
+                            </div>
+                            <button type="submit" class="btn-generica-modern btn-import-generica-modern" onclick="return confirm('ATENÇÃO: Isso atualizará o banco de dados. Tem certeza?')">
+                                <i class="bi bi-upload"></i>
+                                Importar Excel
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Dicas de Uso -->
+    <div class="dicas-card-modern">
+        <div class="dicas-header-modern">
+            <h3 class="dicas-title-modern">
+                <i class="bi bi-lightbulb"></i>
+                Dicas de Uso
             </h3>
         </div>
-        <div class="mm-card-body">
-            <div class="mm-tips-list">
-                <div class="mm-tip-item mm-flex mm-gap-4 mm-mb-4">
-                    <div class="mm-tip-icon" style="width: 40px; height: 40px; background: rgba(0, 255, 136, 0.1); border-radius: var(--mm-radius); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                        <i class="bi bi-check-lg" style="color: var(--mm-primary);"></i>
+        <div class="dicas-body-modern">
+            <div class="dicas-grid-modern">
+                <div class="dica-item-modern">
+                    <div class="dica-icon-modern dica-success">
+                        <i class="bi bi-check-lg"></i>
                     </div>
-                    <div>
-                        <h6 class="mm-font-medium mm-mb-1">Backup Regular</h6>
-                        <p class="mm-text-muted" style="font-size: var(--mm-text-sm); margin: 0;">Use a exportação de produtos para manter backups regulares dos dados.</p>
-                    </div>
-                </div>
-                
-                <div class="mm-tip-item mm-flex mm-gap-4 mm-mb-4">
-                    <div class="mm-tip-icon" style="width: 40px; height: 40px; background: rgba(59, 130, 246, 0.1); border-radius: var(--mm-radius); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                        <i class="bi bi-clock-history" style="color: var(--mm-info);"></i>
-                    </div>
-                    <div>
-                        <h6 class="mm-font-medium mm-mb-1">Histórico Completo</h6>
-                        <p class="mm-text-muted" style="font-size: var(--mm-text-sm); margin: 0;">O relatório de histórico inclui todas as entradas e saídas do estoque.</p>
+                    <div class="dica-content-modern">
+                        <h4 class="dica-title-modern">Backup Regular</h4>
+                        <p class="dica-text-modern">Use a exportação de produtos para manter backups regulares dos dados.</p>
                     </div>
                 </div>
                 
-                <div class="mm-tip-item mm-flex mm-gap-4 mm-mb-4">
-                    <div class="mm-tip-icon" style="width: 40px; height: 40px; background: rgba(245, 158, 11, 0.1); border-radius: var(--mm-radius); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                        <i class="bi bi-file-earmark-excel" style="color: var(--mm-warning);"></i>
+                <div class="dica-item-modern">
+                    <div class="dica-icon-modern dica-info">
+                        <i class="bi bi-clock-history"></i>
                     </div>
-                    <div>
-                        <h6 class="mm-font-medium mm-mb-1">Modelo de Importação</h6>
-                        <p class="mm-text-muted" style="font-size: var(--mm-text-sm); margin: 0;">Baixe o modelo antes de importar para garantir o formato correto.</p>
+                    <div class="dica-content-modern">
+                        <h4 class="dica-title-modern">Histórico Completo</h4>
+                        <p class="dica-text-modern">O relatório de histórico inclui todas as entradas e saídas do estoque.</p>
                     </div>
                 </div>
                 
-                <div class="mm-tip-item mm-flex mm-gap-4">
-                    <div class="mm-tip-icon" style="width: 40px; height: 40px; background: rgba(168, 85, 247, 0.1); border-radius: var(--mm-radius); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                        <i class="bi bi-arrow-repeat" style="color: var(--mm-accent-purple);"></i>
+                <div class="dica-item-modern">
+                    <div class="dica-icon-modern dica-warning">
+                        <i class="bi bi-file-earmark-excel"></i>
                     </div>
-                    <div>
-                        <h6 class="mm-font-medium mm-mb-1">Atualização Automática</h6>
-                        <p class="mm-text-muted" style="font-size: var(--mm-text-sm); margin: 0;">Produtos existentes são atualizados automaticamente na importação.</p>
+                    <div class="dica-content-modern">
+                        <h4 class="dica-title-modern">Modelo de Importação</h4>
+                        <p class="dica-text-modern">Baixe o modelo antes de importar para garantir o formato correto.</p>
+                    </div>
+                </div>
+                
+                <div class="dica-item-modern">
+                    <div class="dica-icon-modern dica-purple">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </div>
+                    <div class="dica-content-modern">
+                        <h4 class="dica-title-modern">Atualização Automática</h4>
+                        <p class="dica-text-modern">Produtos existentes são atualizados automaticamente na importação.</p>
                     </div>
                 </div>
             </div>
@@ -181,21 +389,1082 @@
     </div>
 </div>
 
+{% if current_user.nivel in ['admin', 'DEV'] %}
+<script>
+function doExport() {
+    var table = document.getElementById('exportTable').value;
+    var url = "{{ url_for('relatorios.exportar_tabela', table_name='TABLE') }}".replace('TABLE', table);
+    window.location.href = url;
+}
+function updateImportAction() {
+    var table = document.getElementById('importTable').value;
+    var url = "{{ url_for('relatorios.importar_tabela', table_name='TABLE') }}".replace('TABLE', table);
+    var form = document.getElementById('importForm');
+    form.action = url;
+}
+document.addEventListener('DOMContentLoaded', updateImportAction);
+</script>
+{% endif %}
+
 <style>
-.mm-kpi-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--mm-radius-lg);
+/* Container */
+.relatorios-container {
+    padding: 2rem;
+    max-width: 1600px;
+    margin: 0 auto;
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Hero Header */
+.relatorios-hero {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border-radius: 20px;
+    padding: 3rem 2.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 40px rgba(59, 130, 246, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.relatorios-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: rotate 20s linear infinite;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.relatorios-hero-content {
+    position: relative;
+    z-index: 1;
+}
+
+.relatorios-title {
+    font-size: 3rem;
+    font-weight: 800;
+    color: white;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.relatorios-title-icon {
+    font-size: 3.5rem;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.relatorios-subtitle {
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-top: 0.5rem;
+}
+
+/* Alert */
+.alert-modern {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+}
+
+.alert-warning-modern {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05));
+    border-left: 4px solid #f59e0b;
+    color: #92400e;
+}
+
+.alert-modern i {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.alert-modern strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.alert-modern p {
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+/* KPIs */
+.kpis-grid-relatorios {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.kpi-card-relatorios {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.kpi-card-relatorios:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+}
+
+.kpi-card-relatorios::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--kpi-color), var(--kpi-color-light));
+}
+
+.kpi-info { --kpi-color: #3b82f6; --kpi-color-light: #60a5fa; }
+.kpi-success { --kpi-color: #10b981; --kpi-color-light: #34d399; }
+.kpi-cyan { --kpi-color: #06b6d4; --kpi-color-light: #22d3ee; }
+.kpi-warning { --kpi-color: #f59e0b; --kpi-color-light: #fbbf24; }
+
+.kpi-icon-relatorios {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.25rem;
-    margin-bottom: var(--mm-space-3);
+    font-size: 1.75rem;
+    color: white;
+    background: linear-gradient(135deg, var(--kpi-color), var(--kpi-color-light));
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
 }
-.me-2 { margin-right: 0.5rem; }
-.mm-mb-1 { margin-bottom: var(--mm-space-1); }
-.mm-mb-2 { margin-bottom: var(--mm-space-2); }
-.mm-mb-4 { margin-bottom: var(--mm-space-4); }
-.mm-mb-6 { margin-bottom: var(--mm-space-6); }
+
+.kpi-content-relatorios {
+    position: relative;
+    z-index: 1;
+}
+
+.kpi-label-relatorios {
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.kpi-value-relatorios {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1.2;
+}
+
+.kpi-decoration-relatorios {
+    position: absolute;
+    bottom: -20px;
+    right: -20px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--kpi-color-light), transparent);
+    opacity: 0.1;
+}
+
+/* Sections */
+.exportacao-section-modern,
+.importacao-section-modern {
+    margin-bottom: 2rem;
+}
+
+.section-title-large-modern {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0 0 1.5rem 0;
+}
+
+.section-title-large-modern i {
+    color: #667eea;
+}
+
+/* Exportação */
+.exportacao-grid-modern {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.export-card-modern {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+    text-align: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.export-card-modern::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--export-color);
+}
+
+.export-primary { --export-color: #667eea; }
+.export-success { --export-color: #10b981; }
+
+.export-card-modern:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+}
+
+.export-icon-modern {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: white;
+    background: linear-gradient(135deg, var(--export-color), var(--export-color-light, var(--export-color)));
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+
+.export-primary .export-icon-modern {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.export-success .export-icon-modern {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.export-title-modern {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 0.75rem 0;
+}
+
+.export-description-modern {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0 0 1.5rem 0;
+    line-height: 1.6;
+}
+
+.btn-export-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 2rem;
+    background: linear-gradient(135deg, var(--export-color), var(--export-color-light, var(--export-color)));
+    color: white;
+    text-decoration: none;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+    width: 100%;
+    justify-content: center;
+}
+
+.btn-export-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+/* Importação */
+.importacao-card-modern {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.importacao-header-modern {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.importacao-icon-large-modern {
+    width: 80px;
+    height: 80px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(34, 211, 238, 0.15));
+    color: #06b6d4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    flex-shrink: 0;
+}
+
+.importacao-info-modern {
+    flex: 1;
+}
+
+.importacao-title-modern {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 0.5rem 0;
+}
+
+.importacao-description-modern {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0;
+    line-height: 1.6;
+}
+
+.importacao-actions-modern {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.btn-import-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.75rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    flex: 1;
+    justify-content: center;
+    min-width: 200px;
+}
+
+.btn-modelo-modern {
+    background: white;
+    color: #374151;
+    border: 2px solid #e5e7eb;
+}
+
+.btn-modelo-modern:hover {
+    background: #f3f4f6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.btn-primary-import-modern {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.btn-primary-import-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.btn-disabled-modern {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #f3f4f6;
+    color: #9ca3af;
+}
+
+/* Registros Unificados */
+.unificados-card-modern {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 2px solid #667eea;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.unificados-card-modern::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+}
+
+.unificados-header-modern {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.unificados-badge-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+    color: #667eea;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.unificados-title-modern {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #1f2937;
+    margin: 0 0 0.75rem 0;
+}
+
+.unificados-subtitle-modern {
+    font-size: 1rem;
+    color: #6b7280;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.unificados-grid-modern {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.unificado-card-modern {
+    background: #f9fafb;
+    border-radius: 12px;
+    padding: 1.75rem;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.unificado-card-modern:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.unificado-modelo {
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.unificado-modelo:hover {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.unificado-export {
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.unificado-export:hover {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.unificado-import {
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.unificado-import:hover {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.unificado-icon-modern {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: white;
+}
+
+.unificado-modelo .unificado-icon-modern {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.unificado-export .unificado-icon-modern {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.unificado-import .unificado-icon-modern {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.unificado-title-modern {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 0.5rem 0;
+}
+
+.unificado-description-modern {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0 0 1.5rem 0;
+    line-height: 1.6;
+}
+
+.btn-unificado-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+    width: 100%;
+    justify-content: center;
+}
+
+.unificado-modelo .btn-unificado-modern {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+}
+
+.unificado-export .btn-unificado-modern {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.unificado-import .btn-unificado-modern {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+}
+
+.btn-unificado-modern:hover:not(.btn-disabled-modern) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+/* Tipos de Registros */
+.tipos-registros-modern {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 2px solid #f3f4f6;
+}
+
+.tipos-title-modern {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0 0 1.5rem 0;
+}
+
+.tipos-title-modern i {
+    color: #667eea;
+}
+
+.tipos-grid-modern {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.tipo-item-modern {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: white;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.tipo-item-modern:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.tipo-horas {
+    border-left: 4px solid #8b5cf6;
+}
+
+.tipo-horas:hover {
+    border-color: #8b5cf6;
+    background: rgba(139, 92, 246, 0.05);
+}
+
+.tipo-folga-adicional {
+    border-left: 4px solid #10b981;
+}
+
+.tipo-folga-adicional:hover {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.tipo-folga-usada {
+    border-left: 4px solid #ef4444;
+}
+
+.tipo-folga-usada:hover {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.tipo-conversao {
+    border-left: 4px solid #f59e0b;
+}
+
+.tipo-conversao:hover {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.tipo-icon-modern {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.tipo-horas .tipo-icon-modern {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.tipo-folga-adicional .tipo-icon-modern {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.tipo-folga-usada .tipo-icon-modern {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.tipo-conversao .tipo-icon-modern {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.tipo-content-modern {
+    flex: 1;
+}
+
+.tipo-name-modern {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+}
+
+.tipo-desc-modern {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+/* Genérica (Admin/DEV) */
+.generica-card-modern {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+    border-left: 4px solid #f59e0b;
+}
+
+.generica-header-modern {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.generica-badge-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.1));
+    color: #d97706;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.generica-title-modern {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 0.75rem 0;
+}
+
+.generica-subtitle-modern {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0;
+}
+
+.generica-grid-modern {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+}
+
+.generica-box-modern {
+    background: #f9fafb;
+    border-radius: 12px;
+    padding: 1.75rem;
+    border: 2px solid #e5e7eb;
+}
+
+.generica-export {
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.generica-import {
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.generica-box-header-modern {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.generica-box-header-modern i {
+    font-size: 1.5rem;
+    color: #667eea;
+}
+
+.generica-import .generica-box-header-modern i {
+    color: #f59e0b;
+}
+
+.generica-box-title-modern {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+}
+
+.form-group-modern {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-label-modern {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-label-modern i {
+    color: #667eea;
+}
+
+.form-input-modern {
+    padding: 0.75rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.form-input-modern:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.btn-generica-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+    width: 100%;
+    justify-content: center;
+    border: none;
+}
+
+.btn-export-generica-modern {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+}
+
+.btn-export-generica-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.btn-import-generica-modern {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+}
+
+.btn-import-generica-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+}
+
+/* Dicas */
+.dicas-card-modern {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.dicas-header-modern {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.dicas-title-modern {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.dicas-title-modern i {
+    color: #f59e0b;
+}
+
+.dicas-grid-modern {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.dica-item-modern {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: #f9fafb;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    transition: all 0.3s ease;
+}
+
+.dica-item-modern:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border-color: transparent;
+}
+
+.dica-icon-modern {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.dica-success {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.dica-info {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.dica-warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.dica-purple {
+    background: linear-gradient(135deg, #a855f7, #9333ea);
+}
+
+.dica-content-modern {
+    flex: 1;
+}
+
+.dica-title-modern {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 0.5rem 0;
+}
+
+.dica-text-modern {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .exportacao-grid-modern,
+    .unificados-grid-modern,
+    .tipos-grid-modern,
+    .generica-grid-modern,
+    .dicas-grid-modern {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .relatorios-container {
+        padding: 1rem;
+    }
+
+    .relatorios-hero {
+        padding: 2rem 1.5rem;
+    }
+
+    .relatorios-title {
+        font-size: 2rem;
+    }
+
+    .kpis-grid-relatorios {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .importacao-header-modern {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .importacao-actions-modern {
+        flex-direction: column;
+    }
+
+    .importacao-actions-modern .btn-import-modern {
+        width: 100%;
+    }
+}
+
+/* Dark Mode */
+[data-theme="dark"] .kpi-card-relatorios,
+[data-theme="dark"] .export-card-modern,
+[data-theme="dark"] .importacao-card-modern,
+[data-theme="dark"] .unificados-card-modern,
+[data-theme="dark"] .generica-card-modern,
+[data-theme="dark"] .dicas-card-modern,
+[data-theme="dark"] .unificado-card-modern,
+[data-theme="dark"] .tipo-item-modern,
+[data-theme="dark"] .generica-box-modern,
+[data-theme="dark"] .dica-item-modern {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+[data-theme="dark"] .kpi-value-relatorios,
+[data-theme="dark"] .export-title-modern,
+[data-theme="dark"] .importacao-title-modern,
+[data-theme="dark"] .unificados-title-modern,
+[data-theme="dark"] .generica-title-modern,
+[data-theme="dark"] .dicas-title-modern,
+[data-theme="dark"] .unificado-title-modern,
+[data-theme="dark"] .tipo-name-modern,
+[data-theme="dark"] .generica-box-title-modern,
+[data-theme="dark"] .dica-title-modern {
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .kpi-label-relatorios,
+[data-theme="dark"] .export-description-modern,
+[data-theme="dark"] .importacao-description-modern,
+[data-theme="dark"] .unificados-subtitle-modern,
+[data-theme="dark"] .generica-subtitle-modern,
+[data-theme="dark"] .unificado-description-modern,
+[data-theme="dark"] .tipo-desc-modern,
+[data-theme="dark"] .dica-text-modern {
+    color: #9ca3af;
+}
+
+[data-theme="dark"] .form-input-modern {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+}
 </style>
 {% endblock %}

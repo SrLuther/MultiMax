@@ -1,203 +1,1147 @@
 {% extends 'base.html' %}
 {% block title %}Controle de Estoque — MultiMax{% endblock %}
-{% block content %}
 
-<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
-    <div>
-        <h1 class="mm-page-title">Controle de Estoque</h1>
-        <p class="mm-text-muted">Consulta rápida, ações e histórico de movimentações</p>
+{% block content %}
+<div class="estoque-container">
+    <!-- Hero Header -->
+    <div class="estoque-hero">
+        <div class="estoque-hero-content">
+            <div>
+                <h1 class="estoque-title">
+                    <i class="bi bi-box-seam estoque-title-icon"></i>
+                    Controle de Estoque
+                </h1>
+                <p class="estoque-subtitle">Gestão completa de produtos, movimentações e histórico</p>
+            </div>
+            <div class="estoque-hero-actions">
+                {% if current_user.nivel in ('operador', 'admin', 'DEV') %}
+                <button type="button" class="btn-action btn-action-primary" data-bs-toggle="modal" data-bs-target="#modalNovoProduto">
+                    <i class="bi bi-plus-lg"></i>
+                    <span>Novo Produto</span>
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Ações Rápidas -->
+    <div class="actions-grid">
+        {% if current_user.nivel in ('operador', 'admin', 'DEV') %}
+        <button type="button" class="action-card action-primary" data-bs-toggle="modal" data-bs-target="#modalNovoProduto" style="border: none; background: none; cursor: pointer; text-align: center; padding: 1.5rem;">
+            <div class="action-icon">
+                <i class="bi bi-plus-circle"></i>
+            </div>
+            <div class="action-label">Adicionar Produto</div>
+        </button>
+        {% endif %}
+        <a href="{{ url_for('estoque.lista_produtos') }}" class="action-card action-success">
+            <div class="action-icon">
+                <i class="bi bi-arrow-left-right"></i>
+            </div>
+            <div class="action-label">Movimentar</div>
+        </a>
+        <a href="{{ url_for('estoque.lista_produtos') }}" class="action-card action-info">
+            <div class="action-icon">
+                <i class="bi bi-card-list"></i>
+            </div>
+            <div class="action-label">Visualizar</div>
+        </a>
+        <a href="{{ url_for('exportacao.exportar') }}" class="action-card action-warning">
+            <div class="action-icon">
+                <i class="bi bi-printer"></i>
+            </div>
+            <div class="action-label">Imprimir</div>
+        </a>
+        <a href="{{ url_for('relatorios.exportar_produtos') }}" class="action-card action-purple">
+            <div class="action-icon">
+                <i class="bi bi-download"></i>
+            </div>
+            <div class="action-label">Exportar</div>
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filters-card">
+        <div class="filters-header">
+            <h3 class="filters-title">
+                <i class="bi bi-funnel"></i>
+                Filtros de Busca
+            </h3>
+        </div>
+        <div class="filters-body">
+            <form method="get" action="{{ url_for('estoque.index') }}" class="filters-form">
+                <div class="filter-group">
+                    <label class="filter-label">
+                        <i class="bi bi-search"></i>
+                        Buscar Produto
+                    </label>
+                    <input type="text" name="busca" value="{{ busca }}" class="filter-input" placeholder="Código ou nome do produto">
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">
+                        <i class="bi bi-tags"></i>
+                        Categoria
+                    </label>
+                    <select name="cat" class="filter-select">
+                        <option value="">Todas as categorias</option>
+                        <option value="CX" {% if cat == 'CX' %}selected{% endif %}>Caixas</option>
+                        <option value="PC" {% if cat == 'PC' %}selected{% endif %}>Pacotes</option>
+                        <option value="VA" {% if cat == 'VA' %}selected{% endif %}>A vácuo</option>
+                        <option value="AV" {% if cat == 'AV' %}selected{% endif %}>Avulsos</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-filter">
+                    <i class="bi bi-search"></i>
+                    Filtrar
+                </button>
+            </form>
+        </div>
+        {% if busca or cat %}
+        <div class="filters-footer">
+            <div class="filter-badge">
+                <i class="bi bi-info-circle"></i>
+                <span>Filtros ativos: {% if busca %}"{{ busca }}"{% endif %}{% if busca and cat %} • {% endif %}{% if cat %}Categoria {{ cat }}{% endif %}</span>
+            </div>
+        </div>
+        {% endif %}
+        {% if produtos_pag %}
+        <div class="filters-footer">
+            <div class="filter-badge filter-badge-primary">
+                <i class="bi bi-box-seam"></i>
+                <span>{{ produtos_pag.total }} produtos encontrados</span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Produtos -->
+    <div class="products-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="bi bi-box-seam"></i>
+                Produtos em Estoque
+            </h2>
+        </div>
+        
+        {% if produtos_pag and produtos_pag.items %}
+        <div class="products-grid">
+            {% for p in produtos_pag.items %}
+            <div class="product-card {% if p.quantidade < p.estoque_minimo %}product-critical{% elif p.quantidade == p.estoque_minimo %}product-warning{% else %}product-ok{% endif %}">
+                <div class="product-header">
+                    <div class="product-code">{{ p.codigo }}</div>
+                    <div class="product-status-badge">
+                        {% if p.quantidade < p.estoque_minimo %}
+                        <span class="status-badge status-critical">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Crítico
+                        </span>
+                        {% elif p.quantidade == p.estoque_minimo %}
+                        <span class="status-badge status-warning">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Atenção
+                        </span>
+                        {% else %}
+                        <span class="status-badge status-ok">
+                            <i class="bi bi-check-circle"></i>
+                            OK
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="product-body">
+                    <h3 class="product-name">{{ p.nome }}</h3>
+                    <div class="product-stats">
+                        <div class="product-stat">
+                            <div class="stat-label">Estoque</div>
+                            <div class="stat-value stat-primary">{{ p.quantidade }}</div>
+                        </div>
+                        <div class="product-stat">
+                            <div class="stat-label">Mínimo</div>
+                            <div class="stat-value stat-secondary">{{ p.estoque_minimo }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-footer">
+                    <a href="{{ url_for('estoque.editar', id=p.id) }}" class="btn-product-action">
+                        <i class="bi bi-pencil"></i>
+                        Editar
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Paginação -->
+        <div class="pagination-wrapper">
+            <nav class="pagination-modern">
+                <a href="{{ url_for('estoque.index', ppage=produtos_pag.prev_num, busca=busca, cat=cat) }}" 
+                   class="pagination-btn {% if not produtos_pag.has_prev %}disabled{% endif %}">
+                    <i class="bi bi-chevron-left"></i>
+                    <span>Anterior</span>
+                </a>
+                <div class="pagination-info">
+                    <span class="pagination-text">Página</span>
+                    <span class="pagination-current">{{ produtos_pag.page }}</span>
+                    <span class="pagination-text">de</span>
+                    <span class="pagination-total">{{ produtos_pag.pages }}</span>
+                </div>
+                <a href="{{ url_for('estoque.index', ppage=produtos_pag.next_num, busca=busca, cat=cat) }}" 
+                   class="pagination-btn {% if not produtos_pag.has_next %}disabled{% endif %}">
+                    <span>Próxima</span>
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </nav>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="bi bi-inbox"></i>
+            </div>
+            <h3 class="empty-title">Nenhum produto encontrado</h3>
+            <p class="empty-text">Ajuste os filtros ou adicione um novo produto ao estoque.</p>
+            <a href="{{ url_for('estoque.lista_produtos') }}" class="btn-empty-action">
+                <i class="bi bi-plus-lg"></i>
+                Adicionar Produto
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Histórico -->
+    <div class="history-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="bi bi-clock-history"></i>
+                Histórico de Movimentações
+            </h2>
+        </div>
+        
+        {% if historico and historico.items %}
+        <div class="history-card">
+            <div class="history-table-wrapper">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Produto</th>
+                            <th>Tipo</th>
+                            <th>Quantidade</th>
+                            <th>Detalhes</th>
+                            <th>Usuário</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for h in historico.items %}
+                        <tr class="history-row">
+                            <td class="history-date">
+                                <i class="bi bi-calendar3"></i>
+                                {{ h.data.strftime('%d/%m/%Y %H:%M') if h.data else '-' }}
+                            </td>
+                            <td class="history-product">
+                                <strong>{{ h.product_name or (hist_code_map.get(h.product_id) if hist_code_map else '') }}</strong>
+                            </td>
+                            <td>
+                                {% if h.action == 'entrada' %}
+                                <span class="history-badge history-badge-success">
+                                    <i class="bi bi-arrow-down-circle"></i>
+                                    Entrada
+                                </span>
+                                {% else %}
+                                <span class="history-badge history-badge-danger">
+                                    <i class="bi bi-arrow-up-circle"></i>
+                                    Saída
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="history-quantity">
+                                <strong>{{ h.quantidade }}</strong>
+                            </td>
+                            <td class="history-details">{{ h.details or '-' }}</td>
+                            <td class="history-user">
+                                <i class="bi bi-person"></i>
+                                {{ h.usuario or '-' }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginação do Histórico -->
+            <div class="pagination-wrapper">
+                <nav class="pagination-modern">
+                    <a href="{{ url_for('estoque.index', page=historico.prev_num, busca=busca, cat=cat, ppage=produtos_pag.page if produtos_pag else 1) }}" 
+                       class="pagination-btn {% if not historico.has_prev %}disabled{% endif %}">
+                        <i class="bi bi-chevron-left"></i>
+                        <span>Anterior</span>
+                    </a>
+                    <div class="pagination-info">
+                        <span class="pagination-text">Página</span>
+                        <span class="pagination-current">{{ historico.page }}</span>
+                        <span class="pagination-text">de</span>
+                        <span class="pagination-total">{{ historico.pages }}</span>
+                    </div>
+                    <a href="{{ url_for('estoque.index', page=historico.next_num, busca=busca, cat=cat, ppage=produtos_pag.page if produtos_pag else 1) }}" 
+                       class="pagination-btn {% if not historico.has_next %}disabled{% endif %}">
+                        <span>Próxima</span>
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </nav>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="bi bi-clock-history"></i>
+            </div>
+            <h3 class="empty-title">Nenhuma movimentação recente</h3>
+            <p class="empty-text">Quando houver entradas ou saídas de produtos, elas aparecerão aqui.</p>
+        </div>
+        {% endif %}
     </div>
 </div>
+{% endblock %}
 
-<div class="estoque-actions mm-flex mm-gap-2 mm-mt-3" style="flex-wrap: wrap;">
-    <a href="{{ url_for('estoque.lista_produtos') }}" class="mm-btn mm-btn-primary">
-        <i class="bi bi-plus-lg"></i>
-        + Produto
-    </a>
-    <a href="{{ url_for('estoque.lista_produtos') }}" class="mm-btn mm-btn-secondary">
-        <i class="bi bi-arrow-left-right"></i>
-        Movimentar
-    </a>
-    <a href="{{ url_for('estoque.lista_produtos') }}" class="mm-btn mm-btn-outline">
-        <i class="bi bi-card-list"></i>
-        Visualizar
-    </a>
-    <a href="{{ url_for('exportacao.exportar') }}" class="mm-btn mm-btn-outline">
-        <i class="bi bi-printer"></i>
-        Imprimir
-    </a>
-    <a href="{{ url_for('relatorios.exportar_produtos') }}" class="mm-btn mm-btn-outline">
-        <i class="bi bi-download"></i>
-        Download
-    </a>
-</div>
+{% block scripts %}
 <style>
-    .estoque-actions .mm-btn { flex: 0 0 180px; height: 48px; }
-    @media (max-width: 768px) {
-        .estoque-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
-        .estoque-actions .mm-btn { width: 100%; height: 48px; display: flex; align-items: center; justify-content: center; padding: 0; white-space: nowrap; box-sizing: border-box; }
+/* Container */
+.estoque-container {
+    padding: 2rem;
+    max-width: 1600px;
+    margin: 0 auto;
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
     }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Hero Header */
+.estoque-hero {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 20px;
+    padding: 3rem 2.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 40px rgba(16, 185, 129, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.estoque-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: rotate 20s linear infinite;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.estoque-hero-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+}
+
+.estoque-title {
+    font-size: 3rem;
+    font-weight: 800;
+    color: white;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.estoque-title-icon {
+    font-size: 3.5rem;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.estoque-subtitle {
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-top: 0.5rem;
+}
+
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.75rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.btn-action-primary {
+    background: white;
+    color: #10b981;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.btn-action-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+/* Actions Grid */
+.actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.action-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    border: 2px solid transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+.action-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, var(--action-color), var(--action-color-light));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.action-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    border-color: var(--action-color);
+}
+
+.action-card:hover::before {
+    opacity: 0.05;
+}
+
+.action-primary { --action-color: #667eea; --action-color-light: #764ba2; }
+.action-success { --action-color: #10b981; --action-color-light: #34d399; }
+.action-info { --action-color: #3b82f6; --action-color-light: #60a5fa; }
+.action-warning { --action-color: #f59e0b; --action-color-light: #fbbf24; }
+.action-purple { --action-color: #8b5cf6; --action-color-light: #a78bfa; }
+
+.action-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    color: white;
+    background: linear-gradient(135deg, var(--action-color), var(--action-color-light));
+    margin: 0 auto 1rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    position: relative;
+    z-index: 1;
+}
+
+.action-label {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #1f2937;
+    position: relative;
+    z-index: 1;
+}
+
+/* Filters Card */
+.filters-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.filters-header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.filters-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.filters-title i {
+    color: #667eea;
+}
+
+.filters-form {
+    display: grid;
+    grid-template-columns: 2fr 1fr auto;
+    gap: 1rem;
+    align-items: end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.filter-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filter-label i {
+    color: #667eea;
+}
+
+.filter-input,
+.filter-select {
+    padding: 0.75rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.filter-input:focus,
+.filter-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.btn-filter {
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: fit-content;
+}
+
+.btn-filter:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.filters-footer {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f3f4f6;
+}
+
+.filter-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #f3f4f6;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.filter-badge-primary {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+    color: #667eea;
+    font-weight: 600;
+}
+
+/* Products Section */
+.products-section {
+    margin-bottom: 2rem;
+}
+
+.section-header {
+    margin-bottom: 1.5rem;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.section-title i {
+    color: #667eea;
+}
+
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.product-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.product-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--product-color);
+}
+
+.product-critical { --product-color: #ef4444; }
+.product-warning { --product-color: #f59e0b; }
+.product-ok { --product-color: #10b981; }
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    border-color: var(--product-color);
+}
+
+.product-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.product-code {
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-weight: 600;
+    background: #f3f4f6;
+    padding: 0.25rem 0.75rem;
+    border-radius: 6px;
+}
+
+.product-status-badge {
+    flex-shrink: 0;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-critical {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.status-warning {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.status-ok {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.product-body {
+    margin-bottom: 1rem;
+}
+
+.product-name {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 1rem 0;
+    line-height: 1.4;
+}
+
+.product-stats {
+    display: flex;
+    gap: 1rem;
+}
+
+.product-stat {
+    flex: 1;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.25rem;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.stat-primary {
+    color: #667eea;
+}
+
+.stat-secondary {
+    color: #6b7280;
+}
+
+.product-footer {
+    padding-top: 1rem;
+    border-top: 1px solid #f3f4f6;
+}
+
+.btn-product-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #f3f4f6;
+    color: #374151;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-product-action:hover {
+    background: #667eea;
+    color: white;
+    transform: translateX(3px);
+}
+
+/* History Section */
+.history-section {
+    margin-bottom: 2rem;
+}
+
+.history-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.history-table-wrapper {
+    overflow-x: auto;
+    margin-bottom: 1.5rem;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.history-table thead {
+    background: #f9fafb;
+}
+
+.history-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.history-row {
+    border-bottom: 1px solid #f3f4f6;
+    transition: background 0.2s ease;
+}
+
+.history-row:hover {
+    background: #f9fafb;
+}
+
+.history-table td {
+    padding: 1rem;
+    color: #1f2937;
+}
+
+.history-date {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.history-product {
+    font-weight: 600;
+}
+
+.history-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.history-badge-success {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.history-badge-danger {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.history-quantity {
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.history-details {
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.history-user {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+/* Pagination */
+.pagination-wrapper {
+    margin-top: 1.5rem;
+}
+
+.pagination-modern {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.pagination-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: white;
+    color: #374151;
+    text-decoration: none;
+    border-radius: 10px;
+    font-weight: 600;
+    border: 2px solid #e5e7eb;
+    transition: all 0.3s ease;
+}
+
+.pagination-btn:hover:not(.disabled) {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.pagination-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pagination-text {
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.pagination-current {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 0.375rem 0.75rem;
+    border-radius: 8px;
+    font-weight: 700;
+}
+
+.pagination-total {
+    color: #1f2937;
+    font-weight: 600;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+.empty-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: #667eea;
+}
+
+.empty-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 0.5rem 0;
+}
+
+.empty-text {
+    font-size: 1rem;
+    color: #6b7280;
+    margin: 0 0 1.5rem 0;
+}
+
+.btn-empty-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    text-decoration: none;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-empty-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .filters-form {
+        grid-template-columns: 1fr;
+    }
+    
+    .products-grid {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .estoque-container {
+        padding: 1rem;
+    }
+
+    .estoque-hero {
+        padding: 2rem 1.5rem;
+    }
+
+    .estoque-title {
+        font-size: 2rem;
+    }
+
+    .actions-grid {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+
+    .products-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .history-table-wrapper {
+        overflow-x: scroll;
+    }
+}
+
+/* Dark Mode */
+[data-theme="dark"] .filters-card,
+[data-theme="dark"] .product-card,
+[data-theme="dark"] .history-card,
+[data-theme="dark"] .action-card,
+[data-theme="dark"] .empty-state {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+[data-theme="dark"] .product-name,
+[data-theme="dark"] .section-title,
+[data-theme="dark"] .filters-title,
+[data-theme="dark"] .empty-title {
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .filter-label,
+[data-theme="dark"] .history-date,
+[data-theme="dark"] .history-details,
+[data-theme="dark"] .empty-text {
+    color: #9ca3af;
+}
+
+[data-theme="dark"] .filter-input,
+[data-theme="dark"] .filter-select {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .history-table thead {
+    background: #374151;
+}
+
+[data-theme="dark"] .history-row:hover {
+    background: #374151;
+}
 </style>
 
-<div class="mm-card mm-mb-6">
-    <div class="mm-card-header">
-        <h3 class="mm-card-title"><i class="bi bi-funnel me-2"></i>Filtros</h3>
-    </div>
-    <div class="mm-card-body">
-        <form method="get" action="{{ url_for('estoque.index') }}" class="mm-flex mm-gap-4 mm-flex-wrap mm-items-end">
-            <div class="mm-form-group" style="min-width: 220px;">
-                <label class="mm-label">Buscar</label>
-                <input type="text" name="busca" value="{{ busca }}" class="mm-input" placeholder="Código ou nome">
+<!-- Modal Novo Produto -->
+{% if current_user.nivel in ('operador', 'admin', 'DEV') %}
+<div class="modal fade" id="modalNovoProduto" tabindex="-1" aria-labelledby="modalNovoProdutoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border-radius: 16px 16px 0 0; padding: 1.5rem;">
+                <h5 class="modal-title" id="modalNovoProdutoLabel" style="font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 0.75rem;">
+                    <i class="bi bi-plus-circle"></i>
+                    Novo Produto
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
-            <div class="mm-form-group" style="min-width: 180px;">
-                <label class="mm-label">Categoria</label>
-                <select name="cat" class="mm-select">
-                    <option value="">Todas</option>
-                    <option value="CX" {% if cat == 'CX' %}selected{% endif %}>Caixas</option>
-                    <option value="PC" {% if cat == 'PC' %}selected{% endif %}>Pacotes</option>
-                    <option value="VA" {% if cat == 'VA' %}selected{% endif %}>A vácuo</option>
-                    <option value="AV" {% if cat == 'AV' %}selected{% endif %}>Avulsos</option>
-                </select>
+            <div class="modal-body" style="padding: 2rem;">
+                <form method="POST" action="{{ url_for('estoque.adicionar') }}" id="formNovoProduto">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" style="font-weight: 600; color: #374151; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="bi bi-tags" style="color: #667eea;"></i>
+                                Categoria <span style="color: #ef4444;">*</span>
+                            </label>
+                            <select name="categoria" class="form-select" required style="padding: 0.75rem 1rem; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 1rem; transition: all 0.3s ease;">
+                                <option value="AV" selected>Avulsos/Não categorizados</option>
+                                <option value="CX">Caixas</option>
+                                <option value="PC">Pacotes</option>
+                                <option value="VA">A vácuo</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" style="font-weight: 600; color: #374151; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="bi bi-box" style="color: #667eea;"></i>
+                                Nome do Produto <span style="color: #ef4444;">*</span>
+                            </label>
+                            <input type="text" name="nome" class="form-control" required placeholder="Digite o nome do produto" style="padding: 0.75rem 1rem; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 1rem; transition: all 0.3s ease;">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" style="font-weight: 600; color: #374151; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="bi bi-123" style="color: #667eea;"></i>
+                                Quantidade Inicial
+                            </label>
+                            <input type="number" name="quantidade" class="form-control" min="0" value="0" style="padding: 0.75rem 1rem; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 1rem; transition: all 0.3s ease;">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" style="font-weight: 600; color: #374151; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="bi bi-exclamation-triangle" style="color: #667eea;"></i>
+                                Estoque Mínimo
+                            </label>
+                            <input type="number" name="estoque_minimo" class="form-control" min="0" value="0" style="padding: 0.75rem 1rem; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 1rem; transition: all 0.3s ease;">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" style="font-weight: 600; color: #374151; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="bi bi-currency-dollar" style="color: #667eea;"></i>
+                                Preço de Custo
+                            </label>
+                            <input type="number" name="preco_custo" class="form-control" min="0" step="0.01" value="0.00" style="padding: 0.75rem 1rem; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 1rem; transition: all 0.3s ease;">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" style="font-weight: 600; color: #374151; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="bi bi-tag" style="color: #667eea;"></i>
+                                Preço de Venda
+                            </label>
+                            <input type="number" name="preco_venda" class="form-control" min="0" step="0.01" value="0.00" style="padding: 0.75rem 1rem; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 1rem; transition: all 0.3s ease;">
+                        </div>
+                    </div>
+                </form>
             </div>
-            <button type="submit" class="mm-btn mm-btn-primary">
-                <i class="bi bi-search"></i> Filtrar
-            </button>
-        </form>
-    </div>
-    {% if busca or cat %}
-    <div class="mm-card-footer">
-        <span class="mm-text-muted">Resultado filtrado{% if busca %} por "{{ busca }}"{% endif %}{% if cat %} • Categoria {{ cat }}{% endif %}</span>
-    </div>
-    {% endif %}
-    {% if produtos_pag %}
-    <div class="mm-card-footer">
-        <span class="mm-badge mm-badge-primary">{{ produtos_pag.total }} produtos</span>
-    </div>
-    {% endif %}
-</div>
-
-<div class="mm-card mm-mb-6">
-    <div class="mm-card-header">
-        <h3 class="mm-card-title"><i class="bi bi-box-seam me-2"></i>Produtos</h3>
-    </div>
-    <div class="mm-card-body">
-        {% if produtos_pag and produtos_pag.items %}
-        <div class="mm-table-wrapper">
-            <table class="mm-table">
-                <thead>
-                    <tr>
-                        <th>Código</th>
-                        <th>Produto</th>
-                        <th>Estoque</th>
-                        <th>Mínimo</th>
-                        <th>Status</th>
-                        <th class="text-end">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for p in produtos_pag.items %}
-                    <tr>
-                        <td>{{ p.codigo }}</td>
-                        <td><strong>{{ p.nome }}</strong></td>
-                        <td>{{ p.quantidade }}</td>
-                        <td>{{ p.estoque_minimo }}</td>
-                        <td>
-                            {% if p.quantidade < p.estoque_minimo %}
-                            <span class="mm-badge" style="background: rgba(239, 68, 68, 0.15); color: var(--mm-danger);">CRÍTICO</span>
-                            {% elif p.quantidade == p.estoque_minimo %}
-                            <span class="mm-badge" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning);">ATENÇÃO</span>
-                            {% else %}
-                            <span class="mm-badge" style="background: var(--mm-bg-tertiary); color: var(--mm-text-secondary);">OK</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-end">
-                            <a href="{{ url_for('estoque.editar', id=p.id) }}" class="mm-btn mm-btn-ghost mm-btn-sm"><i class="bi bi-pencil"></i></a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="modal-footer" style="padding: 1.5rem 2rem; border-top: 2px solid #f3f4f6; border-radius: 0 0 16px 16px;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="padding: 0.75rem 1.5rem; border-radius: 10px; font-weight: 600; border: 2px solid #e5e7eb; background: white; color: #374151;">
+                    <i class="bi bi-x-circle"></i>
+                    Cancelar
+                </button>
+                <button type="submit" form="formNovoProduto" class="btn btn-success" style="padding: 0.75rem 1.5rem; border-radius: 10px; font-weight: 600; background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; transition: all 0.3s ease;">
+                    <i class="bi bi-check-circle"></i>
+                    Adicionar Produto
+                </button>
+            </div>
         </div>
-        <nav class="mm-pagination mm-flex mm-items-center mm-justify-center mm-gap-2 mm-mt-4">
-            <a href="{{ url_for('estoque.index', ppage=produtos_pag.prev_num, busca=busca, cat=cat) }}" 
-               class="mm-btn mm-btn-outline mm-btn-sm {% if not produtos_pag.has_prev %}disabled{% endif %}">
-                <i class="bi bi-chevron-left"></i> Anterior
-            </a>
-            <span class="mm-text-muted" style="font-size: var(--mm-text-sm);">
-                Página {{ produtos_pag.page }} de {{ produtos_pag.pages }}
-            </span>
-            <a href="{{ url_for('estoque.index', ppage=produtos_pag.next_num, busca=busca, cat=cat) }}" 
-               class="mm-btn mm-btn-outline mm-btn-sm {% if not produtos_pag.has_next %}disabled{% endif %}">
-                Próxima <i class="bi bi-chevron-right"></i>
-            </a>
-        </nav>
-        {% else %}
-        <div class="mm-empty-state" style="text-align: center; padding: var(--mm-space-8);">
-            <div style="width: 60px; height: 60px; margin: 0 auto var(--mm-space-4); background: rgba(34, 197, 94, 0.1); border-radius: var(--mm-radius-full); display: flex; align-items: center; justify-content: center;">
-                <i class="bi bi-check-circle" style="font-size: 1.5rem; color: var(--mm-success);"></i>
-            </div>
-            <h4 class="mm-font-semibold mm-mb-2">Nenhum produto encontrado</h4>
-            <p class="mm-text-muted">Ajuste os filtros ou adicione um novo produto.</p>
-        </div>
-        {% endif %}
     </div>
 </div>
-
-<div class="mm-card">
-    <div class="mm-card-header">
-        <h3 class="mm-card-title"><i class="bi bi-clock-history me-2"></i>Histórico de Movimentações</h3>
-    </div>
-    <div class="mm-card-body">
-        {% if historico and historico.items %}
-        <div class="mm-table-wrapper">
-            <table class="mm-table">
-                <thead>
-                    <tr>
-                        <th>Data/Hora</th>
-                        <th>Produto</th>
-                        <th>Ação</th>
-                        <th>Quantidade</th>
-                        <th>Detalhes</th>
-                        <th>Usuário</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for h in historico.items %}
-                    <tr>
-                        <td>{{ h.data.strftime('%d/%m/%Y %H:%M') if h.data else '-' }}</td>
-                        <td>{{ h.product_name or (hist_code_map.get(h.product_id) if hist_code_map else '') }}</td>
-                        <td>{{ 'Entrada' if h.action == 'entrada' else 'Saída' }}</td>
-                        <td>{{ h.quantidade }}</td>
-                        <td>{{ h.details or '-' }}</td>
-                        <td class="mm-text-muted">{{ h.usuario or '-' }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        <nav class="mm-pagination mm-flex mm-items-center mm-justify-center mm-gap-2 mm-mt-4">
-            <a href="{{ url_for('estoque.index', page=historico.prev_num, busca=busca, cat=cat, ppage=produtos_pag.page if produtos_pag else 1) }}" 
-               class="mm-btn mm-btn-outline mm-btn-sm {% if not historico.has_prev %}disabled{% endif %}">
-                <i class="bi bi-chevron-left"></i> Anterior
-            </a>
-            <span class="mm-text-muted" style="font-size: var(--mm-text-sm);">
-                Página {{ historico.page }} de {{ historico.pages }}
-            </span>
-            <a href="{{ url_for('estoque.index', page=historico.next_num, busca=busca, cat=cat, ppage=produtos_pag.page if produtos_pag else 1) }}" 
-               class="mm-btn mm-btn-outline mm-btn-sm {% if not historico.has_next %}disabled{% endif %}">
-                Próxima <i class="bi bi-chevron-right"></i>
-            </a>
-        </nav>
-        {% else %}
-        <div class="mm-empty-state" style="text-align: center; padding: var(--mm-space-8);">
-            <div style="width: 60px; height: 60px; margin: 0 auto var(--mm-space-4); background: rgba(59, 130, 246, 0.1); border-radius: var(--mm-radius-full); display: flex; align-items: center; justify-content: center;">
-                <i class="bi bi-info-circle" style="font-size: 1.5rem; color: var(--mm-info);"></i>
-            </div>
-            <h4 class="mm-font-semibold mm-mb-2">Nenhuma movimentação recente</h4>
-            <p class="mm-text-muted">Quando houver entradas ou saídas, elas aparecerão aqui.</p>
-        </div>
-        {% endif %}
-    </div>
-</div>
-
+{% endif %}
 {% endblock %}

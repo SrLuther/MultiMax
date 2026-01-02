@@ -4,7 +4,7 @@ from functools import wraps
 from datetime import date, datetime, timedelta
 import hashlib
 from .. import db
-from ..models import Produto, Historico, Fornecedor, User, CleaningTask, NotificationRead, Collaborator, Recipe
+from ..models import Produto, Historico, User, CleaningTask, NotificationRead, Collaborator, Recipe
 
 bp = Blueprint('api', __name__, url_prefix='/api/v1')
 
@@ -85,8 +85,7 @@ def listar_produtos():
             'preco_custo': p.preco_custo,
             'preco_venda': p.preco_venda,
             'data_validade': p.data_validade.isoformat() if p.data_validade else None,
-            'lote': p.lote,
-            'fornecedor_id': p.fornecedor_id
+            'lote': p.lote
         } for p in produtos_pag.items],
         'total': produtos_pag.total,
         'page': page,
@@ -107,8 +106,7 @@ def obter_produto(id: int):
         'preco_custo': produto.preco_custo,
         'preco_venda': produto.preco_venda,
         'data_validade': produto.data_validade.isoformat() if produto.data_validade else None,
-        'lote': produto.lote,
-        'fornecedor_id': produto.fornecedor_id
+        'lote': produto.lote
     })
 
 @bp.route('/produtos', methods=['POST'])
@@ -146,7 +144,6 @@ def criar_produto():
             pass
     
     produto.lote = data.get('lote')
-    produto.fornecedor_id = data.get('fornecedor_id')
     
     db.session.add(produto)
     db.session.commit()
@@ -186,8 +183,6 @@ def atualizar_produto(id: int):
             produto.data_validade = None
     if 'lote' in data:
         produto.lote = data['lote']
-    if 'fornecedor_id' in data:
-        produto.fornecedor_id = data['fornecedor_id']
     
     db.session.commit()
     
@@ -271,22 +266,6 @@ def saida_produto(id: int):
     return jsonify({
         'message': 'Saída registrada com sucesso',
         'novo_estoque': produto.quantidade
-    })
-
-@bp.route('/fornecedores', methods=['GET'])
-@api_auth_required
-def listar_fornecedores():
-    fornecedores = Fornecedor.query.order_by(Fornecedor.nome.asc()).all()
-    return jsonify({
-        'fornecedores': [{
-            'id': f.id,
-            'nome': f.nome,
-            'cnpj': f.cnpj,
-            'telefone': f.telefone,
-            'email': f.email,
-            'endereco': f.endereco,
-            'ativo': f.ativo
-        } for f in fornecedores]
     })
 
 @bp.route('/historico', methods=['GET'])
@@ -500,21 +479,6 @@ def global_search():
         pass
     
     try:
-        fornecedores = Fornecedor.query.filter(
-            Fornecedor.nome.ilike(f'%{q}%')
-        ).limit(3).all()
-        for f in fornecedores:
-            results.append({
-                'type': 'fornecedor',
-                'icon': 'truck',
-                'title': f.nome,
-                'subtitle': f.telefone or f.email or '',
-                'url': f'/fornecedores/editar/{f.id}'
-            })
-    except Exception:
-        pass
-    
-    try:
         colaboradores = Collaborator.query.filter(
             Collaborator.name.ilike(f'%{q}%')
         ).limit(3).all()
@@ -548,9 +512,7 @@ def global_search():
         {'name': 'Dashboard', 'url': '/home/', 'icon': 'house-door'},
         {'name': 'Estoque', 'url': '/estoque', 'icon': 'box-seam'},
         {'name': 'Cronograma', 'url': '/cronograma/', 'icon': 'calendar-check'},
-        {'name': 'Fornecedores', 'url': '/fornecedores/', 'icon': 'truck'},
         {'name': 'Relatórios', 'url': '/relatorios/', 'icon': 'file-earmark-bar-graph'},
-        {'name': 'Previsão', 'url': '/previsao/', 'icon': 'graph-up-arrow'},
         {'name': 'Carnes', 'url': '/carnes/', 'icon': 'basket'},
         {'name': 'Receitas', 'url': '/receitas/', 'icon': 'journal-text'},
         {'name': 'Escalas', 'url': '/colaboradores/escala', 'icon': 'people'},

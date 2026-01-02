@@ -1,0 +1,333 @@
+{% extends 'base.html' %}
+{% block title %}Gestão Unificada de Horas e Folgas — MultiMax{% endblock %}
+{% block breadcrumb %}
+<span class="mm-breadcrumb-separator">/</span>
+<span><a href="{{ url_for('jornada.index') }}">Jornada</a></span>
+<span class="mm-breadcrumb-separator">/</span>
+<span>Unificado</span>
+{% endblock %}
+
+{% block content %}
+<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
+    <div>
+        <h1 class="mm-page-title">
+            <i class="bi bi-calendar-check mm-text-primary"></i>
+            Gestão Unificada de Horas e Folgas
+        </h1>
+        <p class="mm-text-muted">Gerencie horas extras, folgas adicionais e folgas usadas em um único lugar</p>
+    </div>
+    <a href="{{ url_for('jornada.index') }}" class="mm-btn mm-btn-outline">
+        <i class="bi bi-arrow-left"></i> Voltar
+    </a>
+</div>
+
+<!-- Filtros -->
+<div class="mm-card mm-mb-6">
+    <div class="mm-card-body">
+        <form method="get" action="{{ url_for('jornada.unificado') }}" class="mm-flex mm-gap-3 mm-items-end">
+            <div class="mm-form-group" style="flex: 1;">
+                <label class="mm-label">Colaborador</label>
+                <select name="collaborator_id" class="mm-input" onchange="this.form.submit()">
+                    <option value="">— Selecione um colaborador —</option>
+                    {% for c in colaboradores %}
+                    <option value="{{ c.id }}" {% if collaborator_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mm-form-group">
+                <label class="mm-label">Data Início</label>
+                <input type="date" name="inicio" class="mm-input" value="{{ data_inicio }}">
+            </div>
+            <div class="mm-form-group">
+                <label class="mm-label">Data Fim</label>
+                <input type="date" name="fim" class="mm-input" value="{{ data_fim }}">
+            </div>
+            <button type="submit" class="mm-btn mm-btn-primary">
+                <i class="bi bi-search"></i> Buscar
+            </button>
+            {% if current_user.nivel in ['admin', 'DEV'] %}
+            <form method="post" action="{{ url_for('jornada.unificado_sincronizar') }}" style="display: inline;">
+                {% if collaborator_id %}
+                <input type="hidden" name="collaborator_id" value="{{ collaborator_id }}">
+                {% endif %}
+                <button type="submit" class="mm-btn mm-btn-outline" onclick="return confirm('Sincronizar dados das tabelas antigas para a tabela unificada?')">
+                    <i class="bi bi-arrow-repeat"></i> Sincronizar
+                </button>
+            </form>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+{% if collaborator_id %}
+<!-- Resumo -->
+<div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--mm-primary);">
+            <i class="bi bi-clock"></i>
+        </div>
+        <div class="mm-kpi-label">Horas Totais</div>
+        <div class="mm-kpi-value">{{ '%.2f'|format(total_hours) }}h</div>
+        <div class="mm-text-muted" style="font-size: 0.75rem; margin-top: 4px;">Residual: {{ '%.2f'|format(residual_hours) }}h</div>
+    </div>
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(16, 185, 129, 0.15); color: var(--mm-success);">
+            <i class="bi bi-calendar-plus"></i>
+        </div>
+        <div class="mm-kpi-label">Folgas Adicionais</div>
+        <div class="mm-kpi-value">{{ total_credits }} dias</div>
+    </div>
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(239, 68, 68, 0.15); color: var(--mm-danger);">
+            <i class="bi bi-calendar-minus"></i>
+        </div>
+        <div class="mm-kpi-label">Folgas Usadas</div>
+        <div class="mm-kpi-value">{{ total_used }} dias</div>
+    </div>
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning);">
+            <i class="bi bi-cash-coin"></i>
+        </div>
+        <div class="mm-kpi-label">Saldo Final</div>
+        <div class="mm-kpi-value {% if saldo_dias >= 0 %}mm-text-success{% else %}mm-text-danger{% endif %}">
+            {{ saldo_dias }} dias
+        </div>
+    </div>
+</div>
+
+<!-- Botão de Conversão (Admin/DEV) -->
+{% if collaborator_id and current_user.nivel in ['admin', 'DEV'] %}
+<div class="mm-card mm-mb-6">
+    <div class="mm-card-body">
+        <form method="post" action="{{ url_for('usuarios.gestao_colabs_horas_verificar_conversao') }}" onsubmit="return confirm('Converter horas em dias? O sistema verificará quantas horas já foram convertidas e converterá apenas as horas que faltam (8h = 1 dia).');">
+            <input type="hidden" name="collaborator_id" value="{{ collaborator_id }}">
+            <button type="submit" class="mm-btn mm-btn-primary">
+                <i class="bi bi-arrow-repeat"></i>
+                Converter Horas em Dias
+            </button>
+            <span class="mm-text-muted mm-ml-3">
+                <i class="bi bi-info-circle"></i>
+                Converte apenas as horas que ainda não foram convertidas (8h = 1 dia)
+            </span>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<!-- Formulário de Adição -->
+{% if current_user.nivel in ['admin', 'DEV', 'operador'] %}
+<div class="mm-card mm-mb-6">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <i class="bi bi-plus-circle"></i>
+            Adicionar Registro
+        </h3>
+    </div>
+    <div class="mm-card-body">
+        <form method="post" action="{{ url_for('jornada.unificado_adicionar') }}" id="addForm">
+            <input type="hidden" name="collaborator_id" value="{{ collaborator_id }}">
+            <div class="mm-grid mm-grid-cols-4 mm-gap-4">
+                <div class="mm-form-group">
+                    <label class="mm-label">Tipo de Registro</label>
+                    <select name="record_type" id="recordType" class="mm-input" required onchange="updateFormFields()">
+                        <option value="">— Selecione —</option>
+                        <option value="horas">Horas Extras</option>
+                        <option value="folga_adicional">Folga Adicional</option>
+                        <option value="folga_usada">Folga Usada</option>
+                        <option value="conversao">Conversão em Dinheiro</option>
+                    </select>
+                </div>
+                <div class="mm-form-group">
+                    <label class="mm-label">Data</label>
+                    <input type="date" name="date" id="dateInput" class="mm-input" required>
+                </div>
+                <div class="mm-form-group" id="hoursField" style="display: none;">
+                    <label class="mm-label">Horas</label>
+                    <input type="number" name="hours" step="0.25" class="mm-input" placeholder="ex: 2.5">
+                </div>
+                <div class="mm-form-group" id="daysField" style="display: none;">
+                    <label class="mm-label">Dias</label>
+                    <input type="number" name="days" class="mm-input" value="1" min="1">
+                </div>
+                <div class="mm-form-group" id="originField" style="display: none;">
+                    <label class="mm-label">Origem</label>
+                    <select name="origin" class="mm-input">
+                        <option value="manual">Manual</option>
+                        <option value="excel">Excel</option>
+                        <option value="horas">Horas</option>
+                        <option value="sistema">Sistema</option>
+                    </select>
+                </div>
+                <div class="mm-form-group" id="amountField" style="display: none;">
+                    <label class="mm-label">Valor Pago (R$)</label>
+                    <input type="number" name="amount_paid" step="0.01" class="mm-input" placeholder="0.00">
+                </div>
+                <div class="mm-form-group" id="rateField" style="display: none;">
+                    <label class="mm-label">Valor por Dia (R$)</label>
+                    <input type="number" name="rate_per_day" step="0.01" class="mm-input" value="65.00">
+                </div>
+                <div class="mm-form-group" style="grid-column: span 4;">
+                    <label class="mm-label">Observações</label>
+                    <input type="text" name="notes" class="mm-input" placeholder="Motivo ou observações">
+                </div>
+            </div>
+            <div class="mm-mt-4">
+                <button type="submit" class="mm-btn mm-btn-primary">
+                    <i class="bi bi-check-circle"></i>
+                    Adicionar Registro
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<!-- Lista de Registros -->
+<div class="mm-card">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <i class="bi bi-list-ul"></i>
+            Registros
+        </h3>
+    </div>
+    <div class="mm-card-body">
+        {% if records %}
+        <div class="mm-table-wrapper">
+            <table class="mm-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th style="text-align: right;">Valor</th>
+                        <th>Origem</th>
+                        <th>Observações</th>
+                        <th>Criado por</th>
+                        {% if current_user.nivel in ['admin', 'DEV'] %}
+                        <th style="text-align: center;">Ações</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in records %}
+                    <tr>
+                        <td>{{ r.date.strftime('%d/%m/%Y') }}</td>
+                        <td>
+                            {% if r.record_type == 'horas' %}
+                            <span class="mm-badge mm-badge-info">Horas Extras</span>
+                            {% elif r.record_type == 'folga_adicional' %}
+                            <span class="mm-badge mm-badge-success">Folga Adicional</span>
+                            {% elif r.record_type == 'folga_usada' %}
+                            <span class="mm-badge mm-badge-danger">Folga Usada</span>
+                            {% elif r.record_type == 'conversao' %}
+                            <span class="mm-badge mm-badge-warning">Conversão</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right;">
+                            {% if r.record_type == 'horas' %}
+                            <span class="{% if r.hours > 0 %}mm-text-success{% elif r.hours < 0 %}mm-text-danger{% endif %}">
+                                {{ '%.2f'|format(r.hours) }}h
+                            </span>
+                            {% elif r.record_type == 'folga_adicional' %}
+                            <span class="mm-text-success">+{{ r.days }} dia(s)</span>
+                            {% elif r.record_type == 'folga_usada' %}
+                            <span class="mm-text-danger">-{{ r.days }} dia(s)</span>
+                            {% elif r.record_type == 'conversao' %}
+                            <span class="mm-text-warning">
+                                {{ r.days }} dia(s) = R$ {{ '%.2f'|format(r.amount_paid or 0) }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>{{ r.origin or '-' }}</td>
+                        <td>{{ r.notes or '-' }}</td>
+                        <td>{{ r.created_by or 'Sistema' }}</td>
+                        {% if current_user.nivel in ['admin', 'DEV'] %}
+                        <td style="text-align: center;">
+                            <form method="post" action="{{ url_for('jornada.unificado_excluir', id=r.id) }}" 
+                                  onsubmit="return confirm('Tem certeza que deseja excluir este registro?');" 
+                                  style="display: inline;">
+                                <button type="submit" class="mm-btn mm-btn-sm mm-btn-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="mm-empty-state">
+            <i class="bi bi-inbox"></i>
+            <p>Nenhum registro encontrado para este colaborador.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<div class="mm-card">
+    <div class="mm-card-body">
+        <div class="mm-empty-state">
+            <i class="bi bi-person-check"></i>
+            <p>Selecione um colaborador para visualizar os registros.</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+// Definir data padrão
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.getElementById('dateInput');
+    if (dateInput && !dateInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+    }
+});
+
+function updateFormFields() {
+    const type = document.getElementById('recordType').value;
+    const hoursField = document.getElementById('hoursField');
+    const daysField = document.getElementById('daysField');
+    const originField = document.getElementById('originField');
+    const amountField = document.getElementById('amountField');
+    const rateField = document.getElementById('rateField');
+    
+    // Esconder todos os campos
+    hoursField.style.display = 'none';
+    daysField.style.display = 'none';
+    originField.style.display = 'none';
+    amountField.style.display = 'none';
+    rateField.style.display = 'none';
+    
+    // Remover required de todos
+    hoursField.querySelector('input').required = false;
+    daysField.querySelector('input').required = false;
+    if (amountField.querySelector('input')) {
+        amountField.querySelector('input').required = false;
+    }
+    
+    // Mostrar campos relevantes
+    if (type === 'horas') {
+        hoursField.style.display = 'block';
+        hoursField.querySelector('input').required = true;
+    } else if (type === 'folga_adicional') {
+        daysField.style.display = 'block';
+        originField.style.display = 'block';
+        daysField.querySelector('input').required = true;
+    } else if (type === 'folga_usada') {
+        daysField.style.display = 'block';
+        daysField.querySelector('input').required = true;
+    } else if (type === 'conversao') {
+        daysField.style.display = 'block';
+        amountField.style.display = 'block';
+        rateField.style.display = 'block';
+        daysField.querySelector('input').required = true;
+        if (amountField.querySelector('input')) {
+            amountField.querySelector('input').required = true;
+        }
+    }
+}
+</script>
+{% endblock %}
+

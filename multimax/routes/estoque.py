@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
 from flask_login import login_required, current_user
 from .. import db
-from ..models import Produto, Historico, Fornecedor
+from ..models import Produto, Historico
 from ..services.notificacao_service import registrar_evento
 from typing import cast
 from datetime import datetime, timedelta, date
@@ -385,8 +385,12 @@ def adicionar():
         flash('Você não tem permissão para adicionar produtos.', 'danger')
         return redirect(url_for('estoque.index'))
     try:
-        if Produto.query.filter_by(nome=request.form['nome']).first():
-            flash(f'Produto com o nome "{request.form["nome"]}" já existe.', 'danger')
+        nome = request.form.get('nome', '').strip()
+        if not nome:
+            flash('O nome do produto é obrigatório.', 'danger')
+            return redirect(url_for('estoque.index'))
+        if Produto.query.filter_by(nome=nome).first():
+            flash(f'Produto com o nome "{nome}" já existe.', 'danger')
             return redirect(url_for('estoque.index'))
         categoria = request.form.get('categoria', 'AV').strip().upper()
         prefix_map = {
@@ -411,9 +415,15 @@ def adicionar():
         proximo_codigo = gerar_codigo(prefix)
         new_produto = Produto()
         new_produto.codigo = proximo_codigo
-        new_produto.nome = request.form['nome']
-        new_produto.quantidade = int(request.form['quantidade'])
-        new_produto.estoque_minimo = int(request.form['estoque_minimo'])
+        new_produto.nome = nome
+        try:
+            new_produto.quantidade = int(request.form.get('quantidade', '0') or '0')
+        except (ValueError, TypeError):
+            new_produto.quantidade = 0
+        try:
+            new_produto.estoque_minimo = int(request.form.get('estoque_minimo', '0') or '0')
+        except (ValueError, TypeError):
+            new_produto.estoque_minimo = 0
         new_produto.preco_custo = float(request.form.get('preco_custo', '0'))
         new_produto.preco_venda = float(request.form.get('preco_venda', '0'))
         db.session.add(new_produto)
@@ -445,7 +455,12 @@ def entrada(id: int):
         return redirect(url_for('estoque.index'))
     produto = Produto.query.get_or_404(id)
     try:
-        quantidade = int(request.form['quantidade'])
+        quantidade_str = request.form.get('quantidade', '0') or '0'
+        try:
+            quantidade = int(quantidade_str)
+        except (ValueError, TypeError):
+            flash('Quantidade inválida.', 'danger')
+            return redirect(url_for('estoque.index'))
         if quantidade <= 0:
             flash('A quantidade deve ser positiva.', 'warning')
             return redirect(url_for('estoque.index'))
@@ -476,16 +491,13 @@ def saida(id: int):
         return redirect(url_for('estoque.index'))
     produto = Produto.query.get_or_404(id)
     
-    # Verificar se há alertas de temperatura bloqueando o produto
-    from ..models import TemperatureProductAlert, ProductLot
-    lotes = ProductLot.query.filter_by(produto_id=id, ativo=True).all()
-    for lot in lotes:
-        alerta = TemperatureProductAlert.query.filter_by(lot_id=lot.id, bloqueado=True).first()
-        if alerta:
-            flash(f'Produto bloqueado por alerta de temperatura no lote {lot.lote_codigo}. Resolva o alerta antes de fazer saída.', 'danger')
-            return redirect(url_for('estoque.index'))
     try:
-        quantidade = int(request.form['quantidade'])
+        quantidade_str = request.form.get('quantidade', '0') or '0'
+        try:
+            quantidade = int(quantidade_str)
+        except (ValueError, TypeError):
+            flash('Quantidade inválida.', 'danger')
+            return redirect(url_for('estoque.index'))
         if quantidade <= 0:
             flash('A quantidade deve ser positiva.', 'warning')
             return redirect(url_for('estoque.index'))
@@ -581,12 +593,7 @@ def editar(id: int):
             db.session.rollback()
             flash(f'Erro ao editar produto: {e}', 'danger')
         return redirect(url_for('estoque.index'))
-    fornecedores = Fornecedor.query.filter_by(ativo=True).order_by(Fornecedor.nome.asc()).all()
-    if produto.fornecedor_id:
-        fornecedor_atual = Fornecedor.query.get(produto.fornecedor_id)
-        if fornecedor_atual and fornecedor_atual not in fornecedores:
-            fornecedores = [fornecedor_atual] + fornecedores
-    return render_template('editar_produto.html', produto=produto, fornecedores=fornecedores, active_page='index', today=date.today())
+    return render_template('editar_produto.html', produto=produto, active_page='index', today=date.today())
 
 @bp.route('/excluir/<int:id>')
 @login_required

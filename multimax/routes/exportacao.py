@@ -9,7 +9,7 @@ from reportlab.lib.units import inch, cm
 from flask import Blueprint, redirect, url_for, flash, send_file, request
 from flask_login import login_required, current_user
 from ..models import Produto, CleaningTask as CleaningTaskModel, CleaningHistory as CleaningHistoryModel, Historico, MeatReception, MeatCarrier, MeatPart, User, Recipe, RecipeIngredient
-from ..models import Collaborator, HourBankEntry, LeaveCredit, LeaveAssignment, LeaveConversion
+from ..models import Collaborator, TimeOffRecord
 from sqlalchemy import func
 from flask import render_template
 from io import BytesIO
@@ -1169,25 +1169,30 @@ def exportar_jornada_pdf():
         targets = colaboradores if not collab_id else [c for c in colaboradores if c.id == collab_id]
         for c in targets:
             try:
-                hq = _range_filter(HourBankEntry.query.filter(HourBankEntry.collaborator_id == c.id), HourBankEntry.date)
-                cq = _range_filter(LeaveCredit.query.filter(LeaveCredit.collaborator_id == c.id), LeaveCredit.date)
-                aq = _range_filter(LeaveAssignment.query.filter(LeaveAssignment.collaborator_id == c.id), LeaveAssignment.date)
-                vq = _range_filter(LeaveConversion.query.filter(LeaveConversion.collaborator_id == c.id), LeaveConversion.date)
-                hsum = float(hq.with_entities(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).scalar() or 0.0)
-                residual_hours = (hsum % 8.0) if hsum >= 0.0 else - ((-hsum) % 8.0)
-                credits_sum = int(cq.with_entities(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).scalar() or 0)
-                assigned_sum = int(aq.with_entities(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).scalar() or 0)
-                converted_sum = int(vq.with_entities(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).scalar() or 0)
-                saldo_days = credits_sum - assigned_sum - converted_sum
+                hq = _range_filter(TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == c.id, TimeOffRecord.record_type == 'horas'), TimeOffRecord.date)
+                cq = _range_filter(TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == c.id, TimeOffRecord.record_type == 'folga_adicional'), TimeOffRecord.date)
+                aq = _range_filter(TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == c.id, TimeOffRecord.record_type == 'folga_usada'), TimeOffRecord.date)
+                vq = _range_filter(TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == c.id, TimeOffRecord.record_type == 'conversao'), TimeOffRecord.date)
+                # Calcular total bruto de horas (somando apenas horas positivas)
+                total_bruto_hours = sum(float(e.hours or 0.0) for e in hq.all() if (e.hours or 0.0) > 0)
+                # Calcular dias convertidos das horas brutas (8h = 1 dia)
+                days_from_hours = int(total_bruto_hours // 8.0) if total_bruto_hours >= 0.0 else 0
+                # Horas restantes após conversão
+                residual_hours = (total_bruto_hours % 8.0) if total_bruto_hours >= 0.0 else 0.0
+                credits_sum = int(cq.with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
+                assigned_sum = int(aq.with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
+                converted_sum = int(vq.with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
+                # Saldo de dias = folgas adicionais + dias convertidos das horas brutas - folgas usadas - conversões em dinheiro
+                saldo_days = credits_sum + days_from_hours - assigned_sum - converted_sum
                 resumo.append({'id': c.id, 'name': c.name, 'residual_hours': residual_hours, 'saldo_days': saldo_days})
-                for e in hq.order_by(HourBankEntry.date.desc()).all():
-                    eventos.append(['horas', e.date.strftime('%d/%m/%Y'), c.name, f"{float(e.hours or 0.0):.2f} h", e.reason or ''])
-                for cr in cq.order_by(LeaveCredit.date.desc()).all():
-                    eventos.append(['dias_add', cr.date.strftime('%d/%m/%Y'), c.name, f"+{int(cr.amount_days or 0)} dia(s)", cr.notes or ''])
-                for a in aq.order_by(LeaveAssignment.date.desc()).all():
-                    eventos.append(['dias_uso', a.date.strftime('%d/%m/%Y'), c.name, f"-{int(a.days_used or 0)} dia(s)", a.notes or ''])
-                for v in vq.order_by(LeaveConversion.date.desc()).all():
-                    eventos.append(['dias_pago', v.date.strftime('%d/%m/%Y'), c.name, f"{int(v.amount_days or 0)} dia(s) — R$ {float(v.amount_paid or 0):.2f}", v.notes or ''])
+                for e in hq.order_by(TimeOffRecord.date.desc()).all():
+                    eventos.append(['horas', e.date.strftime('%d/%m/%Y'), c.name, f"{float(e.hours or 0.0):.2f} h", e.notes or ''])
+                for cr in cq.order_by(TimeOffRecord.date.desc()).all():
+                    eventos.append(['dias_add', cr.date.strftime('%d/%m/%Y'), c.name, f"+{int(cr.days or 0)} dia(s)", cr.notes or ''])
+                for a in aq.order_by(TimeOffRecord.date.desc()).all():
+                    eventos.append(['dias_uso', a.date.strftime('%d/%m/%Y'), c.name, f"-{int(a.days or 0)} dia(s)", a.notes or ''])
+                for v in vq.order_by(TimeOffRecord.date.desc()).all():
+                    eventos.append(['dias_pago', v.date.strftime('%d/%m/%Y'), c.name, f"{int(v.days or 0)} dia(s) — R$ {float(v.amount_paid or 0):.2f}", v.notes or ''])
             except Exception:
                 pass
         eventos.sort(key=lambda it: (it[2], it[1]), reverse=True)

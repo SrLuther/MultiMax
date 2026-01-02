@@ -1,151 +1,250 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container-fluid mm-animate-fade-in">
-    <!-- Cabeçalho do Dashboard -->
-    <div class="mm-flex mm-items-center mm-justify-between mm-mb-6">
-        <div>
-            <h1 class="mm-text-3xl mm-font-bold mm-text-primary mm-m-0">
-                Dashboard
-            </h1>
-            <p class="mm-text-muted mm-m-0" style="margin-top: var(--mm-space-1);">
-                Visão geral do sistema
-            </p>
+<div class="dashboard-container">
+    <!-- Hero Header -->
+    <div class="dashboard-hero">
+        <div class="dashboard-hero-content">
+            <div>
+                <h1 class="dashboard-title">
+                    <i class="bi bi-speedometer2 dashboard-title-icon"></i>
+                    Dashboard
+                </h1>
+                <p class="dashboard-subtitle">Visão geral do sistema MultiMax</p>
+            </div>
+            <div class="dashboard-hero-actions">
+                <a href="{{ url_for('estoque.index') }}" class="btn-modern btn-primary-modern">
+                    <i class="bi bi-box-seam"></i>
+                    <span>Ver Estoque</span>
+                </a>
+            </div>
         </div>
-        <div class="mm-flex mm-gap-2">
-            <a href="{{ url_for('estoque.index') }}" class="mm-btn mm-btn-primary">
-                <i class="bi bi-plus-lg"></i>
-                Ver Estoque
+    </div>
+
+    <!-- Métricas Principais -->
+    <div class="metrics-grid">
+        <div class="metric-card metric-primary">
+            <div class="metric-icon">
+                <i class="bi bi-box-seam"></i>
+            </div>
+            <div class="metric-content">
+                <div class="metric-label">Total de Produtos</div>
+                <div class="metric-value">{{ metrics.total_produtos or 0 }}</div>
+            </div>
+            <div class="metric-decoration"></div>
+        </div>
+
+        <div class="metric-card metric-warning">
+            <div class="metric-icon">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+            <div class="metric-content">
+                <div class="metric-label">Estoque Crítico</div>
+                <div class="metric-value">{{ metrics.produtos_baixo_estoque or 0 }}</div>
+            </div>
+            <div class="metric-decoration"></div>
+        </div>
+
+        <div class="metric-card metric-success">
+            <div class="metric-icon">
+                <i class="bi bi-currency-dollar"></i>
+            </div>
+            <div class="metric-content">
+                <div class="metric-label">Valor do Estoque</div>
+                <div class="metric-value">R$ {{ "%.2f"|format(metrics.valor_total_estoque or 0)|replace(".", ",") }}</div>
+            </div>
+            <div class="metric-decoration"></div>
+        </div>
+
+        <div class="metric-card metric-info">
+            <div class="metric-icon">
+                <i class="bi bi-people"></i>
+            </div>
+            <div class="metric-content">
+                <div class="metric-label">Colaboradores Ativos</div>
+                <div class="metric-value">{{ metrics.colaboradores_ativos or 0 }}</div>
+            </div>
+            <div class="metric-decoration"></div>
+        </div>
+
+        <div class="metric-card metric-danger">
+            <div class="metric-icon">
+                <i class="bi bi-calendar-x"></i>
+            </div>
+            <div class="metric-content">
+                <div class="metric-label">Tarefas Atrasadas</div>
+                <div class="metric-value">{{ metrics.tarefas_atrasadas or 0 }}</div>
+            </div>
+            <div class="metric-decoration"></div>
+        </div>
+
+        <div class="metric-card metric-purple">
+            <div class="metric-icon">
+                <i class="bi bi-calendar-check"></i>
+            </div>
+            <div class="metric-content">
+                <div class="metric-label">Tarefas Próximas</div>
+                <div class="metric-value">{{ metrics.tarefas_proximas or 0 }}</div>
+            </div>
+            <div class="metric-decoration"></div>
+        </div>
+
+        <div class="metric-card metric-teal">
+            <div class="metric-icon">
+                <i class="bi bi-arrow-down-circle"></i>
+            </div>
+            <div class="metric-content">
+                <div class="metric-label">Entradas (Mês)</div>
+                <div class="metric-value">{{ metrics.entradas_mes or 0 }}</div>
+            </div>
+            <div class="metric-decoration"></div>
+        </div>
+
+        <div class="metric-card metric-orange">
+            <div class="metric-icon">
+                <i class="bi bi-arrow-up-circle"></i>
+            </div>
+            <div class="metric-content">
+                <div class="metric-label">Saídas (Mês)</div>
+                <div class="metric-value">{{ metrics.saidas_mes or 0 }}</div>
+            </div>
+            <div class="metric-decoration"></div>
+        </div>
+    </div>
+
+    <!-- Grid de Atalhos -->
+    <div class="shortcuts-section">
+        <h2 class="section-title">
+            <i class="bi bi-grid-3x3-gap"></i>
+            Acesso Rápido
+        </h2>
+        <div class="shortcuts-grid">
+            <a href="{{ url_for('estoque.index') }}" class="shortcut-card shortcut-primary">
+                <div class="shortcut-icon">
+                    <i class="bi bi-box-seam"></i>
+                </div>
+                <div class="shortcut-label">Estoque</div>
+            </a>
+
+            <a href="{{ url_for('cronograma.cronograma') }}" class="shortcut-card shortcut-info">
+                <div class="shortcut-icon">
+                    <i class="bi bi-calendar-check"></i>
+                </div>
+                <div class="shortcut-label">Cronograma</div>
+            </a>
+
+            <a href="{{ url_for('carnes.index') }}" class="shortcut-card shortcut-success">
+                <div class="shortcut-icon">
+                    <i class="bi bi-basket"></i>
+                </div>
+                <div class="shortcut-label">Carnes</div>
+            </a>
+
+            <a href="{{ url_for('receitas.index') }}" class="shortcut-card shortcut-warning">
+                <div class="shortcut-icon">
+                    <i class="bi bi-journal-text"></i>
+                </div>
+                <div class="shortcut-label">Receitas</div>
+            </a>
+
+            <a href="{{ url_for('colaboradores.escala') }}" class="shortcut-card shortcut-purple">
+                <div class="shortcut-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+                <div class="shortcut-label">Escalas</div>
+            </a>
+
+            <a href="{{ url_for('jornada.index') }}" class="shortcut-card shortcut-primary">
+                <div class="shortcut-icon">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+                <div class="shortcut-label">Jornada</div>
+            </a>
+
+            <a href="{{ url_for('temporarios.index') }}" class="shortcut-card shortcut-teal">
+                <div class="shortcut-icon">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+                <div class="shortcut-label">Temporários</div>
+            </a>
+
+            <a href="{{ url_for('relatorios.index') }}" class="shortcut-card shortcut-indigo">
+                <div class="shortcut-icon">
+                    <i class="bi bi-file-earmark-bar-graph"></i>
+                </div>
+                <div class="shortcut-label">Relatórios</div>
+            </a>
+
+            {% if current_user.is_authenticated and current_user.nivel in ['admin', 'DEV'] %}
+            <a href="{{ url_for('usuarios.gestao') }}" class="shortcut-card shortcut-dark">
+                <div class="shortcut-icon">
+                    <i class="bi bi-gear"></i>
+                </div>
+                <div class="shortcut-label">Gestão</div>
+            </a>
+
+            <a href="{{ url_for('dbadmin.index') }}" class="shortcut-card shortcut-gray">
+                <div class="shortcut-icon">
+                    <i class="bi bi-database"></i>
+                </div>
+                <div class="shortcut-label">Banco de Dados</div>
+            </a>
+            {% endif %}
+
+            <a href="{{ url_for('usuarios.perfil') }}" class="shortcut-card shortcut-purple">
+                <div class="shortcut-icon">
+                    <i class="bi bi-person-circle"></i>
+                </div>
+                <div class="shortcut-label">Perfil</div>
             </a>
         </div>
     </div>
 
-    <!-- Botões de Atalho - Grid Responsivo -->
-    <div class="mm-grid mm-grid-cols-8 mm-gap-3 mm-mb-6" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
-        <a href="{{ url_for('estoque.index') }}" class="mm-card mm-text-center mm-p-3 mm-text-decoration-none dashboard-shortcut" data-testid="shortcut-estoque">
-            <i class="bi bi-box-seam" style="font-size: 2rem; color: var(--mm-primary);"></i>
-            <div class="mm-text-muted mm-mt-2" style="font-size: var(--mm-text-sm);">Estoque</div>
-        </a>
-        <a href="{{ url_for('cronograma.cronograma') }}" class="mm-card mm-text-center mm-p-3 mm-text-decoration-none dashboard-shortcut" data-testid="shortcut-cronograma">
-            <i class="bi bi-calendar-check" style="font-size: 2rem; color: var(--mm-info);"></i>
-            <div class="mm-text-muted mm-mt-2" style="font-size: var(--mm-text-sm);">Cronograma</div>
-        </a>
-        <a href="{{ url_for('carnes.index') }}" class="mm-card mm-text-center mm-p-3 mm-text-decoration-none dashboard-shortcut" data-testid="shortcut-carnes">
-            <i class="bi bi-basket" style="font-size: 2rem; color: var(--mm-success);"></i>
-            <div class="mm-text-muted mm-mt-2" style="font-size: var(--mm-text-sm);">Carnes</div>
-        </a>
-        <a href="{{ url_for('receitas.index') }}" class="mm-card mm-text-center mm-p-3 mm-text-decoration-none dashboard-shortcut" data-testid="shortcut-receitas">
-            <i class="bi bi-journal-text" style="font-size: 2rem; color: var(--mm-warning);"></i>
-            <div class="mm-text-muted mm-mt-2" style="font-size: var(--mm-text-sm);">Receitas</div>
-        </a>
-        <a href="{{ url_for('colaboradores.escala') }}" class="mm-card mm-text-center mm-p-3 mm-text-decoration-none dashboard-shortcut" data-testid="shortcut-escalas">
-            <i class="bi bi-people" style="font-size: 2rem; color: var(--mm-purple);"></i>
-            <div class="mm-text-muted mm-mt-2" style="font-size: var(--mm-text-sm);">Escalas</div>
-        </a>
-        <a href="{{ url_for('jornada.index') }}" class="mm-card mm-text-center mm-p-3 mm-text-decoration-none dashboard-shortcut" data-testid="shortcut-jornada">
-            <i class="bi bi-clock-history" style="font-size: 2rem; color: var(--mm-primary);"></i>
-            <div class="mm-text-muted mm-mt-2" style="font-size: var(--mm-text-sm);">Jornada</div>
-        </a>
-        <a href="{{ url_for('temporarios.index') }}" class="mm-card mm-text-center mm-p-3 mm-text-decoration-none dashboard-shortcut" data-testid="shortcut-temporarios">
-            <i class="bi bi-hourglass-split" style="font-size: 2rem; color: var(--mm-primary);"></i>
-            <div class="mm-text-muted mm-mt-2" style="font-size: var(--mm-text-sm);">Dados Temporários</div>
-        </a>
-        <a href="{{ url_for('temperatura.index') }}" class="mm-card mm-text-center mm-p-3 mm-text-decoration-none dashboard-shortcut" data-testid="shortcut-temperatura">
-            <i class="bi bi-thermometer-half" style="font-size: 2rem; color: var(--mm-orange);"></i>
-            <div class="mm-text-muted mm-mt-2" style="font-size: var(--mm-text-sm);">Temperatura</div>
-        </a>
-        <a href="{{ url_for('validade.index') }}" class="mm-card mm-text-center mm-p-3 mm-text-decoration-none dashboard-shortcut" data-testid="shortcut-validade">
-            <i class="bi bi-calendar-x" style="font-size: 2rem; color: var(--mm-teal);"></i>
-            <div class="mm-text-muted mm-mt-2" style="font-size: var(--mm-text-sm);">Validade</div>
-        </a>
-        <a href="{{ url_for('perdas.index') }}" class="mm-card mm-text-center mm-p-3 mm-text-decoration-none dashboard-shortcut" data-testid="shortcut-perdas">
-            <i class="bi bi-trash" style="font-size: 2rem; color: var(--mm-brown);"></i>
-            <div class="mm-text-muted mm-mt-2" style="font-size: var(--mm-text-sm);">Perdas</div>
-        </a>
-        <a href="{{ url_for('pedidos.index') }}" class="mm-card mm-text-center mm-p-3 mm-text-decoration-none dashboard-shortcut" data-testid="shortcut-pedidos">
-            <i class="bi bi-clipboard-check" style="font-size: 2rem; color: var(--mm-danger);"></i>
-            <div class="mm-text-muted mm-mt-2" style="font-size: var(--mm-text-sm);">Pedidos</div>
-        </a>
-        <a href="{{ url_for('fornecedores.index') }}" class="mm-card mm-text-center mm-p-3 mm-text-decoration-none dashboard-shortcut" data-testid="shortcut-fornecedores">
-            <i class="bi bi-truck" style="font-size: 2rem; color: var(--mm-secondary);"></i>
-            <div class="mm-text-muted mm-mt-2" style="font-size: var(--mm-text-sm);">Fornecedores</div>
-        </a>
-        <a href="{{ url_for('relatorios.index') }}" class="mm-card mm-text-center mm-p-3 mm-text-decoration-none dashboard-shortcut" data-testid="shortcut-relatorios">
-            <i class="bi bi-file-earmark-bar-graph" style="font-size: 2rem; color: var(--mm-indigo);"></i>
-            <div class="mm-text-muted mm-mt-2" style="font-size: var(--mm-text-sm);">Relatórios</div>
-        </a>
-        <a href="{{ url_for('previsao.index') }}" class="mm-card mm-text-center mm-p-3 mm-text-decoration-none dashboard-shortcut" data-testid="shortcut-previsao">
-            <i class="bi bi-graph-up-arrow" style="font-size: 2rem; color: var(--mm-cyan);"></i>
-            <div class="mm-text-muted mm-mt-2" style="font-size: var(--mm-text-sm);">Previsão</div>
-        </a>
-        {% if current_user.is_authenticated and current_user.nivel in ['admin', 'DEV'] %}
-        <a href="{{ url_for('usuarios.gestao') }}" class="mm-card mm-text-center mm-p-3 mm-text-decoration-none dashboard-shortcut" data-testid="shortcut-gestao">
-            <i class="bi bi-gear" style="font-size: 2rem; color: var(--mm-dark);"></i>
-            <div class="mm-text-muted mm-mt-2" style="font-size: var(--mm-text-sm);">Gestão</div>
-        </a>
-        <a href="{{ url_for('dbadmin.index') }}" class="mm-card mm-text-center mm-p-3 mm-text-decoration-none dashboard-shortcut" data-testid="shortcut-db">
-            <i class="bi bi-database" style="font-size: 2rem; color: var(--mm-gray);"></i>
-            <div class="mm-text-muted mm-mt-2" style="font-size: var(--mm-text-sm);">Banco de Dados</div>
-        </a>
-        {% endif %}
-        <a href="{{ url_for('ajuda.ajuda') }}" class="mm-card mm-text-center mm-p-3 mm-text-decoration-none dashboard-shortcut" data-testid="shortcut-ajuda">
-            <i class="bi bi-question-circle" style="font-size: 2rem; color: var(--mm-pink);"></i>
-            <div class="mm-text-muted mm-mt-2" style="font-size: var(--mm-text-sm);">Ajuda</div>
-        </a>
-        <a href="{{ url_for('usuarios.perfil') }}" class="mm-card mm-text-center mm-p-3 mm-text-decoration-none dashboard-shortcut" data-testid="shortcut-perfil">
-            <i class="bi bi-person-circle" style="font-size: 2rem; color: var(--mm-purple);"></i>
-            <div class="mm-text-muted mm-mt-2" style="font-size: var(--mm-text-sm);">Perfil</div>
-        </a>
-    </div>
-
-    <!-- Resto do conteúdo do dashboard... -->
-    
-    <!-- Gráfico de Movimentações -->
-    <div class="row g-4 mb-4">
-        <div class="col-lg-8">
-            <div class="mm-card">
-                <div class="mm-card-header">
-                    <h3 class="mm-card-title">
-                        <i class="bi bi-bar-chart me-2"></i>
+    <!-- Gráficos e Dados -->
+    <div class="charts-section">
+        <div class="chart-container">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">
+                        <i class="bi bi-bar-chart"></i>
                         Movimentações - Últimos 7 Dias
                     </h3>
                 </div>
-                <div class="mm-card-body">
-                    <!-- eslint-disable-next-line -->
+                <div class="chart-body">
                     <canvas id="chartMovimentacoes" 
                             data-chart="{{ chart_data | tojson | forceescape }}" 
-                            style="min-height: 280px;"
+                            style="min-height: 300px;"
                             aria-label="Gráfico de movimentações de estoque dos últimos 7 dias">
                     </canvas>
                 </div>
             </div>
         </div>
-        
-        <div class="col-lg-4">
-            <div class="mm-card h-100">
-                <div class="mm-card-header">
-                    <h3 class="mm-card-title">
-                        <i class="bi bi-exclamation-diamond me-2" style="color: var(--mm-danger);"></i>
+
+        <div class="chart-container">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">
+                        <i class="bi bi-exclamation-diamond"></i>
                         Estoque Crítico
                     </h3>
-                    <a href="{{ url_for('estoque.index') }}" class="mm-btn mm-btn-sm mm-btn-outline">Ver Todos</a>
+                    <a href="{{ url_for('estoque.index') }}" class="btn-link-modern">Ver Todos</a>
                 </div>
-                <div class="mm-card-body" style="padding: 0;">
+                <div class="chart-body">
                     {% if low_stock %}
-                    <div style="max-height: 300px; overflow-y: auto;">
+                    <div class="low-stock-list">
                         {% for item in low_stock %}
-                        <div class="mm-flex mm-items-center mm-justify-between" style="padding: var(--mm-space-3) var(--mm-space-4); border-bottom: 1px solid var(--mm-border);">
-                            <span style="max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ item.nome }}</span>
-                            <span class="mm-badge {% if item.quantidade == 0 %}mm-badge-danger{% else %}mm-badge-warning{% endif %}">
+                        <div class="low-stock-item">
+                            <div class="low-stock-name">{{ item.nome }}</div>
+                            <div class="low-stock-badge {% if item.quantidade == 0 %}badge-critical{% else %}badge-warning{% endif %}">
                                 {{ item.quantidade }}/{{ item.minimo }}
-                            </span>
+                            </div>
                         </div>
                         {% endfor %}
                     </div>
                     {% else %}
-                    <div style="padding: var(--mm-space-6); text-align: center;">
-                        <i class="bi bi-check-circle" style="font-size: 3rem; color: var(--mm-success);"></i>
-                        <div class="mm-text-muted" style="margin-top: var(--mm-space-2);">Estoque em dia!</div>
+                    <div class="empty-state">
+                        <i class="bi bi-check-circle"></i>
+                        <p>Estoque em dia!</p>
                     </div>
                     {% endif %}
                 </div>
@@ -153,66 +252,568 @@
         </div>
     </div>
 
-    <!-- Resto do dashboard continua... -->
+    <!-- Notificações -->
+    {% if notifications %}
+    <div class="notifications-section">
+        <h2 class="section-title">
+            <i class="bi bi-bell"></i>
+            Notificações
+        </h2>
+        <div class="notifications-grid">
+            {% for notif in notifications %}
+            <div class="notification-card">
+                <div class="notification-icon">{{ notif.emoji }}</div>
+                <div class="notification-content">
+                    <div class="notification-title">{{ notif.title }}</div>
+                    <div class="notification-subtitle">{{ notif.subtitle }}</div>
+                </div>
+                {% if notif.url %}
+                <a href="{{ notif.url }}" class="notification-action">
+                    <i class="bi bi-arrow-right"></i>
+                </a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
 
 {% block scripts %}
-<!-- Carrega Chart.js primeiro -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
-<!-- Carrega o módulo do dashboard -->
 <script src="/static/js/dashboard-chart.js"></script>
 
-<!-- CSS específico do dashboard -->
 <style>
-/* Dashboard Shortcut Buttons */
-.dashboard-shortcut {
-    aspect-ratio: 1/1;
+/* Dashboard Container */
+.dashboard-container {
+    padding: 2rem;
+    max-width: 1600px;
+    margin: 0 auto;
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Hero Header */
+.dashboard-hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 3rem 2.5rem;
+    margin-bottom: 2.5rem;
+    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.dashboard-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: rotate 20s linear infinite;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.dashboard-hero-content {
     display: flex;
-    flex-direction: column;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
-    transition: transform 0.2s, box-shadow 0.2s;
-    border: 1px solid var(--mm-border);
+    position: relative;
+    z-index: 1;
 }
 
-.dashboard-shortcut:hover {
+.dashboard-title {
+    font-size: 3rem;
+    font-weight: 800;
+    color: white;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.dashboard-title-icon {
+    font-size: 3.5rem;
+    animation: bounce 2s ease-in-out infinite;
+    color: white;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.dashboard-subtitle {
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-top: 0.5rem;
+}
+
+.btn-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.75rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.btn-primary-modern {
+    background: white;
+    color: #667eea;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.btn-primary-modern:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
 }
 
-/* Mural de avisos */
-.mural-content {
-    background: rgba(251, 191, 36, 0.1);
-    border: 1px solid rgba(251, 191, 36, 0.3);
-    border-radius: var(--mm-radius-lg);
-    padding: var(--mm-space-4);
-    color: var(--mm-text-primary);
+/* Metrics Grid */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
 }
 
-[data-theme="dark"] .mural-content {
-    background: rgba(251, 191, 36, 0.15);
-    border-color: rgba(251, 191, 36, 0.25);
+.metric-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0,0,0,0.05);
 }
 
-/* Responsividade para mobile */
+.metric-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+}
+
+.metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--metric-color), var(--metric-color-light));
+}
+
+.metric-primary { --metric-color: #667eea; --metric-color-light: #764ba2; }
+.metric-warning { --metric-color: #f59e0b; --metric-color-light: #fbbf24; }
+.metric-success { --metric-color: #10b981; --metric-color-light: #34d399; }
+.metric-info { --metric-color: #3b82f6; --metric-color-light: #60a5fa; }
+.metric-danger { --metric-color: #ef4444; --metric-color-light: #f87171; }
+.metric-purple { --metric-color: #8b5cf6; --metric-color-light: #a78bfa; }
+.metric-teal { --metric-color: #14b8a6; --metric-color-light: #5eead4; }
+.metric-orange { --metric-color: #f97316; --metric-color-light: #fb923c; }
+
+.metric-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    color: white;
+    background: linear-gradient(135deg, var(--metric-color), var(--metric-color-light));
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+
+.metric-content {
+    position: relative;
+    z-index: 1;
+}
+
+.metric-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1.2;
+}
+
+.metric-decoration {
+    position: absolute;
+    bottom: -20px;
+    right: -20px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--metric-color-light), transparent);
+    opacity: 0.1;
+}
+
+/* Shortcuts Section */
+.shortcuts-section {
+    margin-bottom: 2.5rem;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.section-title i {
+    color: #667eea;
+}
+
+.shortcuts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1.25rem;
+}
+
+.shortcut-card {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    border: 2px solid transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+.shortcut-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, var(--shortcut-color), var(--shortcut-color-light));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.shortcut-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+    border-color: var(--shortcut-color);
+}
+
+.shortcut-card:hover::before {
+    opacity: 0.05;
+}
+
+.shortcut-primary { --shortcut-color: #667eea; --shortcut-color-light: #764ba2; }
+.shortcut-info { --shortcut-color: #3b82f6; --shortcut-color-light: #60a5fa; }
+.shortcut-success { --shortcut-color: #10b981; --shortcut-color-light: #34d399; }
+.shortcut-warning { --shortcut-color: #f59e0b; --shortcut-color-light: #fbbf24; }
+.shortcut-purple { --shortcut-color: #8b5cf6; --shortcut-color-light: #a78bfa; }
+.shortcut-teal { --shortcut-color: #14b8a6; --shortcut-color-light: #5eead4; }
+.shortcut-indigo { --shortcut-color: #6366f1; --shortcut-color-light: #818cf8; }
+.shortcut-dark { --shortcut-color: #1f2937; --shortcut-color-light: #374151; }
+.shortcut-gray { --shortcut-color: #6b7280; --shortcut-color-light: #9ca3af; }
+
+.shortcut-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: white;
+    background: linear-gradient(135deg, var(--shortcut-color), var(--shortcut-color-light));
+    margin: 0 auto 1rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    position: relative;
+    z-index: 1;
+}
+
+.shortcut-label {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #1f2937;
+    position: relative;
+    z-index: 1;
+}
+
+/* Charts Section */
+.charts-section {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.chart-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.chart-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.chart-title i {
+    color: #667eea;
+}
+
+.btn-link-modern {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.875rem;
+    transition: color 0.3s ease;
+}
+
+.btn-link-modern:hover {
+    color: #764ba2;
+}
+
+.chart-body {
+    position: relative;
+}
+
+/* Low Stock List */
+.low-stock-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.low-stock-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background 0.2s ease;
+}
+
+.low-stock-item:hover {
+    background: #f9fafb;
+}
+
+.low-stock-item:last-child {
+    border-bottom: none;
+}
+
+.low-stock-name {
+    font-weight: 500;
+    color: #1f2937;
+    flex: 1;
+}
+
+.low-stock-badge {
+    padding: 0.375rem 0.75rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.badge-critical {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.badge-warning {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #6b7280;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    color: #10b981;
+    margin-bottom: 1rem;
+}
+
+.empty-state p {
+    font-size: 1.125rem;
+    font-weight: 500;
+    margin: 0;
+}
+
+/* Notifications Section */
+.notifications-section {
+    margin-bottom: 2.5rem;
+}
+
+.notifications-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.25rem;
+}
+
+.notification-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    border-left: 4px solid #667eea;
+    transition: all 0.3s ease;
+}
+
+.notification-card:hover {
+    transform: translateX(5px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+
+.notification-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.notification-content {
+    flex: 1;
+}
+
+.notification-title {
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+}
+
+.notification-subtitle {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.notification-action {
+    color: #667eea;
+    font-size: 1.25rem;
+    transition: transform 0.3s ease;
+}
+
+.notification-action:hover {
+    transform: translateX(5px);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .charts-section {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 768px) {
-    .mm-grid-cols-8 {
-        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)) !important;
+    .dashboard-container {
+        padding: 1rem;
     }
-    
-    .dashboard-shortcut {
-        padding: var(--mm-space-2) !important;
+
+    .dashboard-hero {
+        padding: 2rem 1.5rem;
     }
-    
-    .dashboard-shortcut i {
-        font-size: 1.5rem !important;
+
+    .dashboard-title {
+        font-size: 2rem;
     }
-    
-    .dashboard-shortcut div {
-        font-size: var(--mm-text-xs) !important;
+
+    .metrics-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
     }
+
+    .shortcuts-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 1rem;
+    }
+
+    .notifications-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Dark Mode Support */
+[data-theme="dark"] .metric-card,
+[data-theme="dark"] .chart-card,
+[data-theme="dark"] .shortcut-card,
+[data-theme="dark"] .notification-card {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+[data-theme="dark"] .metric-value,
+[data-theme="dark"] .shortcut-label,
+[data-theme="dark"] .chart-title,
+[data-theme="dark"] .notification-title {
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .metric-label,
+[data-theme="dark"] .notification-subtitle {
+    color: #9ca3af;
+}
+
+[data-theme="dark"] .low-stock-item {
+    border-color: #374151;
+}
+
+[data-theme="dark"] .low-stock-item:hover {
+    background: #374151;
 }
 </style>
 {% endblock %}

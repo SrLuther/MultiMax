@@ -1,641 +1,702 @@
 {% extends 'base.html' %}
 {% block title %}Escalas — MultiMax{% endblock %}
 
-{% block breadcrumb %}
-<span class="mm-breadcrumb-separator">/</span>
-<span>Escalas</span>
-{% endblock %}
-
 {% block content %}
-<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
-    <div>
-        <h1 class="mm-page-title">Escalas de Trabalho</h1>
-        <p class="mm-text-muted">Grade semanal, turnos e calendario</p>
+<div class="escalas-container">
+    <!-- Hero Header -->
+    <div class="escalas-hero">
+        <div class="escalas-hero-content">
+            <div>
+                <h1 class="escalas-title">
+                    <i class="bi bi-calendar-week escalas-title-icon"></i>
+                    Escalas de Trabalho
+                </h1>
+                <p class="escalas-subtitle">Grade semanal, turnos e calendário completo</p>
+            </div>
+            <div class="escalas-hero-actions">
+                <button class="btn-action btn-action-secondary" onclick="window.print()">
+                    <i class="bi bi-printer"></i>
+                    <span>Imprimir</span>
+                </button>
+                {% if current_user.nivel in ('operador', 'admin', 'DEV') %}
+                <button class="btn-action btn-action-primary" data-bs-toggle="modal" data-bs-target="#modalTurno">
+                    <i class="bi bi-plus-lg"></i>
+                    <span>Atribuir Turno</span>
+                </button>
+                {% endif %}
+            </div>
+        </div>
     </div>
-</div>
 
-<div class="escala-actions mm-flex mm-gap-2 mm-mt-3" style="flex-wrap: wrap;">
-    <button class="mm-btn mm-btn-outline" onclick="window.print()">
-        <i class="bi bi-printer"></i> Imprimir
-    </button>
-    {% if current_user.nivel in ('operador', 'admin') %}
-    <button class="mm-btn mm-btn-primary" data-bs-toggle="modal" data-bs-target="#modalTurno">
-        <i class="bi bi-plus-lg"></i> Atribuir Turno
-    </button>
-    {% endif %}
-    <style>
-        .escala-actions .mm-btn { flex: 0 0 180px; height: 48px; }
-        @media (max-width: 768px) {
-            .escala-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
-            .escala-actions .mm-btn { width: 100%; height: 48px; display: flex; align-items: center; justify-content: center; padding: 0; white-space: nowrap; box-sizing: border-box; }
-        }
-    </style>
-</div>
+    <!-- Tabs -->
+    <div class="tabs-modern">
+        <button class="tab-modern active" data-tab="grade">
+            <i class="bi bi-grid-3x3"></i>
+            <span>Grade Semanal</span>
+        </button>
+        <button class="tab-modern" data-tab="calendario">
+            <i class="bi bi-calendar3"></i>
+            <span>Calendário</span>
+        </button>
+        <button class="tab-modern" data-tab="feriados">
+            <i class="bi bi-calendar-heart"></i>
+            <span>Feriados</span>
+        </button>
+        <button class="tab-modern" data-tab="config">
+            <i class="bi bi-gear"></i>
+            <span>Configurações</span>
+        </button>
+    </div>
 
-<div class="mm-tabs mm-mb-6">
-    <button class="mm-tab active" data-tab="grade">
-        <i class="bi bi-grid-3x3"></i> Grade Semanal
-    </button>
-    <button class="mm-tab" data-tab="calendario">
-        <i class="bi bi-calendar3"></i> Calendario
-    </button>
-    <button class="mm-tab" data-tab="feriados">
-        <i class="bi bi-calendar-heart"></i> Feriados
-    </button>
-    <button class="mm-tab" data-tab="config">
-        <i class="bi bi-gear"></i> Configuracoes
-    </button>
-</div>
-
-<div id="tab-grade" class="mm-tab-content active">
-    <div class="mm-card mm-mb-6">
-        <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
-            <h3 class="mm-card-title">
-                <i class="bi bi-calendar-week me-2"></i>
-                Semana: {{ semana_inicio.strftime('%d/%m') }} a {{ semana_fim.strftime('%d/%m/%Y') }}
-            </h3>
-            <div class="mm-flex mm-gap-2">
-                <a href="{{ url_for('colaboradores.escala', semana=semana_anterior) }}" class="mm-btn mm-btn-outline mm-btn-sm">
-                    <i class="bi bi-chevron-left"></i> Anterior
+    <!-- Tab: Grade Semanal -->
+    <div id="tab-grade" class="tab-content-modern active">
+        <!-- Semana Header -->
+        <div class="semana-header-modern">
+            <div class="semana-info">
+                <h2 class="semana-title">
+                    <i class="bi bi-calendar-week"></i>
+                    Semana: {{ semana_inicio.strftime('%d/%m') }} a {{ semana_fim.strftime('%d/%m/%Y') }}
+                </h2>
+            </div>
+            <div class="semana-navigation">
+                <a href="{{ url_for('colaboradores.escala', semana=semana_anterior) }}" class="btn-nav-modern">
+                    <i class="bi bi-chevron-left"></i>
+                    <span>Anterior</span>
                 </a>
-                <a href="{{ url_for('colaboradores.escala') }}" class="mm-btn mm-btn-outline mm-btn-sm">Hoje</a>
-                <a href="{{ url_for('colaboradores.escala', semana=semana_proxima) }}" class="mm-btn mm-btn-outline mm-btn-sm">
-                    Proxima <i class="bi bi-chevron-right"></i>
+                <a href="{{ url_for('colaboradores.escala') }}" class="btn-nav-modern btn-nav-today">
+                    <i class="bi bi-calendar3"></i>
+                    <span>Hoje</span>
+                </a>
+                <a href="{{ url_for('colaboradores.escala', semana=semana_proxima) }}" class="btn-nav-modern">
+                    <span>Próxima</span>
+                    <i class="bi bi-chevron-right"></i>
                 </a>
             </div>
         </div>
-        <div class="mm-card-body" style="overflow-x: auto;">
-            <table class="mm-table mm-schedule-grid">
-                <thead>
-                    <tr>
-                        <th style="min-width: 150px;">Colaborador</th>
-                        {% for dia in dias_semana %}
-                        <th class="text-center {% if dia.is_today %}mm-today{% endif %}" style="min-width: 120px;">
-                            <div class="mm-dia-header">
-                                <span class="mm-dia-nome">{{ dia.nome }}</span>
-                                <span class="mm-dia-data">{{ dia.data.strftime('%d/%m') }}</span>
-                            </div>
-                        </th>
-                        {% endfor %}
-                        <th class="text-center" style="min-width: 80px;">Horas</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for colab in colaboradores %}
-                    <tr>
-                        <td>
-                            <div class="mm-colab-cell">
-                                <div class="mm-avatar-sm">{{ colab.name[:2].upper() if colab.name else '?' }}</div>
-                                <div>
-                                    <div class="mm-colab-nome">{{ colab.name or 'Sem nome' }}</div>
-                                    <div class="mm-colab-cargo">{{ colab.role or '-' }}</div>
-                                </div>
-                            </div>
-                        </td>
-                        {% for dia in dias_semana %}
-                        {% set turno = turnos_map.get((colab.id, dia.data.isoformat())) %}
-                        <td class="text-center mm-turno-cell {% if dia.is_today %}mm-today{% endif %}">
-                            {% if turno %}
-                            <div class="mm-turno-badge mm-turno-{{ turno.turno|lower|replace(' ', '-') }}" 
-                                 title="{{ turno.observacao or '' }}"
-                                 {% if current_user.nivel in ('operador', 'admin') %}
-                                 onclick="editarTurno({{ turno.id }}, {{ colab.id }}, '{{ dia.data.isoformat() }}', '{{ turno.turno }}', '{{ turno.observacao or '' }}')"
-                                 style="cursor: pointer;"
-                                 {% endif %}>
-                                {{ turno.turno }}
-                            </div>
-                            {% else %}
-                            {% if current_user.nivel in ('operador', 'admin') %}
-                            <button class="mm-btn-add-turno" onclick="abrirModalTurno({{ colab.id }}, '{{ dia.data.isoformat() }}')">
-                                <i class="bi bi-plus"></i>
-                            </button>
-                            {% else %}
-                            <span class="mm-text-muted">-</span>
-                            {% endif %}
-                            {% endif %}
-                        </td>
-                        {% endfor %}
-                        <td class="text-center">
-                            <span class="mm-horas-total">{{ horas_semana.get(colab.id, 0) }}h</span>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="{{ dias_semana|length + 2 }}" class="text-center mm-text-muted py-4">
-                            Nenhum colaborador ativo cadastrado
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
 
-    {% if conflicts and conflicts|length > 0 %}
-    <div class="mm-card mm-mb-6 mm-card-highlight" style="border-left-color: var(--mm-danger);">
-        <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
-            <h3 class="mm-card-title">
-                <i class="bi bi-exclamation-triangle mm-text-danger"></i>
-                Conflitos de Agenda
-            </h3>
-            <span class="mm-badge mm-badge-danger">{{ conflicts|length }} conflito(s)</span>
-        </div>
-        <div class="mm-card-body">
-            <div class="mm-table-wrapper">
-                <table class="mm-table">
+        <!-- Grade Semanal -->
+        <div class="grade-card-modern">
+            <div class="grade-table-wrapper">
+                <table class="grade-table-modern">
                     <thead>
                         <tr>
-                            <th>Colaborador</th>
-                            <th>Data</th>
-                            <th>Tipo</th>
+                            <th class="colab-header">Colaborador</th>
+                            {% for dia in dias_semana %}
+                            <th class="dia-header {% if dia.is_today %}dia-today{% endif %}">
+                                <div class="dia-header-content">
+                                    <span class="dia-nome">{{ dia.nome }}</span>
+                                    <span class="dia-data">{{ dia.data.strftime('%d/%m') }}</span>
+                                </div>
+                            </th>
+                            {% endfor %}
+                            <th class="horas-header">Horas</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for c in conflicts[:20] %}
+                        {% for colab in colaboradores %}
+                        <tr class="colab-row-modern">
+                            <td class="colab-cell-modern">
+                                <div class="colab-info-modern">
+                                    <div class="colab-avatar-modern">
+                                        {{ colab.name[:2].upper() if colab.name else '?' }}
+                                    </div>
+                                    <div class="colab-details">
+                                        <div class="colab-nome-modern">{{ colab.name or 'Sem nome' }}</div>
+                                        <div class="colab-cargo-modern">{{ colab.role or '-' }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            {% for dia in dias_semana %}
+                            {% set turno = turnos_map.get((colab.id, dia.data.isoformat())) %}
+                            <td class="turno-cell-modern {% if dia.is_today %}dia-today{% endif %}">
+                                {% if turno %}
+                                <div class="turno-badge-modern turno-{{ turno.turno|lower|replace(' ', '-') }}" 
+                                     title="{{ turno.observacao or '' }}"
+                                     {% if current_user.nivel in ('operador', 'admin', 'DEV') %}
+                                     onclick="editarTurno({{ turno.id }}, {{ colab.id }}, '{{ dia.data.isoformat() }}', '{{ turno.turno }}', '{{ turno.observacao or '' }}')"
+                                     style="cursor: pointer;"
+                                     {% endif %}>
+                                    {{ turno.turno }}
+                                </div>
+                                {% else %}
+                                {% if current_user.nivel in ('operador', 'admin', 'DEV') %}
+                                <button class="btn-add-turno-modern" onclick="abrirModalTurno({{ colab.id }}, '{{ dia.data.isoformat() }}')" title="Adicionar turno">
+                                    <i class="bi bi-plus"></i>
+                                </button>
+                                {% else %}
+                                <span class="turno-empty">-</span>
+                                {% endif %}
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                            <td class="horas-cell-modern">
+                                <span class="horas-total-modern">{{ horas_semana.get(colab.id, 0) }}h</span>
+                            </td>
+                        </tr>
+                        {% else %}
                         <tr>
-                            <td>{{ c.name }}</td>
-                            <td>{{ c.date.strftime('%d/%m/%Y') }}</td>
-                            <td><span class="mm-badge mm-badge-danger">{{ c.type }}</span></td>
+                            <td colspan="{{ dias_semana|length + 2 }}" class="empty-grade">
+                                <div class="empty-state-modern">
+                                    <div class="empty-icon-modern">
+                                        <i class="bi bi-people"></i>
+                                    </div>
+                                    <h3 class="empty-title-modern">Nenhum colaborador ativo</h3>
+                                    <p class="empty-text-modern">Cadastre colaboradores para começar a gerenciar escalas.</p>
+                                </div>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-            <div class="mm-info-box mm-mt-4">
-                <i class="bi bi-info-circle"></i>
-                <span>Edite os turnos ou ajuste folgas/férias/atestados para resolver os conflitos.</span>
+        </div>
+
+        <!-- Conflitos -->
+        {% if conflicts and conflicts|length > 0 %}
+        <div class="conflicts-card-modern">
+            <div class="conflicts-header-modern">
+                <div class="conflicts-title-wrapper">
+                    <i class="bi bi-exclamation-triangle conflicts-icon"></i>
+                    <h3 class="conflicts-title">Conflitos de Agenda</h3>
+                </div>
+                <span class="badge-count-modern badge-danger-modern">{{ conflicts|length }} conflito(s)</span>
+            </div>
+            <div class="conflicts-body-modern">
+                <div class="conflicts-table-wrapper">
+                    <table class="conflicts-table-modern">
+                        <thead>
+                            <tr>
+                                <th>Colaborador</th>
+                                <th>Data</th>
+                                <th>Tipo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in conflicts[:20] %}
+                            <tr>
+                                <td><strong>{{ c.name }}</strong></td>
+                                <td>{{ c.date.strftime('%d/%m/%Y') }}</td>
+                                <td><span class="badge-conflict">{{ c.type }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="conflicts-info-modern">
+                    <i class="bi bi-info-circle"></i>
+                    <span>Edite os turnos ou ajuste folgas/férias/atestados para resolver os conflitos.</span>
+                </div>
             </div>
         </div>
-    </div>
-    {% endif %}
-    <div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
-        <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-primary);">
-            <div class="mm-flex mm-items-center mm-justify-between">
-                <div>
-                    <div class="mm-kpi-label">Colaboradores Ativos</div>
-                    <div class="mm-kpi-value" style="color: var(--mm-primary);">{{ colaboradores|length }}</div>
-                </div>
-                <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-primary);">
+        {% endif %}
+
+        <!-- KPIs -->
+        <div class="kpis-grid-escalas">
+            <div class="kpi-card-escalas kpi-primary">
+                <div class="kpi-icon-escalas">
                     <i class="bi bi-people"></i>
                 </div>
-            </div>
-        </div>
-        
-        <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-info);">
-            <div class="mm-flex mm-items-center mm-justify-between">
-                <div>
-                    <div class="mm-kpi-label">Turnos na Semana</div>
-                    <div class="mm-kpi-value" style="color: var(--mm-info);">{{ total_turnos_semana }}</div>
+                <div class="kpi-content-escalas">
+                    <div class="kpi-label-escalas">Colaboradores Ativos</div>
+                    <div class="kpi-value-escalas">{{ colaboradores|length }}</div>
                 </div>
-                <div class="mm-kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--mm-info);">
+                <div class="kpi-decoration-escalas"></div>
+            </div>
+            
+            <div class="kpi-card-escalas kpi-info">
+                <div class="kpi-icon-escalas">
                     <i class="bi bi-calendar-check"></i>
                 </div>
-            </div>
-        </div>
-        
-        <div class="mm-card mm-kpi-card" style="border-left: 4px solid #fd7e14;">
-            <div class="mm-flex mm-items-center mm-justify-between">
-                <div>
-                    <div class="mm-kpi-label">Equipe Domingo</div>
-                    <div class="mm-kpi-value" style="color: #fd7e14;">Equipe {{ domingo_team }}</div>
+                <div class="kpi-content-escalas">
+                    <div class="kpi-label-escalas">Turnos na Semana</div>
+                    <div class="kpi-value-escalas">{{ total_turnos_semana }}</div>
                 </div>
-                <div class="mm-kpi-icon" style="background: rgba(253, 126, 20, 0.15); color: #fd7e14;">
+                <div class="kpi-decoration-escalas"></div>
+            </div>
+            
+            <div class="kpi-card-escalas kpi-warning">
+                <div class="kpi-icon-escalas">
                     <i class="bi bi-calendar-week"></i>
                 </div>
-            </div>
-        </div>
-        
-        <div class="mm-card mm-kpi-card" style="border-left: 4px solid var(--mm-success);">
-            <div class="mm-flex mm-items-center mm-justify-between">
-                <div>
-                    <div class="mm-kpi-label">Feriados</div>
-                    <div class="mm-kpi-value" style="color: var(--mm-success);">{{ feriados|length }}</div>
+                <div class="kpi-content-escalas">
+                    <div class="kpi-label-escalas">Equipe Domingo</div>
+                    <div class="kpi-value-escalas">Equipe {{ domingo_team }}</div>
                 </div>
-                <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-success);">
+                <div class="kpi-decoration-escalas"></div>
+            </div>
+            
+            <div class="kpi-card-escalas kpi-success">
+                <div class="kpi-icon-escalas">
                     <i class="bi bi-calendar-heart"></i>
                 </div>
+                <div class="kpi-content-escalas">
+                    <div class="kpi-label-escalas">Feriados</div>
+                    <div class="kpi-value-escalas">{{ feriados|length }}</div>
+                </div>
+                <div class="kpi-decoration-escalas"></div>
+            </div>
+        </div>
+
+        <!-- Rodízio -->
+        <div class="rodizio-card-modern">
+            <div class="rodizio-header-modern">
+                <h3 class="rodizio-title">
+                    <i class="bi bi-clock-history"></i>
+                    Próximas 5 Semanas - Rodízio
+                </h3>
+            </div>
+            <div class="rodizio-body-modern">
+                <div class="rodizio-table-wrapper">
+                    <table class="rodizio-table-modern">
+                        <thead>
+                            <tr>
+                                <th>Semana</th>
+                                <th>Abertura (5h)</th>
+                                <th>Fechamento (13h)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for w in weeks %}
+                            <tr>
+                                <td>{{ w.start.strftime('%d/%m') }} - {{ w.end.strftime('%d/%m') }}</td>
+                                <td><span class="badge-rodizio badge-success-rodizio">Equipe {{ w.open }}</span></td>
+                                <td><span class="badge-rodizio badge-info-rodizio">Equipe {{ w.close }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="mm-card">
-        <div class="mm-card-header">
-            <h3 class="mm-card-title"><i class="bi bi-clock-history me-2"></i>Proximas 5 Semanas - Rodizio</h3>
-        </div>
-        <div class="mm-card-body">
-            <div class="mm-table-wrapper">
-                <table class="mm-table">
-                    <thead>
-                        <tr>
-                            <th>Semana</th>
-                            <th>Abertura (5h)</th>
-                            <th>Fechamento (13h)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for w in weeks %}
-                        <tr>
-                            <td>{{ w.start.strftime('%d/%m') }} - {{ w.end.strftime('%d/%m') }}</td>
-                            <td><span class="mm-badge mm-badge-success">{{ w.open }}</span></td>
-                            <td><span class="mm-badge mm-badge-info">{{ w.close }}</span></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    <!-- Tab: Calendário -->
+    <div id="tab-calendario" class="tab-content-modern">
+        <div class="calendario-card-modern">
+            <div class="calendario-header-modern">
+                <h3 class="calendario-title">
+                    <i class="bi bi-calendar-range"></i>
+                    Calendário do Sistema
+                </h3>
+            </div>
+            <div class="calendario-body-modern">
+                <div id="calendar" class="calendario-container-modern"></div>
+                <script id="events-data" type="application/json">{{ events|tojson|safe }}</script>
+            </div>
+            <div class="calendario-footer-modern">
+                <div class="legend-modern">
+                    <div class="legend-item-modern">
+                        <span class="legend-dot-modern" style="background: #3b82f6;"></span>
+                        <span>Manhã</span>
+                    </div>
+                    <div class="legend-item-modern">
+                        <span class="legend-dot-modern" style="background: #f59e0b;"></span>
+                        <span>Tarde</span>
+                    </div>
+                    <div class="legend-item-modern">
+                        <span class="legend-dot-modern" style="background: #8b5cf6;"></span>
+                        <span>Noite</span>
+                    </div>
+                    <div class="legend-item-modern">
+                        <span class="legend-dot-modern" style="background: #fd7e14;"></span>
+                        <span>Domingo (5h-13h)</span>
+                    </div>
+                    <div class="legend-item-modern">
+                        <span class="legend-dot-modern" style="background: #20c997;"></span>
+                        <span>Feriado</span>
+                    </div>
+                    <div class="legend-item-modern">
+                        <span class="legend-dot-modern" style="background: #6f42c1;"></span>
+                        <span>Folga</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<div id="tab-calendario" class="mm-tab-content">
-    <div class="mm-card">
-        <div class="mm-card-header">
-            <h3 class="mm-card-title">
-                <i class="bi bi-calendar-range mm-text-primary"></i>
-                Calendario do Sistema
-            </h3>
-        </div>
-        <div class="mm-card-body">
-            <div id="calendar" class="mm-calendar-container"></div>
-            <script id="events-data" type="application/json">{{ events|tojson|safe }}</script>
-        </div>
-        <div class="mm-card-footer">
-            <div class="mm-legend">
-                <div class="mm-legend-item">
-                    <span class="mm-legend-dot" style="background: #3b82f6;"></span>
-                    <span>Manha</span>
-                </div>
-                <div class="mm-legend-item">
-                    <span class="mm-legend-dot" style="background: #f59e0b;"></span>
-                    <span>Tarde</span>
-                </div>
-                <div class="mm-legend-item">
-                    <span class="mm-legend-dot" style="background: #8b5cf6;"></span>
-                    <span>Noite</span>
-                </div>
-                <div class="mm-legend-item">
-                    <span class="mm-legend-dot" style="background: #fd7e14;"></span>
-                    <span>Domingo (5h-13h)</span>
-                </div>
-                <div class="mm-legend-item">
-                    <span class="mm-legend-dot" style="background: #20c997;"></span>
-                    <span>Feriado</span>
-                </div>
-                <div class="mm-legend-item">
-                    <span class="mm-legend-dot" style="background: #6f42c1;"></span>
-                    <span>Folga</span>
-                </div>
+    <!-- Tab: Feriados -->
+    <div id="tab-feriados" class="tab-content-modern">
+        <div class="feriados-card-modern">
+            <div class="feriados-header-modern">
+                <h3 class="feriados-title">
+                    <i class="bi bi-calendar-heart"></i>
+                    Configurar Feriados
+                </h3>
             </div>
-        </div>
-    </div>
-</div>
-
-<div id="tab-feriados" class="mm-tab-content">
-    <div class="mm-card">
-        <div class="mm-card-header">
-            <h3 class="mm-card-title">
-                <i class="bi bi-calendar-heart mm-text-primary"></i>
-                Configurar Feriados
-            </h3>
-        </div>
-        <div class="mm-card-body">
-            {% if current_user.nivel in ['admin', 'DEV'] %}
-            <form class="mm-feriado-form mm-mb-6" method="post" action="{{ url_for('colaboradores.feriado_criar') }}">
-                <div class="mm-form-row">
-                    <div class="mm-form-group">
-                        <label class="mm-label">Data</label>
-                        <input type="date" name="date" class="mm-input" required>
-                    </div>
-                    <div class="mm-form-group" style="flex: 2;">
-                        <label class="mm-label">Nome do Feriado</label>
-                        <input type="text" name="name" class="mm-input" placeholder="ex.: Natal" required>
-                    </div>
-                    <div class="mm-form-group">
-                        <label class="mm-label">Tipo</label>
-                        <select name="kind" class="mm-input mm-select">
-                            <option value="facultativo" selected>Ponto Facultativo</option>
-                            <option value="nacional">Feriado Nacional</option>
-                            <option value="municipal">Feriado Municipal</option>
-                            <option value="estadual">Feriado Estadual</option>
-                        </select>
-                    </div>
-                    <div class="mm-form-group" style="align-self: end;">
-                        <button class="mm-btn mm-btn-primary" type="submit">
-                            <i class="bi bi-plus-lg"></i> Adicionar
-                        </button>
-                    </div>
-                </div>
-            </form>
-            {% endif %}
-            
-            <div class="mm-table-wrapper">
-                <table class="mm-table">
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Nome</th>
-                            <th>Tipo</th>
-                            <th style="text-align: right;">Acoes</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for h in feriados %}
-                        <tr>
-                            <td>
-                                <span class="mm-date-cell">
-                                    <i class="bi bi-calendar3"></i>
-                                    {{ h.date.strftime('%d/%m/%Y') }}
-                                </span>
-                            </td>
-                            <td>{{ h.name }}</td>
-                            <td>
-                                {% if h.kind == 'nacional' %}
-                                <span class="mm-badge mm-badge-success">Nacional</span>
-                                {% elif h.kind == 'estadual' %}
-                                <span class="mm-badge mm-badge-info">Estadual</span>
-                                {% elif h.kind == 'municipal' or h.kind and 'municipal' in h.kind %}
-                                <span class="mm-badge mm-badge-primary">Municipal</span>
-                                {% else %}
-                                <span class="mm-badge" style="background: rgba(148, 163, 184, 0.15); color: var(--mm-text-muted);">Facultativo</span>
-                                {% endif %}
-                            </td>
-                            <td style="text-align: right;">
-                                {% if current_user.nivel == 'admin' %}
-                                <form method="post" action="{{ url_for('colaboradores.feriado_excluir', id=h.id) }}" class="mm-inline-form" onsubmit="return confirm('Excluir feriado {{ h.name }}?')">
-                                    <button class="mm-btn mm-btn-danger mm-btn-sm" type="submit">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="4" class="mm-empty-cell">
-                                <div class="mm-empty-state-inline">
-                                    <i class="bi bi-calendar-x"></i>
-                                    <span>Sem feriados cadastrados</span>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="tab-config" class="mm-tab-content">
-    {% if current_user.nivel in ('operador', 'admin') %}
-    <div class="mm-card mm-mb-6">
-        <div class="mm-card-header">
-            <h3 class="mm-card-title">
-                <i class="bi bi-magic mm-text-primary"></i>
-                Geracao Automatica de Escala
-            </h3>
-        </div>
-        <div class="mm-card-body">
-            <div class="mm-alert mm-alert-info mm-mb-4">
-                <i class="bi bi-info-circle"></i>
-                <div>
-                    <strong>Como funciona:</strong> A escala e gerada automaticamente com base na rotacao semanal das equipes.
-                    <ul class="mm-mt-2" style="margin-left: 1rem;">
-                        <li><strong>Abertura (Eq. {{ ref_open }}):</strong> 2 pessoas 05:00-15:00, 1 pessoa 06:00-16:00</li>
-                        <li><strong>Fechamento (Eq. {{ '2' if ref_open == '1' else '1' }}):</strong> 3 pessoas 09:30-19:30</li>
-                        <li><strong>Domingo:</strong> 2 pessoas 05:00-13:00 (+1 folga +1h extra), 1 pessoa 06:00-13:00 (+1 folga)</li>
-                    </ul>
-                </div>
-            </div>
-            <form method="post" action="{{ url_for('colaboradores.gerar_escala_automatica') }}" class="mm-config-form">
-                <input type="hidden" name="semana" value="{{ semana_inicio.strftime('%Y-%m-%d') }}">
-                <div class="mm-form-row">
-                    <div class="mm-form-group">
-                        <label class="mm-label">Semana</label>
-                        <input type="text" class="mm-input" readonly value="{{ semana_inicio.strftime('%d/%m') }} a {{ semana_fim.strftime('%d/%m/%Y') }}">
-                    </div>
-                    <div class="mm-form-group">
-                        <label class="mm-form-check">
-                            <input type="checkbox" name="incluir_domingo" class="mm-checkbox">
-                            <span>Incluir Domingo</span>
-                        </label>
-                    </div>
-                    <div class="mm-form-group" style="align-self: end;">
-                        <button class="mm-btn mm-btn-primary" type="submit">
-                            <i class="bi bi-magic"></i> Gerar Escala
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-    
-    <div class="mm-card mm-mb-6">
-        <div class="mm-card-header">
-            <h3 class="mm-card-title">
-                <i class="bi bi-people mm-text-primary"></i>
-                Configuracao de Equipes
-            </h3>
-        </div>
-        <div class="mm-card-body">
-            <div class="mm-grid mm-grid-cols-2 mm-gap-6">
-                <div>
-                    <h4 class="mm-text-lg mm-font-semibold mm-mb-3" style="color: #22c55e;">
-                        <i class="bi bi-1-circle-fill me-2"></i>Equipe 1
-                    </h4>
-                    <div class="mm-team-list">
-                        {% for c in colaboradores if c.regular_team == '1' %}
-                        <div class="mm-team-member">
-                            <span class="mm-position-badge">P{{ c.team_position or 1 }}</span>
-                            <span class="mm-member-name">{{ c.name }}</span>
-                            <form method="post" action="{{ url_for('colaboradores.equipe_configurar') }}" class="mm-inline-form">
-                                <input type="hidden" name="collaborator_id" value="{{ c.id }}">
-                                <select name="position" class="mm-select-sm" onchange="this.form.submit()">
-                                    <option value="1" {% if c.team_position == 1 %}selected{% endif %}>P1 (5h)</option>
-                                    <option value="2" {% if c.team_position == 2 %}selected{% endif %}>P2 (5h)</option>
-                                    <option value="3" {% if c.team_position == 3 %}selected{% endif %}>P3 (6h)</option>
-                                </select>
-                                <input type="hidden" name="team" value="1">
-                            </form>
+            <div class="feriados-body-modern">
+                {% if current_user.nivel in ['admin', 'DEV'] %}
+                <form class="feriado-form-modern" method="post" action="{{ url_for('colaboradores.feriado_criar') }}">
+                    <div class="form-row-modern">
+                        <div class="form-group-modern">
+                            <label class="form-label-modern">
+                                <i class="bi bi-calendar3"></i>
+                                Data <span class="required">*</span>
+                            </label>
+                            <input type="date" name="date" class="form-input-modern" required>
                         </div>
-                        {% else %}
-                        <p class="mm-text-muted">Nenhum colaborador na Equipe 1</p>
-                        {% endfor %}
-                    </div>
-                </div>
-                <div>
-                    <h4 class="mm-text-lg mm-font-semibold mm-mb-3" style="color: #3b82f6;">
-                        <i class="bi bi-2-circle-fill me-2"></i>Equipe 2
-                    </h4>
-                    <div class="mm-team-list">
-                        {% for c in colaboradores if c.regular_team == '2' %}
-                        <div class="mm-team-member">
-                            <span class="mm-position-badge">P{{ c.team_position or 1 }}</span>
-                            <span class="mm-member-name">{{ c.name }}</span>
-                            <form method="post" action="{{ url_for('colaboradores.equipe_configurar') }}" class="mm-inline-form">
-                                <input type="hidden" name="collaborator_id" value="{{ c.id }}">
-                                <select name="position" class="mm-select-sm" onchange="this.form.submit()">
-                                    <option value="1" {% if c.team_position == 1 %}selected{% endif %}>P1 (5h)</option>
-                                    <option value="2" {% if c.team_position == 2 %}selected{% endif %}>P2 (5h)</option>
-                                    <option value="3" {% if c.team_position == 3 %}selected{% endif %}>P3 (6h)</option>
-                                </select>
-                                <input type="hidden" name="team" value="2">
-                            </form>
+                        <div class="form-group-modern form-group-wide">
+                            <label class="form-label-modern">
+                                <i class="bi bi-tag"></i>
+                                Nome do Feriado <span class="required">*</span>
+                            </label>
+                            <input type="text" name="name" class="form-input-modern" placeholder="ex.: Natal" required>
                         </div>
-                        {% else %}
-                        <p class="mm-text-muted">Nenhum colaborador na Equipe 2</p>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-            
-            <hr class="mm-divider mm-my-4">
-            
-            <div>
-                <h4 class="mm-text-md mm-font-semibold mm-mb-3">
-                    <i class="bi bi-person-plus me-2"></i>Atribuir Colaborador a Equipe
-                </h4>
-                <form method="post" action="{{ url_for('colaboradores.equipe_configurar') }}" class="mm-config-form">
-                    <div class="mm-form-row">
-                        <div class="mm-form-group">
-                            <label class="mm-label">Colaborador</label>
-                            <select name="collaborator_id" class="mm-select" required>
-                                <option value="">Selecione...</option>
-                                {% for c in colaboradores %}
-                                <option value="{{ c.id }}">{{ c.name }} {% if c.regular_team %}(Eq. {{ c.regular_team }}){% endif %}</option>
-                                {% endfor %}
+                        <div class="form-group-modern">
+                            <label class="form-label-modern">
+                                <i class="bi bi-bookmark"></i>
+                                Tipo
+                            </label>
+                            <select name="kind" class="form-input-modern">
+                                <option value="facultativo" selected>Ponto Facultativo</option>
+                                <option value="nacional">Feriado Nacional</option>
+                                <option value="municipal">Feriado Municipal</option>
+                                <option value="estadual">Feriado Estadual</option>
                             </select>
                         </div>
-                        <div class="mm-form-group">
-                            <label class="mm-label">Equipe</label>
-                            <select name="team" class="mm-select" required>
-                                <option value="1">Equipe 1</option>
-                                <option value="2">Equipe 2</option>
-                            </select>
+                        <div class="form-group-modern form-group-action">
+                            <button class="btn-save-modern" type="submit">
+                                <i class="bi bi-plus-lg"></i>
+                                Adicionar
+                            </button>
                         </div>
-                        <div class="mm-form-group">
-                            <label class="mm-label">Posicao</label>
-                            <select name="position" class="mm-select" required>
-                                <option value="1">P1 - Entrada 5h</option>
-                                <option value="2">P2 - Entrada 5h</option>
-                                <option value="3">P3 - Entrada 6h</option>
-                            </select>
+                    </div>
+                </form>
+                {% endif %}
+                
+                <div class="feriados-table-wrapper">
+                    <table class="feriados-table-modern">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Nome</th>
+                                <th>Tipo</th>
+                                <th class="text-end">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for h in feriados %}
+                            <tr>
+                                <td>
+                                    <span class="feriado-date-modern">
+                                        <i class="bi bi-calendar3"></i>
+                                        {{ h.date.strftime('%d/%m/%Y') }}
+                                    </span>
+                                </td>
+                                <td><strong>{{ h.name }}</strong></td>
+                                <td>
+                                    {% if h.kind == 'nacional' %}
+                                    <span class="badge-feriado badge-nacional">Nacional</span>
+                                    {% elif h.kind == 'estadual' %}
+                                    <span class="badge-feriado badge-estadual">Estadual</span>
+                                    {% elif h.kind == 'municipal' or h.kind and 'municipal' in h.kind %}
+                                    <span class="badge-feriado badge-municipal">Municipal</span>
+                                    {% else %}
+                                    <span class="badge-feriado badge-facultativo">Facultativo</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if current_user.nivel == 'admin' or current_user.nivel == 'DEV' %}
+                                    <form method="post" action="{{ url_for('colaboradores.feriado_excluir', id=h.id) }}" style="display: inline;" onsubmit="return confirm('Excluir feriado {{ h.name }}?')">
+                                        <button class="btn-action-small btn-danger-small" type="submit" title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="empty-feriados">
+                                    <div class="empty-state-modern">
+                                        <div class="empty-icon-modern">
+                                            <i class="bi bi-calendar-x"></i>
+                                        </div>
+                                        <h3 class="empty-title-modern">Sem feriados cadastrados</h3>
+                                        <p class="empty-text-modern">Adicione feriados para melhor controle da escala.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Configurações -->
+    <div id="tab-config" class="tab-content-modern">
+        {% if current_user.nivel in ('operador', 'admin', 'DEV') %}
+        <!-- Geração Automática -->
+        <div class="config-card-modern">
+            <div class="config-header-modern">
+                <h3 class="config-title">
+                    <i class="bi bi-magic"></i>
+                    Geração Automática de Escala
+                </h3>
+            </div>
+            <div class="config-body-modern">
+                <div class="alert-modern alert-info-modern">
+                    <i class="bi bi-info-circle"></i>
+                    <div>
+                        <strong>Como funciona:</strong> A escala é gerada automaticamente com base na rotação semanal das equipes.
+                        <ul class="alert-list-modern">
+                            <li><strong>Abertura (Eq. {{ ref_open }}):</strong> 2 pessoas 05:00-15:00, 1 pessoa 06:00-16:00</li>
+                            <li><strong>Fechamento (Eq. {{ '2' if ref_open == '1' else '1' }}):</strong> 3 pessoas 09:30-19:30</li>
+                            <li><strong>Domingo:</strong> 2 pessoas 05:00-13:00 (+1 folga +1h extra), 1 pessoa 06:00-13:00 (+1 folga)</li>
+                        </ul>
+                    </div>
+                </div>
+                <form method="post" action="{{ url_for('colaboradores.gerar_escala_automatica') }}" class="config-form-modern">
+                    <input type="hidden" name="semana" value="{{ semana_inicio.strftime('%Y-%m-%d') }}">
+                    <div class="form-row-modern">
+                        <div class="form-group-modern">
+                            <label class="form-label-modern">Semana</label>
+                            <input type="text" class="form-input-modern" readonly value="{{ semana_inicio.strftime('%d/%m') }} a {{ semana_fim.strftime('%d/%m/%Y') }}">
                         </div>
-                        <div class="mm-form-group" style="align-self: end;">
-                            <button class="mm-btn mm-btn-primary" type="submit">
-                                <i class="bi bi-check-lg"></i> Salvar
+                        <div class="form-group-modern form-group-checkbox">
+                            <label class="checkbox-modern">
+                                <input type="checkbox" name="incluir_domingo" class="checkbox-input-modern">
+                                <span class="checkbox-label-modern">Incluir Domingo</span>
+                            </label>
+                        </div>
+                        <div class="form-group-modern form-group-action">
+                            <button class="btn-save-modern" type="submit">
+                                <i class="bi bi-magic"></i>
+                                Gerar Escala
                             </button>
                         </div>
                     </div>
                 </form>
             </div>
         </div>
-    </div>
-    {% endif %}
-    
-    {% if current_user.nivel == 'admin' %}
-    <div class="mm-card mm-mb-6">
-        <div class="mm-card-header">
-            <h3 class="mm-card-title">
-                <i class="bi bi-gear mm-text-primary"></i>
-                Configurar Domingos
-            </h3>
-        </div>
-        <div class="mm-card-body">
-            <form method="post" action="{{ url_for('colaboradores.domingo_configurar') }}" class="mm-config-form">
-                <div class="mm-form-row">
-                    <div class="mm-form-group">
-                        <label class="mm-label">Equipe de Domingo (5h-13h)</label>
-                        <select name="domingo_team" class="mm-input mm-select">
-                            <option value="1" {% if domingo_team == '1' %}selected{% endif %}>Equipe 1</option>
-                            <option value="2" {% if domingo_team == '2' %}selected{% endif %}>Equipe 2</option>
-                        </select>
+        
+        <!-- Configuração de Equipes -->
+        <div class="config-card-modern">
+            <div class="config-header-modern">
+                <h3 class="config-title">
+                    <i class="bi bi-people"></i>
+                    Configuração de Equipes
+                </h3>
+            </div>
+            <div class="config-body-modern">
+                <div class="equipes-grid-modern">
+                    <div class="equipe-section-modern equipe-1">
+                        <h4 class="equipe-title-modern">
+                            <i class="bi bi-1-circle-fill"></i>
+                            Equipe 1
+                        </h4>
+                        <div class="equipe-list-modern">
+                            {% for c in colaboradores if c.regular_team == '1' %}
+                            <div class="equipe-member-modern">
+                                <span class="position-badge-modern">P{{ c.team_position or 1 }}</span>
+                                <span class="member-name-modern">{{ c.name }}</span>
+                                <form method="post" action="{{ url_for('colaboradores.equipe_configurar') }}" style="display: inline;">
+                                    <input type="hidden" name="collaborator_id" value="{{ c.id }}">
+                                    <select name="position" class="select-position-modern" onchange="this.form.submit()">
+                                        <option value="1" {% if c.team_position == 1 %}selected{% endif %}>P1 (5h)</option>
+                                        <option value="2" {% if c.team_position == 2 %}selected{% endif %}>P2 (5h)</option>
+                                        <option value="3" {% if c.team_position == 3 %}selected{% endif %}>P3 (6h)</option>
+                                    </select>
+                                    <input type="hidden" name="team" value="1">
+                                </form>
+                            </div>
+                            {% else %}
+                            <p class="equipe-empty-modern">Nenhum colaborador na Equipe 1</p>
+                            {% endfor %}
+                        </div>
                     </div>
-                    <div class="mm-form-group">
-                        <label class="mm-label">Domingo de Referencia</label>
-                        <input type="date" class="mm-input" name="domingo_data" value="{{ domingo_ref_date }}">
-                    </div>
-                    <div class="mm-form-group" style="align-self: end;">
-                        <button class="mm-btn mm-btn-primary" type="submit">
-                            <i class="bi bi-save"></i> Salvar
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-    
-    <div class="mm-card mm-mb-6">
-        <div class="mm-card-header">
-            <h3 class="mm-card-title">
-                <i class="bi bi-trash mm-text-danger"></i>
-                Limpar Escala da Semana
-            </h3>
-        </div>
-        <div class="mm-card-body">
-            <form method="post" action="{{ url_for('colaboradores.limpar_escala_semana') }}" onsubmit="return confirm('Tem certeza que deseja limpar os turnos da semana?')">
-                <input type="hidden" name="semana" value="{{ semana_inicio.strftime('%Y-%m-%d') }}">
-                <div class="mm-form-row">
-                    <div class="mm-form-group">
-                        <label class="mm-label">Semana</label>
-                        <input type="text" class="mm-input" readonly value="{{ semana_inicio.strftime('%d/%m') }} a {{ semana_fim.strftime('%d/%m/%Y') }}">
-                    </div>
-                    <div class="mm-form-group">
-                        <label class="mm-form-check">
-                            <input type="checkbox" name="apenas_automaticos" class="mm-checkbox" checked>
-                            <span>Apenas turnos gerados automaticamente</span>
-                        </label>
-                    </div>
-                    <div class="mm-form-group" style="align-self: end;">
-                        <button class="mm-btn mm-btn-danger" type="submit">
-                            <i class="bi bi-trash"></i> Limpar Semana
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-    {% endif %}
-    
-    <div class="mm-card">
-        <div class="mm-card-header">
-            <h3 class="mm-card-title">
-                <i class="bi bi-clock mm-text-primary"></i>
-                Horarios dos Turnos
-            </h3>
-        </div>
-        <div class="mm-card-body">
-            <div class="mm-grid mm-grid-cols-2 mm-gap-6">
-                <div>
-                    <h4 class="mm-text-md mm-font-semibold mm-mb-3" style="color: #22c55e;">Abertura</h4>
-                    <div class="mm-turno-info mm-mb-2">
-                        <div class="mm-turno-badge" style="background: #22c55e; display: inline-block; margin-bottom: 8px;">P1/P2 (5h)</div>
-                        <p class="mm-text-muted">05:00-11:00 | Almoco 13:00-15:00</p>
-                    </div>
-                    <div class="mm-turno-info">
-                        <div class="mm-turno-badge" style="background: #16a34a; display: inline-block; margin-bottom: 8px;">P3 (6h)</div>
-                        <p class="mm-text-muted">06:00-11:00 | Almoco 13:00-16:00</p>
+                    <div class="equipe-section-modern equipe-2">
+                        <h4 class="equipe-title-modern">
+                            <i class="bi bi-2-circle-fill"></i>
+                            Equipe 2
+                        </h4>
+                        <div class="equipe-list-modern">
+                            {% for c in colaboradores if c.regular_team == '2' %}
+                            <div class="equipe-member-modern">
+                                <span class="position-badge-modern">P{{ c.team_position or 1 }}</span>
+                                <span class="member-name-modern">{{ c.name }}</span>
+                                <form method="post" action="{{ url_for('colaboradores.equipe_configurar') }}" style="display: inline;">
+                                    <input type="hidden" name="collaborator_id" value="{{ c.id }}">
+                                    <select name="position" class="select-position-modern" onchange="this.form.submit()">
+                                        <option value="1" {% if c.team_position == 1 %}selected{% endif %}>P1 (5h)</option>
+                                        <option value="2" {% if c.team_position == 2 %}selected{% endif %}>P2 (5h)</option>
+                                        <option value="3" {% if c.team_position == 3 %}selected{% endif %}>P3 (6h)</option>
+                                    </select>
+                                    <input type="hidden" name="team" value="2">
+                                </form>
+                            </div>
+                            {% else %}
+                            <p class="equipe-empty-modern">Nenhum colaborador na Equipe 2</p>
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
-                <div>
-                    <h4 class="mm-text-md mm-font-semibold mm-mb-3" style="color: #3b82f6;">Fechamento</h4>
-                    <div class="mm-turno-info">
-                        <div class="mm-turno-badge" style="background: #3b82f6; display: inline-block; margin-bottom: 8px;">Todos</div>
-                        <p class="mm-text-muted">09:30-13:00 | Almoco 15:00-19:30</p>
-                    </div>
+                
+                <div class="divider-modern"></div>
+                
+                <div class="atribuir-equipe-modern">
+                    <h4 class="atribuir-title-modern">
+                        <i class="bi bi-person-plus"></i>
+                        Atribuir Colaborador a Equipe
+                    </h4>
+                    <form method="post" action="{{ url_for('colaboradores.equipe_configurar') }}" class="config-form-modern">
+                        <div class="form-row-modern">
+                            <div class="form-group-modern">
+                                <label class="form-label-modern">Colaborador</label>
+                                <select name="collaborator_id" class="form-input-modern" required>
+                                    <option value="">Selecione...</option>
+                                    {% for c in colaboradores %}
+                                    <option value="{{ c.id }}">{{ c.name }} {% if c.regular_team %}(Eq. {{ c.regular_team }}){% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group-modern">
+                                <label class="form-label-modern">Equipe</label>
+                                <select name="team" class="form-input-modern" required>
+                                    <option value="1">Equipe 1</option>
+                                    <option value="2">Equipe 2</option>
+                                </select>
+                            </div>
+                            <div class="form-group-modern">
+                                <label class="form-label-modern">Posição</label>
+                                <select name="position" class="form-input-modern" required>
+                                    <option value="1">P1 - Entrada 5h</option>
+                                    <option value="2">P2 - Entrada 5h</option>
+                                    <option value="3">P3 - Entrada 6h</option>
+                                </select>
+                            </div>
+                            <div class="form-group-modern form-group-action">
+                                <button class="btn-save-modern" type="submit">
+                                    <i class="bi bi-check-lg"></i>
+                                    Salvar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
-            <hr class="mm-divider mm-my-4">
-            <div>
-                <h4 class="mm-text-md mm-font-semibold mm-mb-3" style="color: #fd7e14;">Domingo</h4>
-                <div class="mm-grid mm-grid-cols-2 mm-gap-4">
-                    <div class="mm-turno-info">
-                        <div class="mm-turno-badge" style="background: #fd7e14; display: inline-block; margin-bottom: 8px;">P1/P2 (5h)</div>
-                        <p class="mm-text-muted">05:00-13:00 <strong>(+1 folga +1h extra)</strong></p>
+        </div>
+        {% endif %}
+        
+        {% if current_user.nivel == 'admin' or current_user.nivel == 'DEV' %}
+        <!-- Configurar Domingos -->
+        <div class="config-card-modern">
+            <div class="config-header-modern">
+                <h3 class="config-title">
+                    <i class="bi bi-gear"></i>
+                    Configurar Domingos
+                </h3>
+            </div>
+            <div class="config-body-modern">
+                <form method="post" action="{{ url_for('colaboradores.domingo_configurar') }}" class="config-form-modern">
+                    <div class="form-row-modern">
+                        <div class="form-group-modern">
+                            <label class="form-label-modern">Equipe de Domingo (5h-13h)</label>
+                            <select name="domingo_team" class="form-input-modern">
+                                <option value="1" {% if domingo_team == '1' %}selected{% endif %}>Equipe 1</option>
+                                <option value="2" {% if domingo_team == '2' %}selected{% endif %}>Equipe 2</option>
+                            </select>
+                        </div>
+                        <div class="form-group-modern">
+                            <label class="form-label-modern">Domingo de Referência</label>
+                            <input type="date" class="form-input-modern" name="domingo_data" value="{{ domingo_ref_date }}">
+                        </div>
+                        <div class="form-group-modern form-group-action">
+                            <button class="btn-save-modern" type="submit">
+                                <i class="bi bi-save"></i>
+                                Salvar
+                            </button>
+                        </div>
                     </div>
-                    <div class="mm-turno-info">
-                        <div class="mm-turno-badge" style="background: #ea580c; display: inline-block; margin-bottom: 8px;">P3 (6h)</div>
-                        <p class="mm-text-muted">06:00-13:00 <strong>(+1 folga)</strong></p>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Limpar Escala -->
+        <div class="config-card-modern config-card-danger">
+            <div class="config-header-modern">
+                <h3 class="config-title">
+                    <i class="bi bi-trash"></i>
+                    Limpar Escala da Semana
+                </h3>
+            </div>
+            <div class="config-body-modern">
+                <form method="post" action="{{ url_for('colaboradores.limpar_escala_semana') }}" onsubmit="return confirm('Tem certeza que deseja limpar os turnos da semana?')" class="config-form-modern">
+                    <input type="hidden" name="semana" value="{{ semana_inicio.strftime('%Y-%m-%d') }}">
+                    <div class="form-row-modern">
+                        <div class="form-group-modern">
+                            <label class="form-label-modern">Semana</label>
+                            <input type="text" class="form-input-modern" readonly value="{{ semana_inicio.strftime('%d/%m') }} a {{ semana_fim.strftime('%d/%m/%Y') }}">
+                        </div>
+                        <div class="form-group-modern form-group-checkbox">
+                            <label class="checkbox-modern">
+                                <input type="checkbox" name="apenas_automaticos" class="checkbox-input-modern" checked>
+                                <span class="checkbox-label-modern">Apenas turnos gerados automaticamente</span>
+                            </label>
+                        </div>
+                        <div class="form-group-modern form-group-action">
+                            <button class="btn-danger-modern" type="submit">
+                                <i class="bi bi-trash"></i>
+                                Limpar Semana
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Horários dos Turnos -->
+        <div class="config-card-modern">
+            <div class="config-header-modern">
+                <h3 class="config-title">
+                    <i class="bi bi-clock"></i>
+                    Horários dos Turnos
+                </h3>
+            </div>
+            <div class="config-body-modern">
+                <div class="horarios-grid-modern">
+                    <div class="horario-section-modern">
+                        <h4 class="horario-title-modern horario-abertura">
+                            <i class="bi bi-sunrise"></i>
+                            Abertura
+                        </h4>
+                        <div class="horario-info-modern">
+                            <div class="horario-badge-modern horario-badge-verde">P1/P2 (5h)</div>
+                            <p class="horario-text-modern">05:00-11:00 | Almoço 13:00-15:00</p>
+                        </div>
+                        <div class="horario-info-modern">
+                            <div class="horario-badge-modern horario-badge-verde-escuro">P3 (6h)</div>
+                            <p class="horario-text-modern">06:00-11:00 | Almoço 13:00-16:00</p>
+                        </div>
+                    </div>
+                    <div class="horario-section-modern">
+                        <h4 class="horario-title-modern horario-fechamento">
+                            <i class="bi bi-sunset"></i>
+                            Fechamento
+                        </h4>
+                        <div class="horario-info-modern">
+                            <div class="horario-badge-modern horario-badge-azul">Todos</div>
+                            <p class="horario-text-modern">09:30-13:00 | Almoço 15:00-19:30</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="divider-modern"></div>
+                <div class="horario-section-modern horario-domingo">
+                    <h4 class="horario-title-modern horario-domingo-title">
+                        <i class="bi bi-calendar-week"></i>
+                        Domingo
+                    </h4>
+                    <div class="horarios-domingo-grid-modern">
+                        <div class="horario-info-modern">
+                            <div class="horario-badge-modern horario-badge-laranja">P1/P2 (5h)</div>
+                            <p class="horario-text-modern">05:00-13:00 <strong>(+1 folga +1h extra)</strong></p>
+                        </div>
+                        <div class="horario-info-modern">
+                            <div class="horario-badge-modern horario-badge-laranja-escuro">P3 (6h)</div>
+                            <p class="horario-text-modern">06:00-13:00 <strong>(+1 folga)</strong></p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -643,444 +704,82 @@
     </div>
 </div>
 
+<!-- Modal Turno -->
 <div class="modal fade" id="modalTurno" tabindex="-1">
     <div class="modal-dialog">
-        <div class="modal-content" style="background: var(--mm-bg-primary); border: 1px solid var(--mm-border); border-radius: var(--mm-radius-lg);">
-            <form method="post" action="{{ url_for('colaboradores.turno_atribuir') }}" id="formTurno">
-                <input type="hidden" name="turno_id" id="turnoId" value="">
-                <div class="modal-header" style="border-bottom: 1px solid var(--mm-border);">
-                    <h5 class="modal-title">
-                        <i class="bi bi-calendar-plus me-2" style="color: var(--mm-primary);"></i>
-                        <span id="modalTurnoTitle">Atribuir Turno</span>
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <form class="modal-content-modern" method="post" action="{{ url_for('colaboradores.turno_atribuir') }}" id="formTurno">
+            <input type="hidden" name="turno_id" id="turnoId" value="">
+            <div class="modal-header-modern modal-header-primary">
+                <h5 class="modal-title-modern">
+                    <i class="bi bi-calendar-plus"></i>
+                    <span id="modalTurnoTitle">Atribuir Turno</span>
+                </h5>
+                <button type="button" class="btn-close-modern" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="modal-body-modern">
+                <div class="form-group-modern">
+                    <label class="form-label-modern">
+                        <i class="bi bi-person"></i>
+                        Colaborador <span class="required">*</span>
+                    </label>
+                    <select name="collaborator_id" id="turnoColaborador" class="form-input-modern" required>
+                        <option value="">Selecione...</option>
+                        {% for c in colaboradores %}
+                        <option value="{{ c.id }}">{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-                <div class="modal-body">
-                    <div class="mm-form-group mm-mb-4">
-                        <label class="mm-label">Colaborador *</label>
-                        <select name="collaborator_id" id="turnoColaborador" class="mm-select" required>
-                            <option value="">Selecione...</option>
-                            {% for c in colaboradores %}
-                            <option value="{{ c.id }}">{{ c.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mm-form-group mm-mb-4">
-                        <label class="mm-label">Data *</label>
-                        <input type="date" name="data" id="turnoData" class="mm-input" required>
-                    </div>
-                    <div class="mm-form-group mm-mb-4">
-                        <label class="mm-label">Turno *</label>
-                        <select name="turno" id="turnoTipo" class="mm-select" required>
-                            <option value="">Selecione...</option>
-                            <option value="Manha">Manha (05:00 - 13:20)</option>
-                            <option value="Tarde">Tarde (13:00 - 21:20)</option>
-                            <option value="Noite">Noite (17:00 - 21:00)</option>
-                            <option value="Folga">Folga</option>
-                        </select>
-                    </div>
-                    <div class="mm-form-group">
-                        <label class="mm-label">Observacao</label>
-                        <input type="text" name="observacao" id="turnoObs" class="mm-input" placeholder="Opcional...">
-                    </div>
+                <div class="form-group-modern">
+                    <label class="form-label-modern">
+                        <i class="bi bi-calendar3"></i>
+                        Data <span class="required">*</span>
+                    </label>
+                    <input type="date" name="data" id="turnoData" class="form-input-modern" required>
                 </div>
-                <div class="modal-footer" style="border-top: 1px solid var(--mm-border);">
-                    <button type="button" class="mm-btn mm-btn-outline" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="mm-btn mm-btn-danger" id="btnExcluirTurno" style="display: none;" onclick="excluirTurno()">
-                        <i class="bi bi-trash"></i> Excluir
-                    </button>
-                    <button type="submit" class="mm-btn mm-btn-primary">
-                        <i class="bi bi-check-lg"></i> Salvar
-                    </button>
+                <div class="form-group-modern">
+                    <label class="form-label-modern">
+                        <i class="bi bi-clock"></i>
+                        Turno <span class="required">*</span>
+                    </label>
+                    <select name="turno" id="turnoTipo" class="form-input-modern" required>
+                        <option value="">Selecione...</option>
+                        <option value="Manha">Manhã (05:00 - 13:20)</option>
+                        <option value="Tarde">Tarde (13:00 - 21:20)</option>
+                        <option value="Noite">Noite (17:00 - 21:00)</option>
+                        <option value="Folga">Folga</option>
+                    </select>
                 </div>
-            </form>
-        </div>
+                <div class="form-group-modern">
+                    <label class="form-label-modern">
+                        <i class="bi bi-chat-left-text"></i>
+                        Observação
+                    </label>
+                    <input type="text" name="observacao" id="turnoObs" class="form-input-modern" placeholder="Opcional...">
+                </div>
+            </div>
+            <div class="modal-footer-modern">
+                <button type="button" class="btn-modal-cancel" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn-modal-danger" id="btnExcluirTurno" style="display: none;" onclick="excluirTurno()">
+                    <i class="bi bi-trash"></i>
+                    Excluir
+                </button>
+                <button type="submit" class="btn-modal-save">
+                    <i class="bi bi-check-lg"></i>
+                    Salvar
+                </button>
+            </div>
+        </form>
     </div>
 </div>
-
-<style>
-.mm-tabs {
-    display: flex;
-    gap: var(--mm-space-2);
-    border-bottom: 1px solid var(--mm-border);
-    padding-bottom: var(--mm-space-2);
-}
-
-.mm-tab {
-    padding: var(--mm-space-2) var(--mm-space-4);
-    background: transparent;
-    border: none;
-    color: var(--mm-text-secondary);
-    font-size: var(--mm-text-sm);
-    font-weight: 500;
-    cursor: pointer;
-    border-radius: var(--mm-radius);
-    transition: all var(--mm-transition);
-    display: flex;
-    align-items: center;
-    gap: var(--mm-space-2);
-}
-
-.mm-tab:hover {
-    background: var(--mm-bg-secondary);
-    color: var(--mm-text-primary);
-}
-
-.mm-tab.active {
-    background: var(--mm-primary);
-    color: #0f172a;
-}
-
-.mm-tab-content {
-    display: none;
-}
-
-.mm-tab-content.active {
-    display: block;
-}
-
-.mm-schedule-grid {
-    border-collapse: separate;
-    border-spacing: 0;
-}
-
-.mm-schedule-grid th,
-.mm-schedule-grid td {
-    border: 1px solid var(--mm-border);
-}
-
-.mm-dia-header {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.mm-dia-nome {
-    font-weight: 600;
-    text-transform: capitalize;
-}
-
-.mm-dia-data {
-    font-size: var(--mm-text-xs);
-    color: var(--mm-text-muted);
-}
-
-.mm-today {
-    background: rgba(34, 197, 94, 0.1) !important;
-}
-
-.mm-colab-cell {
-    display: flex;
-    align-items: center;
-    gap: var(--mm-space-3);
-}
-
-.mm-avatar-sm {
-    width: 36px;
-    height: 36px;
-    border-radius: var(--mm-radius-full);
-    background: linear-gradient(135deg, var(--mm-primary), #10b981);
-    color: #0f172a;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: var(--mm-text-xs);
-    font-weight: 700;
-    flex-shrink: 0;
-}
-
-.mm-colab-nome {
-    font-weight: 600;
-    color: var(--mm-text-primary);
-}
-
-.mm-colab-cargo {
-    font-size: var(--mm-text-xs);
-    color: var(--mm-text-muted);
-}
-
-.mm-turno-cell {
-    padding: var(--mm-space-2) !important;
-    vertical-align: middle;
-}
-
-.mm-turno-badge {
-    display: inline-block;
-    padding: var(--mm-space-1) var(--mm-space-3);
-    border-radius: var(--mm-radius);
-    font-size: var(--mm-text-xs);
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.mm-turno-manha {
-    background: rgba(59, 130, 246, 0.2);
-    color: #3b82f6;
-}
-
-.mm-turno-tarde {
-    background: rgba(245, 158, 11, 0.2);
-    color: #f59e0b;
-}
-
-.mm-turno-noite {
-    background: rgba(139, 92, 246, 0.2);
-    color: #8b5cf6;
-}
-
-.mm-turno-folga {
-    background: rgba(107, 114, 128, 0.2);
-    color: #6b7280;
-}
-
-.mm-btn-add-turno {
-    width: 28px;
-    height: 28px;
-    border-radius: var(--mm-radius);
-    border: 1px dashed var(--mm-border);
-    background: transparent;
-    color: var(--mm-text-muted);
-    cursor: pointer;
-    transition: all var(--mm-transition);
-}
-
-.mm-btn-add-turno:hover {
-    border-color: var(--mm-primary);
-    color: var(--mm-primary);
-    background: rgba(34, 197, 94, 0.1);
-}
-
-.mm-horas-total {
-    font-weight: 700;
-    color: var(--mm-primary);
-}
-
-.mm-kpi-card {
-    display: flex;
-    flex-direction: column;
-    gap: var(--mm-space-2);
-}
-
-.mm-kpi-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: var(--mm-radius);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-}
-
-.mm-form-row {
-    display: flex;
-    gap: var(--mm-space-4);
-    flex-wrap: wrap;
-    align-items: flex-start;
-}
-
-.mm-form-group {
-    display: flex;
-    flex-direction: column;
-    gap: var(--mm-space-2);
-    flex: 1;
-    min-width: 150px;
-}
-
-.mm-date-cell {
-    display: flex;
-    align-items: center;
-    gap: var(--mm-space-2);
-}
-
-.mm-inline-form {
-    display: inline-block;
-}
-
-.mm-team-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--mm-space-2);
-}
-
-.mm-team-member {
-    display: flex;
-    align-items: center;
-    gap: var(--mm-space-3);
-    padding: var(--mm-space-2) var(--mm-space-3);
-    background: var(--mm-bg-secondary);
-    border-radius: var(--mm-radius);
-    border: 1px solid var(--mm-border);
-}
-
-.mm-position-badge {
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--mm-primary);
-    color: #0f172a;
-    border-radius: var(--mm-radius-full);
-    font-size: var(--mm-text-xs);
-    font-weight: 700;
-    flex-shrink: 0;
-}
-
-.mm-member-name {
-    flex: 1;
-    font-weight: 500;
-    color: var(--mm-text-primary);
-}
-
-.mm-select-sm {
-    padding: var(--mm-space-1) var(--mm-space-2);
-    font-size: var(--mm-text-xs);
-    background: var(--mm-bg-primary);
-    border: 1px solid var(--mm-border);
-    border-radius: var(--mm-radius);
-    color: var(--mm-text-primary);
-}
-
-.mm-alert {
-    display: flex;
-    gap: var(--mm-space-3);
-    padding: var(--mm-space-4);
-    border-radius: var(--mm-radius);
-    border: 1px solid;
-}
-
-.mm-alert-info {
-    background: rgba(59, 130, 246, 0.1);
-    border-color: rgba(59, 130, 246, 0.3);
-    color: #93c5fd;
-}
-
-.mm-alert i {
-    font-size: 1.25rem;
-    flex-shrink: 0;
-}
-
-.mm-divider {
-    border: none;
-    border-top: 1px solid var(--mm-border);
-}
-
-.mm-form-check {
-    display: flex;
-    align-items: center;
-    gap: var(--mm-space-2);
-    cursor: pointer;
-}
-
-.mm-checkbox {
-    width: 18px;
-    height: 18px;
-    accent-color: var(--mm-primary);
-}
-
-.mm-turno-abertura-5h, .mm-turno-abertura {
-    background: rgba(34, 197, 94, 0.2);
-    color: #22c55e;
-}
-
-.mm-turno-abertura-6h {
-    background: rgba(22, 163, 74, 0.2);
-    color: #16a34a;
-}
-
-.mm-turno-fechamento {
-    background: rgba(59, 130, 246, 0.2);
-    color: #3b82f6;
-}
-
-.mm-turno-domingo-5h, .mm-turno-domingo-6h, .mm-turno-domingo {
-    background: rgba(253, 126, 20, 0.2);
-    color: #fd7e14;
-}
-
-.mm-empty-cell {
-    text-align: center;
-    padding: var(--mm-space-8) !important;
-}
-
-.mm-empty-state-inline {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--mm-space-2);
-    color: var(--mm-text-muted);
-}
-
-.mm-card-footer {
-    padding: var(--mm-space-4) var(--mm-space-6);
-    border-top: 1px solid var(--mm-border);
-    background: var(--mm-bg-secondary);
-    border-radius: 0 0 var(--mm-radius-xl) var(--mm-radius-xl);
-}
-
-.mm-legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--mm-space-4);
-}
-
-.mm-legend-item {
-    display: flex;
-    align-items: center;
-    gap: var(--mm-space-2);
-    font-size: var(--mm-text-sm);
-    color: var(--mm-text-secondary);
-}
-
-.mm-legend-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: var(--mm-radius-full);
-    flex-shrink: 0;
-}
-
-.mm-calendar-container {
-    min-height: 500px;
-}
-
-.mm-turno-info {
-    text-align: center;
-    padding: var(--mm-space-4);
-    background: var(--mm-bg-secondary);
-    border-radius: var(--mm-radius);
-}
-
-@media print {
-    .mm-tabs, .mm-btn, .modal, .mm-page-header > div:last-child {
-        display: none !important;
-    }
-    .mm-tab-content {
-        display: block !important;
-    }
-    #tab-calendario, #tab-feriados, #tab-config {
-        display: none !important;
-    }
-}
-
-@media (max-width: 768px) {
-    .mm-tabs {
-        flex-wrap: wrap;
-    }
-    .mm-form-row {
-        flex-direction: column;
-    }
-    .mm-grid-cols-4 {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-</style>
 
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
 <script>
-document.querySelectorAll('.mm-tab').forEach(function(tab) {
+document.querySelectorAll('.tab-modern').forEach(function(tab) {
     tab.addEventListener('click', function() {
-        document.querySelectorAll('.mm-tab').forEach(function(t) { t.classList.remove('active'); });
-        document.querySelectorAll('.mm-tab-content').forEach(function(c) { c.classList.remove('active'); });
+        document.querySelectorAll('.tab-modern').forEach(function(t) { t.classList.remove('active'); });
+        document.querySelectorAll('.tab-content-modern').forEach(function(c) { c.classList.remove('active'); });
         this.classList.add('active');
         var tabId = 'tab-' + this.getAttribute('data-tab');
         document.getElementById(tabId).classList.add('active');
@@ -1107,7 +806,7 @@ function initCalendar() {
         },
         buttonText: {
             today: 'Hoje',
-            month: 'Mes',
+            month: 'Mês',
             week: 'Semana'
         },
         events: events,
@@ -1151,4 +850,1630 @@ function excluirTurno() {
     }
 }
 </script>
+
+<style>
+/* Container */
+.escalas-container {
+    padding: 2rem;
+    max-width: 1800px;
+    margin: 0 auto;
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Hero Header */
+.escalas-hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 3rem 2.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.escalas-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: rotate 20s linear infinite;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.escalas-hero-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.escalas-title {
+    font-size: 3rem;
+    font-weight: 800;
+    color: white;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.escalas-title-icon {
+    font-size: 3.5rem;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.escalas-subtitle {
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-top: 0.5rem;
+}
+
+.escalas-hero-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.75rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.btn-action-primary {
+    background: white;
+    color: #667eea;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.btn-action-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+.btn-action-secondary {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.btn-action-secondary:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+/* Tabs */
+.tabs-modern {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 0.5rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.tab-modern {
+    padding: 0.875rem 1.5rem;
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 10px 10px 0 0;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+}
+
+.tab-modern:hover {
+    background: #f9fafb;
+    color: #374151;
+}
+
+.tab-modern.active {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.tab-modern.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.tab-content-modern {
+    display: none;
+}
+
+.tab-content-modern.active {
+    display: block;
+    animation: fadeIn 0.3s ease-in;
+}
+
+/* Semana Header */
+.semana-header-modern {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.semana-info {
+    flex: 1;
+}
+
+.semana-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.semana-title i {
+    color: #667eea;
+}
+
+.semana-navigation {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.btn-nav-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: white;
+    color: #374151;
+    text-decoration: none;
+    border-radius: 10px;
+    font-weight: 600;
+    border: 2px solid #e5e7eb;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+}
+
+.btn-nav-modern:hover {
+    background: #f3f4f6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.btn-nav-today {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-color: transparent;
+}
+
+.btn-nav-today:hover {
+    background: linear-gradient(135deg, #764ba2, #667eea);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+/* Grade Table */
+.grade-card-modern {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+
+.grade-table-wrapper {
+    overflow-x: auto;
+}
+
+.grade-table-modern {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 800px;
+}
+
+.grade-table-modern th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: #f9fafb;
+    border-bottom: 2px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.colab-header {
+    min-width: 200px;
+    position: sticky;
+    left: 0;
+    z-index: 11;
+    background: #f9fafb;
+}
+
+.dia-header {
+    min-width: 120px;
+    text-align: center;
+}
+
+.dia-header-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: center;
+}
+
+.dia-nome {
+    font-weight: 700;
+    color: #1f2937;
+    text-transform: capitalize;
+}
+
+.dia-data {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.dia-today {
+    background: rgba(16, 185, 129, 0.1) !important;
+}
+
+.dia-today .dia-nome {
+    color: #059669;
+    font-weight: 800;
+}
+
+.horas-header {
+    min-width: 100px;
+    text-align: center;
+}
+
+.colab-row-modern {
+    border-bottom: 1px solid #f3f4f6;
+    transition: background 0.2s ease;
+}
+
+.colab-row-modern:hover {
+    background: #f9fafb;
+}
+
+.colab-cell-modern {
+    position: sticky;
+    left: 0;
+    background: white;
+    z-index: 5;
+    padding: 1rem;
+}
+
+.colab-row-modern:hover .colab-cell-modern {
+    background: #f9fafb;
+}
+
+.colab-info-modern {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.colab-avatar-modern {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.colab-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.colab-nome-modern {
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+}
+
+.colab-cargo-modern {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.turno-cell-modern {
+    padding: 0.75rem;
+    text-align: center;
+    vertical-align: middle;
+    border-left: 1px solid #f3f4f6;
+}
+
+.turno-badge-modern {
+    display: inline-block;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+}
+
+.turno-badge-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.turno-manha {
+    background: rgba(59, 130, 246, 0.15);
+    color: #2563eb;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.turno-tarde {
+    background: rgba(245, 158, 11, 0.15);
+    color: #d97706;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.turno-noite {
+    background: rgba(139, 92, 246, 0.15);
+    color: #7c3aed;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.turno-folga {
+    background: rgba(107, 114, 128, 0.15);
+    color: #4b5563;
+    border: 1px solid rgba(107, 114, 128, 0.3);
+}
+
+.turno-abertura-5h,
+.turno-abertura {
+    background: rgba(34, 197, 94, 0.15);
+    color: #059669;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.turno-abertura-6h {
+    background: rgba(22, 163, 74, 0.15);
+    color: #15803d;
+    border: 1px solid rgba(22, 163, 74, 0.3);
+}
+
+.turno-fechamento {
+    background: rgba(59, 130, 246, 0.15);
+    color: #2563eb;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.turno-domingo-5h,
+.turno-domingo-6h,
+.turno-domingo {
+    background: rgba(253, 126, 20, 0.15);
+    color: #ea580c;
+    border: 1px solid rgba(253, 126, 20, 0.3);
+}
+
+.btn-add-turno-modern {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 2px dashed #d1d5db;
+    background: transparent;
+    color: #9ca3af;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.btn-add-turno-modern:hover {
+    border-color: #667eea;
+    color: #667eea;
+    background: rgba(102, 126, 234, 0.1);
+    transform: scale(1.1);
+}
+
+.turno-empty {
+    color: #9ca3af;
+    font-size: 0.875rem;
+}
+
+.horas-cell-modern {
+    text-align: center;
+    padding: 1rem;
+}
+
+.horas-total-modern {
+    font-weight: 700;
+    color: #667eea;
+    font-size: 1rem;
+}
+
+.empty-grade {
+    padding: 4rem 2rem !important;
+    text-align: center;
+}
+
+/* Conflicts */
+.conflicts-card-modern {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+    border-left: 4px solid #ef4444;
+    margin-bottom: 2rem;
+}
+
+.conflicts-header-modern {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.conflicts-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.conflicts-icon {
+    font-size: 1.5rem;
+    color: #ef4444;
+}
+
+.conflicts-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+}
+
+.badge-count-modern {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.875rem;
+}
+
+.badge-danger-modern {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+}
+
+.conflicts-table-wrapper {
+    overflow-x: auto;
+}
+
+.conflicts-table-modern {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.conflicts-table-modern th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+.conflicts-table-modern td {
+    padding: 1rem;
+    color: #1f2937;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.badge-conflict {
+    display: inline-flex;
+    padding: 0.375rem 0.75rem;
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.conflicts-info-modern {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 4px solid #3b82f6;
+    border-radius: 8px;
+    color: #1e40af;
+}
+
+.conflicts-info-modern i {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+/* KPIs */
+.kpis-grid-escalas {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.kpi-card-escalas {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.kpi-card-escalas:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+}
+
+.kpi-card-escalas::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--kpi-color), var(--kpi-color-light));
+}
+
+.kpi-primary { --kpi-color: #667eea; --kpi-color-light: #764ba2; }
+.kpi-info { --kpi-color: #3b82f6; --kpi-color-light: #60a5fa; }
+.kpi-warning { --kpi-color: #f59e0b; --kpi-color-light: #fbbf24; }
+.kpi-success { --kpi-color: #10b981; --kpi-color-light: #34d399; }
+
+.kpi-icon-escalas {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    color: white;
+    background: linear-gradient(135deg, var(--kpi-color), var(--kpi-color-light));
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+
+.kpi-content-escalas {
+    position: relative;
+    z-index: 1;
+}
+
+.kpi-label-escalas {
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.kpi-value-escalas {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1.2;
+}
+
+.kpi-decoration-escalas {
+    position: absolute;
+    bottom: -20px;
+    right: -20px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--kpi-color-light), transparent);
+    opacity: 0.1;
+}
+
+/* Rodízio */
+.rodizio-card-modern {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+
+.rodizio-header-modern {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.rodizio-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.rodizio-title i {
+    color: #667eea;
+}
+
+.rodizio-table-wrapper {
+    overflow-x: auto;
+}
+
+.rodizio-table-modern {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.rodizio-table-modern th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+.rodizio-table-modern td {
+    padding: 1rem;
+    color: #1f2937;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.badge-rodizio {
+    display: inline-flex;
+    padding: 0.375rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-success-rodizio {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+}
+
+.badge-info-rodizio {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+}
+
+/* Calendário */
+.calendario-card-modern {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.calendario-header-modern {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.calendario-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.calendario-title i {
+    color: #667eea;
+}
+
+.calendario-container-modern {
+    min-height: 500px;
+}
+
+.calendario-footer-modern {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid #f3f4f6;
+}
+
+.legend-modern {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.legend-item-modern {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #374151;
+}
+
+.legend-dot-modern {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* Feriados */
+.feriados-card-modern {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.feriados-header-modern {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.feriados-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.feriados-title i {
+    color: #667eea;
+}
+
+.feriado-form-modern {
+    margin-bottom: 2rem;
+}
+
+.feriados-table-wrapper {
+    overflow-x: auto;
+}
+
+.feriados-table-modern {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.feriados-table-modern th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+.feriados-table-modern td {
+    padding: 1rem;
+    color: #1f2937;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.feriado-date-modern {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #6b7280;
+}
+
+.badge-feriado {
+    display: inline-flex;
+    padding: 0.375rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-nacional {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+}
+
+.badge-estadual {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+}
+
+.badge-municipal {
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+}
+
+.badge-facultativo {
+    background: rgba(148, 163, 184, 0.1);
+    color: #64748b;
+}
+
+.empty-feriados {
+    padding: 4rem 2rem !important;
+    text-align: center;
+}
+
+/* Configurações */
+.config-card-modern {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+
+.config-card-danger {
+    border-left: 4px solid #ef4444;
+}
+
+.config-header-modern {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.config-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.config-title i {
+    color: #667eea;
+}
+
+.alert-modern {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+}
+
+.alert-info-modern {
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 4px solid #3b82f6;
+    color: #1e40af;
+}
+
+.alert-modern i {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.alert-modern strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.alert-list-modern {
+    margin: 0.75rem 0 0 1.5rem;
+    padding: 0;
+}
+
+.alert-list-modern li {
+    margin-bottom: 0.5rem;
+}
+
+.config-form-modern {
+    margin-top: 1rem;
+}
+
+.form-row-modern {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    align-items: end;
+}
+
+.form-group-modern {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group-wide {
+    grid-column: span 2;
+}
+
+.form-group-action {
+    align-self: end;
+}
+
+.form-group-checkbox {
+    align-self: center;
+}
+
+.form-label-modern {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-label-modern i {
+    color: #667eea;
+}
+
+.required {
+    color: #ef4444;
+}
+
+.form-input-modern {
+    padding: 0.75rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.form-input-modern:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.checkbox-modern {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+}
+
+.checkbox-input-modern {
+    width: 20px;
+    height: 20px;
+    accent-color: #667eea;
+    cursor: pointer;
+}
+
+.checkbox-label-modern {
+    font-size: 0.875rem;
+    color: #374151;
+    cursor: pointer;
+}
+
+.btn-save-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+}
+
+.btn-save-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.btn-danger-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+}
+
+.btn-danger-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+
+/* Equipes */
+.equipes-grid-modern {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.equipe-section-modern {
+    padding: 1.5rem;
+    background: #f9fafb;
+    border-radius: 12px;
+    border: 2px solid #e5e7eb;
+}
+
+.equipe-1 {
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+.equipe-2 {
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.equipe-title-modern {
+    font-size: 1.125rem;
+    font-weight: 700;
+    margin: 0 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.equipe-1 .equipe-title-modern {
+    color: #22c55e;
+}
+
+.equipe-2 .equipe-title-modern {
+    color: #3b82f6;
+}
+
+.equipe-list-modern {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.equipe-member-modern {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.position-badge-modern {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.member-name-modern {
+    flex: 1;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.select-position-modern {
+    padding: 0.5rem 0.75rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.select-position-modern:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.equipe-empty-modern {
+    color: #6b7280;
+    font-size: 0.875rem;
+    text-align: center;
+    padding: 1rem;
+}
+
+.divider-modern {
+    border: none;
+    border-top: 2px solid #e5e7eb;
+    margin: 2rem 0;
+}
+
+.atribuir-equipe-modern {
+    margin-top: 2rem;
+}
+
+.atribuir-title-modern {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.atribuir-title-modern i {
+    color: #667eea;
+}
+
+/* Horários */
+.horarios-grid-modern {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.horario-section-modern {
+    padding: 1.5rem;
+    background: #f9fafb;
+    border-radius: 12px;
+    border: 2px solid #e5e7eb;
+}
+
+.horario-domingo {
+    margin-top: 1rem;
+}
+
+.horario-title-modern {
+    font-size: 1.125rem;
+    font-weight: 700;
+    margin: 0 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.horario-abertura {
+    color: #22c55e;
+}
+
+.horario-fechamento {
+    color: #3b82f6;
+}
+
+.horario-domingo-title {
+    color: #fd7e14;
+}
+
+.horario-info-modern {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    text-align: center;
+}
+
+.horario-badge-modern {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: white;
+}
+
+.horario-badge-verde {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+.horario-badge-verde-escuro {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+}
+
+.horario-badge-azul {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.horario-badge-laranja {
+    background: linear-gradient(135deg, #fd7e14, #ea580c);
+}
+
+.horario-badge-laranja-escuro {
+    background: linear-gradient(135deg, #ea580c, #c2410c);
+}
+
+.horario-text-modern {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0;
+}
+
+.horarios-domingo-grid-modern {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+/* Modals */
+.modal-content-modern {
+    background: white;
+    border-radius: 16px;
+    border: 1px solid rgba(0,0,0,0.05);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    overflow: hidden;
+}
+
+.modal-header-modern {
+    padding: 1.5rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.modal-header-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.modal-title-modern {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.btn-close-modern {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-close-modern:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+}
+
+.modal-body-modern {
+    padding: 2rem;
+}
+
+.modal-footer-modern {
+    padding: 1.5rem 2rem;
+    border-top: 2px solid #f3f4f6;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.btn-modal-cancel {
+    padding: 0.75rem 1.5rem;
+    background: #f3f4f6;
+    color: #374151;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-modal-cancel:hover {
+    background: #e5e7eb;
+    transform: translateY(-2px);
+}
+
+.btn-modal-save {
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-modal-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.btn-modal-danger {
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-modal-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+
+.btn-action-small {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f3f4f6;
+    color: #374151;
+    border: none;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.btn-action-small:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.btn-danger-small:hover {
+    background: #ef4444;
+    color: white;
+}
+
+/* Empty State */
+.empty-state-modern {
+    text-align: center;
+    padding: 3rem 2rem;
+}
+
+.empty-icon-modern {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: #667eea;
+}
+
+.empty-title-modern {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 0.5rem 0;
+}
+
+.empty-text-modern {
+    font-size: 1rem;
+    color: #6b7280;
+    margin: 0;
+}
+
+.text-end {
+    text-align: right;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .form-row-modern {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-group-wide {
+        grid-column: span 1;
+    }
+    
+    .equipes-grid-modern,
+    .horarios-grid-modern {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .escalas-container {
+        padding: 1rem;
+    }
+
+    .escalas-hero {
+        padding: 2rem 1.5rem;
+    }
+
+    .escalas-title {
+        font-size: 2rem;
+    }
+
+    .kpis-grid-escalas {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .escalas-hero-actions {
+        width: 100%;
+    }
+
+    .escalas-hero-actions .btn-action {
+        flex: 1;
+    }
+
+    .grade-table-wrapper,
+    .conflicts-table-wrapper,
+    .feriados-table-wrapper,
+    .rodizio-table-wrapper {
+        overflow-x: scroll;
+    }
+}
+
+@media print {
+    .tabs-modern,
+    .btn-action,
+    .modal,
+    .escalas-hero-actions {
+        display: none !important;
+    }
+    .tab-content-modern {
+        display: block !important;
+    }
+    #tab-calendario,
+    #tab-feriados,
+    #tab-config {
+        display: none !important;
+    }
+}
+
+/* Dark Mode */
+[data-theme="dark"] .kpi-card-escalas,
+[data-theme="dark"] .grade-card-modern,
+[data-theme="dark"] .conflicts-card-modern,
+[data-theme="dark"] .rodizio-card-modern,
+[data-theme="dark"] .calendario-card-modern,
+[data-theme="dark"] .feriados-card-modern,
+[data-theme="dark"] .config-card-modern,
+[data-theme="dark"] .modal-content-modern {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+[data-theme="dark"] .kpi-value-escalas,
+[data-theme="dark"] .semana-title,
+[data-theme="dark"] .colab-nome-modern,
+[data-theme="dark"] .config-title,
+[data-theme="dark"] .empty-title-modern {
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .kpi-label-escalas,
+[data-theme="dark"] .colab-cargo-modern,
+[data-theme="dark"] .empty-text-modern {
+    color: #9ca3af;
+}
+
+[data-theme="dark"] .form-input-modern,
+[data-theme="dark"] .select-position-modern {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .grade-table-modern th,
+[data-theme="dark"] .conflicts-table-modern th,
+[data-theme="dark"] .feriados-table-modern th,
+[data-theme="dark"] .rodizio-table-modern th {
+    background: #374151;
+}
+
+[data-theme="dark"] .colab-row-modern:hover {
+    background: #374151;
+}
+
+[data-theme="dark"] .colab-row-modern:hover .colab-cell-modern {
+    background: #374151;
+}
+</style>
 {% endblock %}

@@ -1,36 +1,75 @@
 {% extends 'base.html' %}
-{% block title %}Perfil — MultiMax{% endblock %}
+{% block title %}Meu Perfil — MultiMax{% endblock %}
 
 {% block breadcrumb %}
 <span class="mm-breadcrumb-separator">/</span>
-<span>Perfil</span>
+<span>Meu Perfil</span>
 {% endblock %}
 
 {% block content %}
-<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
-    <div>
-        <h1 class="mm-page-title">Meu Perfil</h1>
-        <p class="mm-text-muted">Gerencie suas informações pessoais e segurança</p>
+<!-- Header com Avatar e Informações Principais -->
+<div class="mm-card mm-mb-6" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.05)); border: none;">
+    <div class="mm-card-body" style="padding: var(--mm-space-6);">
+        <div class="mm-flex mm-items-center mm-gap-6 mm-flex-wrap">
+            <div class="mm-avatar-large" style="width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, var(--mm-primary), var(--mm-info)); display: flex; align-items: center; justify-content: center; font-size: 3rem; color: white; box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);">
+                <i class="bi bi-person-circle"></i>
+            </div>
+            <div style="flex: 1; min-width: 200px;">
+                <h1 class="mm-page-title" style="margin: 0 0 var(--mm-space-2) 0; font-size: 2rem;">
+                    {{ current_user.name }}
+                </h1>
+                <p class="mm-text-muted" style="margin: 0 0 var(--mm-space-3) 0; font-size: var(--mm-text-base);">
+                    <i class="bi bi-at"></i> {{ current_user.username }}
+                </p>
+                <div class="mm-flex mm-gap-3 mm-items-center mm-flex-wrap">
+                    {% if current_user.nivel == 'DEV' %}
+                    <span class="mm-badge mm-badge-danger" style="font-size: var(--mm-text-sm); padding: var(--mm-space-1) var(--mm-space-3);">
+                        <i class="bi bi-code-slash"></i> Desenvolvedor
+                    </span>
+                    {% elif current_user.nivel == 'admin' %}
+                    <span class="mm-badge mm-badge-primary" style="font-size: var(--mm-text-sm); padding: var(--mm-space-1) var(--mm-space-3);">
+                        <i class="bi bi-shield-check"></i> Gerente
+                    </span>
+                    {% elif current_user.nivel == 'operador' %}
+                    <span class="mm-badge mm-badge-info" style="font-size: var(--mm-text-sm); padding: var(--mm-space-1) var(--mm-space-3);">
+                        <i class="bi bi-person-gear"></i> Operador
+                    </span>
+                    {% else %}
+                    <span class="mm-badge" style="font-size: var(--mm-text-sm); padding: var(--mm-space-1) var(--mm-space-3);">
+                        <i class="bi bi-eye"></i> Visualizador
+                    </span>
+                    {% endif %}
+                    {% if collab and collab.role %}
+                    <span class="mm-badge mm-badge-outline" style="font-size: var(--mm-text-sm); padding: var(--mm-space-1) var(--mm-space-3); border: 1px solid var(--mm-border);">
+                        <i class="bi bi-briefcase"></i> {{ collab.role }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            <div>
+                <button class="mm-btn mm-btn-primary" onclick="openEditModal()" style="white-space: nowrap;">
+                    <i class="bi bi-pencil-square"></i>
+                    Editar Perfil
+                </button>
+            </div>
+        </div>
     </div>
-    <button class="mm-btn mm-btn-primary" onclick="openEditModal()">
-        <i class="bi bi-pencil-square"></i>
-        Atualizar Dados
-    </button>
 </div>
 
+<!-- Status de Afastamento -->
 {% if is_on_medical or is_on_vacation or is_on_break %}
-<div class="mm-card mm-mb-6">
-    <div class="mm-card-header mm-flex mm-items-center mm-justify-between">
+<div class="mm-card mm-mb-6" style="border-left: 4px solid {% if is_on_medical %}var(--mm-danger){% elif is_on_vacation %}var(--mm-warning){% else %}var(--mm-info){% endif %};">
+    <div class="mm-card-header">
         <h3 class="mm-card-title">
             {% if is_on_medical %}
             <i class="bi bi-file-medical mm-text-danger"></i>
-            Afastamento — Atestado Médico
+            Atestado Médico
             {% elif is_on_vacation %}
             <i class="bi bi-airplane mm-text-warning"></i>
-            Afastamento — Férias
+            Férias
             {% else %}
             <i class="bi bi-emoji-sunglasses mm-text-info"></i>
-            Afastamento — Folga
+            Folga
             {% endif %}
         </h3>
     </div>
@@ -39,13 +78,13 @@
             <div>
                 {% if is_on_medical %}
                 <h4 class="mm-section-title">Você está de Atestado Médico</h4>
-                <p>Retorno previsto: {{ medical_end_date }}</p>
+                <p class="mm-text-muted">Retorno previsto: {{ medical_end_date }}</p>
                 {% elif is_on_vacation %}
                 <h4 class="mm-section-title">Você está de Férias</h4>
-                <p>Retorno previsto: {{ vacation_end_date }}{% if vacation_return_hour %} às {{ vacation_return_hour }}{% endif %}</p>
+                <p class="mm-text-muted">Retorno previsto: {{ vacation_end_date }}{% if vacation_return_hour %} às {{ vacation_return_hour }}{% endif %}</p>
                 {% else %}
                 <h4 class="mm-section-title">Você está de Folga</h4>
-                <p>Termina hoje</p>
+                <p class="mm-text-muted">Termina hoje</p>
                 {% endif %}
             </div>
             <div class="mm-countdown" id="statusCountdown" data-end="{% if is_on_medical %}{{ medical_end_timestamp }}{% elif is_on_vacation %}{{ vacation_end_timestamp }}{% else %}{{ break_end_timestamp }}{% endif %}">
@@ -66,77 +105,18 @@
                     <span class="mm-countdown-label">seg</span>
                 </div>
             </div>
-            </div>
         </div>
-    </div>
-    <div class="mm-card mm-mb-6">
-        <div class="mm-card-body mm-flex mm-items-center mm-gap-4" style="flex-wrap: wrap;">
-            <div class="mm-info-box">
-                <i class="bi bi-info-circle"></i>
-                <span>Próximo turno: {% if next_shift_date %}{{ next_shift_date.strftime('%d/%m/%Y') }}{% else %}-{% endif %}{% if next_shift_hour %} às {{ next_shift_hour }}{% endif %}</span>
-            </div>
-            <div class="mm-info-box">
-                <i class="bi bi-clock-history"></i>
-                <span>Horas residuais no banco: {{ '%.2f'|format(residual_hours) }}h</span>
-            </div>
+        {% if next_shift_date %}
+        <div class="mm-info-box mm-mt-4">
+            <i class="bi bi-calendar-event"></i>
+            <span>Próximo turno: {{ next_shift_date.strftime('%d/%m/%Y') }}{% if next_shift_hour %} às {{ next_shift_hour }}{% endif %}</span>
         </div>
-    </div>
-{% endif %}
-
-{% if collab %}
-<div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
-    <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--mm-info);">
-            <i class="bi bi-person-circle"></i>
-        </div>
-        <div class="mm-kpi-label">Colaborador</div>
-        <div class="mm-kpi-value" style="color: var(--mm-info); font-size: 1rem;">{{ collab.name }}</div>
-    </div>
-    
-    <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-success);">
-            <i class="bi bi-calendar-check"></i>
-        </div>
-        <div class="mm-kpi-label">Dias de Folga</div>
-        <div class="mm-kpi-value mm-text-success">{{ folga_balance }}</div>
-    </div>
-    
-    <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon {% if residual_hours >= 0 %}mm-kpi-icon-pos mm-text-success{% else %}mm-kpi-icon-neg mm-text-danger{% endif %}">
-            <i class="bi bi-clock-history"></i>
-        </div>
-        <div class="mm-kpi-label">Horas (residual)</div>
-        <div class="mm-kpi-value {% if residual_hours >= 0 %}mm-text-success{% else %}mm-text-danger{% endif %}">{{ '%.2f'|format(residual_hours) }}h</div>
-    </div>
-    
-    <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(var(--mm-primary-rgb), 0.15); color: var(--mm-primary);">
-            <i class="bi bi-shield-check"></i>
-        </div>
-        <div class="mm-kpi-label">Nível</div>
-        <div class="mm-kpi-value mm-text-primary" style="font-size: 1rem;">{{ current_user.nivel | capitalize }}</div>
-    </div>
-</div>
-{% else %}
-<div class="mm-grid mm-grid-cols-2 mm-gap-4 mm-mb-6">
-    <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--mm-info);">
-            <i class="bi bi-person-circle"></i>
-        </div>
-        <div class="mm-kpi-label">Usuário</div>
-        <div class="mm-kpi-value" style="color: var(--mm-info); font-size: 1rem;">{{ current_user.name }}</div>
-    </div>
-    
-    <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(var(--mm-primary-rgb), 0.15); color: var(--mm-primary);">
-            <i class="bi bi-shield-check"></i>
-        </div>
-        <div class="mm-kpi-label">Nível</div>
-        <div class="mm-kpi-value mm-text-primary" style="font-size: 1rem;">{{ current_user.nivel | capitalize }}</div>
+        {% endif %}
     </div>
 </div>
 {% endif %}
 
+<!-- Informações da Conta (User e Collaborator unificados) -->
 <div class="mm-card mm-mb-6">
     <div class="mm-card-header">
         <h3 class="mm-card-title">
@@ -145,29 +125,308 @@
         </h3>
     </div>
     <div class="mm-card-body">
-        <div class="mm-grid mm-grid-cols-3 mm-gap-4">
+        <div class="mm-grid mm-grid-cols-2 mm-gap-4">
             <div class="mm-info-item">
-                <span class="mm-info-label">Nome</span>
+                <span class="mm-info-label">Nome Completo</span>
                 <span class="mm-info-value">{{ current_user.name }}</span>
             </div>
             <div class="mm-info-item">
                 <span class="mm-info-label">Login</span>
                 <span class="mm-info-value">{{ current_user.username }}</span>
             </div>
+            {% if collab %}
+            <div class="mm-info-item">
+                <span class="mm-info-label">Cargo</span>
+                <span class="mm-info-value">{{ collab.role or '-' }}</span>
+            </div>
+            <div class="mm-info-item">
+                <span class="mm-info-label">Status</span>
+                <span class="mm-info-value">
+                    {% if collab.active %}
+                    <span class="mm-badge mm-badge-success">Ativo</span>
+                    {% else %}
+                    <span class="mm-badge mm-badge-secondary">Inativo</span>
+                    {% endif %}
+                </span>
+            </div>
+            {% endif %}
             <div class="mm-info-item">
                 <span class="mm-info-label">Nível de Acesso</span>
-                <span class="mm-info-value">{{ current_user.nivel | capitalize }}</span>
+                <span class="mm-info-value">
+                    {% if current_user.nivel == 'DEV' %}
+                    <span class="mm-badge mm-badge-danger">Desenvolvedor</span>
+                    {% elif current_user.nivel == 'admin' %}
+                    <span class="mm-badge mm-badge-primary">Gerente</span>
+                    {% elif current_user.nivel == 'operador' %}
+                    <span class="mm-badge mm-badge-info">Operador</span>
+                    {% else %}
+                    <span class="mm-badge">Visualizador</span>
+                    {% endif %}
+                </span>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Banco de Horas e Folgas (se tiver colaborador vinculado) -->
+{% if collab and balance_data %}
+<div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon {% if balance_data.residual_hours >= 0 %}mm-kpi-icon-pos mm-text-success{% else %}mm-kpi-icon-neg mm-text-danger{% endif %}">
+            <i class="bi bi-clock-history"></i>
+        </div>
+        <div class="mm-kpi-label">Horas Residuais</div>
+        <div class="mm-kpi-value {% if balance_data.residual_hours >= 0 %}mm-text-success{% else %}mm-text-danger{% endif %}">
+            {{ '%.2f'|format(balance_data.residual_hours) }}h
+        </div>
+        <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Após conversões</small>
+    </div>
+    
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-success);">
+            <i class="bi bi-calendar-check"></i>
+        </div>
+        <div class="mm-kpi-label">Saldo de Folgas</div>
+        <div class="mm-kpi-value mm-text-success">{{ balance_data.saldo_days }} dias</div>
+        <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Disponíveis</small>
+    </div>
+    
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning);">
+            <i class="bi bi-calendar-minus"></i>
+        </div>
+        <div class="mm-kpi-label">Folgas Usadas</div>
+        <div class="mm-kpi-value mm-text-warning">{{ balance_data.assigned_sum }} dias</div>
+        <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Total utilizado</small>
+    </div>
+    
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(139, 92, 246, 0.15); color: #8B5CF6;">
+            <i class="bi bi-cash-coin"></i>
+        </div>
+        <div class="mm-kpi-label">Conversões</div>
+        <div class="mm-kpi-value" style="color: #8B5CF6;">{{ balance_data.converted_sum }} dias</div>
+        <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Em dinheiro</small>
+    </div>
+</div>
+
+<!-- Detalhamento de Horas e Folgas -->
+<div class="mm-grid mm-grid-cols-2 mm-gap-6 mm-mb-6">
+    <!-- Banco de Horas -->
+    <div class="mm-card">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title">
+                <i class="bi bi-clock-history mm-text-primary"></i>
+                Banco de Horas
+            </h3>
+            <span class="mm-badge {% if balance_data.residual_hours > 0 %}mm-badge-success{% elif balance_data.residual_hours < 0 %}mm-badge-danger{% endif %}">
+                {{ '%.2f'|format(balance_data.residual_hours) }}h residual
+            </span>
+        </div>
+        <div class="mm-card-body">
+            <div class="mm-info-box mm-mb-4">
+                <i class="bi bi-info-circle"></i>
+                <span>Total bruto: {{ '%.2f'|format(balance_data.total_bruto_hours) }}h | Convertido: {{ balance_data.days_from_hours }} dias</span>
+            </div>
+            <div class="mm-info-box mm-mb-4" style="background: rgba(59, 130, 246, 0.1);">
+                <i class="bi bi-lightbulb"></i>
+                <span>Regra: a cada 8h acumuladas vira +1 dia de folga e as horas são reiniciadas.</span>
+            </div>
+            <div class="mm-table-wrapper">
+                <table class="mm-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th style="text-align: right;">Horas</th>
+                            <th>Observações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for e in entries %}
+                        <tr>
+                            <td>{{ e.date.strftime('%d/%m/%Y') }}</td>
+                            <td style="text-align: right;">
+                                {% if e.hours > 0 %}
+                                <span class="mm-badge mm-badge-success">+{{ '%.2f'|format(e.hours) }}h</span>
+                                {% elif e.hours < 0 %}
+                                <span class="mm-badge mm-badge-danger">{{ '%.2f'|format(e.hours) }}h</span>
+                                {% else %}
+                                <span class="mm-badge">{{ '%.2f'|format(e.hours) }}h</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ e.notes or '-' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="mm-empty-cell">
+                                <div class="mm-empty-inline">
+                                    <i class="bi bi-clock-history"></i>
+                                    <span>Sem lançamentos</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Folgas -->
+    <div class="mm-card">
+        <div class="mm-card-header">
+            <h3 class="mm-card-title">
+                <i class="bi bi-calendar-check mm-text-success"></i>
+                Folgas
+            </h3>
+            <span class="mm-badge mm-badge-primary">
+                Saldo: {{ balance_data.saldo_days }} dia(s)
+            </span>
+        </div>
+        <div class="mm-card-body">
+            <div class="mm-grid mm-grid-cols-2 mm-gap-4 mm-mb-4">
+                <div>
+                    <h5 class="mm-section-title mm-mb-3">
+                        <i class="bi bi-plus-circle mm-text-success"></i>
+                        Créditos
+                    </h5>
+                    <div class="mm-table-wrapper">
+                        <table class="mm-table">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th style="text-align: center;">Dias</th>
+                                    <th>Origem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for c in folga_credits[:10] %}
+                                <tr>
+                                    <td>{{ c.date.strftime('%d/%m/%Y') }}</td>
+                                    <td style="text-align: center;">
+                                        <span class="mm-badge mm-badge-success">+{{ c.days or 0 }}</span>
+                                    </td>
+                                    <td>
+                                        {% if c.origin == 'horas' %}
+                                        <span class="mm-badge mm-badge-info">Banco de Horas</span>
+                                        {% else %}
+                                        <span class="mm-badge">{{ c.origin or 'manual' }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="3" class="mm-empty-cell">
+                                        <div class="mm-empty-inline">
+                                            <i class="bi bi-calendar-plus"></i>
+                                            <span>Sem créditos</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div>
+                    <h5 class="mm-section-title mm-mb-3">
+                        <i class="bi bi-calendar-minus mm-text-danger"></i>
+                        Usadas
+                    </h5>
+                    <div class="mm-table-wrapper">
+                        <table class="mm-table">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th style="text-align: center;">Dias</th>
+                                    <th>Obs</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for a in folga_assigned[:10] %}
+                                <tr>
+                                    <td>{{ a.date.strftime('%d/%m/%Y') }}</td>
+                                    <td style="text-align: center;">
+                                        <span class="mm-badge mm-badge-danger">-{{ a.days or 0 }}</span>
+                                    </td>
+                                    <td>{{ a.notes or '-' }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="3" class="mm-empty-cell">
+                                        <div class="mm-empty-inline">
+                                            <i class="bi bi-calendar-x"></i>
+                                            <span>Sem folgas usadas</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            {% if folga_conversions %}
+            <hr class="mm-divider">
+            <h5 class="mm-section-title mm-mb-3">
+                <i class="bi bi-cash-coin mm-text-warning"></i>
+                Conversões em Dinheiro
+            </h5>
+            <div class="mm-table-wrapper">
+                <table class="mm-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th style="text-align: center;">Dias</th>
+                            <th style="text-align: right;">R$/dia</th>
+                            <th style="text-align: right;">Valor Pago</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for v in folga_conversions[:10] %}
+                        <tr>
+                            <td>{{ v.date.strftime('%d/%m/%Y') }}</td>
+                            <td style="text-align: center;">
+                                <span class="mm-badge mm-badge-warning">{{ v.days or 0 }}</span>
+                            </td>
+                            <td style="text-align: right;">R$ {{ '%.2f'|format(v.rate_per_day or 0) }}</td>
+                            <td style="text-align: right;"><strong>R$ {{ '%.2f'|format(v.amount_paid or 0) }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+        <div class="mm-card-footer">
+            <i class="bi bi-info-circle"></i>
+            Para ver todos os registros, acesse <a href="{{ url_for('jornada.index', collaborator_id=collab.id) }}" class="mm-link">Jornada</a>.
+        </div>
+    </div>
+</div>
+{% elif not collab %}
+<div class="mm-card mm-mb-6">
+    <div class="mm-card-body">
+        <div class="mm-alert mm-alert-info">
+            <i class="bi bi-info-circle"></i>
+            <div>
+                <strong>Conta não vinculada a colaborador</strong>
+                <p class="mm-mb-0">Sua conta ainda não está vinculada a um colaborador. Entre em contato com um administrador para vincular sua conta e ter acesso ao banco de horas e folgas.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal de Edição -->
 <div class="mm-modal-overlay" id="editModal" onclick="closeEditModal(event)">
     <div class="mm-modal" onclick="event.stopPropagation()">
         <div class="mm-modal-header">
             <h3 class="mm-modal-title">
                 <i class="bi bi-pencil-square"></i>
-                Atualizar Dados
+                Editar Perfil
             </h3>
             <button class="mm-modal-close" onclick="closeEditModal()">
                 <i class="bi bi-x-lg"></i>
@@ -189,11 +448,13 @@
                         <label class="mm-label">Nome</label>
                         <input type="text" name="name" class="mm-input" value="{{ current_user.name }}" required>
                     </div>
+                    {% if current_user.nivel != 'visualizador' %}
                     <div class="mm-form-group mm-mb-4">
                         <label class="mm-label">Login</label>
                         <input type="text" name="username" class="mm-input" value="{{ current_user.username }}" required>
                         <span class="mm-form-hint">Somente letras e números.</span>
                     </div>
+                    {% endif %}
                     <div class="mm-flex mm-justify-end mm-gap-3">
                         <button type="button" class="mm-btn mm-btn-outline" onclick="closeEditModal()">Cancelar</button>
                         <button type="submit" class="mm-btn mm-btn-primary">
@@ -230,264 +491,71 @@
     </div>
 </div>
 
-{% if collab %}
-<div class="mm-card mm-mb-6">
-    <div class="mm-card-header">
-        <h3 class="mm-card-title">
-            <i class="bi bi-clock-history mm-text-primary"></i>
-            Banco de Horas — {{ collab.name }}{% if collab.role %} — {{ collab.role }}{% endif %}
-        </h3>
-        {% set hrs_cls = 'mm-badge' %}
-        {% if residual_hours > 0 %}{% set hrs_cls = 'mm-badge mm-badge-success' %}{% elif residual_hours < 0 %}{% set hrs_cls = 'mm-badge mm-badge-danger' %}{% endif %}
-        <span class="{{ hrs_cls }}">
-            <i class="bi bi-clock"></i>
-            {{ '%.2f'|format(residual_hours) }}h (residual)
-        </span>
-    </div>
-    <div class="mm-card-body">
-        <div class="mm-info-box mm-mb-4">
-            <i class="bi bi-info-circle"></i>
-            <span>Regra: a cada 8h acumuladas vira +1 dia de folga e as horas são reiniciadas.</span>
-        </div>
-        <div class="mm-table-wrapper">
-            <table class="mm-table">
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th style="text-align: right;">Horas</th>
-                        <th>Motivo</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for e in entries %}
-                    <tr>
-                        <td>{{ e.date.strftime('%d/%m/%Y') }}</td>
-                        <td style="text-align: right;">
-                            {% if e.hours > 0 %}
-                            <span class="mm-badge mm-badge-success">+{{ '%.2f'|format(e.hours) }}h</span>
-                            {% elif e.hours < 0 %}
-                            <span class="mm-badge mm-badge-danger">{{ '%.2f'|format(e.hours) }}h</span>
-                            {% else %}
-                            <span class="mm-badge">{{ '%.2f'|format(e.hours) }}h</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ e.reason or '-' }}</td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="3" class="mm-empty-cell">
-                            <div class="mm-empty-inline">
-                                <i class="bi bi-clock-history"></i>
-                                <span>Sem lançamentos</span>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    <div class="mm-card-footer">
-        <i class="bi bi-info-circle"></i>
-        Para registrar horas, acesse a página <a href="{{ url_for('usuarios.gestao') }}" class="mm-link">Gestão &rsaquo; Colaboradores</a>.
-    </div>
-</div>
-
-<div class="mm-card mm-mb-6">
-    <div class="mm-card-header">
-        <h3 class="mm-card-title">
-            <i class="bi bi-calendar-check mm-text-success"></i>
-            Folgas — {{ collab.name }}
-        </h3>
-        <span class="mm-badge mm-badge-primary">
-            <i class="bi bi-calendar-day"></i>
-            Saldo: {{ folga_balance }} dia(s)
-        </span>
-    </div>
-    <div class="mm-card-body">
-        <div class="mm-grid mm-grid-cols-2 mm-gap-6">
-            <div>
-                <h4 class="mm-section-title mm-mb-4">
-                    <i class="bi bi-plus-circle mm-text-success"></i>
-                    Créditos de Folga
-                </h4>
-                <div class="mm-table-wrapper">
-                    <table class="mm-table">
-                        <thead>
-                            <tr>
-                                <th>Data</th>
-                                <th style="text-align: center;">Dias</th>
-                                <th>Origem</th>
-                                <th>Obs</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for c in folga_credits %}
-                            <tr>
-                                <td>{{ c.date.strftime('%d/%m/%Y') }}</td>
-                                <td style="text-align: center;">
-                                    <span class="mm-badge mm-badge-success">+{{ c.amount_days }}</span>
-                                </td>
-                                <td>
-                                    {% if c.origin == 'horas' %}
-                                    <span class="mm-badge mm-badge-info">Banco de Horas</span>
-                                    {% elif c.origin == 'bonus' %}
-                                    <span class="mm-badge mm-badge-warning">Bônus</span>
-                                    {% else %}
-                                    <span class="mm-badge">{{ c.origin }}</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ c.notes or '-' }}</td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="4" class="mm-empty-cell">
-                                    <div class="mm-empty-inline">
-                                        <i class="bi bi-calendar-plus"></i>
-                                        <span>Sem créditos</span>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <div>
-                <h4 class="mm-section-title mm-mb-4">
-                    <i class="bi bi-calendar-minus mm-text-danger"></i>
-                    Folgas Usadas
-                </h4>
-                <div class="mm-table-wrapper">
-                    <table class="mm-table">
-                        <thead>
-                            <tr>
-                                <th>Data Folga</th>
-                                <th style="text-align: center;">Dias</th>
-                                <th>Obs</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for a in folga_assigned %}
-                            <tr>
-                                <td>{{ a.date.strftime('%d/%m/%Y') }}</td>
-                                <td style="text-align: center;">
-                                    <span class="mm-badge mm-badge-danger">-{{ a.days_used }}</span>
-                                </td>
-                                <td>{{ a.reason or '-' }}</td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="3" class="mm-empty-cell">
-                                    <div class="mm-empty-inline">
-                                        <i class="bi bi-calendar-x"></i>
-                                        <span>Sem folgas usadas</span>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        
-        {% if folga_conversions %}
-        <hr class="mm-divider">
-        <h4 class="mm-section-title mm-mb-4">
-            <i class="bi bi-cash-coin mm-text-warning"></i>
-            Conversões em Dinheiro
-        </h4>
-        <div class="mm-table-wrapper">
-            <table class="mm-table">
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th style="text-align: center;">Dias</th>
-                        <th style="text-align: right;">R$/dia</th>
-                        <th style="text-align: right;">Valor Pago</th>
-                        <th>Obs</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for v in folga_conversions %}
-                    <tr>
-                        <td>{{ v.date.strftime('%d/%m/%Y') }}</td>
-                        <td style="text-align: center;">
-                            <span class="mm-badge mm-badge-warning">{{ v.amount_days }}</span>
-                        </td>
-                        <td style="text-align: right;">R$ {{ '%.2f'|format(v.rate_per_day) }}</td>
-                        <td style="text-align: right;"><strong>R$ {{ '%.2f'|format(v.amount_paid) }}</strong></td>
-                        <td>{{ v.notes or '-' }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% endif %}
-    </div>
-</div>
-{% else %}
-<div class="mm-card mm-mb-6">
-    <div class="mm-card-body">
-        <div class="mm-alert mm-alert-info">
-            <i class="bi bi-info-circle"></i>
-            <div>
-                <strong>Colaborador não vinculado</strong>
-                <p class="mm-mb-0">Vincule seu usuário a um colaborador na página <a href="{{ url_for('usuarios.gestao') }}" class="mm-link">Gestão &rsaquo; Colaboradores</a> para ver seu banco de horas e folgas.</p>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-
 <style>
-.mm-page-header {
-    margin-bottom: var(--mm-space-6);
-}
-
-.mm-page-title {
-    font-size: var(--mm-text-2xl);
-    font-weight: var(--mm-font-bold);
-    color: var(--mm-text-primary);
-    margin: 0 0 var(--mm-space-1) 0;
+.mm-avatar-large {
+    flex-shrink: 0;
 }
 
 .mm-kpi-card {
     display: flex;
     flex-direction: column;
-    gap: var(--mm-space-3);
+    gap: var(--mm-space-2);
+    text-align: center;
 }
 
 .mm-kpi-icon {
-    width: 48px;
-    height: 48px;
+    width: 56px;
+    height: 56px;
     border-radius: var(--mm-radius-lg);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
+    font-size: 1.75rem;
+    margin: 0 auto var(--mm-space-3);
 }
 
 .mm-kpi-icon-pos {
     background: rgba(34, 197, 94, 0.15);
     color: var(--mm-success);
 }
+
 .mm-kpi-icon-neg {
     background: rgba(239, 68, 68, 0.15);
     color: var(--mm-danger);
 }
 
-.mm-form-group {
-    display: flex;
-    flex-direction: column;
-    gap: var(--mm-space-2);
-}
-
-.mm-form-hint {
+.mm-kpi-label {
     font-size: var(--mm-text-sm);
     color: var(--mm-text-muted);
+    font-weight: var(--mm-font-medium);
+}
+
+.mm-kpi-value {
+    font-size: var(--mm-text-2xl);
+    font-weight: var(--mm-font-bold);
+    color: var(--mm-text-primary);
+}
+
+.mm-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mm-space-1);
+    padding: var(--mm-space-4);
+    background: var(--mm-bg-secondary);
+    border-radius: var(--mm-radius-md);
+    border: 1px solid var(--mm-border);
+}
+
+.mm-info-item .mm-info-label {
+    font-size: var(--mm-text-sm);
+    color: var(--mm-text-muted);
+    font-weight: var(--mm-font-medium);
+}
+
+.mm-info-item .mm-info-value {
+    font-size: var(--mm-text-lg);
+    color: var(--mm-text-primary);
+    font-weight: var(--mm-font-semibold);
 }
 
 .mm-info-box {
@@ -503,6 +571,7 @@
 
 .mm-info-box i {
     color: var(--mm-info);
+    font-size: 1.1rem;
 }
 
 .mm-section-title {
@@ -585,96 +654,9 @@
     padding: var(--mm-space-8) !important;
 }
 
-.mm-mb-0 {
-    margin-bottom: 0;
-}
-
-.mm-mb-4 {
-    margin-bottom: var(--mm-space-4);
-}
-
-.mm-gap-3 {
-    gap: var(--mm-space-3);
-}
-
-.mm-info-item {
-    display: flex;
-    flex-direction: column;
-    gap: var(--mm-space-1);
-    padding: var(--mm-space-4);
-    background: var(--mm-bg-secondary);
-    border-radius: var(--mm-radius-md);
-    border: 1px solid var(--mm-border);
-}
-
-.mm-info-item .mm-info-label {
-    font-size: var(--mm-text-sm);
-    color: var(--mm-text-muted);
-    font-weight: var(--mm-font-medium);
-}
-
-.mm-info-item .mm-info-value {
-    font-size: var(--mm-text-lg);
-    color: var(--mm-text-primary);
-    font-weight: var(--mm-font-semibold);
-}
-
-.mm-status-banner {
-    display: flex;
-    align-items: center;
-    gap: var(--mm-space-5);
-    padding: var(--mm-space-5) var(--mm-space-6);
-    border-radius: var(--mm-radius-xl);
-    animation: pulse-glow 2s ease-in-out infinite;
-}
-
-.mm-status-folga {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.25));
-    border: 1px solid rgba(16, 185, 129, 0.4);
-}
-
-.mm-status-ferias {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.25));
-    border: 1px solid rgba(59, 130, 246, 0.4);
-}
-
-.mm-status-icon {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
-}
-
-.mm-status-folga .mm-status-icon {
-    background: rgba(16, 185, 129, 0.2);
-    color: var(--mm-success);
-}
-
-.mm-status-ferias .mm-status-icon {
-    background: rgba(59, 130, 246, 0.2);
-    color: var(--mm-info);
-}
-
-.mm-status-content h3 {
-    font-size: var(--mm-text-xl);
-    font-weight: var(--mm-font-bold);
-    margin: 0 0 var(--mm-space-1) 0;
-}
-
-.mm-status-folga .mm-status-content h3 { color: var(--mm-success); }
-.mm-status-ferias .mm-status-content h3 { color: var(--mm-info); }
-
-.mm-status-content p {
-    margin: 0 0 var(--mm-space-3) 0;
-    color: var(--mm-text-secondary);
-}
-
 .mm-countdown {
     display: flex;
-    gap: var(--mm-space-4);
+    gap: var(--mm-space-3);
 }
 
 .mm-countdown-item {
@@ -698,11 +680,6 @@
     font-size: var(--mm-text-xs);
     color: var(--mm-text-muted);
     text-transform: uppercase;
-}
-
-@keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.1); }
-    50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.2); }
 }
 
 .mm-modal-overlay {
@@ -827,6 +804,17 @@
     display: block;
 }
 
+.mm-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mm-space-2);
+}
+
+.mm-form-hint {
+    font-size: var(--mm-text-sm);
+    color: var(--mm-text-muted);
+}
+
 .mm-justify-end {
     justify-content: flex-end;
 }
@@ -850,9 +838,6 @@
     }
     .mm-countdown-item {
         min-width: 60px;
-    }
-    .mm-grid-cols-3 {
-        grid-template-columns: 1fr;
     }
 }
 </style>
@@ -882,7 +867,7 @@ document.addEventListener('keydown', function(e) {
 });
 
 (function() {
-    const countdown = document.getElementById('statusCountdown') || document.getElementById('vacationCountdown');
+    const countdown = document.getElementById('statusCountdown');
     if (!countdown) return;
     
     const endTimestamp = parseInt(countdown.dataset.end) * 1000;

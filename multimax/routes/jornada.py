@@ -1,1032 +1,689 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, session
 from flask_login import login_required, current_user
 from .. import db
-from ..models import Collaborator, RegistroJornada, RegistroJornadaChange, Holiday, SystemLog, LeaveAssignment, Vacation, MedicalCertificate, HourBankEntry, LeaveCredit, LeaveConversion
+from ..models import Collaborator, User, TimeOffRecord, Holiday, SystemLog, Vacation, MedicalCertificate
+from ..filename_utils import secure_filename
 from datetime import datetime, date
 from zoneinfo import ZoneInfo
-from uuid import uuid4
-from sqlalchemy import func
+from sqlalchemy import func, or_
 import io
 import csv
+import os
 from openpyxl import Workbook
 
-bp = Blueprint('jornada', __name__, url_prefix='/jornada')
+ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'}
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
 
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
+
+bp = Blueprint('jornada', __name__, url_prefix='/jornada')
 
 # ============================================================================
 # Funções auxiliares
 # ============================================================================
 
-def _log_event(evento, detalhes):
-    try:
-        log = SystemLog()
-        log.data = datetime.now(ZoneInfo('America/Sao_Paulo'))
-        log.origem = 'Jornada'
-        log.evento = evento
-        log.detalhes = detalhes
-        log.usuario = (current_user.username if current_user.is_authenticated else '-')
-        db.session.add(log)
-        db.session.commit()
-    except Exception:
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
-
-
-def _ensure_collaborator_columns():
-    """Garante que as colunas matricula e departamento existem na tabela collaborator"""
-    try:
-        from sqlalchemy import inspect, text
-        insp = inspect(db.engine)
-        cols_meta = [c['name'] for c in insp.get_columns('collaborator')]
-        changed = False
-        if 'matricula' not in cols_meta:
-            db.session.execute(text('ALTER TABLE collaborator ADD COLUMN matricula TEXT'))
-            changed = True
-        if 'departamento' not in cols_meta:
-            db.session.execute(text('ALTER TABLE collaborator ADD COLUMN departamento TEXT'))
-            changed = True
-        if changed:
-            db.session.commit()
-    except Exception:
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
-
-
-def _get_pagination_params(page_param='page', default=1, per_page=10):
-    """Extrai e valida parâmetros de paginação"""
-    try:
-        page = int(request.args.get(page_param, default))
-    except Exception:
-        page = default
-    return max(1, page), per_page
-
-
-def _parse_date_filter(date_str):
-    """Converte string de data em objeto date ou retorna None"""
-    if not date_str:
+def _get_collaborator_display_name(collaborator):
+    """Retorna o nome de exibição do colaborador (User.name se tiver user, senão Collaborator.name)"""
+    if not collaborator:
         return None
-    try:
-        return datetime.strptime(date_str, '%Y-%m-%d').date()
-    except Exception:
-        return None
+    if collaborator.user_id and collaborator.user:
+        return collaborator.user.name
+    return collaborator.name
 
+def _get_collaborator_by_user_or_id(user_id=None, collaborator_id=None):
+    """Retorna colaborador por user_id ou collaborator_id (tratando como uma coisa só)"""
+    if collaborator_id:
+        return Collaborator.query.get(collaborator_id)
+    if user_id:
+        return Collaborator.query.filter_by(user_id=user_id).first()
+    return None
 
-def _build_registros_query(q_colab=None, tipo=None, data_inicio=None, data_fim=None, sort='data desc'):
-    """Constrói query para buscar registros de jornada com filtros"""
-    query = db.session.query(RegistroJornada, Collaborator).join(
-        Collaborator, RegistroJornada.collaborator_id == Collaborator.id
+def _calculate_collaborator_balance(collaborator_id, date_start=None, date_end=None):
+    """Calcula o saldo completo de um colaborador"""
+    filters = [TimeOffRecord.collaborator_id == collaborator_id]
+    
+    if date_start:
+        filters.append(TimeOffRecord.date >= date_start)
+    if date_end:
+        filters.append(TimeOffRecord.date <= date_end)
+    
+    # Total bruto de horas (apenas positivas)
+    hq = TimeOffRecord.query.filter(
+        *filters,
+        TimeOffRecord.record_type == 'horas'
     )
+    total_bruto_hours = sum(float(r.hours or 0.0) for r in hq.all() if (r.hours or 0.0) > 0)
     
-    # Filtro por colaborador
-    if q_colab:
-        try:
-            cid = int(q_colab)
-            query = query.filter(Collaborator.id == cid)
-        except Exception:
-            query = query.filter(Collaborator.name.ilike(f"%{q_colab}%"))
+    # Dias convertidos das horas (8h = 1 dia)
+    days_from_hours = int(total_bruto_hours // 8.0) if total_bruto_hours >= 0.0 else 0
+    residual_hours = (total_bruto_hours % 8.0) if total_bruto_hours >= 0.0 else 0.0
     
-    # Filtro por tipo
-    if tipo in ('horas', 'dias'):
-        query = query.filter(RegistroJornada.tipo_registro == tipo)
+    # Folgas adicionais
+    cq = TimeOffRecord.query.filter(
+        *filters,
+        TimeOffRecord.record_type == 'folga_adicional'
+    )
+    credits_sum = int(cq.with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
     
-    # Filtros de data
-    di = _parse_date_filter(data_inicio)
-    df = _parse_date_filter(data_fim)
-    if di:
-        query = query.filter(RegistroJornada.data >= di)
-    if df:
-        query = query.filter(RegistroJornada.data <= df)
+    # Folgas usadas
+    aq = TimeOffRecord.query.filter(
+        *filters,
+        TimeOffRecord.record_type == 'folga_usada'
+    )
+    assigned_sum = int(aq.with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
     
-    # Ordenação
-    sort_map = {
-        'data asc': RegistroJornada.data.asc(),
-        'data desc': RegistroJornada.data.desc(),
-        'valor asc': RegistroJornada.valor.asc(),
-        'valor desc': RegistroJornada.valor.desc(),
-        'tipo asc': RegistroJornada.tipo_registro.asc(),
-        'tipo desc': RegistroJornada.tipo_registro.desc(),
-        'colaborador asc': Collaborator.name.asc(),
-        'colaborador desc': Collaborator.name.desc(),
+    # Conversões em dinheiro
+    vq = TimeOffRecord.query.filter(
+        *filters,
+        TimeOffRecord.record_type == 'conversao'
+    )
+    converted_sum = int(vq.with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
+    
+    # Saldo final = folgas adicionais + dias convertidos - folgas usadas - conversões
+    saldo_days = credits_sum + days_from_hours - assigned_sum - converted_sum
+    
+    return {
+        'total_bruto_hours': total_bruto_hours,
+        'days_from_hours': days_from_hours,
+        'residual_hours': residual_hours,
+        'credits_sum': credits_sum,
+        'assigned_sum': assigned_sum,
+        'converted_sum': converted_sum,
+        'saldo_days': saldo_days
     }
-    orders = []
-    for part in [p.strip() for p in sort.split(',') if p.strip()]:
-        if part.lower() in sort_map:
-            orders.append(sort_map[part.lower()])
-    if not orders:
-        orders = [RegistroJornada.data.desc()]
-    
-    return query.order_by(*orders)
 
+def _get_all_collaborators():
+    """Retorna todos os colaboradores ativos com informações de usuário (User e Collaborator são uma coisa só)"""
+    return Collaborator.query.filter_by(active=True).order_by(Collaborator.name.asc()).all()
 
-def _get_resumo_periodo(q_colab=None, data_inicio=None, data_fim=None):
-    """Calcula resumo de horas e dias para um colaborador no período"""
-    if not q_colab:
-        return 0.0, 0.0, ''
-    
-    base = db.session.query(func.sum(RegistroJornada.valor)).join(
-        Collaborator, RegistroJornada.collaborator_id == Collaborator.id
-    )
-    
-    try:
-        cid = int(q_colab)
-        base = base.filter(Collaborator.id == cid)
-        col_obj = Collaborator.query.filter_by(id=cid).first()
-        resumo_colab_nome = col_obj.name if col_obj else f"ID {cid}"
-    except Exception:
-        base = base.filter(Collaborator.name.ilike(f"%{q_colab}%"))
-        resumo_colab_nome = q_colab
-    
-    di = _parse_date_filter(data_inicio)
-    df = _parse_date_filter(data_fim)
-    if di:
-        base = base.filter(RegistroJornada.data >= di)
-    if df:
-        base = base.filter(RegistroJornada.data <= df)
-    
-    sh = base.filter(RegistroJornada.tipo_registro == 'horas').scalar()
-    sd = base.filter(RegistroJornada.tipo_registro == 'dias').scalar()
-    
-    return float(sh or 0.0), float(sd or 0.0), resumo_colab_nome
-
-
-def _calculate_collaborator_stats(colaboradores, data_inicio=None, data_fim=None):
-    """Calcula estatísticas (horas residuais e saldo de dias) para cada colaborador"""
-    cards_stats = []
-    if not colaboradores:
-        return cards_stats
-    
-    try:
-        di = _parse_date_filter(data_inicio)
-        df = _parse_date_filter(data_fim)
-        colab_ids = [c.id for c in colaboradores]
-        
-        # Agregar horas
-        horas_query = db.session.query(
-            HourBankEntry.collaborator_id,
-            func.coalesce(func.sum(HourBankEntry.hours), 0.0).label('total_horas')
-        ).filter(HourBankEntry.collaborator_id.in_(colab_ids))
-        if di:
-            horas_query = horas_query.filter(HourBankEntry.date >= di)
-        if df:
-            horas_query = horas_query.filter(HourBankEntry.date <= df)
-        horas_dict = {r.collaborator_id: float(r.total_horas) for r in horas_query.group_by(HourBankEntry.collaborator_id).all()}
-        
-        # Agregar créditos
-        creditos_query = db.session.query(
-            LeaveCredit.collaborator_id,
-            func.coalesce(func.sum(LeaveCredit.amount_days), 0).label('total')
-        ).filter(LeaveCredit.collaborator_id.in_(colab_ids))
-        if di:
-            creditos_query = creditos_query.filter(LeaveCredit.date >= di)
-        if df:
-            creditos_query = creditos_query.filter(LeaveCredit.date <= df)
-        creditos_dict = {r.collaborator_id: int(r.total) for r in creditos_query.group_by(LeaveCredit.collaborator_id).all()}
-        
-        # Agregar atribuições
-        atribuicoes_query = db.session.query(
-            LeaveAssignment.collaborator_id,
-            func.coalesce(func.sum(LeaveAssignment.days_used), 0).label('total')
-        ).filter(LeaveAssignment.collaborator_id.in_(colab_ids))
-        if di:
-            atribuicoes_query = atribuicoes_query.filter(LeaveAssignment.date >= di)
-        if df:
-            atribuicoes_query = atribuicoes_query.filter(LeaveAssignment.date <= df)
-        atribuicoes_dict = {r.collaborator_id: int(r.total) for r in atribuicoes_query.group_by(LeaveAssignment.collaborator_id).all()}
-        
-        # Agregar conversões
-        conversoes_query = db.session.query(
-            LeaveConversion.collaborator_id,
-            func.coalesce(func.sum(LeaveConversion.amount_days), 0).label('total')
-        ).filter(LeaveConversion.collaborator_id.in_(colab_ids))
-        if di:
-            conversoes_query = conversoes_query.filter(LeaveConversion.date >= di)
-        if df:
-            conversoes_query = conversoes_query.filter(LeaveConversion.date <= df)
-        conversoes_dict = {r.collaborator_id: int(r.total) for r in conversoes_query.group_by(LeaveConversion.collaborator_id).all()}
-        
-        # Processar resultados
-        for c in colaboradores:
-            try:
-                hsum = horas_dict.get(c.id, 0.0)
-                residual_hours = (hsum % 8.0) if hsum >= 0.0 else -((-hsum) % 8.0)
-                credits_sum = creditos_dict.get(c.id, 0)
-                assigned_sum = atribuicoes_dict.get(c.id, 0)
-                converted_sum = conversoes_dict.get(c.id, 0)
-                saldo_days = credits_sum - assigned_sum - converted_sum
-                cards_stats.append({
-                    'id': c.id,
-                    'name': c.name,
-                    'residual_hours': residual_hours,
-                    'saldo_days': saldo_days,
-                    'assigned_days': assigned_sum
-                })
-            except Exception:
-                pass
-    except Exception:
-        pass
-    
-    return cards_stats
-
-
-def _paginate_query(query, page, per_page):
-    """Aplica paginação a uma query"""
-    total = query.count()
-    total_pages = max(1, (total + per_page - 1) // per_page)
-    if page > total_pages:
-        page = total_pages
-    items = query.offset((page - 1) * per_page).limit(per_page).all()
-    return items, page, total_pages, total
-
-
-def _paginate_list(items, page, per_page):
-    """Pagina uma lista Python"""
-    total = len(items)
-    total_pages = max(1, (total + per_page - 1) // per_page)
-    if page > total_pages:
-        page = total_pages
-    start = (page - 1) * per_page
-    end = start + per_page
-    return items[start:end], page, total_pages, total
-
+def _get_all_collaborators_with_users():
+    """Retorna todos os colaboradores ativos com informações de usuário para exibição"""
+    colaboradores = Collaborator.query.filter_by(active=True).order_by(Collaborator.name.asc()).all()
+    result = []
+    for colab in colaboradores:
+        result.append({
+            'id': colab.id,
+            'name': colab.user.name if colab.user else colab.name,
+            'collaborator': colab,
+            'user': colab.user
+        })
+    return result
 
 # ============================================================================
-# Rotas
+# Rotas principais
 # ============================================================================
+
+@bp.route('/unificado', methods=['GET', 'POST'], strict_slashes=False)
+@login_required
+def unificado():
+    """Rota de compatibilidade - redireciona para index mantendo parâmetros"""
+    collaborator_id = request.args.get('collaborator_id', type=int) or request.form.get('collaborator_id', type=int)
+    if collaborator_id:
+        return redirect(url_for('jornada.index', collaborator_id=collaborator_id))
+    return redirect(url_for('jornada.index'))
 
 @bp.route('/', methods=['GET'], strict_slashes=False)
 @login_required
 def index():
+    """Página principal do sistema de Jornada - integrado com User e Collaborator"""
     if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Acesso negado.', 'danger')
         return redirect(url_for('home.index'))
     
-    _ensure_collaborator_columns()
+    # Filtros (User e Collaborator são uma coisa só)
+    collaborator_id = request.args.get('collaborator_id', type=int)
+    user_id = request.args.get('user_id', type=int)
+    data_inicio = request.args.get('inicio', '').strip()
+    data_fim = request.args.get('fim', '').strip()
+    record_type = request.args.get('tipo', '').strip()
     
-    # Parâmetros de filtro
-    q_colab = (request.args.get('colaborador') or '').strip()
-    tipo = (request.args.get('tipo') or '').strip()
-    data_inicio = (request.args.get('inicio') or '').strip()
-    data_fim = (request.args.get('fim') or '').strip()
-    sort = (request.args.get('sort') or 'data desc').strip()
-    
-    # Paginação principal
-    page, per_page = _get_pagination_params('page', 1, 10)
-    
-    # Query e paginação de registros
-    query = _build_registros_query(q_colab, tipo, data_inicio, data_fim, sort)
-    items, page, total_pages, total = _paginate_query(query, page, per_page)
-    
-    # Colaboradores e resumo
-    colaboradores = Collaborator.query.filter_by(active=True).order_by(Collaborator.name.asc()).all()
-    selected_tipo = session.get('jornada_tipo', '')
-    resumo_horas, resumo_dias, resumo_colab_nome = _get_resumo_periodo(q_colab, data_inicio, data_fim)
-    
-    # Estatísticas dos colaboradores
-    cards_stats = _calculate_collaborator_stats(colaboradores, data_inicio, data_fim)
-    
-    # Paginação dos cards
-    try:
-        cs_collab_id = request.args.get('cs_collaborator_id', type=int)
-    except Exception:
-        cs_collab_id = None
-    cs_page, _ = _get_pagination_params('cs_page', 1, 1)
-    cs_list = [s for s in cards_stats if s.get('id') == cs_collab_id] if cs_collab_id else cards_stats
-    cs_item, cs_page, cs_total_pages, _ = _paginate_list(cs_list, cs_page, 1)
-    cs_item = cs_item[0] if cs_item else None
-    
-    # Folgas (Uso)
-    try:
-        la_collab_id = request.args.get('la_collaborator_id', type=int)
-    except Exception:
-        la_collab_id = None
-    la_q = LeaveAssignment.query.order_by(LeaveAssignment.date.desc())
-    if la_collab_id:
-        la_q = la_q.filter(LeaveAssignment.collaborator_id == la_collab_id)
-    leave_assignments_all = la_q.all()
-    leave_assignments_page, la_page, la_total_pages, _ = _paginate_list(leave_assignments_all, _get_pagination_params('la_page', 1, 10)[0], 10)
-    
-    # Férias
-    try:
-        ferias_collab_id = request.args.get('ferias_collaborator_id', type=int)
-    except Exception:
-        ferias_collab_id = None
-    ferias_q = Vacation.query.order_by(Vacation.data_inicio.desc())
-    if ferias_collab_id:
-        ferias_q = ferias_q.filter(Vacation.collaborator_id == ferias_collab_id)
-    ferias_all = ferias_q.all()
-    ferias_page_items, ferias_page, ferias_total_pages, _ = _paginate_list(ferias_all, _get_pagination_params('ferias_page', 1, 10)[0], 10)
-    
-    # Atestados
-    try:
-        at_collab_id = request.args.get('at_collaborator_id', type=int)
-    except Exception:
-        at_collab_id = None
-    at_q = MedicalCertificate.query.order_by(MedicalCertificate.data_inicio.desc())
-    if at_collab_id:
-        at_q = at_q.filter(MedicalCertificate.collaborator_id == at_collab_id)
-    atestados_all = at_q.all()
-    atestados_page, at_page, at_total_pages, _ = _paginate_list(atestados_all, _get_pagination_params('at_page', 1, 10)[0], 10)
-
-    return render_template(
-        'jornada.html',
-        registros=items,
-        colaboradores=colaboradores,
-        page=page,
-        total_pages=total_pages,
-        total=total,
-        q_colab=q_colab,
-        tipo=(tipo or selected_tipo),
-        data_inicio=data_inicio,
-        data_fim=data_fim,
-        sort=sort,
-        resumo_horas=resumo_horas,
-        resumo_dias=resumo_dias,
-        resumo_colab_nome=resumo_colab_nome,
-        active_page='jornada'
-        , leave_assignments_page=leave_assignments_page, la_page=la_page, la_total_pages=la_total_pages, la_collab_id=la_collab_id
-        , ferias_page_items=ferias_page_items, ferias_page=ferias_page, ferias_total_pages=ferias_total_pages, ferias_collab_id=ferias_collab_id
-        , atestados_page=atestados_page, at_page=at_page, at_total_pages=at_total_pages, at_collab_id=at_collab_id
-        , cards_stats=cards_stats, cs_item=cs_item, cs_page=cs_page, cs_total_pages=cs_total_pages, cs_collab_id=cs_collab_id
-    )
-
-
-@bp.route('/search_collaborators', methods=['GET'], strict_slashes=False)
-@login_required
-def search_collaborators():
-    q = (request.args.get('q') or '').strip()
-    items = []
-    base = Collaborator.query.filter_by(active=True)
-    if q:
-        base = base.filter(Collaborator.name.ilike(f"%{q}%"))
-    cols = base.order_by(Collaborator.name.asc()).limit(20).all()
-    for c in cols:
-        items.append({'id': c.id, 'name': c.name})
-    return jsonify({'ok': True, 'items': items})
-
-
-@bp.route('/is_holiday', methods=['GET'], strict_slashes=False)
-@login_required
-def is_holiday():
-    d = (request.args.get('date') or '').strip()
-    try:
-        dt = datetime.strptime(d, '%Y-%m-%d').date()
-    except Exception:
-        return jsonify({'ok': False, 'holiday': False})
-    h = Holiday.query.filter_by(date=dt).first()
-    return jsonify({'ok': True, 'holiday': bool(h), 'name': (h.name if h else '')})
-
-
-@bp.route('/create', methods=['POST'], strict_slashes=False)
-@login_required
-def create():
-    if current_user.nivel not in ('admin', 'DEV'):
-        flash('Apenas Administradores podem criar.', 'danger')
-        return redirect(url_for('jornada.index'))
-    tipo = (request.form.get('tipo') or '').strip()
-    session['jornada_tipo'] = tipo
-    colab_id = (request.form.get('collaborator_id') or '').strip()
-    valor = (request.form.get('valor') or '').strip()
-    data_str = (request.form.get('data') or '').strip()
-    try:
-        cid = int(colab_id)
-    except Exception:
-        flash('Colaborador inválido.', 'danger')
-        return redirect(url_for('jornada.index'))
-    if tipo not in ('horas', 'dias'):
-        flash('Tipo inválido.', 'danger')
-        return redirect(url_for('jornada.index'))
-    try:
-        val = float(valor)
-    except Exception:
-        flash('Valor inválido.', 'danger')
-        return redirect(url_for('jornada.index'))
-    if tipo == 'horas' and (val < 0 or val > 24):
-        flash('Horas fora do intervalo.', 'danger')
-        return redirect(url_for('jornada.index'))
-    if tipo == 'dias' and (val < 1 or val > 365):
-        flash('Dias fora do intervalo.', 'danger')
-        return redirect(url_for('jornada.index'))
-    try:
-        dt = datetime.strptime(data_str, '%Y-%m-%d').date()
-    except Exception:
-        flash('Data inválida.', 'danger')
-        return redirect(url_for('jornada.index'))
-    if dt > date.today():
-        flash('Data futura não permitida.', 'danger')
-        return redirect(url_for('jornada.index'))
-    try:
-        obs = (request.form.get('observacao') or '').strip()
-        
-        # Criar registro em RegistroJornada
-        w = RegistroJornada()
-        w.id = str(uuid4())
-        w.collaborator_id = cid
-        w.tipo_registro = tipo
-        w.valor = val
-        w.data = dt
-        w.created_at = datetime.now(ZoneInfo('America/Sao_Paulo'))
-        w.updated_at = w.created_at
-        w.observacao = obs
-        db.session.add(w)
-        
-        # Também criar nas tabelas antigas para manter compatibilidade
-        if tipo == 'horas':
-            # Criar em HourBankEntry para manter compatibilidade com cálculos
-            hb = HourBankEntry()
-            hb.collaborator_id = cid
-            hb.date = dt
-            hb.hours = val
-            hb.reason = obs
-            db.session.add(hb)
-            
-            # Aplicar conversão automática 8h -> 1 dia (se necessário)
-            try:
-                from sqlalchemy import func
-                total_hours = db.session.query(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).filter(HourBankEntry.collaborator_id == cid).scalar() or 0.0
-                total_hours = float(total_hours)
-                auto_credits = db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == cid, LeaveCredit.origin == 'horas').scalar() or 0
-                auto_credits = int(auto_credits)
-                desired_credits = int(total_hours // 8.0)
-                missing = max(0, desired_credits - auto_credits)
-                if missing > 0:
-                    for _ in range(missing):
-                        lc = LeaveCredit()
-                        lc.collaborator_id = cid
-                        lc.date = date.today()
-                        lc.amount_days = 1
-                        lc.origin = 'horas'
-                        lc.notes = 'Crédito automático por 8h no banco de horas'
-                        db.session.add(lc)
-                    for _ in range(missing):
-                        adj = HourBankEntry()
-                        adj.collaborator_id = cid
-                        adj.date = date.today()
-                        adj.hours = -8.0
-                        adj.reason = 'Conversão automática: -8h por +1 dia de folga'
-                        db.session.add(adj)
-            except Exception:
-                pass  # Se der erro na conversão, continua mesmo assim
-        
-        elif tipo == 'dias':
-            # Criar em LeaveCredit para manter compatibilidade
-            lc = LeaveCredit()
-            lc.collaborator_id = cid
-            lc.date = dt
-            lc.amount_days = int(val)
-            lc.origin = 'manual'
-            lc.notes = obs
-            db.session.add(lc)
-        
-        db.session.commit()
-        _log_event('create', f"{tipo} {val} em {dt} para colaborador {cid}")
-        flash('Registro criado.', 'success')
-    except Exception as e:
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
-        flash(f'Erro ao criar: {e}', 'danger')
-    return redirect(url_for('jornada.index'))
-
-
-@bp.route('/update/<worklog_id>', methods=['POST'], strict_slashes=False)
-@login_required
-def update(worklog_id):
-    if current_user.nivel not in ('admin', 'DEV'):
-        flash('Apenas Administradores podem editar.', 'danger')
-        return redirect(url_for('jornada.index'))
-    w = RegistroJornada.query.filter_by(id=worklog_id).first()
-    if not w:
-        flash('Registro não encontrado.', 'danger')
-        return redirect(url_for('jornada.index'))
-    old = {'tipo': w.tipo_registro, 'valor': float(w.valor or 0), 'data': w.data}
-    tipo = (request.form.get('tipo') or '').strip()
-    colab_id = (request.form.get('collaborator_id') or '').strip()
-    valor = (request.form.get('valor') or '').strip()
-    data_str = (request.form.get('data') or '').strip()
-    try:
-        cid = int(colab_id)
-    except Exception:
-        flash('Colaborador inválido.', 'danger')
-        return redirect(url_for('jornada.index'))
-    try:
-        val = float(valor)
-    except Exception:
-        flash('Valor inválido.', 'danger')
-        return redirect(url_for('jornada.index'))
-    try:
-        dt = datetime.strptime(data_str, '%Y-%m-%d').date()
-    except Exception:
-        flash('Data inválida.', 'danger')
-        return redirect(url_for('jornada.index'))
-    if dt > date.today():
-        flash('Data futura não permitida.', 'danger')
-        return redirect(url_for('jornada.index'))
-    try:
-        obs = (request.form.get('observacao') or '').strip()
-        w.collaborator_id = cid
-        w.tipo_registro = tipo
-        w.valor = val
-        w.data = dt
-        w.updated_at = datetime.now(ZoneInfo('America/Sao_Paulo'))
-        w.observacao = obs
-        ch = RegistroJornadaChange()
-        ch.worklog_id = w.id
-        ch.changed_by = current_user.id
-        ch.old_tipo = old['tipo']
-        ch.old_valor = old['valor']
-        ch.old_data = old['data']
-        ch.new_tipo = tipo
-        ch.new_valor = val
-        ch.new_data = dt
-        db.session.add(ch)
-        db.session.commit()
-        _log_event('update', f"{tipo} {val} em {dt} para colaborador {cid}")
-        flash('Registro atualizado.', 'success')
-    except Exception as e:
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
-        flash(f'Erro ao atualizar: {e}', 'danger')
-    return redirect(url_for('jornada.index'))
-
-
-@bp.route('/delete/<worklog_id>', methods=['POST'], strict_slashes=False)
-@login_required
-def delete(worklog_id):
-    if current_user.nivel not in ('admin', 'DEV'):
-        flash('Apenas Administradores podem excluir.', 'danger')
-        return redirect(url_for('jornada.index'))
-    w = RegistroJornada.query.filter_by(id=worklog_id).first()
-    if not w:
-        flash('Registro não encontrado.', 'danger')
-        return redirect(url_for('jornada.index'))
-    try:
-        db.session.delete(w)
-        db.session.commit()
-        _log_event('delete', f"registro {worklog_id}")
-        flash('Registro excluído.', 'success')
-    except Exception as e:
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
-        flash(f'Erro ao excluir: {e}', 'danger')
-    return redirect(url_for('jornada.index'))
-
-
-@bp.route('/history/<worklog_id>', methods=['GET'], strict_slashes=False)
-@login_required
-def history(worklog_id):
-    w = RegistroJornada.query.filter_by(id=worklog_id).first()
-    if not w:
-        return jsonify({'ok': False, 'items': []})
-    items = []
-    for ch in RegistroJornadaChange.query.filter_by(worklog_id=worklog_id).order_by(RegistroJornadaChange.changed_at.desc()).limit(20).all():
-        items.append({
-            'changed_at': ch.changed_at.strftime('%Y-%m-%d %H:%M') if ch.changed_at else '',
-            'by': current_user.username if current_user.is_authenticated else '',
-            'old_tipo': ch.old_tipo,
-            'old_valor': float(ch.old_valor or 0),
-            'old_data': ch.old_data.strftime('%Y-%m-%d') if ch.old_data else '',
-            'new_tipo': ch.new_tipo,
-            'new_valor': float(ch.new_valor or 0),
-            'new_data': ch.new_data.strftime('%Y-%m-%d') if ch.new_data else ''
-        })
-    return jsonify({'ok': True, 'items': items})
-
-@bp.route('/export', methods=['GET'], strict_slashes=False)
-@login_required
-def export():
-    if current_user.nivel not in ('operador', 'admin', 'DEV'):
-        flash('Acesso negado.', 'danger')
-        return redirect(url_for('jornada.index'))
-    fmt = (request.args.get('fmt') or 'csv').strip().lower()
-    q_colab = (request.args.get('colaborador') or '').strip()
-    tipo = (request.args.get('tipo') or '').strip()
-    data_inicio = (request.args.get('inicio') or '').strip()
-    data_fim = (request.args.get('fim') or '').strip()
-    query = db.session.query(RegistroJornada, Collaborator).join(Collaborator, RegistroJornada.collaborator_id == Collaborator.id)
-    if q_colab:
-        try:
-            cid = int(q_colab)
-            query = query.filter(Collaborator.id == cid)
-        except Exception:
-            query = query.filter(Collaborator.name.ilike(f"%{q_colab}%"))
-    if tipo in ('horas', 'dias'):
-        query = query.filter(RegistroJornada.tipo_registro == tipo)
+    # Processar datas
+    di = None
+    df = None
     if data_inicio:
         try:
             di = datetime.strptime(data_inicio, '%Y-%m-%d').date()
-            query = query.filter(RegistroJornada.data >= di)
         except Exception:
             pass
     if data_fim:
         try:
             df = datetime.strptime(data_fim, '%Y-%m-%d').date()
-            query = query.filter(RegistroJornada.data <= df)
         except Exception:
             pass
-    rows = query.order_by(RegistroJornada.data.desc()).all()
-    if fmt == 'xlsx':
-        wb = Workbook()
-        ws = wb.active
-        if not ws:
-            ws = wb.create_sheet(title='Jornada')
-        else:
-            ws.title = 'Jornada'
-        ws.append(['ID', 'Colaborador', 'Tipo', 'Valor', 'Data', 'Observações', 'Criado em'])
-        for w, c in rows:
-            ws.append([w.id, c.name, w.tipo_registro, float(w.valor or 0), w.data.strftime('%Y-%m-%d'), (w.observacao or ''), (w.created_at.strftime('%Y-%m-%d %H:%M') if w.created_at else '')])
-        buf = io.BytesIO()
-        wb.save(buf)
-        buf.seek(0)
-        return send_file(buf, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', as_attachment=True, download_name='registro_jornada.xlsx')
-    else:
-        buf = io.StringIO()
-        writer = csv.writer(buf)
-        writer.writerow(['ID', 'Colaborador', 'Tipo', 'Valor', 'Data', 'Observações', 'Criado em'])
-        for w, c in rows:
-            writer.writerow([w.id, c.name, w.tipo_registro, f"{float(w.valor or 0):.2f}", w.data.strftime('%Y-%m-%d'), (w.observacao or ''), (w.created_at.strftime('%Y-%m-%d %H:%M') if w.created_at else '')])
-        data_str = buf.getvalue().encode('utf-8')
-        return send_file(io.BytesIO(data_str), mimetype='text/csv', as_attachment=True, download_name='registro_jornada.csv')
+    
+    # Se filtrar por user_id, buscar colaborador vinculado (são a mesma coisa)
+    if user_id and not collaborator_id:
+        collab = _get_collaborator_by_user_or_id(user_id=user_id)
+        if collab:
+            collaborator_id = collab.id
+    
+    # Buscar todos os colaboradores (User e Collaborator unificados)
+    colaboradores = _get_all_collaborators()
+    
+    # Buscar registros
+    records = []
+    if collaborator_id:
+        q = TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == collaborator_id)
+        if di:
+            q = q.filter(TimeOffRecord.date >= di)
+        if df:
+            q = q.filter(TimeOffRecord.date <= df)
+        if record_type:
+            q = q.filter(TimeOffRecord.record_type == record_type)
+        records = q.order_by(TimeOffRecord.date.desc(), TimeOffRecord.id.desc()).limit(100).all()
+    
+    # Calcular estatísticas
+    stats = None
+    selected_collaborator = None
+    
+    if collaborator_id:
+        selected_collaborator = Collaborator.query.get(collaborator_id)
+        if selected_collaborator:
+            stats = _calculate_collaborator_balance(collaborator_id, di, df)
+    
+    # Estatísticas gerais (todos os colaboradores - User e Collaborator são uma coisa só)
+    all_stats = []
+    for colab in colaboradores:
+        balance = _calculate_collaborator_balance(colab.id, di, df)
+        all_stats.append({
+            'collaborator': colab,
+            'display_name': _get_collaborator_display_name(colab),
+            'balance': balance
+        })
+    
+    # Buscar férias e atestados do colaborador selecionado
+    ferias = []
+    atestados = []
+    if selected_collaborator:
+        ferias = Vacation.query.filter_by(collaborator_id=selected_collaborator.id).order_by(Vacation.data_inicio.desc()).limit(50).all()
+        atestados = MedicalCertificate.query.filter_by(collaborator_id=selected_collaborator.id).order_by(MedicalCertificate.data_inicio.desc()).limit(50).all()
 
-@bp.route('/relatorio', methods=['GET'], strict_slashes=False)
+    return render_template(
+        'jornada/index.html',
+        colaboradores=colaboradores,
+        records=records,
+        selected_collaborator=selected_collaborator,
+        stats=stats,
+        all_stats=all_stats,
+        ferias=ferias,
+        atestados=atestados,
+        collaborator_id=collaborator_id,
+        user_id=user_id,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+        record_type=record_type,
+        active_page='jornada'
+    )
+
+@bp.route('/novo', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
-def relatorio():
-    if current_user.nivel not in ('operador', 'admin', 'DEV'):
+def novo():
+    """Criar novo registro de jornada"""
+    if current_user.nivel not in ('admin', 'DEV', 'operador'):
         flash('Acesso negado.', 'danger')
         return redirect(url_for('jornada.index'))
-    collab_id = request.args.get('collaborator_id', type=int)
-    inicio = (request.args.get('inicio') or '').strip()
-    fim = (request.args.get('fim') or '').strip()
-    di = None
-    df = None
-    try:
-        if inicio:
-            di = datetime.strptime(inicio, '%Y-%m-%d').date()
-    except Exception:
-        di = None
-    try:
-        if fim:
-            df = datetime.strptime(fim, '%Y-%m-%d').date()
-    except Exception:
-        df = None
-    colaboradores = Collaborator.query.filter_by(active=True).order_by(Collaborator.name.asc()).all()
-    def _range_filter(q, col):
-        if di and df:
-            return q.filter(col.between(di, df))
-        if di:
-            return q.filter(col >= di)
-        if df:
-            return q.filter(col <= df)
-        return q
-    resumo = []
-    eventos = []
-    targets = colaboradores if not collab_id else [c for c in colaboradores if c.id == collab_id]
-    for c in targets:
+    
+    if request.method == 'POST':
         try:
-            hq = _range_filter(HourBankEntry.query.filter(HourBankEntry.collaborator_id == c.id), HourBankEntry.date)
-            cq = _range_filter(LeaveCredit.query.filter(LeaveCredit.collaborator_id == c.id), LeaveCredit.date)
-            aq = _range_filter(LeaveAssignment.query.filter(LeaveAssignment.collaborator_id == c.id), LeaveAssignment.date)
-            vq = _range_filter(LeaveConversion.query.filter(LeaveConversion.collaborator_id == c.id), LeaveConversion.date)
-            rjq = _range_filter(RegistroJornada.query.filter(RegistroJornada.collaborator_id == c.id), RegistroJornada.data)
-            rj_obs_map = {}
-            rj_obs_date_map = {}
-            for w in rjq.all():
-                try:
-                    k = (w.data, (w.tipo_registro or ''))
-                    if k not in rj_obs_map and (w.observacao or ''):
-                        rj_obs_map[k] = (w.observacao or '')
-                    if (w.data not in rj_obs_date_map) and (w.observacao or ''):
-                        rj_obs_date_map[w.data] = (w.observacao or '')
-                except Exception:
-                    pass
-            hsum = float(db.session.query(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).filter(HourBankEntry.collaborator_id == c.id).scalar() or 0.0)
-            if di or df:
-                hsum = float(hq.with_entities(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).scalar() or 0.0)
-            residual_hours = (hsum % 8.0) if hsum >= 0.0 else - ((-hsum) % 8.0)
-            credits_sum = int(db.session.query(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).filter(LeaveCredit.collaborator_id == c.id).scalar() or 0)
-            assigned_sum = int(db.session.query(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).filter(LeaveAssignment.collaborator_id == c.id).scalar() or 0)
-            converted_sum = int(db.session.query(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).filter(LeaveConversion.collaborator_id == c.id).scalar() or 0)
-            if di or df:
-                credits_sum = int(cq.with_entities(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).scalar() or 0)
-                assigned_sum = int(aq.with_entities(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).scalar() or 0)
-                converted_sum = int(vq.with_entities(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).scalar() or 0)
-            saldo_days = credits_sum - assigned_sum - converted_sum
-            resumo.append({'id': c.id, 'name': c.name, 'residual_hours': residual_hours, 'saldo_days': saldo_days})
-            for e in hq.order_by(HourBankEntry.date.desc()).all():
-                if e.date:
-                    desc = (e.reason or '')
-                    eventos.append({'collab_id': c.id, 'collab_name': c.name, 'date': e.date, 'tipo': 'horas', 'valor': float(e.hours or 0.0), 'descricao': desc})
-            for cr in cq.order_by(LeaveCredit.date.desc()).all():
-                if cr.date:
-                    desc = (cr.notes or '')
-                    eventos.append({'collab_id': c.id, 'collab_name': c.name, 'date': cr.date, 'tipo': 'dias_add', 'valor': int(cr.amount_days or 0), 'descricao': desc})
-            for a in aq.order_by(LeaveAssignment.date.desc()).all():
-                if a.date:
-                    desc = (a.notes or '')
-                    if not desc:
-                        desc = (rj_obs_map.get((a.date, 'dias')) or '')
-                    if not desc:
-                        desc = (rj_obs_date_map.get(a.date) or '')
-                    eventos.append({'collab_id': c.id, 'collab_name': c.name, 'date': a.date, 'tipo': 'dias_uso', 'valor': -int(a.days_used or 0), 'descricao': desc})
-            for v in vq.order_by(LeaveConversion.date.desc()).all():
-                if v.date:
-                    notes = (v.notes or '')
-                    if not notes:
-                        notes = (rj_obs_map.get((v.date, 'dias')) or '')
-                    if not notes:
-                        notes = (rj_obs_date_map.get(v.date) or '')
-                    eventos.append({'collab_id': c.id, 'collab_name': c.name, 'date': v.date, 'tipo': 'dias_pago', 'valor': int(v.amount_days or 0), 'descricao': f"R$ {float(v.amount_paid or 0):.2f} — {notes}"})
-        except Exception as e:
-            _log_event('relatorio_error', f"collab {c.id} {c.name}: {e}")
-    eventos.sort(key=lambda it: ((it.get('collab_name') or ''), (it.get('date') or date.min)), reverse=True)
-    return render_template('relatorio_jornada.html', resumo=resumo, eventos=eventos, colaboradores=colaboradores, inicio=inicio, fim=fim, collab_id=collab_id, active_page='jornada')
-
-@bp.route('/relatorio/export', methods=['GET'], strict_slashes=False)
-@login_required
-def relatorio_export():
-    if current_user.nivel not in ('operador', 'admin', 'DEV'):
-        flash('Acesso negado.', 'danger')
-        return redirect(url_for('jornada.index'))
-    collab_id = request.args.get('collaborator_id', type=int)
-    inicio = (request.args.get('inicio') or '').strip()
-    fim = (request.args.get('fim') or '').strip()
-    di = None
-    df = None
-    try:
-        if inicio:
-            di = datetime.strptime(inicio, '%Y-%m-%d').date()
-    except Exception:
-        di = None
-    try:
-        if fim:
-            df = datetime.strptime(fim, '%Y-%m-%d').date()
-    except Exception:
-        df = None
-    colaboradores = Collaborator.query.filter_by(active=True).order_by(Collaborator.name.asc()).all()
-    def _range_filter(q, col):
-        if di and df:
-            return q.filter(col.between(di, df))
-        if di:
-            return q.filter(col >= di)
-        if df:
-            return q.filter(col <= df)
-        return q
-    resumo = []
-    eventos = []
-    targets = colaboradores if not collab_id else [c for c in colaboradores if c.id == collab_id]
-    for c in targets:
-        try:
-            hq = _range_filter(HourBankEntry.query.filter(HourBankEntry.collaborator_id == c.id), HourBankEntry.date)
-            cq = _range_filter(LeaveCredit.query.filter(LeaveCredit.collaborator_id == c.id), LeaveCredit.date)
-            aq = _range_filter(LeaveAssignment.query.filter(LeaveAssignment.collaborator_id == c.id), LeaveAssignment.date)
-            vq = _range_filter(LeaveConversion.query.filter(LeaveConversion.collaborator_id == c.id), LeaveConversion.date)
-            rjq = _range_filter(RegistroJornada.query.filter(RegistroJornada.collaborator_id == c.id), RegistroJornada.data)
-            rj_obs_map = {}
-            rj_obs_date_map = {}
-            for w in rjq.all():
-                try:
-                    k = (w.data, (w.tipo_registro or ''))
-                    if k not in rj_obs_map and (w.observacao or ''):
-                        rj_obs_map[k] = (w.observacao or '')
-                    if (w.data not in rj_obs_date_map) and (w.observacao or ''):
-                        rj_obs_date_map[w.data] = (w.observacao or '')
-                except Exception:
-                    pass
-            hsum = float(hq.with_entities(func.coalesce(func.sum(HourBankEntry.hours), 0.0)).scalar() or 0.0)
-            residual_hours = (hsum % 8.0) if hsum >= 0.0 else - ((-hsum) % 8.0)
-            credits_sum = int(cq.with_entities(func.coalesce(func.sum(LeaveCredit.amount_days), 0)).scalar() or 0)
-            assigned_sum = int(aq.with_entities(func.coalesce(func.sum(LeaveAssignment.days_used), 0)).scalar() or 0)
-            converted_sum = int(vq.with_entities(func.coalesce(func.sum(LeaveConversion.amount_days), 0)).scalar() or 0)
-            saldo_days = credits_sum - assigned_sum - converted_sum
-            resumo.append({'id': c.id, 'name': c.name, 'residual_hours': residual_hours, 'saldo_days': saldo_days})
-            for e in hq.order_by(HourBankEntry.date.desc()).all():
-                if e.date:
-                    desc = (e.reason or '')
-                    eventos.append({'date': e.date, 'collab': c.name, 'tipo': 'Horas', 'valor': float(e.hours or 0.0), 'obs': desc})
-            for cr in cq.order_by(LeaveCredit.date.desc()).all():
-                if cr.date:
-                    desc = (cr.notes or '')
-                    eventos.append({'date': cr.date, 'collab': c.name, 'tipo': 'Dias acrescentados', 'valor': int(cr.amount_days or 0), 'obs': desc})
-            for a in aq.order_by(LeaveAssignment.date.desc()).all():
-                if a.date:
-                    desc = (a.notes or '')
-                    if not desc:
-                        desc = (rj_obs_map.get((a.date, 'dias')) or '')
-                    if not desc:
-                        desc = (rj_obs_date_map.get(a.date) or '')
-                    eventos.append({'date': a.date, 'collab': c.name, 'tipo': 'Dias usados', 'valor': -int(a.days_used or 0), 'obs': desc})
-            for v in vq.order_by(LeaveConversion.date.desc()).all():
-                if v.date:
-                    notes = (v.notes or '')
-                    if not notes:
-                        notes = (rj_obs_map.get((v.date, 'dias')) or '')
-                    if not notes:
-                        notes = (rj_obs_date_map.get(v.date) or '')
-                    eventos.append({'date': v.date, 'collab': c.name, 'tipo': 'Dias convertidos em R$', 'valor': int(v.amount_days or 0), 'obs': f"R$ {float(v.amount_paid or 0):.2f} — {notes}"})
-        except Exception as e:
-            _log_event('relatorio_export_error', f"collab {c.id} {c.name}: {e}")
-    eventos.sort(key=lambda it: ((it.get('collab') or ''), (it.get('date') or date.min)), reverse=True)
-    wb = Workbook()
-    ws_resumo = wb.active
-    if not ws_resumo:
-        ws_resumo = wb.create_sheet(title='Resumo')
-    else:
-        ws_resumo.title = 'Resumo'
-    ws_resumo.append(['Colaborador', 'Horas restantes', 'Dias restantes'])
-    for r in resumo:
-        ws_resumo.append([r['name'], float(r['residual_hours'] or 0.0), int(r['saldo_days'] or 0)])
-    ws_eventos = wb.create_sheet(title='Eventos')
-    ws_eventos.append(['Data', 'Colaborador', 'Tipo', 'Valor', 'Observações'])
-    for e in eventos:
-        ws_eventos.append([(e.get('date').strftime('%Y-%m-%d') if e.get('date') else ''), e.get('collab') or '', e.get('tipo') or '', e.get('valor'), e.get('obs') or ''])
-    buf = io.BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-    return send_file(buf, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', as_attachment=True, download_name='relatorio_jornada.xlsx')
-
-
-@bp.route('/migrar', methods=['POST'], strict_slashes=False)
-@login_required
-def migrar():
-    if current_user.nivel not in ('admin', 'DEV'):
-        flash('Apenas Administradores podem migrar.', 'danger')
-        return redirect(url_for('jornada.index'))
-    from ..models import HourBankEntry, LeaveCredit
-    created = 0
-    try:
-        entries = HourBankEntry.query.all()
-        for e in entries:
-            exists = RegistroJornada.query.filter_by(
-                collaborator_id=e.collaborator_id,
-                tipo_registro='horas',
-                data=e.date
-            ).first()
-            if exists:
-                continue
-            w = RegistroJornada()
-            w.id = str(uuid4())
-            w.collaborator_id = e.collaborator_id
-            w.tipo_registro = 'horas'
-            w.valor = float(e.hours or 0.0)
-            w.data = e.date
-            w.created_at = datetime.now(ZoneInfo('America/Sao_Paulo'))
-            w.updated_at = w.created_at
-            w.observacao = (e.reason or '')
-            db.session.add(w)
-            created += 1
-        credits = LeaveCredit.query.all()
-        for c in credits:
-            exists = RegistroJornada.query.filter_by(
-                collaborator_id=c.collaborator_id,
-                tipo_registro='dias',
-                data=c.date
-            ).first()
-            if exists:
-                continue
-            w = RegistroJornada()
-            w.id = str(uuid4())
-            w.collaborator_id = c.collaborator_id
-            w.tipo_registro = 'dias'
-            w.valor = float(c.amount_days or 0)
-            w.data = c.date
-            w.created_at = datetime.now(ZoneInfo('America/Sao_Paulo'))
-            w.updated_at = w.created_at
-            w.observacao = (c.notes or '')
-            db.session.add(w)
-            created += 1
-        db.session.commit()
-        _log_event('migrate', f"{created} registros migrados")
-        flash(f'{created} registros migrados.', 'success')
-    except Exception as e:
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
-        flash(f'Erro na migração: {e}', 'danger')
-    return redirect(url_for('jornada.index'))
-
-@bp.route('/sincronizar-observacoes', methods=['POST'], strict_slashes=False)
-@login_required
-def sincronizar_observacoes():
-    if current_user.nivel not in ('admin', 'DEV'):
-        flash('Apenas Administradores podem sincronizar.', 'danger')
-        return redirect(url_for('jornada.index'))
-    updated = 0
-    try:
-        horas_regs = RegistroJornada.query.filter(RegistroJornada.tipo_registro == 'horas').all()
-        for w in horas_regs:
+            collaborator_id = int(request.form.get('collaborator_id', 0))
+            if not collaborator_id:
+                flash('Colaborador é obrigatório.', 'danger')
+                return redirect(url_for('jornada.novo'))
+            
+            data_str = request.form.get('date', '').strip()
+            if not data_str:
+                flash('Data é obrigatória.', 'danger')
+                return redirect(url_for('jornada.novo'))
+            
             try:
-                src = HourBankEntry.query.filter_by(collaborator_id=w.collaborator_id, date=w.data).order_by(HourBankEntry.id.asc()).first()
-                val = (src.reason if src and src.reason else '')
-                if val and not (w.observacao or '').strip():
-                    w.observacao = val
-                    updated += 1
+                record_date = datetime.strptime(data_str, '%Y-%m-%d').date()
             except Exception:
-                pass
-        dias_regs = RegistroJornada.query.filter(RegistroJornada.tipo_registro == 'dias').all()
-        for w in dias_regs:
-            try:
-                src = LeaveCredit.query.filter_by(collaborator_id=w.collaborator_id, date=w.data).order_by(LeaveCredit.id.asc()).first()
-                val = (src.notes if src and src.notes else '')
-                if val and not (w.observacao or '').strip():
-                    w.observacao = val
-                    updated += 1
-            except Exception:
-                pass
-        db.session.commit()
-        _log_event('sync_obs', f"{updated} observações sincronizadas")
-        flash(f'Observações sincronizadas: {updated}', 'success')
-    except Exception as e:
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
-        flash(f'Erro na sincronização: {e}', 'danger')
-    return redirect(url_for('jornada.index'))
-
-@bp.route('/delete_by_date', methods=['POST'], strict_slashes=False)
-@login_required
-def delete_by_date():
-    if current_user.nivel not in ('admin', 'DEV'):
-        flash('Apenas Administradores podem excluir em massa.', 'danger')
-        return redirect(url_for('jornada.index'))
-    date_str = (request.form.get('data') or '').strip()
-    d_start_str = (request.form.get('del_inicio') or '').strip()
-    d_end_str = (request.form.get('del_fim') or '').strip()
-    di = None
-    df = None
-    dt = None
-    try:
-        if d_start_str:
-            di = datetime.strptime(d_start_str, '%Y-%m-%d').date()
-    except Exception:
-        di = None
-    try:
-        if d_end_str:
-            df = datetime.strptime(d_end_str, '%Y-%m-%d').date()
-    except Exception:
-        df = None
-    if not (di and df):
-        try:
-            if date_str:
-                dt = datetime.strptime(date_str, '%Y-%m-%d').date()
-        except Exception:
-            dt = None
-    if not ((di and df) or dt):
-        flash('Período ou data inválidos para exclusão.', 'warning')
-        return redirect(url_for('jornada.index'))
-    try:
-        if di and df:
-            q = RegistroJornada.query.filter(RegistroJornada.data.between(di, df))
-        else:
-            q = RegistroJornada.query.filter(RegistroJornada.data == dt)
-        count = q.count()
-        for w in q.all():
-            db.session.delete(w)
-        db.session.commit()
-        if di and df:
-            _log_event('bulk_delete', f"{count} registros removidos no período {di} a {df}")
-        else:
-            _log_event('bulk_delete', f"{count} registros removidos em {dt}")
-        if count > 0:
-            if di and df:
-                ps = (f"{di.strftime('%d/%m/%Y')} a {df.strftime('%d/%m/%Y')}" if (di and df) else '')
-                flash(f'{count} registro(s) removido(s) no período {ps}.', 'success')
+                flash('Data inválida.', 'danger')
+                return redirect(url_for('jornada.novo'))
+            
+            record_type = request.form.get('record_type', '').strip()
+            if record_type not in ('horas', 'folga_adicional', 'folga_usada', 'conversao'):
+                flash('Tipo de registro inválido.', 'danger')
+                return redirect(url_for('jornada.novo'))
+            
+            # Criar registro
+            record = TimeOffRecord()
+            record.collaborator_id = collaborator_id
+            record.date = record_date
+            record.record_type = record_type
+            record.origin = request.form.get('origin', 'manual').strip()
+            record.notes = request.form.get('notes', '').strip()
+            record.created_by = current_user.name or current_user.username
+            
+            if record_type == 'horas':
+                hours = float(request.form.get('hours', 0))
+                record.hours = hours
+            elif record_type in ('folga_adicional', 'folga_usada'):
+                days = int(request.form.get('days', 1))
+                record.days = days
+            elif record_type == 'conversao':
+                days = int(request.form.get('days', 0))
+                amount_paid = float(request.form.get('amount_paid', 0))
+                rate_per_day = float(request.form.get('rate_per_day', 65.0))
+                record.days = days
+                record.amount_paid = amount_paid
+                record.rate_per_day = rate_per_day
+            
+            db.session.add(record)
+            
+            # Aplicar conversão automática se for horas
+            if record_type == 'horas' and record.hours and record.hours > 0:
+                try:
+                    total_hours = db.session.query(func.coalesce(func.sum(TimeOffRecord.hours), 0.0)).filter(
+                        TimeOffRecord.collaborator_id == collaborator_id,
+                        TimeOffRecord.record_type == 'horas'
+                    ).scalar() or 0.0
+                    total_hours = float(total_hours)
+                    
+                    auto_credits = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(
+                        TimeOffRecord.collaborator_id == collaborator_id,
+                        TimeOffRecord.record_type == 'folga_adicional',
+                        TimeOffRecord.origin == 'horas'
+                    ).scalar() or 0
+                    auto_credits = int(auto_credits)
+                    
+                    desired_credits = int(total_hours // 8.0)
+                    missing = max(0, desired_credits - auto_credits)
+                    
+                    if missing > 0:
+                        # Criar folgas adicionais
+                        for _ in range(missing):
+                            tor = TimeOffRecord()
+                            tor.collaborator_id = collaborator_id
+                            tor.date = date.today()
+                            tor.record_type = 'folga_adicional'
+                            tor.days = 1
+                            tor.origin = 'horas'
+                            tor.notes = 'Crédito automático por 8h no banco de horas'
+                            tor.created_by = 'sistema'
+                            db.session.add(tor)
+                        
+                        # Criar ajustes de horas
+                        for _ in range(missing):
+                            tor_adj = TimeOffRecord()
+                            tor_adj.collaborator_id = collaborator_id
+                            tor_adj.date = date.today()
+                            tor_adj.record_type = 'horas'
+                            tor_adj.hours = -8.0
+                            tor_adj.origin = 'sistema'
+                            tor_adj.notes = 'Conversão automática: -8h por +1 dia de folga'
+                            tor_adj.created_by = 'sistema'
+                            db.session.add(tor_adj)
+                        
+                        flash(f'Registro adicionado. Conversão automática: +{missing} dia(s) e -{missing*8}h.', 'success')
+                    else:
+                        flash('Registro adicionado com sucesso.', 'success')
+                except Exception:
+                    flash('Registro adicionado com sucesso.', 'success')
             else:
-                ds = (dt.strftime('%d/%m/%Y') if dt else '')
-                flash(f'{count} registro(s) removido(s) na data {ds}.', 'success')
-        else:
-            flash('Nenhum registro para remover no intervalo informado.', 'info')
-    except Exception as e:
-        try:
+                flash('Registro adicionado com sucesso.', 'success')
+            
+            db.session.commit()
+            return redirect(url_for('jornada.index', collaborator_id=collaborator_id))
+            
+        except Exception as e:
             db.session.rollback()
+            flash(f'Erro ao criar registro: {e}', 'danger')
+            return redirect(url_for('jornada.novo'))
+    
+    # GET - mostrar formulário
+    colaboradores = _get_all_collaborators()
+    colaboradores_com_usuarios = _get_all_collaborators_with_users()
+    hoje = date.today().strftime('%Y-%m-%d')
+    return render_template('jornada/novo.html', 
+                         colaboradores=colaboradores, 
+                         colaboradores_com_usuarios=colaboradores_com_usuarios,
+                         active_page='jornada', 
+                         hoje=hoje)
+
+@bp.route('/editar/<int:id>', methods=['GET', 'POST'], strict_slashes=False)
+@login_required
+def editar(id):
+    """Editar registro de jornada"""
+    if current_user.nivel not in ('admin', 'DEV'):
+        flash('Apenas Administradores podem editar registros.', 'danger')
+        return redirect(url_for('jornada.index'))
+    
+    record = TimeOffRecord.query.get_or_404(id)
+    
+    if request.method == 'POST':
+        try:
+            data_str = request.form.get('date', '').strip()
+            if data_str:
+                record.date = datetime.strptime(data_str, '%Y-%m-%d').date()
+            
+            record.notes = request.form.get('notes', '').strip()
+            
+            if record.record_type == 'horas':
+                hours = request.form.get('hours', '')
+                if hours:
+                    record.hours = float(hours)
+            elif record.record_type in ('folga_adicional', 'folga_usada'):
+                days = request.form.get('days', '')
+                if days:
+                    record.days = int(days)
+            elif record.record_type == 'conversao':
+                days = request.form.get('days', '')
+                amount_paid = request.form.get('amount_paid', '')
+                if days:
+                    record.days = int(days)
+                if amount_paid:
+                    record.amount_paid = float(amount_paid)
+            
+            db.session.commit()
+            flash('Registro atualizado com sucesso.', 'success')
+            return redirect(url_for('jornada.index', collaborator_id=record.collaborator_id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao atualizar registro: {e}', 'danger')
+    
+    colaboradores = _get_all_collaborators()
+    return render_template('jornada/editar.html', record=record, colaboradores=colaboradores, active_page='jornada')
+
+@bp.route('/excluir/<int:id>', methods=['POST'], strict_slashes=False)
+@login_required
+def excluir(id):
+    """Excluir registro de jornada"""
+    if current_user.nivel not in ('admin', 'DEV'):
+        flash('Apenas Administradores podem excluir registros.', 'danger')
+        return redirect(url_for('jornada.index'))
+    
+    record = TimeOffRecord.query.get_or_404(id)
+    collaborator_id = record.collaborator_id
+    
+    try:
+        db.session.delete(record)
+        db.session.commit()
+        flash('Registro excluído com sucesso.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir registro: {e}', 'danger')
+
+    return redirect(url_for('jornada.index', collaborator_id=collaborator_id))
+
+@bp.route('/converter_horas', methods=['POST'], strict_slashes=False)
+@login_required
+def converter_horas():
+    """Converter horas em dias manualmente (apenas admin/dev)"""
+    if current_user.nivel not in ('admin', 'DEV'):
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('jornada.index'))
+    
+    collaborator_id = request.form.get('collaborator_id', type=int)
+    if not collaborator_id:
+        flash('Colaborador não especificado.', 'danger')
+        return redirect(url_for('jornada.index'))
+    
+    try:
+        balance = _calculate_collaborator_balance(collaborator_id)
+        total_bruto_hours = balance['total_bruto_hours']
+        days_from_hours = balance['days_from_hours']
+        
+        # Verificar quantos dias já foram convertidos
+        auto_credits = db.session.query(func.coalesce(func.sum(TimeOffRecord.days), 0)).filter(
+            TimeOffRecord.collaborator_id == collaborator_id,
+            TimeOffRecord.record_type == 'folga_adicional',
+            TimeOffRecord.origin == 'horas'
+        ).scalar() or 0
+        auto_credits = int(auto_credits)
+        
+        missing = max(0, days_from_hours - auto_credits)
+        
+        if missing > 0:
+            # Criar folgas adicionais
+            for _ in range(missing):
+                tor = TimeOffRecord()
+                tor.collaborator_id = collaborator_id
+                tor.date = date.today()
+                tor.record_type = 'folga_adicional'
+                tor.days = 1
+                tor.origin = 'horas'
+                tor.notes = 'Crédito automático por 8h no banco de horas'
+                tor.created_by = current_user.name or current_user.username
+                db.session.add(tor)
+            
+            # Criar ajustes de horas
+            for _ in range(missing):
+                tor_adj = TimeOffRecord()
+                tor_adj.collaborator_id = collaborator_id
+                tor_adj.date = date.today()
+                tor_adj.record_type = 'horas'
+                tor_adj.hours = -8.0
+                tor_adj.origin = 'sistema'
+                tor_adj.notes = 'Conversão automática: -8h por +1 dia de folga'
+                tor_adj.created_by = current_user.name or current_user.username
+                db.session.add(tor_adj)
+            
+            db.session.commit()
+            flash(f'Conversão realizada: +{missing} dia(s) e -{missing*8}h.', 'success')
+        else:
+            flash('Não há horas suficientes para conversão ou já foram convertidas.', 'info')
+        
+        return redirect(url_for('jornada.index', collaborator_id=collaborator_id))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao converter horas: {e}', 'danger')
+        return redirect(url_for('jornada.index', collaborator_id=collaborator_id))
+
+@bp.route('/export', methods=['GET'], strict_slashes=False)
+@login_required
+def export():
+    """Exportar registros de jornada"""
+    if current_user.nivel not in ('operador', 'admin', 'DEV'):
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('jornada.index'))
+    
+    collaborator_id = request.args.get('collaborator_id', type=int)
+    data_inicio = request.args.get('inicio', '').strip()
+    data_fim = request.args.get('fim', '').strip()
+    
+    di = None
+    df = None
+    if data_inicio:
+        try:
+            di = datetime.strptime(data_inicio, '%Y-%m-%d').date()
         except Exception:
             pass
-        flash(f'Erro ao excluir registros: {e}', 'danger')
-    # Preservar filtros do usuário ao redirecionar
-    args = {
-        'colaborador': (request.form.get('colaborador') or '').strip() or None,
-        'tipo': (request.form.get('tipo') or '').strip() or None,
-        'inicio': (request.form.get('inicio') or '').strip() or None,
-        'fim': (request.form.get('fim') or '').strip() or None,
-        'sort': (request.form.get('sort') or '').strip() or None,
-        'cs_collaborator_id': (request.form.get('cs_collaborator_id') or '').strip() or None,
-        'cs_page': (request.form.get('cs_page') or '').strip() or None,
-    }
-    args = {k: v for k, v in args.items() if v is not None}
-    try:
-        from urllib.parse import urlencode
-        base = url_for('jornada.index')
-        qs = urlencode(args) if args else ''
-        url = f"{base}?{qs}" if qs else base
-        return redirect(url, code=303)
-    except Exception:
+    if data_fim:
+        try:
+            df = datetime.strptime(data_fim, '%Y-%m-%d').date()
+        except Exception:
+            pass
+    
+    q = TimeOffRecord.query
+    if collaborator_id:
+        q = q.filter(TimeOffRecord.collaborator_id == collaborator_id)
+    if di:
+        q = q.filter(TimeOffRecord.date >= di)
+    if df:
+        q = q.filter(TimeOffRecord.date <= df)
+    
+    records = q.order_by(TimeOffRecord.date.desc()).all()
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Data', 'Colaborador/Usuário', 'Tipo', 'Horas', 'Dias', 'Valor Pago', 'Origem', 'Observações', 'Criado por'])
+    
+    for r in records:
+        collab = r.collaborator
+        display_name = _get_collaborator_display_name(collab)
+        
+        writer.writerow([
+            r.date.strftime('%d/%m/%Y'),
+            display_name or collab.name,
+            r.record_type,
+            r.hours or '',
+            r.days or '',
+            r.amount_paid or '',
+            r.origin or '',
+            r.notes or '',
+            r.created_by or ''
+        ])
+    
+    output.seek(0)
+    return send_file(
+        io.BytesIO(output.getvalue().encode('utf-8')),
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name=f'jornada_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+    )
+
+# ============================================================================
+# Rotas de Férias
+# ============================================================================
+
+@bp.route('/ferias/adicionar', methods=['POST'])
+@login_required
+def ferias_adicionar():
+    """Adicionar férias para um colaborador"""
+    if current_user.nivel not in ('admin', 'DEV'):
+        flash('Acesso negado.', 'danger')
         return redirect(url_for('jornada.index'))
+    try:
+        cid_str = (request.form.get('collaborator_id') or '').strip()
+        di_str = (request.form.get('data_inicio') or '').strip()
+        df_str = (request.form.get('data_fim') or '').strip()
+        if not cid_str or not di_str or not df_str:
+            flash('Dados obrigatórios ausentes.', 'warning')
+            return redirect(url_for('jornada.index', collaborator_id=cid_str if cid_str else None))
+        cid = int(cid_str)
+        data_inicio = datetime.strptime(di_str, '%Y-%m-%d').date()
+        data_fim = datetime.strptime(df_str, '%Y-%m-%d').date()
+        observacao = request.form.get('observacao', '').strip()
+        
+        if data_fim < data_inicio:
+            flash('Data final deve ser maior ou igual à data inicial.', 'warning')
+            return redirect(url_for('jornada.index', collaborator_id=cid))
+        
+        v = Vacation()
+        v.collaborator_id = cid
+        v.data_inicio = data_inicio
+        v.data_fim = data_fim
+        v.observacao = observacao
+        v.criado_por = current_user.name
+        db.session.add(v)
+        db.session.commit()
+        flash('Férias registradas com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao registrar férias: {e}', 'danger')
+    return redirect(url_for('jornada.index', collaborator_id=cid_str if cid_str else None))
+
+@bp.route('/ferias/<int:id>/excluir', methods=['POST'])
+@login_required
+def ferias_excluir(id: int):
+    """Excluir férias"""
+    if current_user.nivel not in ('admin', 'DEV'):
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('jornada.index'))
+    v = Vacation.query.get_or_404(id)
+    collaborator_id = v.collaborator_id
+    try:
+        db.session.delete(v)
+        db.session.commit()
+        flash('Férias excluídas.', 'info')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir: {e}', 'danger')
+    return redirect(url_for('jornada.index', collaborator_id=collaborator_id))
+
+# ============================================================================
+# Rotas de Atestados Médicos
+# ============================================================================
+
+@bp.route('/atestado/adicionar', methods=['POST'])
+@login_required
+def atestado_adicionar():
+    """Adicionar atestado médico para um colaborador"""
+    if current_user.nivel not in ('admin', 'DEV'):
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('jornada.index'))
+    try:
+        cid_str = (request.form.get('collaborator_id') or '').strip()
+        di_str = (request.form.get('data_inicio') or '').strip()
+        df_str = (request.form.get('data_fim') or '').strip()
+        if not cid_str or not di_str or not df_str:
+            flash('Dados obrigatórios ausentes.', 'warning')
+            return redirect(url_for('jornada.index', collaborator_id=cid_str if cid_str else None))
+        cid = int(cid_str)
+        data_inicio = datetime.strptime(di_str, '%Y-%m-%d').date()
+        data_fim = datetime.strptime(df_str, '%Y-%m-%d').date()
+        motivo = request.form.get('motivo', '').strip()
+        cid_code = request.form.get('cid', '').strip()
+        medico = request.form.get('medico', '').strip()
+        
+        if data_fim < data_inicio:
+            flash('Data final deve ser maior ou igual à data inicial.', 'warning')
+            return redirect(url_for('jornada.index', collaborator_id=cid))
+        
+        dias = (data_fim - data_inicio).days + 1
+        
+        foto_filename = None
+        if 'foto_atestado' in request.files:
+            foto = request.files['foto_atestado']
+            if foto and foto.filename:
+                if not allowed_file(foto.filename):
+                    flash('Tipo de arquivo não permitido. Use imagens (PNG, JPG, JPEG, GIF).', 'warning')
+                    return redirect(url_for('jornada.index', collaborator_id=cid))
+                
+                foto.seek(0, 2)
+                size = foto.tell()
+                foto.seek(0)
+                if size > MAX_UPLOAD_SIZE:
+                    flash('Arquivo muito grande. Máximo 10MB.', 'warning')
+                    return redirect(url_for('jornada.index', collaborator_id=cid))
+                
+                upload_dir = os.path.join('static', 'uploads', 'atestados')
+                os.makedirs(upload_dir, exist_ok=True)
+                safe_name = secure_filename(foto.filename)
+                ext = safe_name.rsplit('.', 1)[1].lower() if '.' in safe_name else 'jpg'
+                foto_filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{cid}.{ext}"
+                foto.save(os.path.join(upload_dir, foto_filename))
+        
+        m = MedicalCertificate()
+        m.collaborator_id = cid
+        m.data_inicio = data_inicio
+        m.data_fim = data_fim
+        m.dias = dias
+        m.motivo = motivo
+        m.cid = cid_code
+        m.medico = medico
+        m.foto_atestado = foto_filename
+        m.criado_por = current_user.name
+        db.session.add(m)
+        db.session.commit()
+        flash('Atestado registrado com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao registrar atestado: {e}', 'danger')
+    return redirect(url_for('jornada.index', collaborator_id=cid_str if cid_str else None))
+
+@bp.route('/atestado/<int:id>/excluir', methods=['POST'])
+@login_required
+def atestado_excluir(id: int):
+    """Excluir atestado médico"""
+    if current_user.nivel not in ('admin', 'DEV'):
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('jornada.index'))
+    m = MedicalCertificate.query.get_or_404(id)
+    collaborator_id = m.collaborator_id
+    try:
+        if m.foto_atestado:
+            path = os.path.join('static', 'uploads', 'atestados', m.foto_atestado)
+            if os.path.exists(path):
+                os.remove(path)
+        db.session.delete(m)
+        db.session.commit()
+        flash('Atestado excluído.', 'info')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir: {e}', 'danger')
+    return redirect(url_for('jornada.index', collaborator_id=collaborator_id))

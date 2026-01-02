@@ -1,0 +1,1496 @@
+{% extends 'base.html' %}
+{% block title %}Jornada — MultiMax{% endblock %}
+
+{% block content %}
+<div class="jornada-container">
+    <!-- Hero Header -->
+    <div class="jornada-hero">
+        <div class="jornada-hero-content">
+            <div>
+                <h1 class="jornada-title">
+                    <i class="bi bi-clock-history jornada-title-icon"></i>
+                    Sistema de Jornada
+                </h1>
+                <p class="jornada-subtitle">Gestão integrada de horas, folgas e colaboradores</p>
+            </div>
+            <div class="jornada-hero-actions">
+                {% if current_user.nivel in ('admin', 'DEV', 'operador') %}
+                <a class="btn-action btn-action-secondary" href="{{ url_for('jornada.export', collaborator_id=collaborator_id, inicio=data_inicio, fim=data_fim) }}">
+                    <i class="bi bi-download"></i>
+                    <span>Exportar</span>
+                </a>
+                <a class="btn-action btn-action-primary" href="{{ url_for('jornada.novo') }}">
+                    <i class="bi bi-plus-circle"></i>
+                    <span>Novo Registro</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filtros-card-modern">
+        <div class="filtros-header-modern">
+            <h3 class="filtros-title">
+                <i class="bi bi-funnel"></i>
+                Filtros
+            </h3>
+        </div>
+        <div class="filtros-body-modern">
+            <form method="GET" class="filtros-form-modern">
+                <div class="filtros-grid-modern">
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-person"></i>
+                            Colaborador/Usuário
+                        </label>
+                        <select name="collaborator_id" class="form-input-modern" onchange="this.form.submit()">
+                            <option value="">— Todos —</option>
+                            {% for colab in colaboradores %}
+                            <option value="{{ colab.id }}" {% if collaborator_id == colab.id %}selected{% endif %}>
+                                {{ colab.user.name if colab.user else colab.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-tag"></i>
+                            Tipo
+                        </label>
+                        <select name="tipo" class="form-input-modern">
+                            <option value="">— Todos —</option>
+                            <option value="horas" {% if record_type == 'horas' %}selected{% endif %}>Horas</option>
+                            <option value="folga_adicional" {% if record_type == 'folga_adicional' %}selected{% endif %}>Folga Adicional</option>
+                            <option value="folga_usada" {% if record_type == 'folga_usada' %}selected{% endif %}>Folga Usada</option>
+                            <option value="conversao" {% if record_type == 'conversao' %}selected{% endif %}>Conversão</option>
+                        </select>
+                    </div>
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-calendar3"></i>
+                            Data Início
+                        </label>
+                        <input type="date" name="inicio" class="form-input-modern" value="{{ data_inicio }}">
+                    </div>
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-calendar-check"></i>
+                            Data Fim
+                        </label>
+                        <input type="date" name="fim" class="form-input-modern" value="{{ data_fim }}">
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Estatísticas Gerais -->
+    {% if all_stats %}
+    <div class="resumo-card-modern">
+        <div class="resumo-header-modern">
+            <h3 class="resumo-title">
+                <i class="bi bi-graph-up"></i>
+                Resumo Geral
+            </h3>
+        </div>
+        <div class="resumo-body-modern">
+            <div class="resumo-table-wrapper">
+                <table class="resumo-table-modern">
+                    <thead>
+                        <tr>
+                            <th>Colaborador/Usuário</th>
+                            <th class="text-center">Horas Residuais</th>
+                            <th class="text-center">Saldo de Folgas</th>
+                            <th class="text-center">Folgas Usadas</th>
+                            <th class="text-center">Conversões</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in all_stats %}
+                        <tr class="resumo-row-modern">
+                            <td>
+                                <div class="resumo-colab-modern">
+                                    <div class="resumo-avatar-modern">
+                                        {{ item.display_name[:2].upper() if item.display_name else '?' }}
+                                    </div>
+                                    <div>
+                                        <strong>{{ item.display_name }}</strong>
+                                        {% if item.collaborator.role %}
+                                        <div class="resumo-role-modern">{{ item.collaborator.role }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge-horas-modern">{{ "%.2f"|format(item.balance.residual_hours) }}h</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge-success-modern">{{ item.balance.saldo_days }} dias</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge-warning-modern">{{ item.balance.assigned_sum }} dias</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge-info-modern">{{ item.balance.converted_sum }} dias</span>
+                            </td>
+                            <td class="text-center">
+                                <a href="{{ url_for('jornada.index', collaborator_id=item.collaborator.id) }}" class="btn-action-small btn-view-small" title="Ver detalhes">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Detalhes do Colaborador Selecionado -->
+    {% if selected_collaborator and stats %}
+    <div class="colab-details-card-modern">
+        <div class="colab-details-header-modern">
+            <div class="colab-details-info">
+                <div class="colab-details-avatar-modern">
+                    {{ (selected_collaborator.user.name if selected_collaborator.user else selected_collaborator.name)[:2].upper() }}
+                </div>
+                <div>
+                    <h2 class="colab-details-title">
+                        {{ selected_collaborator.user.name if selected_collaborator.user else selected_collaborator.name }}
+                    </h2>
+                    {% if selected_collaborator.role %}
+                    <div class="colab-details-role">{{ selected_collaborator.role }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% if current_user.nivel in ('admin', 'DEV') %}
+            <form method="POST" action="{{ url_for('jornada.converter_horas') }}" class="converter-form-modern">
+                <input type="hidden" name="collaborator_id" value="{{ selected_collaborator.id }}">
+                <button type="submit" class="btn-converter-modern">
+                    <i class="bi bi-arrow-repeat"></i>
+                    Converter Horas em Dias
+                </button>
+            </form>
+            {% endif %}
+        </div>
+        <div class="colab-details-body-modern">
+            <div class="stats-grid-jornada">
+                <div class="stat-card-jornada stat-primary">
+                    <div class="stat-icon-jornada">
+                        <i class="bi bi-clock"></i>
+                    </div>
+                    <div class="stat-content-jornada">
+                        <div class="stat-label-jornada">Horas Residuais</div>
+                        <div class="stat-value-jornada">{{ "%.2f"|format(stats.residual_hours) }}h</div>
+                    </div>
+                </div>
+                <div class="stat-card-jornada stat-success">
+                    <div class="stat-icon-jornada">
+                        <i class="bi bi-calendar-check"></i>
+                    </div>
+                    <div class="stat-content-jornada">
+                        <div class="stat-label-jornada">Saldo de Folgas</div>
+                        <div class="stat-value-jornada">{{ stats.saldo_days }} dias</div>
+                    </div>
+                </div>
+                <div class="stat-card-jornada stat-warning">
+                    <div class="stat-icon-jornada">
+                        <i class="bi bi-calendar-x"></i>
+                    </div>
+                    <div class="stat-content-jornada">
+                        <div class="stat-label-jornada">Folgas Usadas</div>
+                        <div class="stat-value-jornada">{{ stats.assigned_sum }} dias</div>
+                    </div>
+                </div>
+                <div class="stat-card-jornada stat-info">
+                    <div class="stat-icon-jornada">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </div>
+                    <div class="stat-content-jornada">
+                        <div class="stat-label-jornada">Conversões</div>
+                        <div class="stat-value-jornada">{{ stats.converted_sum }} dias</div>
+                    </div>
+                </div>
+            </div>
+            <div class="stats-secondary-grid-jornada">
+                <div class="stat-card-jornada stat-secondary">
+                    <div class="stat-icon-jornada stat-icon-secondary">
+                        <i class="bi bi-calculator"></i>
+                    </div>
+                    <div class="stat-content-jornada">
+                        <div class="stat-label-jornada">Total Bruto de Horas</div>
+                        <div class="stat-value-jornada">{{ "%.2f"|format(stats.total_bruto_hours) }}h</div>
+                    </div>
+                </div>
+                <div class="stat-card-jornada stat-secondary">
+                    <div class="stat-icon-jornada stat-icon-secondary">
+                        <i class="bi bi-calendar-plus"></i>
+                    </div>
+                    <div class="stat-content-jornada">
+                        <div class="stat-label-jornada">Dias Convertidos das Horas</div>
+                        <div class="stat-value-jornada">{{ stats.days_from_hours }} dias</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Registros -->
+    {% if records %}
+    <div class="registros-card-modern">
+        <div class="registros-header-modern">
+            <h3 class="registros-title">
+                <i class="bi bi-table"></i>
+                Registros
+                {% if selected_collaborator %}
+                - {{ selected_collaborator.name }}
+                {% endif %}
+            </h3>
+        </div>
+        <div class="registros-body-modern">
+            <div class="registros-table-wrapper">
+                <table class="registros-table-modern">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Tipo</th>
+                            <th>Valor</th>
+                            <th>Origem</th>
+                            <th>Observações</th>
+                            <th>Criado por</th>
+                            {% if current_user.nivel in ('admin', 'DEV') %}
+                            <th class="text-center">Ações</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                        <tr class="registro-row-modern">
+                            <td class="registro-date-modern">
+                                <i class="bi bi-calendar3"></i>
+                                {{ record.date.strftime('%d/%m/%Y') }}
+                            </td>
+                            <td>
+                                {% if record.record_type == 'horas' %}
+                                <span class="badge-tipo-modern badge-horas">Horas</span>
+                                {% elif record.record_type == 'folga_adicional' %}
+                                <span class="badge-tipo-modern badge-folga-adicional">Folga Adicional</span>
+                                {% elif record.record_type == 'folga_usada' %}
+                                <span class="badge-tipo-modern badge-folga-usada">Folga Usada</span>
+                                {% elif record.record_type == 'conversao' %}
+                                <span class="badge-tipo-modern badge-conversao">Conversão</span>
+                                {% endif %}
+                            </td>
+                            <td class="registro-value-modern">
+                                {% if record.record_type == 'horas' %}
+                                <strong>{{ "%.2f"|format(record.hours or 0) }}h</strong>
+                                {% elif record.record_type in ('folga_adicional', 'folga_usada') %}
+                                <strong>{{ record.days or 0 }} dia(s)</strong>
+                                {% elif record.record_type == 'conversao' %}
+                                <strong>R$ {{ "%.2f"|format(record.amount_paid or 0) }}</strong>
+                                {% endif %}
+                            </td>
+                            <td class="registro-origin-modern">{{ record.origin or '-' }}</td>
+                            <td class="registro-notes-modern">{{ record.notes or '-' }}</td>
+                            <td class="registro-created-by-modern">{{ record.created_by or '-' }}</td>
+                            {% if current_user.nivel in ('admin', 'DEV') %}
+                            <td class="text-center">
+                                <div class="registro-actions-modern">
+                                    <a href="{{ url_for('jornada.editar', id=record.id) }}" class="btn-action-small btn-edit-small" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('jornada.excluir', id=record.id) }}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir este registro?');">
+                                        <button type="submit" class="btn-action-small btn-delete-small" title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% elif selected_collaborator %}
+    <div class="empty-state-modern">
+        <div class="empty-icon-modern">
+            <i class="bi bi-inbox"></i>
+        </div>
+        <h3 class="empty-title-modern">Nenhum registro encontrado</h3>
+        <p class="empty-text-modern">Nenhum registro encontrado para este colaborador no período selecionado.</p>
+    </div>
+    {% else %}
+    <div class="empty-state-modern">
+        <div class="empty-icon-modern">
+            <i class="bi bi-people"></i>
+        </div>
+        <h3 class="empty-title-modern">Selecione um colaborador</h3>
+        <p class="empty-text-modern">Selecione um colaborador para ver os registros.</p>
+    </div>
+    {% endif %}
+
+    <!-- Férias e Atestados -->
+    {% if selected_collaborator and current_user.nivel in ('admin', 'DEV') %}
+    <div class="ferias-atestados-grid-modern">
+        <!-- Férias -->
+        <div class="ferias-card-modern">
+            <div class="ferias-header-modern">
+                <h3 class="ferias-title">
+                    <i class="bi bi-airplane"></i>
+                    Férias
+                </h3>
+            </div>
+            <div class="ferias-body-modern">
+                <form method="POST" action="{{ url_for('jornada.ferias_adicionar') }}" class="ferias-form-modern">
+                    <input type="hidden" name="collaborator_id" value="{{ selected_collaborator.id }}">
+                    <div class="form-row-modern">
+                        <div class="form-group-modern">
+                            <label class="form-label-modern">
+                                <i class="bi bi-calendar3"></i>
+                                Data Início <span class="required">*</span>
+                            </label>
+                            <input type="date" name="data_inicio" class="form-input-modern" required>
+                        </div>
+                        <div class="form-group-modern">
+                            <label class="form-label-modern">
+                                <i class="bi bi-calendar-check"></i>
+                                Data Fim <span class="required">*</span>
+                            </label>
+                            <input type="date" name="data_fim" class="form-input-modern" required>
+                        </div>
+                    </div>
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-chat-left-text"></i>
+                            Observação
+                        </label>
+                        <textarea name="observacao" class="form-textarea-modern" rows="2"></textarea>
+                    </div>
+                    <div class="form-actions-modern">
+                        <button type="submit" class="btn-save-modern">
+                            <i class="bi bi-plus-circle"></i>
+                            Adicionar Férias
+                        </button>
+                    </div>
+                </form>
+                
+                {% if ferias %}
+                <div class="ferias-table-wrapper">
+                    <table class="ferias-table-modern">
+                        <thead>
+                            <tr>
+                                <th>Início</th>
+                                <th>Fim</th>
+                                <th class="text-center">Dias</th>
+                                <th>Observação</th>
+                                <th class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for f in ferias %}
+                            <tr>
+                                <td>{{ f.data_inicio.strftime('%d/%m/%Y') }}</td>
+                                <td>{{ f.data_fim.strftime('%d/%m/%Y') }}</td>
+                                <td class="text-center">
+                                    <span class="badge-dias-modern">{{ (f.data_fim - f.data_inicio).days + 1 }}</span>
+                                </td>
+                                <td>{{ f.observacao or '-' }}</td>
+                                <td class="text-center">
+                                    <form method="POST" action="{{ url_for('jornada.ferias_excluir', id=f.id) }}" style="display: inline;" onsubmit="return confirm('Excluir férias?');">
+                                        <button type="submit" class="btn-action-small btn-delete-small" title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state-small-modern">
+                    <i class="bi bi-calendar-x"></i>
+                    <p>Nenhuma férias registrada</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Atestados Médicos -->
+        <div class="atestados-card-modern">
+            <div class="atestados-header-modern">
+                <h3 class="atestados-title">
+                    <i class="bi bi-file-medical"></i>
+                    Atestados Médicos
+                </h3>
+            </div>
+            <div class="atestados-body-modern">
+                <form method="POST" action="{{ url_for('jornada.atestado_adicionar') }}" enctype="multipart/form-data" class="atestados-form-modern">
+                    <input type="hidden" name="collaborator_id" value="{{ selected_collaborator.id }}">
+                    <div class="form-row-modern">
+                        <div class="form-group-modern">
+                            <label class="form-label-modern">
+                                <i class="bi bi-calendar3"></i>
+                                Data Início <span class="required">*</span>
+                            </label>
+                            <input type="date" name="data_inicio" class="form-input-modern" required>
+                        </div>
+                        <div class="form-group-modern">
+                            <label class="form-label-modern">
+                                <i class="bi bi-calendar-check"></i>
+                                Data Fim <span class="required">*</span>
+                            </label>
+                            <input type="date" name="data_fim" class="form-input-modern" required>
+                        </div>
+                    </div>
+                    <div class="form-row-modern">
+                        <div class="form-group-modern">
+                            <label class="form-label-modern">
+                                <i class="bi bi-file-text"></i>
+                                CID
+                            </label>
+                            <input type="text" name="cid" class="form-input-modern" placeholder="Código CID">
+                        </div>
+                        <div class="form-group-modern">
+                            <label class="form-label-modern">
+                                <i class="bi bi-person-badge"></i>
+                                Médico
+                            </label>
+                            <input type="text" name="medico" class="form-input-modern" placeholder="Nome do médico">
+                        </div>
+                    </div>
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-chat-left-text"></i>
+                            Motivo
+                        </label>
+                        <textarea name="motivo" class="form-textarea-modern" rows="2"></textarea>
+                    </div>
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-image"></i>
+                            Foto do Atestado
+                        </label>
+                        <input type="file" name="foto_atestado" class="form-input-modern" accept="image/*">
+                        <small class="form-hint-modern">PNG, JPG, JPEG, GIF (máx. 10MB)</small>
+                    </div>
+                    <div class="form-actions-modern">
+                        <button type="submit" class="btn-save-modern">
+                            <i class="bi bi-plus-circle"></i>
+                            Adicionar Atestado
+                        </button>
+                    </div>
+                </form>
+                
+                {% if atestados %}
+                <div class="atestados-table-wrapper">
+                    <table class="atestados-table-modern">
+                        <thead>
+                            <tr>
+                                <th>Início</th>
+                                <th>Fim</th>
+                                <th class="text-center">Dias</th>
+                                <th>CID</th>
+                                <th>Médico</th>
+                                <th class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for a in atestados %}
+                            <tr>
+                                <td>{{ a.data_inicio.strftime('%d/%m/%Y') }}</td>
+                                <td>{{ a.data_fim.strftime('%d/%m/%Y') }}</td>
+                                <td class="text-center">
+                                    <span class="badge-dias-modern">{{ a.dias or ((a.data_fim - a.data_inicio).days + 1) }}</span>
+                                </td>
+                                <td>{{ a.cid or '-' }}</td>
+                                <td>{{ a.medico or '-' }}</td>
+                                <td class="text-center">
+                                    <div class="atestado-actions-modern">
+                                        {% if a.foto_atestado %}
+                                        <a href="{{ url_for('static', filename='uploads/atestados/' + a.foto_atestado) }}" target="_blank" class="btn-action-small btn-view-small" title="Ver foto">
+                                            <i class="bi bi-image"></i>
+                                        </a>
+                                        {% endif %}
+                                        <form method="POST" action="{{ url_for('jornada.atestado_excluir', id=a.id) }}" style="display: inline;" onsubmit="return confirm('Excluir atestado?');">
+                                            <button type="submit" class="btn-action-small btn-delete-small" title="Excluir">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state-small-modern">
+                    <i class="bi bi-file-medical"></i>
+                    <p>Nenhum atestado registrado</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+/* Container */
+.jornada-container {
+    padding: 2rem;
+    max-width: 1600px;
+    margin: 0 auto;
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Hero Header */
+.jornada-hero {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 20px;
+    padding: 3rem 2.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 40px rgba(16, 185, 129, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.jornada-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: rotate 20s linear infinite;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.jornada-hero-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.jornada-title {
+    font-size: 3rem;
+    font-weight: 800;
+    color: white;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.jornada-title-icon {
+    font-size: 3.5rem;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.jornada-subtitle {
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-top: 0.5rem;
+}
+
+.jornada-hero-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.75rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.btn-action-primary {
+    background: white;
+    color: #10b981;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.btn-action-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+.btn-action-secondary {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.btn-action-secondary:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+/* Filtros */
+.filtros-card-modern {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+
+.filtros-header-modern {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.filtros-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.filtros-title i {
+    color: #667eea;
+}
+
+.filtros-grid-modern {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.form-group-modern {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-label-modern {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-label-modern i {
+    color: #667eea;
+}
+
+.required {
+    color: #ef4444;
+}
+
+.form-input-modern,
+.form-textarea-modern {
+    padding: 0.75rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: white;
+    font-family: inherit;
+}
+
+.form-textarea-modern {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-input-modern:focus,
+.form-textarea-modern:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-hint-modern {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+/* Resumo Geral */
+.resumo-card-modern {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+
+.resumo-header-modern {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.resumo-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.resumo-title i {
+    color: #667eea;
+}
+
+.resumo-table-wrapper {
+    overflow-x: auto;
+}
+
+.resumo-table-modern {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.resumo-table-modern th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+.resumo-row-modern {
+    border-bottom: 1px solid #f3f4f6;
+    transition: background 0.2s ease;
+}
+
+.resumo-row-modern:hover {
+    background: #f9fafb;
+}
+
+.resumo-table-modern td {
+    padding: 1rem;
+    color: #1f2937;
+}
+
+.resumo-colab-modern {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.resumo-avatar-modern {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.resumo-role-modern {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+}
+
+.badge-horas-modern {
+    display: inline-flex;
+    padding: 0.375rem 0.75rem;
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.badge-success-modern {
+    display: inline-flex;
+    padding: 0.375rem 0.75rem;
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.badge-warning-modern {
+    display: inline-flex;
+    padding: 0.375rem 0.75rem;
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.badge-info-modern {
+    display: inline-flex;
+    padding: 0.375rem 0.75rem;
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+/* Detalhes do Colaborador */
+.colab-details-card-modern {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+
+.colab-details-header-modern {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid #f3f4f6;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.colab-details-info {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.colab-details-avatar-modern {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.colab-details-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 0.25rem 0;
+}
+
+.colab-details-role {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.converter-form-modern {
+    display: inline-block;
+}
+
+.btn-converter-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+}
+
+.btn-converter-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.stats-grid-jornada {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.stats-secondary-grid-jornada {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.stat-card-jornada {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0,0,0,0.05);
+    border-left: 4px solid var(--stat-color);
+}
+
+.stat-card-jornada:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+}
+
+.stat-primary { --stat-color: #667eea; }
+.stat-success { --stat-color: #10b981; }
+.stat-warning { --stat-color: #f59e0b; }
+.stat-info { --stat-color: #3b82f6; }
+.stat-secondary { --stat-color: #6b7280; }
+
+.stat-icon-jornada {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    color: white;
+    background: linear-gradient(135deg, var(--stat-color), var(--stat-color-light, var(--stat-color)));
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+
+.stat-icon-secondary {
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+}
+
+.stat-content-jornada {
+    position: relative;
+    z-index: 1;
+}
+
+.stat-label-jornada {
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-value-jornada {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1.2;
+}
+
+/* Registros */
+.registros-card-modern {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+
+.registros-header-modern {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.registros-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.registros-title i {
+    color: #667eea;
+}
+
+.registros-table-wrapper {
+    overflow-x: auto;
+}
+
+.registros-table-modern {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.registros-table-modern th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+.registro-row-modern {
+    border-bottom: 1px solid #f3f4f6;
+    transition: background 0.2s ease;
+}
+
+.registro-row-modern:hover {
+    background: #f9fafb;
+}
+
+.registros-table-modern td {
+    padding: 1rem;
+    color: #1f2937;
+}
+
+.registro-date-modern {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.badge-tipo-modern {
+    display: inline-flex;
+    padding: 0.375rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-horas {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+}
+
+.badge-folga-adicional {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+}
+
+.badge-folga-usada {
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+}
+
+.badge-conversao {
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+}
+
+.registro-value-modern {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.registro-origin-modern,
+.registro-notes-modern,
+.registro-created-by-modern {
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.registro-actions-modern {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+/* Férias e Atestados */
+.ferias-atestados-grid-modern {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.ferias-card-modern,
+.atestados-card-modern {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.ferias-card-modern {
+    border-left: 4px solid #f59e0b;
+}
+
+.atestados-card-modern {
+    border-left: 4px solid #ef4444;
+}
+
+.ferias-header-modern,
+.atestados-header-modern {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.ferias-title,
+.atestados-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.ferias-title i {
+    color: #f59e0b;
+}
+
+.atestados-title i {
+    color: #ef4444;
+}
+
+.ferias-form-modern,
+.atestados-form-modern {
+    margin-bottom: 1.5rem;
+}
+
+.form-row-modern {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.form-actions-modern {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
+.btn-save-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+}
+
+.btn-save-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.ferias-table-wrapper,
+.atestados-table-wrapper {
+    overflow-x: auto;
+}
+
+.ferias-table-modern,
+.atestados-table-modern {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ferias-table-modern th,
+.atestados-table-modern th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+.ferias-table-modern td,
+.atestados-table-modern td {
+    padding: 1rem;
+    color: #1f2937;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.badge-dias-modern {
+    display: inline-flex;
+    padding: 0.375rem 0.75rem;
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.atestado-actions-modern {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.empty-state-small-modern {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #6b7280;
+}
+
+.empty-state-small-modern i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state-small-modern p {
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+/* Empty State */
+.empty-state-modern {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+.empty-icon-modern {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: #667eea;
+}
+
+.empty-title-modern {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 0.5rem 0;
+}
+
+.empty-text-modern {
+    font-size: 1rem;
+    color: #6b7280;
+    margin: 0;
+}
+
+/* Action Buttons */
+.btn-action-small {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f3f4f6;
+    color: #374151;
+    border: none;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.btn-action-small:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.btn-view-small:hover {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-edit-small:hover {
+    background: #f59e0b;
+    color: white;
+}
+
+.btn-delete-small:hover {
+    background: #ef4444;
+    color: white;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .filtros-grid-modern,
+    .form-row-modern {
+        grid-template-columns: 1fr;
+    }
+    
+    .ferias-atestados-grid-modern {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-grid-jornada,
+    .stats-secondary-grid-jornada {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .jornada-container {
+        padding: 1rem;
+    }
+
+    .jornada-hero {
+        padding: 2rem 1.5rem;
+    }
+
+    .jornada-title {
+        font-size: 2rem;
+    }
+
+    .jornada-hero-actions {
+        width: 100%;
+    }
+
+    .jornada-hero-actions .btn-action {
+        flex: 1;
+    }
+
+    .colab-details-header-modern {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .resumo-table-wrapper,
+    .registros-table-wrapper,
+    .ferias-table-wrapper,
+    .atestados-table-wrapper {
+        overflow-x: scroll;
+    }
+}
+
+/* Dark Mode */
+[data-theme="dark"] .filtros-card-modern,
+[data-theme="dark"] .resumo-card-modern,
+[data-theme="dark"] .colab-details-card-modern,
+[data-theme="dark"] .registros-card-modern,
+[data-theme="dark"] .ferias-card-modern,
+[data-theme="dark"] .atestados-card-modern,
+[data-theme="dark"] .stat-card-jornada,
+[data-theme="dark"] .empty-state-modern {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+[data-theme="dark"] .jornada-title,
+[data-theme="dark"] .colab-details-title,
+[data-theme="dark"] .resumo-title,
+[data-theme="dark"] .registros-title,
+[data-theme="dark"] .ferias-title,
+[data-theme="dark"] .atestados-title,
+[data-theme="dark"] .stat-value-jornada,
+[data-theme="dark"] .empty-title-modern {
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .form-label-modern,
+[data-theme="dark"] .resumo-role-modern,
+[data-theme="dark"] .colab-details-role,
+[data-theme="dark"] .stat-label-jornada,
+[data-theme="dark"] .empty-text-modern {
+    color: #9ca3af;
+}
+
+[data-theme="dark"] .form-input-modern,
+[data-theme="dark"] .form-textarea-modern {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .resumo-table-modern th,
+[data-theme="dark"] .registros-table-modern th,
+[data-theme="dark"] .ferias-table-modern th,
+[data-theme="dark"] .atestados-table-modern th {
+    background: #374151;
+}
+
+[data-theme="dark"] .resumo-row-modern:hover,
+[data-theme="dark"] .registro-row-modern:hover {
+    background: #374151;
+}
+</style>
+{% endblock %}

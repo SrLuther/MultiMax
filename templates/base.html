@@ -56,26 +56,6 @@
                     <i class="bi bi-basket mm-nav-icon"></i>
                     <span class="mm-nav-text">Carnes</span>
                 </a>
-                <a href="{{ url_for('cortes.index') }}" class="mm-nav-item {% if 'cortes' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-scissors mm-nav-icon"></i>
-                    <span class="mm-nav-text">Cortes</span>
-                </a>
-                <a href="{{ url_for('lotes.index') }}" class="mm-nav-item {% if 'lotes' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-tags mm-nav-icon"></i>
-                    <span class="mm-nav-text">Lotes</span>
-                </a>
-                <a href="{{ url_for('maturacao.index') }}" class="mm-nav-item {% if 'maturacao' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-hourglass-split mm-nav-icon"></i>
-                    <span class="mm-nav-text">Maturação</span>
-                </a>
-                <a href="{{ url_for('camara_fria.index') }}" class="mm-nav-item {% if 'camara_fria' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-snow mm-nav-icon"></i>
-                    <span class="mm-nav-text">Câmara Fria</span>
-                </a>
-                <a href="{{ url_for('rendimento.index') }}" class="mm-nav-item {% if 'rendimento' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-graph-up mm-nav-icon"></i>
-                    <span class="mm-nav-text">Rendimento</span>
-                </a>
                 <a href="{{ url_for('receitas.index') }}" class="mm-nav-item {% if 'receitas' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-journal-text mm-nav-icon"></i>
                     <span class="mm-nav-text">Receitas</span>
@@ -88,70 +68,17 @@
                     <i class="bi bi-clock-history mm-nav-icon"></i>
                     <span class="mm-nav-text">Jornada</span>
                 </a>
-                <a href="{{ url_for('temperatura.index') }}" class="mm-nav-item {% if 'temperatura' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-thermometer-half mm-nav-icon"></i>
-                    <span class="mm-nav-text">Temperatura</span>
-                </a>
-                <a href="{{ url_for('validade.index') }}" class="mm-nav-item {% if 'validade' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-calendar-x mm-nav-icon"></i>
-                    <span class="mm-nav-text">Validade</span>
-                </a>
-                <a href="{{ url_for('perdas.index') }}" class="mm-nav-item {% if 'perdas' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-trash mm-nav-icon"></i>
-                    <span class="mm-nav-text">Perdas</span>
-                </a>
             </div>
             
             <div class="mm-nav-section">
                 <div class="mm-nav-section-title">Gestão</div>
-                <a href="{{ url_for('pedidos.index') }}" class="mm-nav-item {% if 'pedidos' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-clipboard-check mm-nav-icon"></i>
-                    <span class="mm-nav-text">Pedidos</span>
-                </a>
-                <a href="{{ url_for('fornecedores.index') }}" class="mm-nav-item {% if 'fornecedores' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-truck mm-nav-icon"></i>
-                    <span class="mm-nav-text">Fornecedores</span>
-                </a>
                 <a href="{{ url_for('relatorios.index') }}" class="mm-nav-item {% if 'relatorios' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-file-earmark-bar-graph mm-nav-icon"></i>
                     <span class="mm-nav-text">Relatórios</span>
                 </a>
-                <a href="{{ url_for('previsao.index') }}" class="mm-nav-item {% if 'previsao' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-graph-up-arrow mm-nav-icon"></i>
-                    <span class="mm-nav-text">Previsão</span>
-                </a>
-                <a href="{{ url_for('precificacao.index') }}" class="mm-nav-item {% if 'precificacao' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-currency-dollar mm-nav-icon"></i>
-                    <span class="mm-nav-text">Precificação</span>
-                </a>
-                <a href="{{ url_for('aproveitamento.index') }}" class="mm-nav-item {% if 'aproveitamento' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-lightbulb mm-nav-icon"></i>
-                    <span class="mm-nav-text">Aproveitamento</span>
-                </a>
-                <a href="{{ url_for('certificados.sanitarios') }}" class="mm-nav-item {% if 'certificados' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-file-earmark-check mm-nav-icon"></i>
-                    <span class="mm-nav-text">Certificados</span>
-                </a>
-                <a href="{{ url_for('fornecedores_avaliacao.index') }}" class="mm-nav-item {% if 'fornecedores_avaliacao' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-star mm-nav-icon"></i>
-                    <span class="mm-nav-text">Avaliar Fornecedores</span>
-                </a>
-                <a href="{{ url_for('integracao_temp.alertas') }}" class="mm-nav-item {% if 'integracao_temp' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-exclamation-triangle mm-nav-icon"></i>
-                    <span class="mm-nav-text">Alertas Temp.</span>
-                </a>
             </div>
             {% endif %}
             
-            {% if current_user.is_authenticated and current_user.nivel in ('admin', 'DEV') %}
-            <div class="mm-nav-section">
-                <div class="mm-nav-section-title">Análises</div>
-                <a href="{{ url_for('dashboard.index') }}" class="mm-nav-item {% if 'dashboard' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-speedometer2 mm-nav-icon"></i>
-                    <span class="mm-nav-text">Dashboard Executivo</span>
-                </a>
-            </div>
-            {% endif %}
             
             {% if current_user.is_authenticated and current_user.nivel in ('admin', 'DEV') %}
             <div class="mm-nav-section">
@@ -174,10 +101,6 @@
         
         <div class="mm-sidebar-footer">
             {% if current_user.is_authenticated %}
-            <a href="{{ url_for('ajuda.ajuda') }}" class="mm-nav-item {% if 'ajuda' in request.endpoint %}active{% endif %}">
-                <i class="bi bi-question-circle mm-nav-icon"></i>
-                <span class="mm-nav-text">Ajuda</span>
-            </a>
             <a href="{{ url_for('usuarios.perfil') }}" class="mm-nav-item">
                 <i class="bi bi-person-circle mm-nav-icon"></i>
                 <span class="mm-nav-text">{{ current_user.nome or current_user.username }}</span>
@@ -323,9 +246,19 @@
             const overlay = document.getElementById('sidebarOverlay');
             
             if (window.innerWidth <= 768) {
-                sidebar.classList.toggle('open');
+                // Mobile: toggle sidebar e overlay
+                sidebar.classList.toggle('active');
+                sidebar.classList.toggle('mm-sidebar-open');
                 overlay.classList.toggle('active');
+                
+                // Prevenir scroll do body quando sidebar está aberto
+                if (sidebar.classList.contains('active')) {
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    document.body.style.overflow = '';
+                }
             } else {
+                // Desktop: apenas collapse
                 sidebar.classList.toggle('collapsed');
             }
         }
@@ -333,9 +266,29 @@
         function closeSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
-            sidebar.classList.remove('open');
+            sidebar.classList.remove('active', 'mm-sidebar-open');
             overlay.classList.remove('active');
+            document.body.style.overflow = '';
         }
+        
+        // Fechar sidebar ao clicar em um link (mobile)
+        if (window.innerWidth <= 768) {
+            document.addEventListener('DOMContentLoaded', function() {
+                const navLinks = document.querySelectorAll('.mm-nav-item');
+                navLinks.forEach(link => {
+                    link.addEventListener('click', function() {
+                        setTimeout(closeSidebar, 300); // Delay para animação
+                    });
+                });
+            });
+        }
+        
+        // Fechar sidebar ao redimensionar para desktop
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                closeSidebar();
+            }
+        });
         
         function toggleTheme() {
             const html = document.documentElement;

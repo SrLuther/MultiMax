@@ -1,480 +1,595 @@
 {% extends 'base.html' %}
 {% block title %}Gestão — MultiMax{% endblock %}
 
-{% block breadcrumb %}
-<span class="mm-breadcrumb-separator">/</span>
-<span>Gestão</span>
-{% endblock %}
-
 {% block content %}
-<div class="mm-page-header mm-flex mm-items-center mm-justify-between mm-mb-6">
-    <div>
-        <h1 class="mm-page-title">Gestão de Colaboradores</h1>
-        <p class="mm-text-muted">Gerencie usuários, cargos, colaboradores e banco de horas</p>
-    </div>
-</div>
-
-<div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
-    <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--mm-info);">
-            <i class="bi bi-people"></i>
-        </div>
-        <div class="mm-kpi-label">Usuários</div>
-        <div class="mm-kpi-value" style="color: var(--mm-info);">{{ users_page|length if users_page else 0 }}</div>
-    </div>
-    
-    <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-success);">
-            <i class="bi bi-person-badge"></i>
-        </div>
-        <div class="mm-kpi-label">Colaboradores</div>
-        <div class="mm-kpi-value mm-text-success">{{ colaboradores|length if colaboradores else 0 }}</div>
-    </div>
-    
-    <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning);">
-            <i class="bi bi-award"></i>
-        </div>
-        <div class="mm-kpi-label">Cargos</div>
-        <div class="mm-kpi-value" style="color: var(--mm-warning);">{{ roles|length if roles else 0 }}</div>
-    </div>
-    
-    <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(var(--mm-primary-rgb), 0.15); color: var(--mm-primary);">
-            <i class="bi bi-check-circle"></i>
-        </div>
-        <div class="mm-kpi-label">Ativos</div>
-        <div class="mm-kpi-value mm-text-primary">{{ colaboradores|selectattr('active')|list|length if colaboradores else 0 }}</div>
-    </div>
-</div>
-
-
-
-<div class="mm-card mm-mb-6">
-    <div class="mm-card-header">
-        <h3 class="mm-card-title">
-            <i class="bi bi-activity mm-text-primary"></i>
-            Histórico de Modificações
-        </h3>
-    </div>
-    <div class="mm-card-body">
-        <div class="mm-table-wrapper">
-            <table class="mm-table">
-                <thead>
-                    <tr>
-                        <th style="width: 12rem">Data/Hora</th>
-                        <th style="width: 14rem">Usuário</th>
-                        <th style="width: 10rem">Origem</th>
-                        <th style="width: 10rem">Evento</th>
-                        <th>Detalhes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for l in logs_page %}
-                    <tr>
-                        <td>{{ l.data.strftime('%d/%m/%Y %H:%M') }}</td>
-                        <td>{{ l.usuario or '-' }}</td>
-                        <td>{{ l.origem }}</td>
-                        <td>{{ l.evento }}</td>
-                        <td>{{ l.detalhes or '-' }}</td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="5" class="mm-empty-cell">
-                            <div class="mm-empty-inline">
-                                <i class="bi bi-card-list"></i>
-                                <span>Sem modificações registradas</span>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        <div class="mm-pagination">
-            <span class="mm-pagination-info">Página {{ l_page }} de {{ l_total_pages }}</span>
-            <div class="mm-pagination-btns">
-                <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('usuarios.gestao') }}?l_page={{ l_page-1 if l_page>1 else 1 }}&u_page={{ u_page }}&q={{ q }}&view={{ view }}">
-                    <i class="bi bi-chevron-left"></i>
-                </a>
-                <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('usuarios.gestao') }}?l_page={{ l_page+1 if l_page<l_total_pages else l_total_pages }}&u_page={{ u_page }}&q={{ q }}&view={{ view }}">
-                    <i class="bi bi-chevron-right"></i>
-                </a>
+<div class="gestao-container">
+    <!-- Hero Header -->
+    <div class="gestao-hero">
+        <div class="gestao-hero-content">
+            <div>
+                <h1 class="gestao-title">
+                    <i class="bi bi-people gestao-title-icon"></i>
+                    Gestão de Colaboradores
+                </h1>
+                <p class="gestao-subtitle">Gerencie colaboradores, cargos e banco de horas</p>
             </div>
         </div>
     </div>
-</div>
 
-<div class="mm-card mm-mb-6">
-    <div class="mm-card-header">
-        <h3 class="mm-card-title">
-            <i class="bi bi-calculator mm-text-primary"></i>
-            Resumo de Saldo por Colaborador
-        </h3>
-        <form method="get" action="{{ url_for('usuarios.gestao') }}" class="mm-flex mm-gap-2 mm-items-center">
-            <input type="hidden" name="u_page" value="{{ u_page }}">
-            <input type="hidden" name="l_page" value="{{ l_page }}">
-            <input type="hidden" name="view" value="">
-            <select name="saldo_collaborator_id" class="mm-input mm-select" style="min-width: 220px;">
-                <option value="">— selecionar colaborador —</option>
-                {% for c in colaboradores %}
-                <option value="{{ c.id }}" {% if saldo_collab and saldo_collab.id == c.id %}selected{% endif %}>{{ c.name }}</option>
-                {% endfor %}
-            </select>
-            <input type="date" name="saldo_start" class="mm-input" value="{{ saldo_start and saldo_start.strftime('%Y-%m-%d') or '' }}">
-            <input type="date" name="saldo_end" class="mm-input" value="{{ saldo_end and saldo_end.strftime('%Y-%m-%d') or '' }}">
-            <button type="submit" class="mm-btn mm-btn-outline">
-                <i class="bi bi-search"></i>
-                Buscar
-            </button>
-        </form>
-    </div>
-    <div class="mm-card-body">
-        {% if saldo_collab %}
-        <div class="mm-saldo-info">
-            <div class="mm-saldo-name">{{ saldo_collab.name }}</div>
-            <div class="mm-saldo-badges">
-                <span class="mm-badge mm-badge-primary">
-                    <i class="bi bi-calendar-day"></i>
-                    Dias de folga: {{ saldo_days }}
-                </span>
-                {% set hrs_cls = 'mm-badge' %}
-                {% if saldo_hours > 0 %}{% set hrs_cls = 'mm-badge mm-badge-success' %}{% elif saldo_hours < 0 %}{% set hrs_cls = 'mm-badge mm-badge-danger' %}{% endif %}
-                <span class="{{ hrs_cls }}">
-                    <i class="bi bi-clock"></i>
-                    Horas (residual): {{ '%.2f'|format(saldo_hours or 0.0) }}h
-                </span>
+    <!-- KPIs Cards -->
+    <div class="gestao-kpis-grid">
+        <div class="gestao-kpi-card gestao-kpi-success">
+            <div class="gestao-kpi-icon">
+                <i class="bi bi-people"></i>
             </div>
-            <div class="mm-saldo-rule">
-                <i class="bi bi-info-circle"></i>
-                Regra: a cada 8h acumuladas vira +1 dia e as horas são reiniciadas.
+            <div class="gestao-kpi-content">
+                <div class="gestao-kpi-label">Colaboradores/Usuários</div>
+                <div class="gestao-kpi-value">{{ colaboradores|length if colaboradores else 0 }}</div>
             </div>
+            <div class="gestao-kpi-decoration"></div>
         </div>
-        <div class="mm-table-wrapper mm-mt-4">
-            <table class="mm-table">
-                <thead>
-                    <tr>
-                        <th>Tipo</th>
-                        <th>Data</th>
-                        <th style="text-align: center;">Valor</th>
-                        <th>Motivo</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for it in saldo_items %}
-                    <tr>
-                        <td>
-                            {% if it.tipo == 'horas' %}
-                            <span class="mm-badge mm-badge-info">Horas</span>
-                            {% elif it.tipo == 'credito' %}
-                            <span class="mm-badge mm-badge-success">Crédito</span>
-                            {% else %}
-                            <span class="mm-badge mm-badge-danger">Uso</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ it.date.strftime('%d/%m/%Y') }}</td>
-                        <td style="text-align: center;">
-                            {% if it.unit == 'h' %}
-                            {{ '%.2f'|format(it.amount) }}h
-                            {% else %}
-                            {% if it.amount >= 0 %}
-                            <span class="mm-badge mm-badge-success">+{{ it.amount }}</span>
-                            {% else %}
-                            <span class="mm-badge mm-badge-danger">{{ it.amount }}</span>
-                            {% endif %}
-                            {% endif %}
-                        </td>
-                        <td>{{ it.motivo or '-' }}</td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="4" class="mm-empty-cell">
-                            <div class="mm-empty-inline">
-                                <i class="bi bi-list"></i>
-                                <span>Nenhum registro no período selecionado</span>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        
+        <div class="gestao-kpi-card gestao-kpi-warning">
+            <div class="gestao-kpi-icon">
+                <i class="bi bi-award"></i>
+            </div>
+            <div class="gestao-kpi-content">
+                <div class="gestao-kpi-label">Cargos</div>
+                <div class="gestao-kpi-value">{{ roles|length if roles else 0 }}</div>
+            </div>
+            <div class="gestao-kpi-decoration"></div>
         </div>
-        {% else %}
-        <div class="mm-empty-inline">
-            <i class="bi bi-person-circle"></i>
-            <span>Selecione um colaborador para ver o saldo.</span>
+        
+        <div class="gestao-kpi-card gestao-kpi-primary">
+            <div class="gestao-kpi-icon">
+                <i class="bi bi-check-circle"></i>
+            </div>
+            <div class="gestao-kpi-content">
+                <div class="gestao-kpi-label">Ativos</div>
+                <div class="gestao-kpi-value">{{ colaboradores|selectattr('active')|list|length if colaboradores else 0 }}</div>
+            </div>
+            <div class="gestao-kpi-decoration"></div>
         </div>
-        {% endif %}
     </div>
-</div>
 
-{% if not view or view == 'usuarios' %}
-<div class="mm-card mm-mb-6" id="gerenciar-usuarios">
-    <div class="mm-card-header">
-        <h3 class="mm-card-title">
-            <i class="bi bi-people mm-text-primary"></i>
-            Gerenciar Usuários
-        </h3>
-        <div class="mm-flex mm-gap-2 mm-items-center" style="flex-wrap: wrap;">
-            <form method="get" action="{{ url_for('usuarios.gestao') }}" class="mm-flex mm-gap-2">
-                <input type="hidden" name="u_page" value="1">
+    <!-- Histórico de Modificações -->
+    <div class="gestao-card-modern">
+        <div class="gestao-card-header-modern">
+            <h3 class="gestao-card-title">
+                <i class="bi bi-activity"></i>
+                Histórico de Modificações
+            </h3>
+        </div>
+        <div class="gestao-card-body-modern">
+            <div class="gestao-table-wrapper">
+                <table class="gestao-table-modern">
+                    <thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Usuário</th>
+                            <th>Origem</th>
+                            <th>Evento</th>
+                            <th>Detalhes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for l in logs_page %}
+                        <tr class="gestao-table-row">
+                            <td class="gestao-table-date">
+                                <i class="bi bi-calendar3"></i>
+                                {{ l.data.strftime('%d/%m/%Y %H:%M') }}
+                            </td>
+                            <td>{{ l.usuario or '-' }}</td>
+                            <td>
+                                <span class="gestao-badge gestao-badge-info">{{ l.origem }}</span>
+                            </td>
+                            <td>
+                                <span class="gestao-badge gestao-badge-primary">{{ l.evento }}</span>
+                            </td>
+                            <td class="gestao-table-details">{{ l.detalhes or '-' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="gestao-empty-cell">
+                                <div class="gestao-empty-state">
+                                    <i class="bi bi-card-list"></i>
+                                    <span>Sem modificações registradas</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="gestao-pagination-modern">
+                <span class="gestao-pagination-info">Página {{ l_page }} de {{ l_total_pages }}</span>
+                <div class="gestao-pagination-btns">
+                    <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?l_page={{ l_page-1 if l_page>1 else 1 }}&u_page={{ u_page }}&q={{ q }}&view={{ view }}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                    <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?l_page={{ l_page+1 if l_page<l_total_pages else l_total_pages }}&u_page={{ u_page }}&q={{ q }}&view={{ view }}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumo de Saldo -->
+    <div class="gestao-card-modern">
+        <div class="gestao-card-header-modern">
+            <h3 class="gestao-card-title">
+                <i class="bi bi-calculator"></i>
+                Resumo de Saldo por Colaborador
+            </h3>
+            <form method="get" action="{{ url_for('usuarios.gestao') }}" class="gestao-saldo-filters">
+                <input type="hidden" name="u_page" value="{{ u_page }}">
                 <input type="hidden" name="l_page" value="{{ l_page }}">
-                <input type="text" name="q" class="mm-input" placeholder="Buscar por nome" value="{{ q }}" style="width: 180px;">
-                <button type="submit" class="mm-btn mm-btn-outline mm-btn-sm">
+                <input type="hidden" name="view" value="">
+                <select name="saldo_collaborator_id" class="gestao-select-modern">
+                    <option value="">— selecionar colaborador —</option>
+                    {% for c in colaboradores %}
+                    <option value="{{ c.id }}" {% if saldo_collab and saldo_collab.id == c.id %}selected{% endif %}>{{ c.user.name if c.user else c.name }}</option>
+                    {% endfor %}
+                </select>
+                <input type="date" name="saldo_start" class="gestao-input-modern" value="{{ saldo_start and saldo_start.strftime('%Y-%m-%d') or '' }}">
+                <input type="date" name="saldo_end" class="gestao-input-modern" value="{{ saldo_end and saldo_end.strftime('%Y-%m-%d') or '' }}">
+                <button type="submit" class="gestao-btn-modern gestao-btn-primary">
                     <i class="bi bi-search"></i>
+                    Buscar
                 </button>
             </form>
-            <button class="mm-btn mm-btn-primary mm-btn-sm" data-bs-toggle="modal" data-bs-target="#modalNovoUsuario">
-                <i class="bi bi-plus-lg"></i>
-                Novo Usuário
-            </button>
-            <button class="mm-btn mm-btn-outline mm-btn-sm" data-bs-toggle="modal" data-bs-target="#modalNovoColab">
-                <i class="bi bi-person-plus"></i>
-                Novo Colaborador
-            </button>
         </div>
-    </div>
-    <div class="mm-card-body">
-        <div class="mm-table-wrapper">
-            <table class="mm-table">
-                <thead>
-                    <tr>
-                        <th>Login</th>
-                        <th>Nome</th>
-                        <th>Nível</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for u in users_page %}
-                    <tr>
-                        <td><strong>{{ u.username }}</strong></td>
-                        <td>{{ u.name }}</td>
-                        <td>
-                            {% if u.nivel == 'admin' %}
-                            <span class="mm-badge mm-badge-primary">Gerente</span>
-                            {% elif u.nivel == 'operador' %}
-                            <span class="mm-badge mm-badge-info">Operador</span>
-                            {% else %}
-                            <span class="mm-badge">Visualizador</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="mm-actions-group">
-                                <form method="post" action="{{ url_for('usuarios.update_level', user_id=u.id) }}" class="mm-inline-form mm-flex mm-gap-2 mm-items-center">
-                                    <select name="nivel" class="mm-input mm-select" style="width: 120px;">
-                                        <option value="visualizador" {% if u.nivel == 'visualizador' %}selected{% endif %}>Visualizador</option>
-                                        <option value="operador" {% if u.nivel == 'operador' %}selected{% endif %}>Operador</option>
-                                        <option value="admin" {% if u.nivel == 'admin' %}selected{% endif %}>Gerente</option>
-                                    </select>
-                                    <button type="submit" class="mm-btn mm-btn-primary mm-btn-sm">Atualizar</button>
-                                </form>
-                                <form method="post" action="{{ url_for('usuarios.gestao_usuarios_associar') }}" class="mm-inline-form mm-flex mm-gap-2 mm-items-center">
-                                    <input type="hidden" name="user_id" value="{{ u.id }}">
-                                    <select name="collaborator_id" class="mm-input mm-select" style="width: 140px;">
-                                        <option value="">— colaborador —</option>
-                                        {% for c in colaboradores %}
-                                        <option value="{{ c.id }}" {% if c.user_id == u.id %}selected{% endif %}>{{ c.name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                    <button type="submit" class="mm-btn mm-btn-outline mm-btn-sm">Associar</button>
-                                </form>
-                                <form method="post" action="{{ url_for('usuarios.update_password', user_id=u.id) }}" class="mm-inline-form mm-flex mm-gap-2 mm-items-center">
-                                    <input type="password" name="new_password" class="mm-input" placeholder="Nova senha" style="width: 120px;" required>
-                                    <button type="submit" class="mm-btn mm-btn-outline mm-btn-sm">
-                                        <i class="bi bi-key"></i>
-                                    </button>
-                                </form>
-                                <form method="post" action="{{ url_for('usuarios.reset_password', user_id=u.id) }}" class="mm-inline-form">
-                                    <button type="submit" class="mm-btn mm-btn-outline mm-btn-sm" title="Redefinir senha">
-                                        <i class="bi bi-arrow-clockwise"></i>
-                                    </button>
-                                </form>
-                                {% if u.id != current_user.id %}
-                                <form method="post" action="{{ url_for('usuarios.excluir_user', user_id=u.id) }}" class="mm-inline-form" onsubmit="return confirm('Excluir {{ u.name }} ({{ u.username }})?')">
-                                    <button type="submit" class="mm-btn mm-btn-danger mm-btn-sm">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
+        <div class="gestao-card-body-modern">
+            {% if saldo_collab %}
+            <div class="gestao-saldo-info-modern">
+                <div class="gestao-saldo-header-modern">
+                    <div class="gestao-saldo-avatar-modern">
+                        {{ (saldo_collab.user.name if saldo_collab.user else saldo_collab.name)[:2].upper() }}
+                    </div>
+                    <div>
+                        <h4 class="gestao-saldo-name-modern">{{ saldo_collab.user.name if saldo_collab.user else saldo_collab.name }}</h4>
+                        {% if saldo_collab.role %}
+                        <div class="gestao-saldo-role-modern">{{ saldo_collab.role }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="gestao-saldo-badges-modern">
+                    <div class="gestao-saldo-badge-item">
+                        <i class="bi bi-calendar-check"></i>
+                        <div>
+                            <div class="gestao-saldo-badge-label">Dias de Folga</div>
+                            <div class="gestao-saldo-badge-value">{{ saldo_days }}</div>
+                        </div>
+                    </div>
+                    <div class="gestao-saldo-badge-item {% if saldo_hours > 0 %}gestao-badge-success{% elif saldo_hours < 0 %}gestao-badge-danger{% endif %}">
+                        <i class="bi bi-clock"></i>
+                        <div>
+                            <div class="gestao-saldo-badge-label">Horas Residuais</div>
+                            <div class="gestao-saldo-badge-value">{{ '%.2f'|format(saldo_hours or 0.0) }}h</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="gestao-saldo-rule-modern">
+                    <i class="bi bi-info-circle"></i>
+                    <span>Regra: a cada 8h acumuladas vira +1 dia e as horas são reiniciadas.</span>
+                </div>
+                {% if current_user.nivel in ['admin', 'DEV'] %}
+                <form method="post" action="{{ url_for('usuarios.gestao_colabs_horas_verificar_conversao') }}" class="gestao-converter-form-modern" onsubmit="return confirm('Converter horas em dias? O sistema verificará quantas horas já foram convertidas e converterá apenas as horas que faltam (8h = 1 dia).');">
+                    <input type="hidden" name="collaborator_id" value="{{ saldo_collab.id }}">
+                    <button type="submit" class="gestao-btn-modern gestao-btn-converter">
+                        <i class="bi bi-arrow-repeat"></i>
+                        Converter Horas em Dias
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+            <div class="gestao-saldo-table-wrapper">
+                <table class="gestao-table-modern">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Data</th>
+                            <th class="text-center">Valor</th>
+                            <th>Motivo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for it in saldo_items %}
+                        <tr class="gestao-table-row">
+                            <td>
+                                {% if it.tipo == 'horas' %}
+                                <span class="gestao-badge gestao-badge-info">Horas</span>
+                                {% elif it.tipo == 'credito' %}
+                                <span class="gestao-badge gestao-badge-success">Crédito</span>
                                 {% else %}
-                                <span class="mm-badge mm-badge-warning">Você</span>
+                                <span class="gestao-badge gestao-badge-danger">Uso</span>
                                 {% endif %}
-                            </div>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="4" class="mm-empty-cell">
-                            <div class="mm-empty-inline">
-                                <i class="bi bi-people"></i>
-                                <span>Nenhum usuário</span>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        <div class="mm-pagination">
-            <span class="mm-pagination-info">Página {{ u_page }} de {{ u_total_pages }}</span>
-            <div class="mm-pagination-btns">
-                <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page-1 if u_page>1 else 1 }}&l_page={{ l_page }}&q={{ q }}">
-                    <i class="bi bi-chevron-left"></i>
-                </a>
-                <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page+1 if u_page<u_total_pages else u_total_pages }}&l_page={{ l_page }}&q={{ q }}">
-                    <i class="bi bi-chevron-right"></i>
-                </a>
+                            </td>
+                            <td class="gestao-table-date">
+                                <i class="bi bi-calendar3"></i>
+                                {{ it.date.strftime('%d/%m/%Y') }}
+                            </td>
+                            <td class="text-center">
+                                {% if it.unit == 'h' %}
+                                <strong>{{ '%.2f'|format(it.amount) }}h</strong>
+                                {% else %}
+                                {% if it.amount >= 0 %}
+                                <span class="gestao-badge gestao-badge-success">+{{ it.amount }}</span>
+                                {% else %}
+                                <span class="gestao-badge gestao-badge-danger">{{ it.amount }}</span>
+                                {% endif %}
+                                {% endif %}
+                            </td>
+                            <td class="gestao-table-details">{{ it.motivo or '-' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="gestao-empty-cell">
+                                <div class="gestao-empty-state">
+                                    <i class="bi bi-list"></i>
+                                    <span>Nenhum registro no período selecionado</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
+            {% else %}
+            <div class="gestao-empty-state-large">
+                <i class="bi bi-person-circle"></i>
+                <h3>Selecione um colaborador</h3>
+                <p>Selecione um colaborador para ver o saldo de horas e folgas.</p>
+            </div>
+            {% endif %}
         </div>
     </div>
-</div>
-{% endif %}
 
-{% if not view or view == 'roles' %}
-<div class="mm-card mm-mb-6" id="cargos-permissoes">
-    <div class="mm-card-header">
-        <h3 class="mm-card-title">
-            <i class="bi bi-award mm-text-primary"></i>
-            Cargos e Permissões
-        </h3>
-    </div>
-    <div class="mm-card-body">
-        <form method="post" action="{{ url_for('usuarios.gestao_role_criar') }}" class="mm-form-row mm-mb-6">
-            <div class="mm-form-group" style="flex: 2;">
-                <label class="mm-label">Nome do Cargo</label>
-                <input type="text" name="name" class="mm-input" placeholder="Ex: Atendente" required>
-            </div>
-            <div class="mm-form-group">
-                <label class="mm-label">Permissão</label>
-                <select name="nivel" class="mm-input mm-select">
-                    <option value="visualizador">Visualizador</option>
-                    <option value="operador">Operador</option>
-                    <option value="admin">Gerente</option>
-                </select>
-            </div>
-            <div class="mm-form-group" style="align-self: end;">
-                <button class="mm-btn mm-btn-primary" type="submit">
+    <!-- Gerenciar Colaboradores -->
+    {% if not view or view == 'usuarios' %}
+    <div class="gestao-card-modern" id="gerenciar-usuarios">
+        <div class="gestao-card-header-modern">
+            <h3 class="gestao-card-title">
+                <i class="bi bi-people"></i>
+                Gerenciar Colaboradores/Usuários
+            </h3>
+            <div class="gestao-header-actions">
+                <form method="get" action="{{ url_for('usuarios.gestao') }}" class="gestao-search-form">
+                    <input type="hidden" name="u_page" value="1">
+                    <input type="hidden" name="l_page" value="{{ l_page }}">
+                    <input type="text" name="q" class="gestao-input-modern gestao-search-input" placeholder="Buscar por nome" value="{{ q }}">
+                    <button type="submit" class="gestao-btn-modern gestao-btn-search">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </form>
+                <button class="gestao-btn-modern gestao-btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovoColaborador">
                     <i class="bi bi-plus-lg"></i>
-                    Adicionar
+                    Novo Colaborador/Usuário
                 </button>
             </div>
-        </form>
-        
-        <div class="mm-table-wrapper">
-            <table class="mm-table">
-                <thead>
-                    <tr>
-                        <th>Nome</th>
-                        <th>Permissão</th>
-                        <th style="text-align: right;">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for r in roles %}
-                    <tr>
-                        <td><strong>{{ r.name }}</strong></td>
-                        <td>
-                            {% if r.nivel == 'admin' %}
-                            <span class="mm-badge mm-badge-primary">Gerente</span>
-                            {% elif r.nivel == 'operador' %}
-                            <span class="mm-badge mm-badge-info">Operador</span>
-                            {% else %}
-                            <span class="mm-badge">Visualizador</span>
-                            {% endif %}
-                        </td>
-                        <td style="text-align: right;">
-                            <div class="mm-flex mm-gap-2 mm-items-center" style="justify-content: flex-end;">
-                                <form method="post" action="{{ url_for('usuarios.gestao_role_editar', id=r.id) }}" class="mm-inline-form mm-flex mm-gap-2 mm-items-center">
-                                    <input type="text" name="name" class="mm-input" value="{{ r.name }}" style="width: 140px;">
-                                    <select name="nivel" class="mm-input mm-select" style="width: 120px;">
-                                        <option value="visualizador" {% if r.nivel=='visualizador' %}selected{% endif %}>Visualizador</option>
-                                        <option value="operador" {% if r.nivel=='operador' %}selected{% endif %}>Operador</option>
-                                        <option value="admin" {% if r.nivel=='admin' %}selected{% endif %}>Gerente</option>
-                                    </select>
-                                    <button class="mm-btn mm-btn-primary mm-btn-sm" type="submit">
-                                        <i class="bi bi-save"></i>
+        </div>
+        <div class="gestao-card-body-modern">
+            <div class="gestao-table-wrapper">
+                <table class="gestao-table-modern">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Login</th>
+                            <th>Nível</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in colaboradores %}
+                        {% set u = c.user %}
+                        <tr class="gestao-table-row">
+                            <td>
+                                <div class="gestao-colab-info">
+                                    <div class="gestao-colab-avatar-small">
+                                        {{ (u.name if u else c.name)[:2].upper() }}
+                                    </div>
+                                    <strong>{{ u.name if u else c.name }}</strong>
+                                </div>
+                            </td>
+                            <td>{{ u.username if u else '-' }}</td>
+                            <td>
+                                {% if u %}
+                                    {% if u.nivel == 'DEV' %}
+                                    <span class="gestao-badge gestao-badge-dev">Desenvolvedor</span>
+                                    {% elif u.nivel == 'admin' %}
+                                    <span class="gestao-badge gestao-badge-primary">Gerente</span>
+                                    {% elif u.nivel == 'operador' %}
+                                    <span class="gestao-badge gestao-badge-info">Operador</span>
+                                    {% else %}
+                                    <span class="gestao-badge gestao-badge-secondary">Visualizador</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="gestao-badge gestao-badge-secondary">Sem usuário</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="gestao-actions-modern">
+                                    {% if u %}
+                                    <div class="gestao-action-group">
+                                        <form method="post" action="{{ url_for('usuarios.update_level', user_id=u.id) }}" class="gestao-inline-form">
+                                            <select name="nivel" class="gestao-select-modern gestao-select-sm">
+                                                <option value="visualizador" {% if u.nivel == 'visualizador' %}selected{% endif %}>Visualizador</option>
+                                                <option value="operador" {% if u.nivel == 'operador' %}selected{% endif %}>Operador</option>
+                                                <option value="admin" {% if u.nivel == 'admin' %}selected{% endif %}>Gerente</option>
+                                                {% if current_user.nivel == 'DEV' %}
+                                                <option value="DEV" {% if u.nivel == 'DEV' %}selected{% endif %}>Desenvolvedor</option>
+                                                {% endif %}
+                                            </select>
+                                            <button type="submit" class="gestao-btn-modern gestao-btn-sm gestao-btn-primary" title="Atualizar nível">
+                                                <i class="bi bi-check"></i>
+                                            </button>
+                                        </form>
+                                        <form method="post" action="{{ url_for('usuarios.update_password', user_id=u.id) }}" class="gestao-inline-form">
+                                            <input type="password" name="new_password" class="gestao-input-modern gestao-input-sm" placeholder="Nova senha" required>
+                                            <button type="submit" class="gestao-btn-modern gestao-btn-sm gestao-btn-outline" title="Alterar senha">
+                                                <i class="bi bi-key"></i>
+                                            </button>
+                                        </form>
+                                        <form method="post" action="{{ url_for('usuarios.reset_password', user_id=u.id) }}" class="gestao-inline-form">
+                                            <button type="submit" class="gestao-btn-modern gestao-btn-sm gestao-btn-outline" title="Redefinir senha">
+                                                <i class="bi bi-arrow-clockwise"></i>
+                                            </button>
+                                        </form>
+                                        {% if u.id != current_user.id %}
+                                        <form method="post" action="{{ url_for('usuarios.excluir_user', user_id=u.id) }}" class="gestao-inline-form" onsubmit="return confirm('Excluir {{ u.name }} ({{ u.username }})?')">
+                                            <button type="submit" class="gestao-btn-modern gestao-btn-sm gestao-btn-danger" title="Excluir">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                        {% else %}
+                                        <span class="gestao-badge gestao-badge-warning">Você</span>
+                                        {% endif %}
+                                    </div>
+                                    {% else %}
+                                    <span class="gestao-badge gestao-badge-secondary">Criar usuário no modal de edição</span>
+                                    {% endif %}
+                                    <button class="gestao-btn-modern gestao-btn-sm gestao-btn-outline" data-bs-toggle="modal" data-bs-target="#modalEditColab{{ c.id }}" title="Editar">
+                                        <i class="bi bi-pencil"></i>
                                     </button>
-                                </form>
-                                <form method="post" action="{{ url_for('usuarios.gestao_role_excluir', id=r.id) }}" class="mm-inline-form" onsubmit="return confirm('Excluir cargo {{ r.name }}?')">
-                                    <button class="mm-btn mm-btn-danger mm-btn-sm" type="submit">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="3" class="mm-empty-cell">
-                            <div class="mm-empty-inline">
-                                <i class="bi bi-award"></i>
-                                <span>Nenhum cargo</span>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="gestao-empty-cell">
+                                <div class="gestao-empty-state">
+                                    <i class="bi bi-people"></i>
+                                    <span>Nenhum colaborador</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="gestao-pagination-modern">
+                <span class="gestao-pagination-info">Página {{ u_page }} de {{ u_total_pages }}</span>
+                <div class="gestao-pagination-btns">
+                    <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page-1 if u_page>1 else 1 }}&l_page={{ l_page }}&q={{ q }}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                    <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page+1 if u_page<u_total_pages else u_total_pages }}&l_page={{ l_page }}&q={{ q }}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
-</div>
-{% endif %}
+    {% endif %}
 
+    <!-- Cargos e Permissões -->
+    {% if not view or view == 'roles' %}
+    <div class="gestao-card-modern" id="cargos-permissoes">
+        <div class="gestao-card-header-modern">
+            <h3 class="gestao-card-title">
+                <i class="bi bi-award"></i>
+                Cargos e Permissões
+            </h3>
+        </div>
+        <div class="gestao-card-body-modern">
+            <form method="post" action="{{ url_for('usuarios.gestao_role_criar') }}" class="gestao-role-form-modern">
+                <div class="gestao-form-row-modern">
+                    <div class="gestao-form-group-modern" style="flex: 2;">
+                        <label class="gestao-label-modern">
+                            <i class="bi bi-tag"></i>
+                            Nome do Cargo
+                        </label>
+                        <input type="text" name="name" class="gestao-input-modern" placeholder="Ex: Atendente" required>
+                    </div>
+                    <div class="gestao-form-group-modern">
+                        <label class="gestao-label-modern">
+                            <i class="bi bi-shield-check"></i>
+                            Permissão
+                        </label>
+                        <select name="nivel" class="gestao-select-modern">
+                            <option value="visualizador">Visualizador</option>
+                            <option value="operador">Operador</option>
+                            <option value="admin">Gerente</option>
+                            {% if current_user.nivel == 'DEV' %}
+                            <option value="DEV">Desenvolvedor</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                    <div class="gestao-form-group-modern" style="align-self: end;">
+                        <button class="gestao-btn-modern gestao-btn-primary" type="submit">
+                            <i class="bi bi-plus-lg"></i>
+                            Adicionar
+                        </button>
+                    </div>
+                </div>
+            </form>
+            
+            <div class="gestao-table-wrapper">
+                <table class="gestao-table-modern">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Permissão</th>
+                            <th class="text-right">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in roles %}
+                        <tr class="gestao-table-row">
+                            <td><strong>{{ r.name }}</strong></td>
+                            <td>
+                                {% if r.nivel == 'admin' %}
+                                <span class="gestao-badge gestao-badge-primary">Gerente</span>
+                                {% elif r.nivel == 'operador' %}
+                                <span class="gestao-badge gestao-badge-info">Operador</span>
+                                {% else %}
+                                <span class="gestao-badge gestao-badge-secondary">Visualizador</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="gestao-actions-modern gestao-actions-right">
+                                    <form method="post" action="{{ url_for('usuarios.gestao_role_editar', id=r.id) }}" class="gestao-inline-form">
+                                        <input type="text" name="name" class="gestao-input-modern gestao-input-sm" value="{{ r.name }}">
+                                        <select name="nivel" class="gestao-select-modern gestao-select-sm">
+                                            <option value="visualizador" {% if r.nivel=='visualizador' %}selected{% endif %}>Visualizador</option>
+                                            <option value="operador" {% if r.nivel=='operador' %}selected{% endif %}>Operador</option>
+                                            <option value="admin" {% if r.nivel=='admin' %}selected{% endif %}>Gerente</option>
+                                        </select>
+                                        <button class="gestao-btn-modern gestao-btn-sm gestao-btn-primary" type="submit" title="Salvar">
+                                            <i class="bi bi-save"></i>
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{{ url_for('usuarios.gestao_role_excluir', id=r.id) }}" class="gestao-inline-form" onsubmit="return confirm('Excluir cargo {{ r.name }}?')">
+                                        <button class="gestao-btn-modern gestao-btn-sm gestao-btn-danger" type="submit" title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="gestao-empty-cell">
+                                <div class="gestao-empty-state">
+                                    <i class="bi bi-award"></i>
+                                    <span>Nenhum cargo</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal Editar Colaborador -->
 {% if not view or view == 'colaboradores' %}
 {% for c in colaboradores %}
 <div class="modal fade" id="modalEditColab{{ c.id }}" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <form method="post" action="{{ url_for('usuarios.gestao_colabs_editar', id=c.id) }}">
-            <div class="modal-content mm-modal">
-                <div class="modal-header mm-modal-header">
-                    <h5 class="modal-title">Editar Colaborador</h5>
+            <div class="modal-content gestao-modal-modern">
+                <div class="modal-header gestao-modal-header-modern">
+                    <h5 class="modal-title">
+                        <i class="bi bi-pencil"></i>
+                        Editar Colaborador
+                    </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body mm-modal-body">
-                    <div class="mm-form-group mm-mb-4">
-                        <label class="mm-label">Nome</label>
-                        <input type="text" name="name" class="mm-input" value="{{ c.name }}" required>
+                <div class="modal-body gestao-modal-body-modern">
+                    <div class="gestao-form-group-modern">
+                        <label class="gestao-label-modern">
+                            <i class="bi bi-person"></i>
+                            Nome <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="name" class="gestao-input-modern" value="{{ c.name }}" required>
                     </div>
-                    <div class="mm-form-group mm-mb-4">
-                        <label class="mm-label">Cargo</label>
-                        <input type="text" name="role" class="mm-input" value="{{ c.role or '' }}">
+                    <div class="gestao-form-group-modern">
+                        <label class="gestao-label-modern">
+                            <i class="bi bi-briefcase"></i>
+                            Cargo
+                        </label>
+                        <input type="text" name="role" class="gestao-input-modern" value="{{ c.role or '' }}">
                     </div>
-                    <div class="mm-form-group mm-mb-4">
-                        <label class="mm-label">Usuário Associado</label>
-                        <select name="user_id" class="mm-input mm-select">
-                            <option value="">—</option>
-                            {% for u in users %}
-                            <option value="{{ u.id }}" {% if c.user_id == u.id %}selected{% endif %}>{{ u.username }}</option>
-                            {% endfor %}
+                    {% if c.user %}
+                    <div class="gestao-form-group-modern">
+                        <label class="gestao-label-modern">
+                            <i class="bi bi-person-badge"></i>
+                            Login (usuário existente)
+                        </label>
+                        <input type="text" class="gestao-input-modern" value="{{ c.user.username }}" disabled>
+                        <small class="gestao-hint-modern">Usuário já existe. Para alterar login/senha, use as ações na tabela.</small>
+                    </div>
+                    {% else %}
+                    <div class="gestao-form-group-modern">
+                        <label class="gestao-label-modern">
+                            <i class="bi bi-person-badge"></i>
+                            Login (opcional - cria usuário se preenchido)
+                        </label>
+                        <input type="text" name="username" class="gestao-input-modern" placeholder="Deixe vazio para manter sem usuário">
+                    </div>
+                    <div class="gestao-form-group-modern">
+                        <label class="gestao-label-modern">
+                            <i class="bi bi-key"></i>
+                            Senha (se criar usuário)
+                        </label>
+                        <input type="password" name="password" class="gestao-input-modern" placeholder="Obrigatório se login preenchido">
+                    </div>
+                    <div class="gestao-form-group-modern">
+                        <label class="gestao-label-modern">
+                            <i class="bi bi-shield-check"></i>
+                            Nível (se criar usuário)
+                        </label>
+                        <select name="nivel" class="gestao-select-modern">
+                            <option value="visualizador">Visualizador</option>
+                            <option value="operador">Operador</option>
+                            <option value="admin">Gerente</option>
+                            {% if current_user.nivel == 'DEV' %}
+                            <option value="DEV">Desenvolvedor</option>
+                            {% endif %}
                         </select>
                     </div>
-                    <div class="mm-switch-group mm-mb-4">
-                        <label class="mm-switch">
+                    {% endif %}
+                    <div class="gestao-switch-group-modern">
+                        <label class="gestao-switch-modern">
                             <input type="checkbox" name="active" {% if c.active %}checked{% endif %}>
-                            <span class="mm-switch-slider"></span>
+                            <span class="gestao-switch-slider"></span>
                         </label>
-                        <span>Ativo</span>
+                        <span class="gestao-switch-label">Ativo</span>
                     </div>
-                    <div class="mm-form-row">
-                        <div class="mm-form-group">
-                            <label class="mm-label">Equipe 1/2</label>
-                            <select name="regular_team" class="mm-input mm-select">
+                    <div class="gestao-form-row-modern">
+                        <div class="gestao-form-group-modern">
+                            <label class="gestao-label-modern">
+                                <i class="bi bi-people"></i>
+                                Equipe 1/2
+                            </label>
+                            <select name="regular_team" class="gestao-select-modern">
                                 <option value="" {% if not c.regular_team %}selected{% endif %}>—</option>
                                 <option value="1" {% if c.regular_team=='1' %}selected{% endif %}>1</option>
                                 <option value="2" {% if c.regular_team=='2' %}selected{% endif %}>2</option>
                             </select>
                         </div>
-                        <div class="mm-form-group">
-                            <label class="mm-label">Domingo 1/2</label>
-                            <select name="sunday_team" class="mm-input mm-select">
+                        <div class="gestao-form-group-modern">
+                            <label class="gestao-label-modern">
+                                <i class="bi bi-calendar-week"></i>
+                                Domingo 1/2
+                            </label>
+                            <select name="sunday_team" class="gestao-select-modern">
                                 <option value="" {% if not c.sunday_team %}selected{% endif %}>—</option>
                                 <option value="1" {% if c.sunday_team=='1' %}selected{% endif %}>1</option>
                                 <option value="2" {% if c.sunday_team=='2' %}selected{% endif %}>2</option>
                             </select>
                         </div>
-                        <div class="mm-form-group">
-                            <label class="mm-label">Especial 1/2</label>
-                            <select name="special_team" class="mm-input mm-select">
+                        <div class="gestao-form-group-modern">
+                            <label class="gestao-label-modern">
+                                <i class="bi bi-star"></i>
+                                Especial 1/2
+                            </label>
+                            <select name="special_team" class="gestao-select-modern">
                                 <option value="" {% if not c.special_team %}selected{% endif %}>—</option>
                                 <option value="1" {% if c.special_team=='1' %}selected{% endif %}>1</option>
                                 <option value="2" {% if c.special_team=='2' %}selected{% endif %}>2</option>
@@ -482,385 +597,997 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer mm-modal-footer">
-                    <button class="mm-btn mm-btn-outline" type="button" data-bs-dismiss="modal">Cancelar</button>
-                    <button class="mm-btn mm-btn-primary" type="submit">Salvar</button>
+                <div class="modal-footer gestao-modal-footer-modern">
+                    <button class="gestao-btn-modern gestao-btn-outline" type="button" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i>
+                        Cancelar
+                    </button>
+                    <button class="gestao-btn-modern gestao-btn-primary" type="submit">
+                        <i class="bi bi-check-circle"></i>
+                        Salvar
+                    </button>
                 </div>
             </div>
         </form>
     </div>
 </div>
 {% endfor %}
-
 {% endif %}
 
-
-
-
-
-
-
-
-
+<!-- Modal Novo Colaborador -->
+<div class="modal fade" id="modalNovoColaborador" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <form method="post" action="{{ url_for('usuarios.gestao_colabs_criar') }}">
+            <div class="modal-content gestao-modal-modern">
+                <div class="modal-header gestao-modal-header-modern">
+                    <h5 class="modal-title">
+                        <i class="bi bi-plus-circle"></i>
+                        Novo Colaborador/Usuário
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body gestao-modal-body-modern">
+                    <div class="gestao-form-group-modern">
+                        <label class="gestao-label-modern">
+                            <i class="bi bi-person"></i>
+                            Nome <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="name" class="gestao-input-modern" required>
+                    </div>
+                    <div class="gestao-form-group-modern">
+                        <label class="gestao-label-modern">
+                            <i class="bi bi-briefcase"></i>
+                            Cargo
+                        </label>
+                        <input type="text" name="role" class="gestao-input-modern">
+                    </div>
+                    <div class="gestao-form-group-modern">
+                        <label class="gestao-label-modern">
+                            <i class="bi bi-person-badge"></i>
+                            Login (opcional - cria usuário se preenchido)
+                        </label>
+                        <input type="text" name="username" class="gestao-input-modern" placeholder="Deixe vazio para apenas colaborador">
+                    </div>
+                    <div class="gestao-form-group-modern">
+                        <label class="gestao-label-modern">
+                            <i class="bi bi-key"></i>
+                            Senha (se criar usuário)
+                        </label>
+                        <input type="password" name="password" class="gestao-input-modern" placeholder="Obrigatório se login preenchido">
+                    </div>
+                    <div class="gestao-form-group-modern">
+                        <label class="gestao-label-modern">
+                            <i class="bi bi-shield-check"></i>
+                            Nível (se criar usuário)
+                        </label>
+                        <select name="nivel" class="gestao-select-modern">
+                            <option value="visualizador">Visualizador</option>
+                            <option value="operador">Operador</option>
+                            <option value="admin">Gerente</option>
+                            {% if current_user.nivel == 'DEV' %}
+                            <option value="DEV">Desenvolvedor</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer gestao-modal-footer-modern">
+                    <button class="gestao-btn-modern gestao-btn-outline" type="button" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i>
+                        Cancelar
+                    </button>
+                    <button class="gestao-btn-modern gestao-btn-primary" type="submit">
+                        <i class="bi bi-check-circle"></i>
+                        Criar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 
 <style>
-.mm-page-header {
-    margin-bottom: var(--mm-space-6);
+/* Container */
+.gestao-container {
+    padding: 2rem;
+    max-width: 1600px;
+    margin: 0 auto;
+    animation: fadeIn 0.5s ease-in;
 }
 
-.mm-page-title {
-    font-size: var(--mm-text-2xl);
-    font-weight: var(--mm-font-bold);
-    color: var(--mm-text-primary);
-    margin: 0 0 var(--mm-space-1) 0;
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-.mm-kpi-card {
+/* Hero Header */
+.gestao-hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 3rem 2.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.gestao-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: rotate 20s linear infinite;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.gestao-hero-content {
+    position: relative;
+    z-index: 1;
+}
+
+.gestao-title {
+    font-size: 3rem;
+    font-weight: 800;
+    color: white;
+    margin: 0;
     display: flex;
-    flex-direction: column;
-    gap: var(--mm-space-3);
+    align-items: center;
+    gap: 1rem;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
 }
 
-.mm-kpi-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--mm-radius-lg);
+.gestao-title-icon {
+    font-size: 3.5rem;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.gestao-subtitle {
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-top: 0.5rem;
+}
+
+/* KPIs */
+.gestao-kpis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.gestao-kpi-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0,0,0,0.05);
+    border-left: 4px solid var(--kpi-color);
+}
+
+.gestao-kpi-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+}
+
+.gestao-kpi-success { --kpi-color: #10b981; }
+.gestao-kpi-warning { --kpi-color: #f59e0b; }
+.gestao-kpi-primary { --kpi-color: #667eea; }
+
+.gestao-kpi-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    color: white;
+    background: linear-gradient(135deg, var(--kpi-color), var(--kpi-color-light, var(--kpi-color)));
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+
+.gestao-kpi-content {
+    position: relative;
+    z-index: 1;
+}
+
+.gestao-kpi-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.gestao-kpi-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1.2;
+}
+
+.gestao-kpi-decoration {
+    position: absolute;
+    bottom: -20px;
+    right: -20px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--kpi-color-light, var(--kpi-color)), transparent);
+    opacity: 0.1;
+}
+
+/* Cards */
+.gestao-card-modern {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+
+.gestao-card-header-modern {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.gestao-card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.gestao-card-title i {
+    color: #667eea;
+}
+
+.gestao-card-body-modern {
+    padding: 0;
+}
+
+/* Saldo Filters */
+.gestao-saldo-filters {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.gestao-header-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.gestao-search-form {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.gestao-search-input {
+    min-width: 200px;
+}
+
+/* Saldo Info */
+.gestao-saldo-info-modern {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+    border-radius: 12px;
+    padding: 1.75rem;
+    margin-bottom: 1.5rem;
+    border: 2px solid rgba(102, 126, 234, 0.1);
+}
+
+.gestao-saldo-header-modern {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.gestao-saldo-avatar-modern {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.5rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 
-.mm-nav-tabs {
-    display: flex;
-    gap: var(--mm-space-2);
-    flex-wrap: wrap;
-    padding: var(--mm-space-4);
-    background: var(--mm-bg-card);
-    border-radius: var(--mm-radius-xl);
-    border: 1px solid var(--mm-border);
+.gestao-saldo-name-modern {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 0.25rem 0;
 }
 
-.mm-nav-tab {
-    display: flex;
-    align-items: center;
-    gap: var(--mm-space-2);
-    padding: var(--mm-space-2) var(--mm-space-4);
-    font-size: var(--mm-text-sm);
-    font-weight: var(--mm-font-medium);
-    color: var(--mm-text-secondary);
-    background: var(--mm-bg-secondary);
-    border-radius: var(--mm-radius-md);
-    text-decoration: none;
-    transition: all var(--mm-transition);
+.gestao-saldo-role-modern {
+    font-size: 0.875rem;
+    color: #6b7280;
 }
 
-.mm-nav-tab:hover {
-    background: rgba(var(--mm-primary-rgb), 0.1);
-    color: var(--mm-primary);
+.gestao-saldo-badges-modern {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
 }
 
-.mm-form-row {
-    display: flex;
-    gap: var(--mm-space-4);
-    flex-wrap: wrap;
-    align-items: flex-start;
-}
-
-.mm-form-group {
-    display: flex;
-    flex-direction: column;
-    gap: var(--mm-space-2);
-    flex: 1;
-    min-width: 120px;
-}
-
-.mm-saldo-info {
-    display: flex;
-    flex-direction: column;
-    gap: var(--mm-space-3);
-}
-
-.mm-saldo-name {
-    font-size: var(--mm-text-lg);
-    font-weight: var(--mm-font-semibold);
-    color: var(--mm-text-primary);
-}
-
-.mm-saldo-badges {
-    display: flex;
-    gap: var(--mm-space-3);
-    flex-wrap: wrap;
-}
-
-.mm-saldo-badges .mm-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--mm-space-2);
-    padding: var(--mm-space-2) var(--mm-space-3);
-}
-
-.mm-saldo-rule {
+.gestao-saldo-badge-item {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
     display: flex;
     align-items: center;
-    gap: var(--mm-space-2);
-    font-size: var(--mm-text-sm);
-    color: var(--mm-text-muted);
+    gap: 1rem;
+    border: 2px solid #e5e7eb;
+    transition: all 0.3s ease;
 }
 
-.mm-empty-inline {
+.gestao-saldo-badge-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.gestao-saldo-badge-item i {
+    font-size: 2rem;
+    color: #667eea;
+}
+
+.gestao-saldo-badge-item.gestao-badge-success i {
+    color: #10b981;
+}
+
+.gestao-saldo-badge-item.gestao-badge-danger i {
+    color: #ef4444;
+}
+
+.gestao-saldo-badge-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.gestao-saldo-badge-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.gestao-saldo-rule-modern {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    color: #6b7280;
+    padding: 0.75rem 1rem;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 8px;
+    border-left: 3px solid #3b82f6;
+}
+
+.gestao-saldo-rule-modern i {
+    color: #3b82f6;
+    font-size: 1.125rem;
+}
+
+.gestao-converter-form-modern {
+    margin-top: 1rem;
+}
+
+.gestao-btn-converter {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    width: 100%;
+}
+
+.gestao-btn-converter:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+/* Tables */
+.gestao-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.gestao-table-modern {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.gestao-table-modern th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+.gestao-table-row {
+    border-bottom: 1px solid #f3f4f6;
+    transition: background 0.2s ease;
+}
+
+.gestao-table-row:hover {
+    background: #f9fafb;
+}
+
+.gestao-table-modern td {
+    padding: 1rem;
+    color: #1f2937;
+}
+
+.gestao-table-date {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.gestao-table-details {
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.gestao-colab-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.gestao-colab-avatar-small {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: var(--mm-space-2);
-    color: var(--mm-text-muted);
-    padding: var(--mm-space-4);
+    font-size: 0.875rem;
+    font-weight: 700;
+    flex-shrink: 0;
 }
 
-.mm-empty-inline i {
-    font-size: 1.25rem;
+/* Badges */
+.gestao-badge {
+    display: inline-flex;
+    padding: 0.375rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.mm-empty-cell {
-    text-align: center;
-    padding: var(--mm-space-8) !important;
+.gestao-badge-primary {
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
 }
 
-.mm-actions-group {
+.gestao-badge-success {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+}
+
+.gestao-badge-danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+}
+
+.gestao-badge-info {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+}
+
+.gestao-badge-warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+}
+
+.gestao-badge-secondary {
+    background: rgba(107, 114, 128, 0.1);
+    color: #6b7280;
+}
+
+.gestao-badge-dev {
+    background: rgba(139, 92, 246, 0.1);
+    color: #7c3aed;
+}
+
+/* Actions */
+.gestao-actions-modern {
     display: flex;
+    gap: 0.5rem;
     flex-wrap: wrap;
-    gap: var(--mm-space-2);
     align-items: center;
 }
 
-.mm-inline-form {
-    display: inline-flex;
+.gestao-actions-right {
+    justify-content: flex-end;
 }
 
-.mm-pagination {
+.gestao-action-group {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.gestao-inline-form {
+    display: inline-flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+/* Forms */
+.gestao-form-row-modern {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.gestao-form-group-modern {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.gestao-label-modern {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.gestao-label-modern i {
+    color: #667eea;
+}
+
+.gestao-input-modern,
+.gestao-select-modern {
+    padding: 0.75rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: white;
+    font-family: inherit;
+}
+
+.gestao-input-modern:focus,
+.gestao-select-modern:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.gestao-input-sm,
+.gestao-select-sm {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.gestao-hint-modern {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.gestao-role-form-modern {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+/* Buttons */
+.gestao-btn-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.gestao-btn-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.gestao-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.gestao-btn-outline {
+    background: white;
+    color: #374151;
+    border: 2px solid #e5e7eb;
+}
+
+.gestao-btn-outline:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+.gestao-btn-danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+}
+
+.gestao-btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+
+.gestao-btn-search {
+    background: #f3f4f6;
+    color: #374151;
+    border: 2px solid #e5e7eb;
+}
+
+.gestao-btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+}
+
+.gestao-btn-pagination {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    color: #374151;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.gestao-btn-pagination:hover {
+    background: #f3f4f6;
+    border-color: #667eea;
+    color: #667eea;
+}
+
+/* Pagination */
+.gestao-pagination-modern {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-top: var(--mm-space-4);
-    padding-top: var(--mm-space-4);
-    border-top: 1px solid var(--mm-border);
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid #f3f4f6;
 }
 
-.mm-pagination-info {
-    font-size: var(--mm-text-sm);
-    color: var(--mm-text-muted);
+.gestao-pagination-info {
+    font-size: 0.875rem;
+    color: #6b7280;
 }
 
-.mm-pagination-btns {
+.gestao-pagination-btns {
     display: flex;
-    gap: var(--mm-space-2);
+    gap: 0.5rem;
 }
 
-.mm-modal {
-    background: var(--mm-bg-card);
-    border: 1px solid var(--mm-border);
-    border-radius: var(--mm-radius-xl);
+/* Empty States */
+.gestao-empty-cell {
+    text-align: center;
+    padding: 3rem 1rem !important;
 }
 
-.mm-modal-header {
-    background: linear-gradient(135deg, var(--mm-primary) 0%, var(--mm-primary-dark) 100%);
-    color: #0f172a;
-    border-radius: var(--mm-radius-xl) var(--mm-radius-xl) 0 0;
-    border-bottom: none;
+.gestao-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    color: #6b7280;
 }
 
-.mm-modal-body {
-    padding: var(--mm-space-6);
+.gestao-empty-state i {
+    font-size: 2.5rem;
+    opacity: 0.5;
 }
 
-.mm-modal-footer {
-    padding: var(--mm-space-4) var(--mm-space-6);
-    border-top: 1px solid var(--mm-border);
-    background: var(--mm-bg-secondary);
-    border-radius: 0 0 var(--mm-radius-xl) var(--mm-radius-xl);
+.gestao-empty-state-large {
+    text-align: center;
+    padding: 4rem 2rem;
 }
 
-.mm-switch-group {
+.gestao-empty-state-large i {
+    font-size: 4rem;
+    color: #667eea;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.gestao-empty-state-large h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 0.5rem 0;
+}
+
+.gestao-empty-state-large p {
+    font-size: 1rem;
+    color: #6b7280;
+    margin: 0;
+}
+
+/* Switch */
+.gestao-switch-group-modern {
     display: flex;
     align-items: center;
-    gap: var(--mm-space-3);
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
 }
 
-.mm-switch {
+.gestao-switch-modern {
     position: relative;
     display: inline-block;
-    width: 48px;
-    height: 24px;
+    width: 52px;
+    height: 28px;
 }
 
-.mm-switch input {
+.gestao-switch-modern input {
     opacity: 0;
     width: 0;
     height: 0;
 }
 
-.mm-switch-slider {
+.gestao-switch-slider {
     position: absolute;
     cursor: pointer;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: var(--mm-bg-tertiary);
-    transition: .3s;
-    border-radius: 24px;
+    background-color: #d1d5db;
+    transition: 0.3s;
+    border-radius: 28px;
 }
 
-.mm-switch-slider:before {
+.gestao-switch-slider:before {
     position: absolute;
     content: "";
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 3px;
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
     background-color: white;
-    transition: .3s;
+    transition: 0.3s;
     border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-.mm-switch input:checked + .mm-switch-slider {
-    background-color: var(--mm-primary);
+.gestao-switch-modern input:checked + .gestao-switch-slider {
+    background: linear-gradient(135deg, #667eea, #764ba2);
 }
 
-.mm-switch input:checked + .mm-switch-slider:before {
+.gestao-switch-modern input:checked + .gestao-switch-slider:before {
     transform: translateX(24px);
 }
 
-.mm-mb-4 {
-    margin-bottom: var(--mm-space-4);
+.gestao-switch-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
 }
 
-.mm-divider {
+/* Modals */
+.gestao-modal-modern {
+    border-radius: 16px;
     border: none;
-    border-top: 1px solid var(--mm-border);
-    margin: var(--mm-space-6) 0;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
 }
 
-.mm-text-lg {
-    font-size: var(--mm-text-lg);
+.gestao-modal-header-modern {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 16px 16px 0 0;
+    border-bottom: none;
+    padding: 1.5rem;
 }
 
-.mm-font-semibold {
-    font-weight: var(--mm-font-semibold);
+.gestao-modal-header-modern .modal-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
 }
 
+.gestao-modal-body-modern {
+    padding: 2rem;
+}
+
+.gestao-modal-footer-modern {
+    padding: 1.5rem 2rem;
+    border-top: 2px solid #f3f4f6;
+    background: #f9fafb;
+    border-radius: 0 0 16px 16px;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+
+.gestao-modal-footer-modern .gestao-btn-modern {
+    min-width: 120px;
+    justify-content: center;
+}
+
+/* Utilities */
+.text-center {
+    text-align: center;
+}
+
+.text-right {
+    text-align: right;
+}
+
+/* Responsive */
 @media (max-width: 1024px) {
-    .mm-actions-group {
+    .gestao-form-row-modern,
+    .gestao-saldo-badges-modern {
+        grid-template-columns: 1fr;
+    }
+
+    .gestao-actions-modern,
+    .gestao-action-group {
         flex-direction: column;
         align-items: flex-start;
     }
-    
-    .mm-form-row {
-        flex-direction: column;
-    }
-    
-    .mm-form-group {
+
+    .gestao-inline-form {
         width: 100%;
+    }
+
+    .gestao-inline-form .gestao-input-modern,
+    .gestao-inline-form .gestao-select-modern {
+        flex: 1;
     }
 }
 
 @media (max-width: 768px) {
-    .mm-nav-tabs {
+    .gestao-container {
+        padding: 1rem;
+    }
+
+    .gestao-hero {
+        padding: 2rem 1.5rem;
+    }
+
+    .gestao-title {
+        font-size: 2rem;
+    }
+
+    .gestao-kpis-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .gestao-card-header-modern {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .gestao-saldo-filters,
+    .gestao-header-actions {
+        width: 100%;
         flex-direction: column;
     }
-    
-    .mm-nav-tab {
+
+    .gestao-saldo-filters .gestao-input-modern,
+    .gestao-saldo-filters .gestao-select-modern,
+    .gestao-saldo-filters .gestao-btn-modern {
         width: 100%;
     }
+
+    .gestao-search-form {
+        width: 100%;
+    }
+
+    .gestao-search-input {
+        flex: 1;
+    }
+
+    .gestao-table-wrapper {
+        overflow-x: scroll;
+    }
+}
+
+/* Dark Mode */
+[data-theme="dark"] .gestao-card-modern,
+[data-theme="dark"] .gestao-kpi-card,
+[data-theme="dark"] .gestao-saldo-badge-item {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+[data-theme="dark"] .gestao-card-title,
+[data-theme="dark"] .gestao-kpi-value,
+[data-theme="dark"] .gestao-saldo-name-modern,
+[data-theme="dark"] .gestao-saldo-badge-value {
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .gestao-kpi-label,
+[data-theme="dark"] .gestao-saldo-role-modern,
+[data-theme="dark"] .gestao-saldo-badge-label,
+[data-theme="dark"] .gestao-table-details {
+    color: #9ca3af;
+}
+
+[data-theme="dark"] .gestao-input-modern,
+[data-theme="dark"] .gestao-select-modern {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .gestao-table-modern th {
+    background: #374151;
+}
+
+[data-theme="dark"] .gestao-table-row:hover {
+    background: #374151;
 }
 </style>
-
-<script>
-(function(){
-    try {
-        document.querySelectorAll('.progress-bar[data-width]').forEach(function(el){
-            var v = parseInt(el.getAttribute('data-width') || '0', 10);
-            if (isNaN(v) || v < 0) v = 0;
-            if (v > 100) v = 100;
-            el.style.width = v + '%';
-            el.setAttribute('aria-valuenow', String(v));
-        });
-    } catch (e) {}
-})();
-</script>
-
-<div class="modal fade" id="modalNovoUsuario" tabindex="-1">
-    <div class="modal-dialog">
-        <form method="post" action="{{ url_for('usuarios.users') }}">
-            <div class="modal-content mm-modal">
-                <div class="modal-header mm-modal-header">
-                    <h5 class="modal-title">Novo Usuário</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body mm-modal-body">
-                    <div class="mm-form-group mm-mb-4">
-                        <label class="mm-label">Login</label>
-                        <input type="text" name="username" class="mm-input" required>
-                    </div>
-                    <div class="mm-form-group mm-mb-4">
-                        <label class="mm-label">Nome</label>
-                        <input type="text" name="name" class="mm-input" required>
-                    </div>
-                    <div class="mm-form-group mm-mb-4">
-                        <label class="mm-label">Senha</label>
-                        <input type="password" name="password" class="mm-input" required>
-                    </div>
-                    <div class="mm-form-group">
-                        <label class="mm-label">Nível</label>
-                        <select name="nivel" class="mm-input mm-select">
-                            <option value="visualizador">Visualizador</option>
-                            <option value="operador">Operador</option>
-                            <option value="admin">Gerente</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer mm-modal-footer">
-                    <button class="mm-btn mm-btn-outline" type="button" data-bs-dismiss="modal">Cancelar</button>
-                    <button class="mm-btn mm-btn-primary" type="submit">Criar Usuário</button>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div class="modal fade" id="modalNovoColab" tabindex="-1">
-    <div class="modal-dialog">
-        <form method="post" action="{{ url_for('usuarios.gestao_colabs_criar') }}">
-            <div class="modal-content mm-modal">
-                <div class="modal-header mm-modal-header">
-                    <h5 class="modal-title">Novo Colaborador</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body mm-modal-body">
-                    <div class="mm-form-group mm-mb-4">
-                        <label class="mm-label">Nome</label>
-                        <input type="text" name="name" class="mm-input" required>
-                    </div>
-                    <div class="mm-form-group mm-mb-4">
-                        <label class="mm-label">Cargo</label>
-                        <input type="text" name="role" class="mm-input">
-                    </div>
-                    <div class="mm-form-group">
-                        <label class="mm-label">Usuário Associado (opcional)</label>
-                        <select name="user_id" class="mm-input mm-select">
-                            <option value="">—</option>
-                            {% for u in users %}
-                            <option value="{{ u.id }}">{{ u.username }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer mm-modal-footer">
-                    <button class="mm-btn mm-btn-outline" type="button" data-bs-dismiss="modal">Cancelar</button>
-                    <button class="mm-btn mm-btn-primary" type="submit">Criar Colaborador</button>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
 {% endblock %}
