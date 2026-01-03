@@ -1,16 +1,30 @@
 ==============================================
-MULTIMAX - INSTALACAO EM VPS
+MULTIMAX - Sistema de Gestão Integrada
+Versão 2.2.3 - Janeiro 2025
 ==============================================
+
+DESCRIÇÃO:
+MultiMax é um sistema completo de gestão para açougue, incluindo:
+- Gestão de Estoque e Produtos
+- Controle de Jornada de Trabalho (Horas e Folgas)
+- Gestão de Colaboradores e Usuários
+- Recepção de Carnes e Controle de Lotes
+- Controle de Temperatura e Câmara Fria
+- Receitas e Cardápio
+- Relatórios e Exportações (PDF, CSV, Excel)
+- Sistema de Notificações
+- Cronograma de Limpeza
 
 REQUISITOS:
 - Python 3.11+
-- PostgreSQL (opcional, SQLite por padrao)
+- PostgreSQL (opcional, SQLite por padrão)
 
 INSTALACAO:
 1. Copie todos os arquivos para sua VPS
 2. Crie um ambiente virtual:
    python3 -m venv venv
-   source venv/bin/activate
+   source venv/bin/activate  (Linux/Mac)
+   venv\Scripts\activate     (Windows)
 
 3. Instale as dependencias:
    pip install -r requirements.txt
@@ -52,3 +66,20 @@ USUARIOS PADRAO:
 - admin (senha definida em SENHA_ADMIN ou criada no primeiro acesso)
 - operador (senha definida em SENHA_OPERADOR ou criada no primeiro acesso)
 
+NIVEIS DE ACESSO:
+- DEV: Acesso completo ao sistema (incluindo gerenciamento de admins)
+- admin: Administrador com acesso a todas as funcionalidades
+- operador: Operador com acesso a funcionalidades operacionais
+- visualizador: Apenas visualização (sem permissão de edição)
+
+PRINCIPAIS FUNCIONALIDADES DA VERSÃO 2.2.3:
+-------------------------------------------
+- Sistema de Arquivamento de Jornada: Arquivamento de dados por período
+- Histórico Completo: Visualização de histórico arquivado + atual
+- Exclusão de Produtos: Funcionalidade para remover produtos do estoque
+- Melhorias na Gestão de Usuários: Validação e normalização de usernames
+- Correções no Cálculo de Horas e Folgas: Cálculos mais precisos e consistentes
+- Correção em Notificações: URLs de notificações de limpeza corrigidas
+
+PARA MAIS INFORMAÇÕES:
+Consulte o arquivo CHANGELOG.md para detalhes completos das alterações.

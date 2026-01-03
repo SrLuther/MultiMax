@@ -59,10 +59,12 @@ def _calculate_collaborator_balance(collaborator_id, date_start=None, date_end=N
     days_from_hours = int(total_bruto_hours // 8.0) if total_bruto_hours >= 0.0 else 0
     residual_hours = (total_bruto_hours % 8.0) if total_bruto_hours >= 0.0 else 0.0
     
-    # Folgas adicionais
+    # Folgas adicionais MANUAIS (excluindo as geradas automaticamente de horas)
+    # As folgas com origin='horas' já são contadas via days_from_hours, então não devem ser contadas aqui
     cq = TimeOffRecord.query.filter(
         *filters,
-        TimeOffRecord.record_type == 'folga_adicional'
+        TimeOffRecord.record_type == 'folga_adicional',
+        or_(TimeOffRecord.origin != 'horas', TimeOffRecord.origin.is_(None))
     )
     credits_sum = int(cq.with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
     

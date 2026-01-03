@@ -11,7 +11,7 @@ from flask_login import login_required, current_user
 from ..models import Produto, CleaningTask as CleaningTaskModel, CleaningHistory as CleaningHistoryModel, Historico, MeatReception, MeatCarrier, MeatPart, User, Recipe, RecipeIngredient
 from ..models import Collaborator, TimeOffRecord
 from ..routes.jornada import _calculate_collaborator_balance, _get_collaborator_display_name
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from flask import render_template
 from io import BytesIO
 from typing import Any
@@ -1171,7 +1171,9 @@ def exportar_jornada_pdf():
         for c in targets:
             try:
                 hq = _range_filter(TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == c.id, TimeOffRecord.record_type == 'horas'), TimeOffRecord.date)
-                cq = _range_filter(TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == c.id, TimeOffRecord.record_type == 'folga_adicional'), TimeOffRecord.date)
+                # Folgas adicionais MANUAIS (excluindo as geradas automaticamente de horas)
+                # As folgas com origin='horas' já são contadas via days_from_hours, então não devem ser contadas aqui
+                cq = _range_filter(TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == c.id, TimeOffRecord.record_type == 'folga_adicional', or_(TimeOffRecord.origin != 'horas', TimeOffRecord.origin.is_(None))), TimeOffRecord.date)
                 aq = _range_filter(TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == c.id, TimeOffRecord.record_type == 'folga_usada'), TimeOffRecord.date)
                 vq = _range_filter(TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == c.id, TimeOffRecord.record_type == 'conversao'), TimeOffRecord.date)
                 # Calcular total bruto de horas (somando apenas horas positivas)

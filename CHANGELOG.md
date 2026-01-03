@@ -1,5 +1,119 @@
 # Changelog — MultiMax
 
+## [2.2.3] - 2025-01-03
+
+### 🎉 Novas Funcionalidades
+
+#### Sistema de Arquivamento de Jornada
+- **Arquivamento por Período**: Sistema completo para arquivar dados da jornada por período específico
+  - Interface administrativa para selecionar período de arquivamento (data início e fim)
+  - Copia todos os registros do período para tabela de arquivo permanente (`JornadaArchive`)
+  - Remove registros originais após arquivamento, reiniciando contadores para novo período
+  - Metadados de arquivamento (data de arquivamento, usuário que arquivou, descrição do período)
+  - Acesso restrito a administradores e desenvolvedores
+- **Histórico Completo**: Visualização de histórico completo de cada colaborador
+  - Combina registros arquivados + registros atuais em uma única visualização
+  - Disponível no perfil do colaborador através do botão "Ver Histórico Completo"
+  - Abre em nova aba para facilitar navegação e comparação
+  - Exibe totais consolidados (horas totais, folgas, conversões, valores pagos)
+  - Indicação visual clara de registros arquivados vs. registros atuais
+  - Tabela detalhada com todos os registros ordenados por data
+- **Modelo de Dados**: Nova tabela `JornadaArchive` para armazenar registros arquivados
+  - Mantém todos os dados originais (horas, dias, valores, observações, origin, etc.)
+  - Preserva metadados originais (criado por, data de criação)
+  - Índices otimizados para consultas rápidas por colaborador e período
+  - Relacionamento com modelo `Collaborator` para consultas eficientes
+
+#### Exportação de Produtos
+- **Exclusão de Produtos**: Funcionalidade para excluir produtos do estoque
+  - Botão de exclusão em cards do dashboard e tabela de produtos
+  - Validação de permissões (apenas operador, admin e DEV)
+  - Confirmação via JavaScript antes de excluir
+  - Exclusão em cascata de registros históricos associados
+  - Mensagens de feedback para o usuário
+
+### 🐛 Correções
+
+#### Gestão de Usuários e Colaboradores
+- **Validação de Nome**: Adicionada validação obrigatória do nome ao criar colaborador/usuário
+  - Prevenção de criação de usuários sem nome
+  - Mensagens de erro claras para o usuário
+- **Normalização de Username**: Username agora é normalizado automaticamente
+  - Remove caracteres especiais e não alfanuméricos
+  - Converte para minúsculas automaticamente
+  - Mantém apenas letras e números
+  - Validação para garantir que username normalizado não fique vazio após normalização
+  - Mensagens de feedback exibem o username normalizado gerado
+- **Melhorias de Segurança**: Validações adicionais para prevenir criação de usuários inválidos
+  - Tratamento robusto de erros durante criação
+  - Rollback automático em caso de falha
+
+#### Sistema de Jornada
+- **Cálculo de Saldo no Perfil**: Correção crítica no cálculo de horas e folgas no perfil do colaborador
+  - Exclusão correta de folgas com `origin='horas'` do cálculo de `credits_sum` para evitar duplicação
+  - Remoção de código de reconciliação automática desatualizado que causava inconsistências
+  - Uso da mesma lógica corrigida do sistema de jornada principal (`_calculate_collaborator_balance`)
+  - Cálculos agora são consistentes entre perfil e página de jornada
+
+#### Notificações
+- **URL de Notificações de Limpeza**: Correção na URL das notificações de limpeza
+  - Removida barra final desnecessária (`/cronograma/` → `/cronograma`)
+  - Links agora funcionam corretamente quando clicados nas notificações
+  - Correção aplicada em `multimax/routes/api.py` e `multimax/routes/home.py`
+
+### 📝 Arquivos Modificados
+
+#### Novos Arquivos
+- `multimax/models.py`: Adicionado modelo `JornadaArchive` (26 linhas)
+- `templates/jornada/arquivar.html`: Interface de arquivamento (79 linhas)
+- `templates/jornada/historico.html`: Visualização de histórico completo (189 linhas)
+- `INSTALACAO_VPS.md`: Documentação de instalação em VPS (166 linhas)
+- `create_deploy_zip.py`: Script para criar pacote de deploy (92 linhas)
+
+#### Arquivos Alterados
+- `multimax/routes/jornada.py`: 
+  - Rotas de arquivamento (`/arquivar`) e histórico (`/historico/<collaborator_id>`)
+  - Funções auxiliares para arquivamento e visualização
+  - Refatorações diversas (860 linhas adicionadas, 689 removidas)
+- `multimax/routes/usuarios.py`: 
+  - Correções na criação de usuários (`gestao_colabs_criar`)
+  - Correção no cálculo de perfil (`perfil`)
+  - Validações e normalização (20 linhas adicionadas, 58 removidas)
+- `multimax/routes/exportacao.py`: 
+  - Novas rotas de exportação PDF de jornada (252 linhas adicionadas)
+- `multimax/routes/estoque.py`: 
+  - Rota de exclusão de produtos (`excluir_produto`)
+  - Exclusão em cascata de histórico (14 linhas adicionadas, 4 removidas)
+- `multimax/routes/api.py`: 
+  - Correção na URL de notificações (1 linha modificada)
+- `templates/jornada/index.html`: 
+  - Botão de arquivamento adicionado (31 linhas adicionadas, 4 removidas)
+- `templates/perfil.html`: 
+  - Botão para visualizar histórico completo (11 linhas adicionadas)
+- `templates/produtos.html`: 
+  - Botão de exclusão em tabela (11 linhas adicionadas, 2 removidas)
+- `templates/index.html`: 
+  - Botão de exclusão em cards de produtos (8 linhas adicionadas)
+
+### 🔧 Melhorias Técnicas
+
+- **Validações Robustas**: Validações mais robustas em formulários de criação de usuários
+- **Normalização de Dados**: Normalização consistente de dados de entrada (usernames)
+- **Estrutura de Arquivamento**: Estrutura de arquivamento preparada para histórico de longo prazo
+- **Interface Administrativa**: Interface administrativa intuitiva para operações de arquivamento
+- **Integridade de Dados**: Exclusão em cascata mantém integridade referencial
+- **Performance**: Índices adicionados no modelo `JornadaArchive` para consultas eficientes
+
+### 📊 Estatísticas da Versão
+
+- **14 arquivos modificados**
+- **1.760 linhas adicionadas**
+- **758 linhas removidas**
+- **5 arquivos novos criados**
+- **1 modelo de banco de dados novo**
+
+---
+
 ## [2.2] - 2025-01-XX
 
 ### ⚡ Otimizações de Performance
