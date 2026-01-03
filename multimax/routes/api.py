@@ -382,7 +382,7 @@ def get_notifications():
                     'color': color,
                     'title': f'Tarefa: {t.nome_limpeza[:25]}',
                     'subtitle': status,
-                    'url': '/cronograma/',
+                    'url': '/cronograma',
                     'time': status
                 })
     except Exception:

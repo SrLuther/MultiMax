@@ -10,6 +10,7 @@ from flask import Blueprint, redirect, url_for, flash, send_file, request
 from flask_login import login_required, current_user
 from ..models import Produto, CleaningTask as CleaningTaskModel, CleaningHistory as CleaningHistoryModel, Historico, MeatReception, MeatCarrier, MeatPart, User, Recipe, RecipeIngredient
 from ..models import Collaborator, TimeOffRecord
+from ..routes.jornada import _calculate_collaborator_balance, _get_collaborator_display_name
 from sqlalchemy import func
 from flask import render_template
 from io import BytesIO
@@ -1238,6 +1239,257 @@ def exportar_jornada_pdf():
             ('RIGHTPADDING', (0,0), (-1,-1), 6),
         ]))
         story.append(table_events)
+        def on_page(canvas, doc):
+            _brand_header(canvas, doc, 'Relatório de Jornada')
+            _draw_cards_bg(canvas, doc, canvas.getPageNumber() == 1)
+            _premium_footer(canvas, doc, 'Jornada')
+        doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
+        final_io = _finalize_pdf(pdf_buffer)
+        return _send_pdf(final_io, filename)
+    except Exception as e:
+        flash(f'Erro ao gerar PDF de Jornada: {e}', 'danger')
+        return redirect(url_for('jornada.index'))
+
+class MetricCard(Flowable):
+    """Card elegante para métricas com design moderno"""
+    def __init__(self, title: str, value: str, subtitle: str = '', accent_color: str = PDF_PRIMARY, width: float = None):
+        super().__init__()
+        self.title = title
+        self.value = value
+        self.subtitle = subtitle
+        self.accent_color = accent_color
+        self.width = width
+        self._w = 0
+        self._h = 0
+    
+    def wrap(self, availWidth, availHeight):
+        if self.width:
+            self._w = min(self.width, availWidth)
+        else:
+            self._w = availWidth
+        self._h = 1.2 * inch
+        return (self._w, self._h)
+    
+    def draw(self):
+        from reportlab.lib.colors import HexColor
+        c = self.canv
+        c.saveState()
+        c.setFillColor(colors.white)
+        c.setStrokeColor(HexColor('#e2e8f0'))
+        c.setLineWidth(1.5)
+        c.roundRect(0, 0, self._w, self._h, 12, stroke=True, fill=True)
+        c.setFillColor(HexColor(self.accent_color))
+        c.roundRect(0, self._h - 6, self._w, 6, 12, stroke=False, fill=True)
+        padding = 14
+        x = padding
+        y_top = self._h - padding
+        c.setFillColor(HexColor('#64748b'))
+        c.setFont(_font_normal(), 9)
+        c.drawString(x, y_top - 12, self.title)
+        c.setFillColor(HexColor('#0f172a'))
+        c.setFont(_font_bold(), 24)
+        value_y = y_top - 40
+        c.drawString(x, value_y, self.value)
+        if self.subtitle:
+            c.setFillColor(HexColor('#94a3b8'))
+            c.setFont(_font_normal(), 8)
+            c.drawString(x, value_y - 20, self.subtitle)
+        c.restoreState()
+
+def _create_metrics_grid(balance_data: dict, avail_width: float) -> list:
+    """Cria grid de cards de métricas elegantes"""
+    card_width = (avail_width - 20) / 3
+    metrics = [
+        MetricCard('Total Bruto de Horas', f"{balance_data['total_bruto_hours']:.2f}", 'h', PDF_PRIMARY, card_width),
+        MetricCard('Dias Convertidos', f"{balance_data['days_from_hours']}", 'dias (8h = 1 dia)', PDF_SECONDARY, card_width),
+        MetricCard('Horas Residuais', f"{balance_data['residual_hours']:.2f}", 'h restantes', PDF_SUCCESS, card_width),
+        MetricCard('Saldo de Folgas', f"{balance_data['saldo_days']}", 'dias disponíveis', PDF_PRIMARY_DARK, card_width),
+        MetricCard('Folgas Usadas', f"{balance_data['assigned_sum']}", 'dias', PDF_WARNING, card_width),
+        MetricCard('Conversões', f"{balance_data['converted_sum']}", 'dias convertidos', PDF_DANGER, card_width),
+    ]
+    return metrics
+
+@bp.route('/exportar/jornada/colaborador/<int:collaborator_id>.pdf')
+@login_required
+def exportar_jornada_colaborador_pdf(collaborator_id):
+    """Exportar PDF individual de jornada para um colaborador específico"""
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
+        flash('Você não tem permissão para exportar relatório de jornada.', 'danger')
+        return redirect(url_for('jornada.index'))
+    try:
+        colaborador = Collaborator.query.get_or_404(collaborator_id)
+        display_name = _get_collaborator_display_name(colaborador) or colaborador.name
+        inicio = (request.args.get('inicio') or '').strip()
+        fim = (request.args.get('fim') or '').strip()
+        di = None
+        df = None
+        try:
+            if inicio:
+                di = datetime.strptime(inicio, '%Y-%m-%d').date()
+        except Exception:
+            di = None
+        try:
+            if fim:
+                df = datetime.strptime(fim, '%Y-%m-%d').date()
+        except Exception:
+            df = None
+        balance = _calculate_collaborator_balance(collaborator_id, di, df)
+        filters = [TimeOffRecord.collaborator_id == collaborator_id]
+        if di:
+            filters.append(TimeOffRecord.date >= di)
+        if df:
+            filters.append(TimeOffRecord.date <= df)
+        records = TimeOffRecord.query.filter(*filters).order_by(TimeOffRecord.date.desc()).all()
+        filename = f'jornada_{colaborador.name.replace(" ", "_")}_{datetime.now().strftime("%Y%m%d")}.pdf'
+        pdf_buffer = BytesIO()
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, leftMargin=0.6*inch, rightMargin=0.6*inch, topMargin=1.15*inch, bottomMargin=0.7*inch)
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(name='Cell', parent=styles['Normal'], fontSize=9, leading=12, wordWrap='LTR'))
+        styles.add(ParagraphStyle(name='SectionTitle', parent=styles['Heading2'], fontSize=16, leading=20, textColor=colors.HexColor(PDF_SECONDARY), fontName=_font_bold(), spaceBefore=16, spaceAfter=12))
+        story: list[Any] = []
+        periodo_str = f"{inicio or 'Início'} até {fim or 'Fim'}" if (inicio or fim) else 'Período completo'
+        story.append(_make_info_block('Relatório de Jornada — Colaborador', [('Colaborador', display_name), ('Período', periodo_str)], registrado_por=None))
+        story.append(Spacer(1, 0.4 * inch))
+        story.append(Paragraph('Métricas Principais', styles['SectionTitle']))
+        story.append(Spacer(1, 0.2 * inch))
+        metrics = _create_metrics_grid(balance, doc.width)
+        from reportlab.platypus import Table as TableFlowable
+        metrics_table_data = []
+        for i in range(0, len(metrics), 3):
+            row = metrics[i:i+3]
+            while len(row) < 3:
+                row.append(Spacer(1, 1.2*inch))
+            metrics_table_data.append(row)
+        metrics_table = TableFlowable(metrics_table_data, colWidths=[(doc.width - 20) / 3] * 3, hAlign='LEFT')
+        metrics_table.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('LEFTPADDING', (0, 0), (-1, -1), 0), ('RIGHTPADDING', (0, 0), (-1, -1), 10), ('BOTTOMPADDING', (0, 0), (-1, -1), 10)]))
+        story.append(metrics_table)
+        story.append(Spacer(1, 0.4 * inch))
+        story.append(Paragraph('Registros do Período', styles['SectionTitle']))
+        story.append(Spacer(1, 0.2 * inch))
+        tipo_labels = {'horas': 'Horas Trabalhadas', 'folga_adicional': 'Folga Adicional', 'folga_usada': 'Folga Usada', 'conversao': 'Conversão em R$'}
+        data_table: list[list[Any]] = [['Data', 'Tipo', 'Horas', 'Dias', 'Valor Pago', 'Observações']]
+        for r in records:
+            tipo_label = tipo_labels.get(r.record_type, r.record_type)
+            horas_str = f"{float(r.hours or 0):.2f} h" if r.hours else ''
+            dias_str = f"{int(r.days or 0)}" if r.days else ''
+            valor_str = f"R$ {float(r.amount_paid or 0):.2f}" if r.amount_paid else ''
+            obs_str = (r.notes or '')[:60] + ('...' if len(r.notes or '') > 60 else '')
+            data_table.append([r.date.strftime('%d/%m/%Y'), tipo_label, horas_str, dias_str, valor_str, Paragraph(obs_str, styles['Cell'])])
+        table = TableFlowable(data_table, colWidths=[1.0*inch, 1.3*inch, 0.9*inch, 0.8*inch, 1.1*inch, None], hAlign='LEFT')
+        table.setStyle(_premium_table_style(PDF_SECONDARY))
+        story.append(table)
+        def on_page(canvas, doc):
+            _brand_header(canvas, doc, 'Relatório de Jornada')
+            _draw_cards_bg(canvas, doc, canvas.getPageNumber() == 1)
+            _premium_footer(canvas, doc, 'Jornada')
+        doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
+        final_io = _finalize_pdf(pdf_buffer)
+        return _send_pdf(final_io, filename)
+    except Exception as e:
+        flash(f'Erro ao gerar PDF de Jornada: {e}', 'danger')
+        return redirect(url_for('jornada.index'))
+
+@bp.route('/exportar/jornada/todos.pdf')
+@login_required
+def exportar_jornada_todos_pdf():
+    """Exportar PDF coletivo de jornada para todos os colaboradores"""
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
+        flash('Você não tem permissão para exportar relatório de jornada.', 'danger')
+        return redirect(url_for('jornada.index'))
+    try:
+        inicio = (request.args.get('inicio') or '').strip()
+        fim = (request.args.get('fim') or '').strip()
+        di = None
+        df = None
+        try:
+            if inicio:
+                di = datetime.strptime(inicio, '%Y-%m-%d').date()
+        except Exception:
+            di = None
+        try:
+            if fim:
+                df = datetime.strptime(fim, '%Y-%m-%d').date()
+        except Exception:
+            df = None
+        colaboradores = Collaborator.query.filter_by(active=True).order_by(Collaborator.name.asc()).all()
+        colaboradores_data = []
+        for colab in colaboradores:
+            balance = _calculate_collaborator_balance(colab.id, di, df)
+            display_name = _get_collaborator_display_name(colab) or colab.name
+            colaboradores_data.append({'colaborador': colab, 'display_name': display_name, 'balance': balance})
+        filename = f'jornada_todos_{datetime.now().strftime("%Y%m%d")}.pdf'
+        pdf_buffer = BytesIO()
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, leftMargin=0.6*inch, rightMargin=0.6*inch, topMargin=1.15*inch, bottomMargin=0.7*inch)
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(name='Cell', parent=styles['Normal'], fontSize=9, leading=12, wordWrap='LTR'))
+        styles.add(ParagraphStyle(name='SectionTitle', parent=styles['Heading2'], fontSize=16, leading=20, textColor=colors.HexColor(PDF_SECONDARY), fontName=_font_bold(), spaceBefore=16, spaceAfter=12))
+        styles.add(ParagraphStyle(name='ColaboradorTitle', parent=styles['Heading2'], fontSize=14, leading=18, textColor=colors.HexColor('#0f172a'), fontName=_font_bold(), spaceBefore=20, spaceAfter=10))
+        story: list[Any] = []
+        periodo_str = f"{inicio or 'Início'} até {fim or 'Fim'}" if (inicio or fim) else 'Período completo'
+        story.append(_make_info_block('Relatório de Jornada — Todos os Colaboradores', [('Período', periodo_str), ('Total de Colaboradores', str(len(colaboradores_data)))], registrado_por=None))
+        story.append(Spacer(1, 0.4 * inch))
+        story.append(Paragraph('Resumo Geral', styles['SectionTitle']))
+        story.append(Spacer(1, 0.2 * inch))
+        data_resumo: list[list[Any]] = [['Colaborador', 'Total Horas', 'Dias Conv.', 'Horas Resid.', 'Saldo Folgas', 'Folgas Usadas', 'Conversões']]
+        for cd in colaboradores_data:
+            data_resumo.append([Paragraph(cd['display_name'], styles['Cell']), f"{cd['balance']['total_bruto_hours']:.2f} h", f"{cd['balance']['days_from_hours']}", f"{cd['balance']['residual_hours']:.2f} h", f"{cd['balance']['saldo_days']}", f"{cd['balance']['assigned_sum']}", f"{cd['balance']['converted_sum']}"])
+        from reportlab.platypus import Table as TableFlowable
+        avail_width = doc.width
+        table_resumo = TableFlowable(data_resumo, colWidths=[1.8*inch, 0.85*inch, 0.85*inch, 1.0*inch, 1.0*inch, 1.0*inch, 0.8*inch], hAlign='LEFT')
+        table_style_resumo = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(PDF_SECONDARY)),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('FONTNAME', (0, 0), (-1, 0), _font_bold()),
+            ('FONTSIZE', (0, 0), (-1, 0), 8),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('TOPPADDING', (0, 0), (-1, 0), 8),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+            ('TOPPADDING', (0, 1), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+            ('LINEBELOW', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8fafc')]),
+        ])
+        table_resumo.setStyle(table_style_resumo)
+        story.append(table_resumo)
+        for cd in colaboradores_data:
+            story.append(PageBreak())
+            story.append(Paragraph(cd['display_name'], styles['ColaboradorTitle']))
+            story.append(Spacer(1, 0.3 * inch))
+            metrics = _create_metrics_grid(cd['balance'], doc.width)
+            metrics_table_data = []
+            for i in range(0, len(metrics), 3):
+                row = metrics[i:i+3]
+                while len(row) < 3:
+                    row.append(Spacer(1, 1.2*inch))
+                metrics_table_data.append(row)
+            metrics_table = TableFlowable(metrics_table_data, colWidths=[(doc.width - 20) / 3] * 3, hAlign='LEFT')
+            metrics_table.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('LEFTPADDING', (0, 0), (-1, -1), 0), ('RIGHTPADDING', (0, 0), (-1, -1), 10), ('BOTTOMPADDING', (0, 0), (-1, -1), 10)]))
+            story.append(metrics_table)
+            story.append(Spacer(1, 0.4 * inch))
+            story.append(Paragraph('Registros Detalhados', styles['SectionTitle']))
+            story.append(Spacer(1, 0.2 * inch))
+            filters_det = [TimeOffRecord.collaborator_id == cd['colaborador'].id]
+            if di:
+                filters_det.append(TimeOffRecord.date >= di)
+            if df:
+                filters_det.append(TimeOffRecord.date <= df)
+            records_det = TimeOffRecord.query.filter(*filters_det).order_by(TimeOffRecord.date.desc()).all()
+            tipo_labels = {'horas': 'Horas', 'folga_adicional': 'Folga Adicional', 'folga_usada': 'Folga Usada', 'conversao': 'Conversão'}
+            data_table_det: list[list[Any]] = [['Data', 'Tipo', 'Horas', 'Dias', 'Valor Pago', 'Observações']]
+            for r in records_det:
+                tipo_label = tipo_labels.get(r.record_type, r.record_type)
+                horas_str = f"{float(r.hours or 0):.2f}" if r.hours else ''
+                dias_str = f"{int(r.days or 0)}" if r.days else ''
+                valor_str = f"R$ {float(r.amount_paid or 0):.2f}" if r.amount_paid else ''
+                obs_str = (r.notes or '')[:60] + ('...' if len(r.notes or '') > 60 else '')
+                data_table_det.append([r.date.strftime('%d/%m/%Y'), tipo_label, horas_str, dias_str, valor_str, Paragraph(obs_str, styles['Cell'])])
+            table_det = TableFlowable(data_table_det, colWidths=[1.0*inch, 1.2*inch, 0.9*inch, 0.8*inch, 1.1*inch, None], hAlign='LEFT')
+            table_det.setStyle(_premium_table_style(PDF_SECONDARY))
+            story.append(table_det)
         def on_page(canvas, doc):
             _brand_header(canvas, doc, 'Relatório de Jornada')
             _draw_cards_bg(canvas, doc, canvas.getPageNumber() == 1)

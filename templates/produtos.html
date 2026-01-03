@@ -63,8 +63,17 @@
           </a>
         </td>
         <td class="text-center">
-          {% if current_user.nivel in ('operador','admin') %}
-          <a class="btn btn-outline-info btn-sm" href="{{ url_for('estoque.editar', id=p.id) }}">EDITAR</a>
+          {% if current_user.nivel in ('operador','admin', 'DEV') %}
+          <div class="btn-group" role="group">
+            <a class="btn btn-outline-info btn-sm" href="{{ url_for('estoque.editar', id=p.id) }}" title="Editar">
+              <i class="bi bi-pencil"></i> EDITAR
+            </a>
+            <form method="post" action="{{ url_for('estoque.excluir_produto', id=p.id) }}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir o produto {{ p.nome }} ({{ p.codigo }})? Esta ação não pode ser desfeita.');">
+              <button class="btn btn-outline-danger btn-sm" type="submit" title="Excluir">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </div>
           {% endif %}
         </td>
       </tr>

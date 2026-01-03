@@ -246,6 +246,32 @@ class TimeOffRecord(db.Model):
     
     collaborator = db.relationship('Collaborator', backref='time_off_records', lazy=True)
 
+class JornadaArchive(db.Model):
+    """Tabela para armazenar registros arquivados da jornada"""
+    __tablename__ = 'jornada_archive'
+    id = db.Column(db.Integer, primary_key=True)
+    archive_period_start = db.Column(db.Date, nullable=False, index=True)  # Data início do período arquivado
+    archive_period_end = db.Column(db.Date, nullable=False, index=True)  # Data fim do período arquivado
+    archived_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')), nullable=False, index=True)
+    archived_by = db.Column(db.String(100), nullable=True)  # Usuário que arquivou
+    description = db.Column(db.String(500), nullable=True)  # Descrição do período arquivado
+    
+    # Dados do registro original (cópia)
+    original_record_id = db.Column(db.Integer, nullable=False, index=True)  # ID original do registro
+    collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'), nullable=False, index=True)
+    date = db.Column(db.Date, nullable=False, index=True)
+    record_type = db.Column(db.String(20), nullable=False, index=True)
+    hours = db.Column(db.Float, nullable=True)
+    days = db.Column(db.Integer, nullable=True)
+    amount_paid = db.Column(db.Float, nullable=True)
+    rate_per_day = db.Column(db.Float, nullable=True)
+    origin = db.Column(db.String(50), nullable=True)
+    notes = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=True)  # Data original de criação
+    created_by = db.Column(db.String(100), nullable=True)  # Usuário que criou o registro original
+    
+    collaborator = db.relationship('Collaborator', backref='jornada_archives', lazy=True)
+
 # class LeaveConversion(db.Model):
 #     id = db.Column(db.Integer, primary_key=True)
 #     collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'))

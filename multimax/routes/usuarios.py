@@ -464,18 +464,19 @@ def perfil():
     try:
         collab = Collaborator.query.filter_by(user_id=current_user.id).first()
         if collab:
-            # Usar cálculo unificado de saldo (mesma lógica do jornada.py)
-            from sqlalchemy import func
+            # Usar função corrigida de cálculo de saldo (mesma do jornada.py)
+            from sqlalchemy import func, or_
             from datetime import date as _date
             
-            # Calcular saldo usando a mesma lógica do sistema de jornada
+            # Calcular saldo usando a mesma lógica CORRIGIDA do sistema de jornada
             filters = [TimeOffRecord.collaborator_id == collab.id]
             hq = TimeOffRecord.query.filter(*filters, TimeOffRecord.record_type == 'horas')
             total_bruto_hours = sum(float(r.hours or 0.0) for r in hq.all() if (r.hours or 0.0) > 0)
             days_from_hours = int(total_bruto_hours // 8.0) if total_bruto_hours >= 0.0 else 0
             residual_hours = (total_bruto_hours % 8.0) if total_bruto_hours >= 0.0 else 0.0
             
-            credits_sum = int(TimeOffRecord.query.filter(*filters, TimeOffRecord.record_type == 'folga_adicional').with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
+            # CORREÇÃO: Excluir folgas com origin='horas' (já estão em days_from_hours)
+            credits_sum = int(TimeOffRecord.query.filter(*filters, TimeOffRecord.record_type == 'folga_adicional', or_(TimeOffRecord.origin != 'horas', TimeOffRecord.origin.is_(None))).with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
             assigned_sum = int(TimeOffRecord.query.filter(*filters, TimeOffRecord.record_type == 'folga_usada').with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
             converted_sum = int(TimeOffRecord.query.filter(*filters, TimeOffRecord.record_type == 'conversao').with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
             folga_balance = credits_sum + days_from_hours - assigned_sum - converted_sum
@@ -489,56 +490,6 @@ def perfil():
                 'converted_sum': converted_sum,
                 'saldo_days': folga_balance
             }
-            
-            # Reconciliar conversões automáticas se necessário
-            try:
-                total_pre = total_bruto_hours
-                auto_credits_pre = int(TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == collab.id, TimeOffRecord.record_type == 'folga_adicional', TimeOffRecord.origin == 'horas').with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
-                desired_pre = int(total_pre // 8.0) if total_pre > 0.0 else 0
-                missing_pre = max(0, desired_pre - auto_credits_pre)
-                if missing_pre > 0:
-                    for _ in range(missing_pre):
-                        lc = TimeOffRecord()
-                        lc.collaborator_id = collab.id
-                        lc.date = _date.today()
-                        lc.record_type = 'folga_adicional'
-                        lc.days = 1
-                        lc.origin = 'horas'
-                        lc.notes = 'Reconciliação automática: crédito por 8h acumuladas'
-                        lc.created_by = 'sistema'
-                        db.session.add(lc)
-                    for _ in range(missing_pre):
-                        adj = TimeOffRecord()
-                        adj.collaborator_id = collab.id
-                        adj.date = _date.today()
-                        adj.record_type = 'horas'
-                        adj.hours = -8.0
-                        adj.notes = 'Reconciliação automática: -8h por +1 dia'
-                        adj.origin = 'sistema'
-                        adj.created_by = 'sistema'
-                        db.session.add(adj)
-                    db.session.commit()
-                    # Recalcular após reconciliação
-                    hq = TimeOffRecord.query.filter(*filters, TimeOffRecord.record_type == 'horas')
-                    total_bruto_hours = sum(float(r.hours or 0.0) for r in hq.all() if (r.hours or 0.0) > 0)
-                    days_from_hours = int(total_bruto_hours // 8.0) if total_bruto_hours >= 0.0 else 0
-                    residual_hours = (total_bruto_hours % 8.0) if total_bruto_hours >= 0.0 else 0.0
-                    credits_sum = int(TimeOffRecord.query.filter(*filters, TimeOffRecord.record_type == 'folga_adicional').with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
-                    folga_balance = credits_sum + days_from_hours - assigned_sum - converted_sum
-                    balance_data = {
-                        'total_bruto_hours': total_bruto_hours,
-                        'days_from_hours': days_from_hours,
-                        'residual_hours': residual_hours,
-                        'credits_sum': credits_sum,
-                        'assigned_sum': assigned_sum,
-                        'converted_sum': converted_sum,
-                        'saldo_days': folga_balance
-                    }
-            except Exception:
-                try:
-                    db.session.rollback()
-                except Exception:
-                    pass
             
             # Buscar registros para exibição
             entries = TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == collab.id, TimeOffRecord.record_type == 'horas').order_by(TimeOffRecord.date.desc()).limit(50).all()
@@ -1321,6 +1272,11 @@ def gestao_colabs_criar():
     password = request.form.get('password', '').strip()
     nivel = request.form.get('nivel', 'visualizador').strip()
     
+    # Validação básica
+    if not nome:
+        flash('Nome é obrigatório.', 'danger')
+        return redirect(url_for('usuarios.gestao'))
+    
     try:
         # Criar colaborador
         c = Collaborator()
@@ -1337,9 +1293,15 @@ def gestao_colabs_criar():
                 flash('Senha é obrigatória quando criar usuário.', 'danger')
                 return redirect(url_for('usuarios.gestao'))
             
+            # Normalizar username (apenas letras e números, minúsculas)
+            username_normalized = ''.join(ch for ch in username.lower() if ch.isalnum())
+            if not username_normalized:
+                flash('Login deve conter pelo menos uma letra ou número.', 'danger')
+                return redirect(url_for('usuarios.gestao'))
+            
             # Verificar se username já existe
-            if User.query.filter_by(username=username).first():
-                flash(f'Login "{username}" já existe. Escolha outro.', 'danger')
+            if User.query.filter_by(username=username_normalized).first():
+                flash(f'Login "{username_normalized}" já existe. Escolha outro.', 'danger')
                 return redirect(url_for('usuarios.gestao'))
             
             # Apenas DEV pode criar usuários com nível admin/DEV
@@ -1350,7 +1312,7 @@ def gestao_colabs_criar():
             # Criar usuário
             u = User()
             u.name = nome
-            u.username = username
+            u.username = username_normalized
             u.password_hash = generate_password_hash(password)
             u.nivel = nivel
             db.session.add(u)
@@ -1363,7 +1325,7 @@ def gestao_colabs_criar():
         db.session.commit()
         
         if username:
-            flash(f'Colaborador/Usuário "{nome}" criado com login "{username}".', 'success')
+            flash(f'Colaborador/Usuário "{nome}" criado com login "{username_normalized}".', 'success')
         else:
             flash(f'Colaborador "{nome}" criado (sem usuário).', 'success')
     except Exception as e:

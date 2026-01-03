@@ -188,6 +188,17 @@
         </div>
         <div class="mm-kpi-label">Saldo de Folgas</div>
         <div class="mm-kpi-value mm-text-success">{{ balance_data.saldo_days }} dias</div>
+        {% if collab %}
+        <div class="mm-kpi-action mt-2">
+            <a href="{{ url_for('jornada.historico_colaborador', collaborator_id=collab.id) }}" 
+               class="btn btn-sm btn-outline-primary" 
+               target="_blank"
+               title="Visualizar histórico completo (abre em nova aba)">
+                <i class="bi bi-clock-history"></i>
+                Ver Histórico Completo
+            </a>
+        </div>
+        {% endif %}
         <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Disponíveis</small>
     </div>
     

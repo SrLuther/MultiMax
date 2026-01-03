@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, session
 from flask_login import login_required, current_user
 from .. import db
-from ..models import Collaborator, User, TimeOffRecord, Holiday, SystemLog, Vacation, MedicalCertificate
+from ..models import Collaborator, User, TimeOffRecord, Holiday, SystemLog, Vacation, MedicalCertificate, JornadaArchive
 from ..filename_utils import secure_filename
 from datetime import datetime, date
 from zoneinfo import ZoneInfo
@@ -687,3 +687,174 @@ def atestado_excluir(id: int):
         db.session.rollback()
         flash(f'Erro ao excluir: {e}', 'danger')
     return redirect(url_for('jornada.index', collaborator_id=collaborator_id))
+
+
+
+@bp.route('/arquivar', methods=['GET', 'POST'])
+@login_required
+def arquivar():
+    """Arquivar todos os registros de jornada e reiniciar contadores"""
+    if current_user.nivel not in ('admin', 'DEV'):
+        flash('Acesso negado. Apenas Administradores podem arquivar dados.', 'danger')
+        return redirect(url_for('jornada.index'))
+    
+    if request.method == 'POST':
+        period_start_str = request.form.get('period_start', '').strip()
+        period_end_str = request.form.get('period_end', '').strip()
+        description = request.form.get('description', '').strip()
+        
+        if not period_start_str or not period_end_str:
+            flash('Período de início e fim são obrigatórios.', 'danger')
+            first_record = TimeOffRecord.query.order_by(TimeOffRecord.date.asc()).first()
+            last_record = TimeOffRecord.query.order_by(TimeOffRecord.date.desc()).first()
+            suggested_start = first_record.date if first_record else date.today()
+            suggested_end = last_record.date if last_record else date.today()
+            return render_template('jornada/arquivar.html', active_page='jornada', suggested_start=suggested_start, suggested_end=suggested_end)
+        
+        try:
+            period_start = datetime.strptime(period_start_str, '%Y-%m-%d').date()
+            period_end = datetime.strptime(period_end_str, '%Y-%m-%d').date()
+            
+            if period_start > period_end:
+                flash('Data de início deve ser anterior à data de fim.', 'danger')
+                first_record = TimeOffRecord.query.order_by(TimeOffRecord.date.asc()).first()
+                last_record = TimeOffRecord.query.order_by(TimeOffRecord.date.desc()).first()
+                suggested_start = first_record.date if first_record else date.today()
+                suggested_end = last_record.date if last_record else date.today()
+                return render_template('jornada/arquivar.html', active_page='jornada', suggested_start=suggested_start, suggested_end=suggested_end)
+            
+            records_to_archive = TimeOffRecord.query.filter(TimeOffRecord.date >= period_start, TimeOffRecord.date <= period_end).all()
+            
+            if not records_to_archive:
+                flash('Nenhum registro encontrado para arquivar no período especificado.', 'warning')
+                first_record = TimeOffRecord.query.order_by(TimeOffRecord.date.asc()).first()
+                last_record = TimeOffRecord.query.order_by(TimeOffRecord.date.desc()).first()
+                suggested_start = first_record.date if first_record else date.today()
+                suggested_end = last_record.date if last_record else date.today()
+                return render_template('jornada/arquivar.html', active_page='jornada', suggested_start=suggested_start, suggested_end=suggested_end)
+            
+            archived_count = 0
+            archived_at = datetime.now(ZoneInfo('America/Sao_Paulo'))
+            
+            for record in records_to_archive:
+                archive_record = JornadaArchive(
+                    archive_period_start=period_start,
+                    archive_period_end=period_end,
+                    archived_at=archived_at,
+                    archived_by=current_user.username or current_user.name,
+                    description=description,
+                    original_record_id=record.id,
+                    collaborator_id=record.collaborator_id,
+                    date=record.date,
+                    record_type=record.record_type,
+                    hours=record.hours,
+                    days=record.days,
+                    amount_paid=record.amount_paid,
+                    rate_per_day=record.rate_per_day,
+                    origin=record.origin,
+                    notes=record.notes,
+                    created_at=record.created_at,
+                    created_by=record.created_by
+                )
+                db.session.add(archive_record)
+                archived_count += 1
+            
+            for record in records_to_archive:
+                db.session.delete(record)
+            
+            db.session.commit()
+            flash(f'{archived_count} registro(s) arquivado(s) com sucesso. Todos os dados foram reiniciados.', 'success')
+            return redirect(url_for('jornada.index'))
+            
+        except ValueError:
+            flash('Formato de data inválido. Use o formato YYYY-MM-DD.', 'danger')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao arquivar: {e}', 'danger')
+    
+    first_record = TimeOffRecord.query.order_by(TimeOffRecord.date.asc()).first()
+    last_record = TimeOffRecord.query.order_by(TimeOffRecord.date.desc()).first()
+    suggested_start = first_record.date if first_record else date.today()
+    suggested_end = last_record.date if last_record else date.today()
+    return render_template('jornada/arquivar.html', active_page='jornada', suggested_start=suggested_start, suggested_end=suggested_end)
+
+
+@bp.route('/historico/<int:collaborator_id>')
+@login_required
+def historico_colaborador(collaborator_id):
+    """Visualizar histórico completo (arquivado + atual) de um colaborador"""
+    collab = Collaborator.query.get_or_404(collaborator_id)
+    
+    if current_user.nivel not in ('admin', 'DEV'):
+        user_collab = Collaborator.query.filter_by(user_id=current_user.id).first()
+        if not user_collab or user_collab.id != collaborator_id:
+            flash('Acesso negado. Você só pode visualizar seu próprio histórico.', 'danger')
+            return redirect(url_for('usuarios.perfil'))
+    
+    archived_records = JornadaArchive.query.filter_by(collaborator_id=collaborator_id).order_by(JornadaArchive.date.desc()).all()
+    current_records = TimeOffRecord.query.filter_by(collaborator_id=collaborator_id).order_by(TimeOffRecord.date.desc()).all()
+    
+    all_records = []
+    
+    for arch in archived_records:
+        all_records.append({
+            'id': arch.id,
+            'date': arch.date,
+            'record_type': arch.record_type,
+            'hours': arch.hours,
+            'days': arch.days,
+            'amount_paid': arch.amount_paid,
+            'rate_per_day': arch.rate_per_day,
+            'origin': arch.origin,
+            'notes': arch.notes,
+            'created_at': arch.created_at,
+            'created_by': arch.created_by,
+            'archived': True,
+            'archive_period': f"{arch.archive_period_start.strftime('%d/%m/%Y')} - {arch.archive_period_end.strftime('%d/%m/%Y')}",
+            'archived_at': arch.archived_at
+        })
+    
+    for curr in current_records:
+        all_records.append({
+            'id': curr.id,
+            'date': curr.date,
+            'record_type': curr.record_type,
+            'hours': curr.hours,
+            'days': curr.days,
+            'amount_paid': curr.amount_paid,
+            'rate_per_day': curr.rate_per_day,
+            'origin': curr.origin,
+            'notes': curr.notes,
+            'created_at': curr.created_at,
+            'created_by': curr.created_by,
+            'archived': False,
+            'archive_period': None,
+            'archived_at': None
+        })
+    
+    all_records.sort(key=lambda x: x['date'], reverse=True)
+    
+    total_hours = sum(r['hours'] or 0.0 for r in all_records if r['hours'] and r['hours'] > 0)
+    total_folgas_creditos = sum(r['days'] or 0 for r in all_records if r['record_type'] == 'folga_adicional' and (not r.get('origin') or r.get('origin') != 'horas'))
+    total_folgas_usadas = sum(r['days'] or 0 for r in all_records if r['record_type'] == 'folga_usada')
+    total_conversoes = sum(r['days'] or 0 for r in all_records if r['record_type'] == 'conversao')
+    total_valor_pago = sum(r['amount_paid'] or 0.0 for r in all_records if r['amount_paid'])
+    
+    tipo_labels = {
+        'horas': 'Horas Trabalhadas',
+        'folga_adicional': 'Folga Adicional',
+        'folga_usada': 'Folga Usada',
+        'conversao': 'Conversão em R$'
+    }
+    
+    return render_template('jornada/historico.html',
+                         active_page='jornada',
+                         collaborator=collab,
+                         records=all_records,
+                         tipo_labels=tipo_labels,
+                         total_hours=total_hours,
+                         total_folgas_creditos=total_folgas_creditos,
+                         total_folgas_usadas=total_folgas_usadas,
+                         total_conversoes=total_conversoes,
+                         total_valor_pago=total_valor_pago)
+

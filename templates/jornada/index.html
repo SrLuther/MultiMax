@@ -15,13 +15,40 @@
             </div>
             <div class="jornada-hero-actions">
                 {% if current_user.nivel in ('admin', 'DEV', 'operador') %}
-                <a class="btn-action btn-action-secondary" href="{{ url_for('jornada.export', collaborator_id=collaborator_id, inicio=data_inicio, fim=data_fim) }}">
-                    <i class="bi bi-download"></i>
-                    <span>Exportar</span>
-                </a>
+                <div class="btn-group">
+                    <button type="button" class="btn-action btn-action-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-download"></i>
+                        <span>Exportar</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('jornada.export', collaborator_id=collaborator_id, inicio=data_inicio, fim=data_fim) }}">
+                                <i class="bi bi-file-earmark-spreadsheet"></i> Exportar CSV
+                            </a>
+                        </li>
+                        {% if collaborator_id %}
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('exportacao.exportar_jornada_colaborador_pdf', collaborator_id=collaborator_id, inicio=data_inicio, fim=data_fim) }}">
+                                <i class="bi bi-file-earmark-pdf"></i> Exportar PDF Individual
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('exportacao.exportar_jornada_todos_pdf', inicio=data_inicio, fim=data_fim) }}">
+                                <i class="bi bi-file-earmark-pdf-fill"></i> Exportar PDF Todos
+                            </a>
+                        </li>
+                    </ul>
+                </div>
                 <a class="btn-action btn-action-primary" href="{{ url_for('jornada.novo') }}">
                     <i class="bi bi-plus-circle"></i>
                     <span>Novo Registro</span>
+                </a>
+                {% endif %}
+                {% if current_user.nivel in ('admin', 'DEV') %}
+                <a class="btn-action btn-action-danger" href="{{ url_for('jornada.arquivar') }}" style="background: var(--mm-danger); border-color: var(--mm-danger); color: white;">
+                    <i class="bi bi-archive"></i>
+                    <span>Arquivar Dados</span>
                 </a>
                 {% endif %}
             </div>

@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% block title %}Histórico Completo — {{ collaborator.name }} — MultiMax{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="max-width: 1400px; margin: 2rem auto; padding: 0 1rem;">
+    <!-- Header -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <div>
+                <h4 class="mb-0">
+                    <i class="bi bi-clock-history"></i>
+                    Histórico Completo — {{ collaborator.name }}
+                </h4>
+                <small class="text-white-50">Todos os registros (arquivados + atuais)</small>
+            </div>
+            <a href="{{ url_for('usuarios.perfil') }}" class="btn btn-light btn-sm">
+                <i class="bi bi-arrow-left"></i>
+                Voltar ao Perfil
+            </a>
+        </div>
+    </div>
+
+    <!-- Resumo -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Total de Horas</h6>
+                    <h3 class="text-primary mb-0">{{ "%.1f"|format(total_hours) }}h</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Folgas Adicionais</h6>
+                    <h3 class="text-success mb-0">{{ total_folgas_creditos }} dias</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Folgas Usadas</h6>
+                    <h3 class="text-warning mb-0">{{ total_folgas_usadas }} dias</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Conversões</h6>
+                    <h3 class="text-info mb-0">{{ total_conversoes }} dias</h3>
+                </div>
+            </div>
+        </div>
+        {% if total_valor_pago > 0 %}
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-secondary">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Total Pago</h6>
+                    <h3 class="text-secondary mb-0">R$ {{ "%.2f"|format(total_valor_pago) }}</h3>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Tabela de Registros -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="bi bi-list-ul"></i>
+                Registros Detalhados
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Data</th>
+                            <th>Tipo</th>
+                            <th>Horas</th>
+                            <th>Dias</th>
+                            <th>Valor Pago</th>
+                            <th>Observações</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if records %}
+                            {% for record in records %}
+                            <tr>
+                                <td>{{ record.date.strftime('%d/%m/%Y') }}</td>
+                                <td>
+                                    <span class="badge 
+                                        {% if record.record_type == 'horas' %}bg-info
+                                        {% elif record.record_type == 'folga_adicional' %}bg-success
+                                        {% elif record.record_type == 'folga_usada' %}bg-warning
+                                        {% elif record.record_type == 'conversao' %}bg-danger
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ tipo_labels.get(record.record_type, record.record_type) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if record.hours %}
+                                        {{ "%.1f"|format(record.hours) }}h
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if record.days %}
+                                        {{ record.days }}
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if record.amount_paid %}
+                                        R$ {{ "%.2f"|format(record.amount_paid) }}
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        {% if record.notes %}
+                                            {{ record.notes[:60] }}{% if record.notes|length > 60 %}...{% endif %}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </small>
+                                </td>
+                                <td>
+                                    {% if record.archived %}
+                                        <span class="badge bg-secondary" title="Arquivado em {{ record.archived_at.strftime('%d/%m/%Y %H:%M') if record.archived_at else '' }}">
+                                            <i class="bi bi-archive"></i>
+                                            Arquivado
+                                        </span>
+                                        {% if record.archive_period %}
+                                            <br><small class="text-muted">{{ record.archive_period }}</small>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-primary">
+                                            <i class="bi bi-clock"></i>
+                                            Atual
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">
+                                    <i class="bi bi-inbox"></i>
+                                    Nenhum registro encontrado.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .table td {
+        vertical-align: middle;
+    }
+    .card {
+        border: none;
+        border-radius: 8px;
+    }
+    .card-header {
+        border-radius: 8px 8px 0 0 !important;
+    }
+</style>
+{% endblock %}
+

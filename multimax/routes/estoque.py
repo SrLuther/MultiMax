@@ -312,16 +312,26 @@ def editar_produto(id: int):
     flash('Produto atualizado!', 'success')
     return redirect(url_for('estoque.lista_produtos'))
 
-@bp.route('/produtos/excluir/<int:id>')
+@bp.route('/produtos/excluir/<int:id>', methods=['POST'])
 @login_required
 def excluir_produto(id: int):
     if current_user.nivel == 'visualizador':
         flash('Visualizadores não têm permissão para fazer alterações no sistema.', 'danger')
         return redirect(url_for('estoque.lista_produtos'))
+    if current_user.nivel not in ('admin', 'DEV', 'operador'):
+        flash('Você não tem permissão para excluir produtos.', 'danger')
+        return redirect(url_for('estoque.lista_produtos'))
     produto = Produto.query.get_or_404(id)
-    db.session.delete(produto)
-    db.session.commit()
-    flash('Produto removido.', 'info')
+    try:
+        # Excluir histórico relacionado
+        Historico.query.filter_by(product_id=id).delete()
+        # Excluir produto
+        db.session.delete(produto)
+        db.session.commit()
+        flash(f'Produto "{produto.nome}" excluído com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir produto: {e}', 'danger')
     return redirect(url_for('estoque.lista_produtos'))
 
 @bp.route('/produtos/entrada/<int:id>', methods=['POST'])
