@@ -135,8 +135,8 @@ def _check_nginx_health():
                 opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
                 opener.addheaders = [('User-Agent', 'MultiMax-HealthCheck/1.0')]
                 
-                # Tenta fazer requisição HTTP para localhost
-                req = urllib.request.Request('http://127.0.0.1/', method='HEAD')
+                # Tenta fazer requisição HTTP para o hostname real
+                req = urllib.request.Request('http://multimax.tec.br/', method='HEAD')
                 response = opener.open(req, timeout=3)
                 
                 # Verifica se houve redirecionamento
@@ -155,10 +155,10 @@ def _check_nginx_health():
                 return False, None
         
         # Testa porta 80 (HTTP)
-        port_80_ok = _test_port('127.0.0.1', 80)
+        port_80_ok = _test_port('multimax.tec.br', 80)
         
         # Testa porta 443 (HTTPS)
-        port_443_ok = _test_port('127.0.0.1', 443)
+        port_443_ok = _test_port('multimax.tec.br', 443)
         
         # Se ambas as portas estão abertas
         if port_80_ok and port_443_ok:
