@@ -545,7 +545,7 @@ def perfil():
                     st = (ns.shift_type or '').lower()
                     if st.startswith('abertura'):
                         next_shift_hour = '05:00'
-                    elif st == 'fechamento':
+                    elif st == 'tarde':
                         next_shift_hour = '09:30'
                     elif st.startswith('domingo'):
                         next_shift_hour = '05:00'
@@ -601,7 +601,7 @@ def perfil():
                             st = (next_shift.shift_type or '').lower()
                             if st.startswith('abertura'):
                                 vacation_return_hour = '05:00'
-                            elif st == 'fechamento':
+                            elif st == 'tarde':
                                 vacation_return_hour = '09:30'
                             elif st.startswith('domingo'):
                                 vacation_return_hour = '05:00'

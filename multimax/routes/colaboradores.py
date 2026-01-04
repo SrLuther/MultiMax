@@ -76,9 +76,12 @@ def escala():
         turnos_map[key] = t
     
     horas_turno = {
-        'Manha': 8, 'Tarde': 8, 'Folga': 0,
-        'Abertura 5h': 8, 'Abertura 6h': 8, 'Fechamento': 8,
-        'Domingo 5h': 8, 'Domingo 6h': 7
+        'Abertura 5h': 8,  # 5h-11h e 13h-15h (2 pessoas)
+        'Abertura 6h': 8,  # 6h-11h e 13h-16h (1 pessoa)
+        'Tarde': 8,        # 9h30-13h e 15h-19h30 (3 pessoas)
+        'Domingo 5h': 8,   # 5h-13h (2 pessoas)
+        'Domingo 6h': 7,  # 6h-13h (1 pessoa)
+        'Folga': 0
     }
     horas_semana = {}
     for c in cols:
@@ -349,12 +352,7 @@ def escala():
     except Exception:
         pass
     try:
-        turno_colors = {
-            'Manha': '#22c55e',
-            'Tarde': '#3b82f6',
-            'Noite': '#8b5cf6',
-            'Folga': '#6b7280',
-        }
+        turno_colors = {'Abertura 5h': '#22c55e', 'Abertura 6h': '#10b981', 'Tarde': '#3b82f6', 'Domingo 5h': '#f59e0b', 'Domingo 6h': '#f97316', 'Folga': '#6b7280'}
         name_by_id = {c.id: c.name for c in cols}
         for t in turnos_semana:
             nm = name_by_id.get(t.collaborator_id) or f"ID {t.collaborator_id}"
@@ -642,7 +640,7 @@ def gerar_escala_automatica():
     equipe_fechamento = CollaboratorModel.query.filter_by(active=True, regular_team=close_team).order_by(CollaboratorModel.team_position.asc()).all()
     
     if len(equipe_abertura) < 3 or len(equipe_fechamento) < 3:
-        flash(f'Equipes incompletas. Abertura: {len(equipe_abertura)}/3, Fechamento: {len(equipe_fechamento)}/3. Configure as equipes primeiro.', 'warning')
+        flash(f'Equipe de Abertura incompleta: {len(equipe_abertura)}/3 pessoas necessárias. Equipe de Fechamento (Tarde) incompleta: {len(equipe_fechamento)}/3 pessoas necessárias. Configure as equipes primeiro.', 'warning')
         return redirect(url_for('colaboradores.escala', semana=semana_inicio.strftime('%Y-%m-%d')))
     
     tz = ZoneInfo('America/Sao_Paulo')
@@ -686,8 +684,8 @@ def gerar_escala_automatica():
                 shift = Shift()
                 shift.collaborator_id = colab.id
                 shift.date = dia
-                shift.turno = 'Fechamento'
-                shift.shift_type = 'fechamento'
+                shift.turno = 'Tarde'
+                shift.shift_type = 'tarde'
                 shift.auto_generated = True
                 shift.start_dt = datetime(dia.year, dia.month, dia.day, 9, 30, tzinfo=tz)
                 shift.end_dt = datetime(dia.year, dia.month, dia.day, 19, 30, tzinfo=tz)
@@ -779,7 +777,7 @@ def gerar_escala_automatica():
                         db.session.add(te)
         
         db.session.commit()
-        flash(f'Escala gerada com sucesso! {turnos_criados} turnos criados. Equipe {open_team} na abertura, Equipe {close_team} no fechamento.', 'success')
+        flash(f'Escala gerada com sucesso! {turnos_criados} turnos criados. Equipe {open_team} na abertura (2x Abertura 5h + 1x Abertura 6h), Equipe {close_team} no turno Tarde (3 pessoas).', 'success')
     except Exception as e:
         db.session.rollback()
         flash(f'Erro ao gerar escala: {e}', 'danger')
@@ -1061,3 +1059,6 @@ def folga_converter():
             pass
         flash(f'Erro ao registrar conversão: {e}', 'danger')
     return redirect(url_for('usuarios.gestao'))
+
+
+

@@ -11,7 +11,7 @@
                     <i class="bi bi-database db-title-icon"></i>
                     Banco de Dados
                 </h1>
-                <p class="db-subtitle">Gerencie backups e monitore a saúde do sistema</p>
+                <p class="db-subtitle">Painel Técnico de Desenvolvimento e Monitoramento</p>
             </div>
             <div class="db-hero-actions">
                 <form method="post" action="{{ url_for('dbadmin.backup_now') }}">
@@ -47,6 +47,110 @@
         <div>
             <strong>Atenção</strong>
             <p>Backup automático está disponível apenas quando o banco é SQLite.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Dashboard Consolidado -->
+    <div class="db-card-modern db-card-highlight">
+        <div class="db-card-header-modern">
+            <h3 class="db-card-title">
+                <i class="bi bi-speedometer2"></i>
+                Dashboard Consolidado
+            </h3>
+            <button type="button" class="db-btn-modern db-btn-outline" onclick="refreshDashboard()">
+                <i class="bi bi-arrow-repeat"></i>
+                Atualizar
+            </button>
+        </div>
+        <div class="db-card-body-modern">
+            <div class="db-dashboard-grid">
+                <div class="db-dashboard-score-card">
+                    <div class="db-dashboard-score-value" id="healthScoreValue">{{ health_score or 0 }}</div>
+                    <div class="db-dashboard-score-label">Score de Saúde</div>
+                    <div class="db-dashboard-score-bar">
+                        <div class="db-dashboard-score-fill" id="healthScoreBar" style="width: {{ health_score or 0 }}%"></div>
+                    </div>
+                </div>
+                <div class="db-dashboard-stats-grid">
+                    <div class="db-dashboard-stat">
+                        <div class="db-dashboard-stat-icon db-dashboard-stat-alerts">
+                            <i class="bi bi-bell"></i>
+                        </div>
+                        <div class="db-dashboard-stat-content">
+                            <div class="db-dashboard-stat-value" id="activeAlertsCount">{{ active_alerts|length if active_alerts else 0 }}</div>
+                            <div class="db-dashboard-stat-label">Alertas Ativos</div>
+                        </div>
+                    </div>
+                    <div class="db-dashboard-stat">
+                        <div class="db-dashboard-stat-icon db-dashboard-stat-incidents">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </div>
+                        <div class="db-dashboard-stat-content">
+                            <div class="db-dashboard-stat-value" id="openIncidentsCount">{{ incidents|selectattr('status', 'equalto', 'open')|list|length }}</div>
+                            <div class="db-dashboard-stat-label">Incidentes Abertos</div>
+                        </div>
+                    </div>
+                    {% if db_stats %}
+                    <div class="db-dashboard-stat">
+                        <div class="db-dashboard-stat-icon db-dashboard-stat-db">
+                            <i class="bi bi-database"></i>
+                        </div>
+                        <div class="db-dashboard-stat-content">
+                            <div class="db-dashboard-stat-value">{{ '%.1f'|format(db_stats.size_mb) if db_stats.size_mb else '-' }} MB</div>
+                            <div class="db-dashboard-stat-label">Tamanho do Banco</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if disk_prediction and disk_prediction.days_remaining %}
+                    <div class="db-dashboard-stat">
+                        <div class="db-dashboard-stat-icon db-dashboard-stat-disk">
+                            <i class="bi bi-hdd"></i>
+                        </div>
+                        <div class="db-dashboard-stat-content">
+                            <div class="db-dashboard-stat-value">{{ disk_prediction.days_remaining }} dias</div>
+                            <div class="db-dashboard-stat-label">Previsão Disco Cheio</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertas Proativos -->
+    {% if active_alerts %}
+    <div class="db-card-modern">
+        <div class="db-card-header-modern">
+            <h3 class="db-card-title">
+                <i class="bi bi-bell-fill"></i>
+                Alertas Ativos
+            </h3>
+            <span class="db-badge-modern db-badge-warning">{{ active_alerts|length }} ativo(s)</span>
+        </div>
+        <div class="db-card-body-modern">
+            <div class="db-alerts-list" id="alertsList">
+                {% for alert in active_alerts %}
+                <div class="db-alert-item db-alert-{{ alert.severity }}">
+                    <div class="db-alert-icon">
+                        {% if alert.severity == 'critical' %}
+                        <i class="bi bi-x-circle-fill"></i>
+                        {% elif alert.severity == 'warning' %}
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        {% else %}
+                        <i class="bi bi-info-circle-fill"></i>
+                        {% endif %}
+                    </div>
+                    <div class="db-alert-content">
+                        <div class="db-alert-title">{{ alert.message }}</div>
+                        <div class="db-alert-details">
+                            {{ alert.metric_type }}: {{ alert.current_value }} (limite: {{ alert.threshold_value }})
+                            <span class="db-alert-time">{{ alert.created_at.strftime('%d/%m/%Y %H:%M') if alert.created_at else '-' }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
         </div>
     </div>
     {% endif %}
@@ -92,6 +196,264 @@
         <div class="db-card-footer-modern">
             <i class="bi bi-server"></i>
             <span>Origem: host local do MultiMax</span>
+        </div>
+    </div>
+
+    <!-- Health Checks -->
+    <div class="db-card-modern">
+        <div class="db-card-header-modern">
+            <h3 class="db-card-title">
+                <i class="bi bi-heart-pulse"></i>
+                Monitoramento de Serviços
+            </h3>
+            <button type="button" class="db-btn-modern db-btn-outline" onclick="refreshHealthChecks()">
+                <i class="bi bi-arrow-repeat"></i>
+                Atualizar
+            </button>
+        </div>
+        <div class="db-card-body-modern">
+            <div class="db-health-grid" id="healthChecksGrid">
+                <div class="db-logs-loading">Carregando monitoramento...</div>
+            </div>
+        </div>
+        <div class="db-card-footer-modern">
+            <i class="bi bi-clock"></i>
+            <span>Última verificação: <span id="lastHealthCheck">Carregando...</span></span>
+        </div>
+    </div>
+
+    <!-- Logs em Tempo Real -->
+    <div class="db-card-modern">
+        <div class="db-card-header-modern">
+            <h3 class="db-card-title">
+                <i class="bi bi-journal-text"></i>
+                Logs em Tempo Real
+            </h3>
+            <div class="db-logs-controls">
+                <select id="logTypeFilter" class="db-select-modern" onchange="updateLogs()">
+                    <option value="all">Todos os tipos</option>
+                    <option value="system">Sistema</option>
+                    <option value="app">Aplicação</option>
+                </select>
+                <select id="logLevelFilter" class="db-select-modern" onchange="updateLogs()">
+                    <option value="all">Todos os níveis</option>
+                    <option value="ERROR">Erro</option>
+                    <option value="WARNING">Aviso</option>
+                    <option value="INFO">Info</option>
+                </select>
+                <button type="button" class="db-btn-modern db-btn-outline" id="pauseLogsBtn" onclick="toggleLogsPause()">
+                    <i class="bi bi-pause-fill"></i>
+                    Pausar
+                </button>
+                <button type="button" class="db-btn-modern db-btn-outline" onclick="clearLogs()">
+                    <i class="bi bi-trash"></i>
+                    Limpar
+                </button>
+            </div>
+        </div>
+        <div class="db-card-body-modern">
+            <div class="db-logs-container" id="logsContainer">
+                <div class="db-logs-loading">Carregando logs...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Histórico de Incidentes -->
+    <div class="db-card-modern">
+        <div class="db-card-header-modern">
+            <h3 class="db-card-title">
+                <i class="bi bi-exclamation-triangle"></i>
+                Histórico de Incidentes
+            </h3>
+            <div class="db-incidents-controls">
+                <select id="incidentServiceFilter" class="db-select-modern" onchange="updateIncidents()">
+                    <option value="all">Todos os serviços</option>
+                    <option value="database">Banco de Dados</option>
+                    <option value="backend">Backend</option>
+                    <option value="nginx">Nginx</option>
+                    <option value="cpu">CPU</option>
+                    <option value="memory">Memória</option>
+                    <option value="disk">Disco</option>
+                </select>
+                <select id="incidentStatusFilter" class="db-select-modern" onchange="updateIncidents()">
+                    <option value="all">Todos os status</option>
+                    <option value="open">Abertos</option>
+                    <option value="resolved">Resolvidos</option>
+                </select>
+            </div>
+        </div>
+        <div class="db-card-body-modern">
+            <div class="db-table-wrapper">
+                <table class="db-table-modern">
+                    <thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Serviço</th>
+                            <th>Tipo</th>
+                            <th>Mensagem</th>
+                            <th>Severidade</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="incidentsTableBody">
+                        {% for incident in incidents %}
+                        <tr class="db-table-row">
+                            <td class="db-table-date">
+                                <i class="bi bi-calendar3"></i>
+                                {{ incident.created_at.strftime('%d/%m/%Y %H:%M:%S') if incident.created_at else '-' }}
+                            </td>
+                            <td><span class="db-badge-modern db-badge-info">{{ incident.service }}</span></td>
+                            <td><code class="db-code-modern">{{ incident.error_type }}</code></td>
+                            <td class="db-incident-message">{{ incident.message[:100] }}{% if incident.message|length > 100 %}...{% endif %}</td>
+                            <td>
+                                <span class="db-badge-modern {% if incident.severity == 'error' %}db-badge-danger{% elif incident.severity == 'warning' %}db-badge-warning{% else %}db-badge-info{% endif %}">
+                                    {{ incident.severity }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="db-badge-modern {% if incident.status == 'open' %}db-badge-danger{% elif incident.status == 'resolved' %}db-badge-success{% else %}db-badge-info{% endif %}">
+                                    {{ incident.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Análise de Tendências -->
+    <div class="db-card-modern">
+        <div class="db-card-header-modern">
+            <h3 class="db-card-title">
+                <i class="bi bi-graph-up"></i>
+                Análise de Tendências
+            </h3>
+            <div class="db-trends-controls">
+                <select id="trendMetricType" class="db-select-modern" onchange="updateTrends()">
+                    <option value="cpu">CPU</option>
+                    <option value="memory">Memória</option>
+                    <option value="disk">Disco</option>
+                    <option value="database_response_time">Tempo de Resposta DB</option>
+                </select>
+                <select id="trendHours" class="db-select-modern" onchange="updateTrends()">
+                    <option value="6">Últimas 6 horas</option>
+                    <option value="24" selected>Últimas 24 horas</option>
+                    <option value="168">Última semana</option>
+                </select>
+            </div>
+        </div>
+        <div class="db-card-body-modern">
+            <div class="db-trends-chart-wrapper">
+                <canvas id="trendsChart"></canvas>
+            </div>
+            <div class="db-trends-stats" id="trendsStats">
+                <!-- Preenchido via JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Monitoramento de Queries -->
+    <div class="db-card-modern">
+        <div class="db-card-header-modern">
+            <h3 class="db-card-title">
+                <i class="bi bi-code-square"></i>
+                Queries Lentas do Banco
+            </h3>
+            <button type="button" class="db-btn-modern db-btn-outline" onclick="updateSlowQueries()">
+                <i class="bi bi-arrow-repeat"></i>
+                Atualizar
+            </button>
+        </div>
+        <div class="db-card-body-modern">
+            <div class="db-table-wrapper">
+                <table class="db-table-modern">
+                    <thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Tempo (ms)</th>
+                            <th>Endpoint</th>
+                            <th>Query</th>
+                        </tr>
+                    </thead>
+                    <tbody id="slowQueriesTableBody">
+                        <tr><td colspan="4" class="text-center">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manutenção e Otimização -->
+    <div class="db-card-modern">
+        <div class="db-card-header-modern">
+            <h3 class="db-card-title">
+                <i class="bi bi-tools"></i>
+                Manutenção e Otimização
+            </h3>
+        </div>
+        <div class="db-card-body-modern">
+            <div class="db-maintenance-grid">
+                <div class="db-maintenance-action">
+                    <div class="db-maintenance-icon db-maintenance-cleanup">
+                        <i class="bi bi-broom"></i>
+                    </div>
+                    <div class="db-maintenance-content">
+                        <h4>Limpeza de Logs</h4>
+                        <p>Remove logs antigos (mais de 30 dias) para liberar espaço</p>
+                        <button type="button" class="db-btn-modern db-btn-outline" onclick="runMaintenanceCleanup()">
+                            <i class="bi bi-play-fill"></i>
+                            Executar Limpeza
+                        </button>
+                    </div>
+                </div>
+                <div class="db-maintenance-action">
+                    <div class="db-maintenance-icon db-maintenance-optimize">
+                        <i class="bi bi-lightning-fill"></i>
+                    </div>
+                    <div class="db-maintenance-content">
+                        <h4>Otimizar Banco</h4>
+                        <p>Executa VACUUM e ANALYZE para otimizar o banco de dados</p>
+                        <button type="button" class="db-btn-modern db-btn-outline" onclick="runMaintenanceOptimize()">
+                            <i class="bi bi-play-fill"></i>
+                            Otimizar Agora
+                        </button>
+                    </div>
+                </div>
+                <div class="db-maintenance-action">
+                    <div class="db-maintenance-icon db-maintenance-verify">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <div class="db-maintenance-content">
+                        <h4>Verificar Backups</h4>
+                        <p>Verifica integridade de todos os backups</p>
+                        <button type="button" class="db-btn-modern db-btn-outline" onclick="verifyAllBackups()">
+                            <i class="bi bi-play-fill"></i>
+                            Verificar Backups
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="db-maintenance-history">
+                <h4>Histórico de Manutenção</h4>
+                <div class="db-table-wrapper">
+                    <table class="db-table-modern">
+                        <thead>
+                            <tr>
+                                <th>Data/Hora</th>
+                                <th>Tipo</th>
+                                <th>Status</th>
+                                <th>Duração</th>
+                                <th>Itens Processados</th>
+                            </tr>
+                        </thead>
+                        <tbody id="maintenanceHistoryBody">
+                            <tr><td colspan="5" class="text-center">Carregando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -431,12 +793,391 @@ function reloadDiag() {
   var base = f.src.split('?')[0];
   f.src = base + '?t=' + Date.now();
 }
+// Health Checks
+var healthCheckInterval = null;
+var logsPaused = false;
+var logsInterval = null;
+var incidentsInterval = null;
+
+function getStatusIcon(status) {
+  if (status === 'ok') return '<i class="bi bi-check-circle-fill" style="color: #10b981;"></i>';
+  if (status === 'warning') return '<i class="bi bi-exclamation-triangle-fill" style="color: #f59e0b;"></i>';
+  return '<i class="bi bi-x-circle-fill" style="color: #ef4444;"></i>';
+}
+
+function getStatusBadgeClass(status) {
+  if (status === 'ok') return 'db-badge-success';
+  if (status === 'warning') return 'db-badge-warning';
+  return 'db-badge-danger';
+}
+
+function formatTimestamp(isoString) {
+  if (!isoString) return '-';
+  var d = new Date(isoString);
+  return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function getServiceName(service) {
+  var names = {
+    'database': 'Banco de Dados',
+    'backend': 'Backend',
+    'nginx': 'Nginx',
+    'port': 'Porta 5000',
+    'cpu': 'CPU',
+    'memory': 'Memória',
+    'disk': 'Disco'
+  };
+  return names[service] || service;
+}
+
+async function refreshHealthChecks() {
+  try {
+    var resp = await fetch("{{ url_for('dbadmin.health') }}");
+    var json = await resp.json();
+    if (!json || !json.ok || !json.health) return;
+    
+    var grid = document.getElementById('healthChecksGrid');
+    if (!grid) return;
+    
+    var html = '';
+    var services = ['database', 'backend', 'nginx', 'port', 'cpu', 'memory', 'disk'];
+    
+    services.forEach(function(service) {
+      var health = json.health[service];
+      if (!health) return;
+      
+      html += '<div class="db-health-item">';
+      html += '<div class="db-health-header">';
+      html += '<div class="db-health-icon">' + getStatusIcon(health.status) + '</div>';
+      html += '<div class="db-health-title">' + getServiceName(service) + '</div>';
+      html += '<span class="db-badge-modern ' + getStatusBadgeClass(health.status) + '">' + health.status.toUpperCase() + '</span>';
+      html += '</div>';
+      html += '<div class="db-health-message">' + (health.message || '-') + '</div>';
+      if (health.response_time_ms !== undefined && health.response_time_ms !== null) {
+        html += '<div class="db-health-detail">Tempo de resposta: ' + health.response_time_ms + 'ms</div>';
+      }
+      if (health.usage_percent !== undefined && health.usage_percent !== null) {
+        html += '<div class="db-health-detail">Uso: ' + health.usage_percent + '%</div>';
+      }
+      if (health.available_gb !== undefined && health.available_gb !== null) {
+        html += '<div class="db-health-detail">Disponível: ' + health.available_gb + ' GB</div>';
+      }
+      html += '<div class="db-health-time">Verificado: ' + formatTimestamp(health.checked_at) + '</div>';
+      html += '</div>';
+    });
+    
+    grid.innerHTML = html;
+    document.getElementById('lastHealthCheck').textContent = formatTimestamp(new Date().toISOString());
+  } catch(e) {
+    console.error('Erro ao atualizar health checks:', e);
+  }
+}
+
+// Logs em Tempo Real
+async function updateLogs() {
+  if (logsPaused) return;
+  
+  try {
+    var type = document.getElementById('logTypeFilter').value;
+    var level = document.getElementById('logLevelFilter').value;
+    var url = "{{ url_for('dbadmin.logs') }}?type=" + type + "&level=" + level + "&limit=100";
+    
+    var resp = await fetch(url);
+    var json = await resp.json();
+    if (!json || !json.ok || !json.logs) return;
+    
+    var container = document.getElementById('logsContainer');
+    if (!container) return;
+    
+    var html = '';
+    json.logs.forEach(function(log) {
+      var levelClass = 'db-log-info';
+      if (log.level === 'ERROR') levelClass = 'db-log-error';
+      else if (log.level === 'WARNING') levelClass = 'db-log-warning';
+      
+      html += '<div class="db-log-entry ' + levelClass + '">';
+      html += '<div class="db-log-time">' + formatTimestamp(log.timestamp) + '</div>';
+      html += '<div class="db-log-level">' + log.level + '</div>';
+      html += '<div class="db-log-origin">' + (log.origin || '-') + '</div>';
+      html += '<div class="db-log-message">' + (log.message || '-') + '</div>';
+      html += '</div>';
+    });
+    
+    container.innerHTML = html;
+    
+    // Auto-scroll se não estiver pausado
+    if (!logsPaused) {
+      container.scrollTop = container.scrollHeight;
+    }
+  } catch(e) {
+    console.error('Erro ao atualizar logs:', e);
+  }
+}
+
+function toggleLogsPause() {
+  logsPaused = !logsPaused;
+  var btn = document.getElementById('pauseLogsBtn');
+  if (btn) {
+    if (logsPaused) {
+      btn.innerHTML = '<i class="bi bi-play-fill"></i> Continuar';
+      btn.classList.remove('db-btn-outline');
+      btn.classList.add('db-btn-primary');
+    } else {
+      btn.innerHTML = '<i class="bi bi-pause-fill"></i> Pausar';
+      btn.classList.remove('db-btn-primary');
+      btn.classList.add('db-btn-outline');
+      updateLogs();
+    }
+  }
+}
+
+function clearLogs() {
+  var container = document.getElementById('logsContainer');
+  if (container) {
+    container.innerHTML = '<div class="db-logs-loading">Logs limpos</div>';
+  }
+}
+
+// Incidentes
+async function updateIncidents() {
+  try {
+    var service = document.getElementById('incidentServiceFilter').value;
+    var status = document.getElementById('incidentStatusFilter').value;
+    var url = "{{ url_for('dbadmin.incidents') }}?service=" + service + "&status=" + status + "&limit=50";
+    
+    var resp = await fetch(url);
+    var json = await resp.json();
+    if (!json || !json.ok || !json.incidents) return;
+    
+    var tbody = document.getElementById('incidentsTableBody');
+    if (!tbody) return;
+    
+    var html = '';
+    json.incidents.forEach(function(inc) {
+      var severityClass = 'db-badge-info';
+      if (inc.severity === 'error') severityClass = 'db-badge-danger';
+      else if (inc.severity === 'warning') severityClass = 'db-badge-warning';
+      
+      var statusClass = 'db-badge-info';
+      if (inc.status === 'open') statusClass = 'db-badge-danger';
+      else if (inc.status === 'resolved') statusClass = 'db-badge-success';
+      
+      html += '<tr class="db-table-row">';
+      html += '<td class="db-table-date"><i class="bi bi-calendar3"></i> ' + formatTimestamp(inc.created_at) + '</td>';
+      html += '<td><span class="db-badge-modern db-badge-info">' + inc.service + '</span></td>';
+      html += '<td><code class="db-code-modern">' + inc.error_type + '</code></td>';
+      html += '<td class="db-incident-message">' + (inc.message.length > 100 ? inc.message.substring(0, 100) + '...' : inc.message) + '</td>';
+      html += '<td><span class="db-badge-modern ' + severityClass + '">' + inc.severity + '</span></td>';
+      html += '<td><span class="db-badge-modern ' + statusClass + '">' + inc.status + '</span></td>';
+      html += '</tr>';
+    });
+    
+    tbody.innerHTML = html;
+  } catch(e) {
+    console.error('Erro ao atualizar incidentes:', e);
+  }
+}
+
+// Dashboard
+async function refreshDashboard() {
+  try {
+    var resp = await fetch("{{ url_for('dbadmin.dashboard') }}");
+    var json = await resp.json();
+    if (!json || !json.ok) return;
+    
+    // Atualizar score
+    var scoreEl = document.getElementById('healthScoreValue');
+    var scoreBar = document.getElementById('healthScoreBar');
+    if (scoreEl && scoreBar && json.health_score !== undefined) {
+      scoreEl.textContent = json.health_score.toFixed(1);
+      scoreBar.style.width = json.health_score + '%';
+    }
+    
+    // Atualizar contadores
+    if (document.getElementById('activeAlertsCount') && json.active_alerts !== undefined) {
+      document.getElementById('activeAlertsCount').textContent = json.active_alerts;
+    }
+    if (document.getElementById('openIncidentsCount') && json.open_incidents !== undefined) {
+      document.getElementById('openIncidentsCount').textContent = json.open_incidents;
+    }
+  } catch(e) {
+    console.error('Erro ao atualizar dashboard:', e);
+  }
+}
+
+// Tendências
+var trendsChart = null;
+async function updateTrends() {
+  try {
+    var metricType = document.getElementById('trendMetricType').value;
+    var hours = parseInt(document.getElementById('trendHours').value);
+    var url = "{{ url_for('dbadmin.metrics_trends') }}?type=" + metricType + "&hours=" + hours;
+    
+    var resp = await fetch(url);
+    var json = await resp.json();
+    if (!json || !json.ok || !json.trends) return;
+    
+    var trends = json.trends;
+    var statsEl = document.getElementById('trendsStats');
+    if (statsEl) {
+      var html = '<div class="db-trend-stats-item"><strong>Média:</strong> ' + trends.average + '</div>';
+      html += '<div class="db-trend-stats-item"><strong>Mín:</strong> ' + trends.min + '</div>';
+      html += '<div class="db-trend-stats-item"><strong>Máx:</strong> ' + trends.max + '</div>';
+      html += '<div class="db-trend-stats-item"><strong>Tendência:</strong> ' + (trends.trend === 'increasing' ? '↑ Crescendo' : trends.trend === 'decreasing' ? '↓ Diminuindo' : '→ Estável') + '</div>';
+      statsEl.innerHTML = html;
+    }
+    
+    // Gráfico
+    var ctx = document.getElementById('trendsChart');
+    if (!ctx) return;
+    
+    ensureChartJs(function() {
+      if (trendsChart) {
+        trendsChart.destroy();
+      }
+      trendsChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: trends.timestamps.map(function(ts) {
+            var d = new Date(ts);
+            return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+          }),
+          datasets: [{
+            label: metricType.toUpperCase(),
+            data: trends.values,
+            borderColor: '#667eea',
+            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    });
+  } catch(e) {
+    console.error('Erro ao atualizar tendências:', e);
+  }
+}
+
+// Queries lentas
+async function updateSlowQueries() {
+  try {
+    var resp = await fetch("{{ url_for('dbadmin.slow_queries') }}");
+    var json = await resp.json();
+    if (!json || !json.ok || !json.queries) return;
+    
+    var tbody = document.getElementById('slowQueriesTableBody');
+    if (!tbody) return;
+    
+    var html = '';
+    json.queries.forEach(function(q) {
+      html += '<tr class="db-table-row">';
+      html += '<td class="db-table-date">' + formatTimestamp(q.timestamp) + '</td>';
+      html += '<td><span class="db-badge-modern db-badge-warning">' + q.execution_time_ms.toFixed(2) + ' ms</span></td>';
+      html += '<td><code class="db-code-modern">' + (q.endpoint || '-') + '</code></td>';
+      html += '<td><code class="db-code-modern" style="font-size: 0.75rem;">' + q.query + '</code></td>';
+      html += '</tr>';
+    });
+    
+    if (html === '') {
+      html = '<tr><td colspan="4" class="text-center">Nenhuma query lenta encontrada</td></tr>';
+    }
+    
+    tbody.innerHTML = html;
+  } catch(e) {
+    console.error('Erro ao atualizar queries:', e);
+  }
+}
+
+// Manutenção
+async function runMaintenanceCleanup() {
+  if (!confirm('Executar limpeza de logs antigos?')) return;
+  try {
+    var resp = await fetch("{{ url_for('dbadmin.maintenance_cleanup') }}", { method: 'POST' });
+    var json = await resp.json();
+    if (json && json.ok) {
+      alert('Limpeza concluída: ' + json.result.deleted + ' itens removidos');
+      updateSlowQueries();
+    } else {
+      alert('Erro: ' + (json.error || 'Erro desconhecido'));
+    }
+  } catch(e) {
+    alert('Erro ao executar limpeza: ' + e.message);
+  }
+}
+
+async function runMaintenanceOptimize() {
+  if (!confirm('Otimizar banco de dados? Isso pode levar alguns segundos.')) return;
+  try {
+    var resp = await fetch("{{ url_for('dbadmin.maintenance_optimize') }}", { method: 'POST' });
+    var json = await resp.json();
+    if (json && json.ok) {
+      alert('Otimização concluída em ' + json.result.duration.toFixed(2) + ' segundos');
+    } else {
+      alert('Erro: ' + (json.error || 'Erro desconhecido'));
+    }
+  } catch(e) {
+    alert('Erro ao otimizar: ' + e.message);
+  }
+}
+
+async function verifyAllBackups() {
+  if (!confirm('Verificar integridade de todos os backups?')) return;
+  try {
+    var resp = await fetch("{{ url_for('dbadmin.verify_backups') }}", { method: 'POST' });
+    var json = await resp.json();
+    if (json && json.ok) {
+      var msg = 'Verificação concluída:\n';
+      json.results.forEach(function(r) {
+        msg += r.filename + ': ' + r.status + '\n';
+      });
+      alert(msg);
+    } else {
+      alert('Erro: ' + (json.error || 'Erro desconhecido'));
+    }
+  } catch(e) {
+    alert('Erro ao verificar backups: ' + e.message);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   var f = document.getElementById('dbStatusFrame');
   if (f) {
     f.addEventListener('load', resizeDbFrame);
   }
   ensureChartJs(startResourceCharts);
+  
+  // Inicializar health checks
+  refreshHealthChecks();
+  healthCheckInterval = setInterval(refreshHealthChecks, 10000); // A cada 10 segundos
+  
+  // Inicializar logs
+  updateLogs();
+  logsInterval = setInterval(updateLogs, 3000); // A cada 3 segundos
+  
+  // Inicializar incidentes
+  updateIncidents();
+  incidentsInterval = setInterval(updateIncidents, 30000); // A cada 30 segundos
+  
+  // Inicializar dashboard
+  refreshDashboard();
+  setInterval(refreshDashboard, 60000); // A cada 1 minuto
+  
+  // Inicializar tendências
+  updateTrends();
+  
+  // Inicializar queries lentas
+  updateSlowQueries();
 });
 </script>
 
@@ -1248,6 +1989,564 @@ document.addEventListener('DOMContentLoaded', function() {
 [data-theme="dark"] .db-code-modern {
     background: #374151;
     border-color: #4b5563;
+    color: #f9fafb;
+}
+
+/* Health Checks */
+.db-health-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.db-health-item {
+    background: #f9fafb;
+    border-radius: 12px;
+    padding: 1.25rem;
+    border: 2px solid #e5e7eb;
+    transition: all 0.3s ease;
+}
+
+.db-health-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.db-health-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.db-health-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.db-health-title {
+    font-weight: 600;
+    color: #1f2937;
+    flex: 1;
+}
+
+.db-health-message {
+    font-size: 0.875rem;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+
+.db-health-detail {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+}
+
+.db-health-time {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.db-badge-danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+}
+
+.db-badge-warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+}
+
+/* Logs */
+.db-logs-controls {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.db-select-modern {
+    padding: 0.5rem 0.75rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background: white;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.db-select-modern:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.db-logs-container {
+    background: #1f2937;
+    border-radius: 8px;
+    padding: 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    line-height: 1.6;
+}
+
+.db-logs-loading {
+    color: #9ca3af;
+    text-align: center;
+    padding: 2rem;
+}
+
+.db-log-entry {
+    padding: 0.5rem;
+    margin-bottom: 0.25rem;
+    border-radius: 4px;
+    border-left: 3px solid;
+    background: rgba(255, 255, 255, 0.05);
+    display: grid;
+    grid-template-columns: 140px 80px 120px 1fr;
+    gap: 1rem;
+    align-items: start;
+}
+
+.db-log-entry.db-log-error {
+    border-left-color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.db-log-entry.db-log-warning {
+    border-left-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.db-log-entry.db-log-info {
+    border-left-color: #3b82f6;
+}
+
+.db-log-time {
+    color: #9ca3af;
+    white-space: nowrap;
+}
+
+.db-log-level {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.db-log-entry.db-log-error .db-log-level {
+    color: #fca5a5;
+}
+
+.db-log-entry.db-log-warning .db-log-level {
+    color: #fcd34d;
+}
+
+.db-log-entry.db-log-info .db-log-level {
+    color: #93c5fd;
+}
+
+.db-log-origin {
+    color: #d1d5db;
+    white-space: nowrap;
+}
+
+.db-log-message {
+    color: #e5e7eb;
+    word-break: break-word;
+}
+
+/* Incidentes */
+.db-incidents-controls {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.db-incident-message {
+    max-width: 400px;
+    word-break: break-word;
+    font-size: 0.875rem;
+}
+
+/* Dark Mode - Health Checks */
+[data-theme="dark"] .db-health-item {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+[data-theme="dark"] .db-health-title {
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .db-health-message {
+    color: #e5e7eb;
+}
+
+[data-theme="dark"] .db-health-detail {
+    color: #9ca3af;
+}
+
+[data-theme="dark"] .db-health-time {
+    color: #6b7280;
+    border-top-color: #374151;
+}
+
+[data-theme="dark"] .db-select-modern {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .db-incident-message {
+    color: #e5e7eb;
+}
+
+/* Dashboard Consolidado */
+.db-card-highlight {
+    border: 2px solid #667eea;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(102, 126, 234, 0.02) 100%);
+}
+
+.db-dashboard-grid {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+.db-dashboard-score-card {
+    text-align: center;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    color: white;
+}
+
+.db-dashboard-score-value {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.db-dashboard-score-label {
+    font-size: 0.875rem;
+    opacity: 0.9;
+    margin-bottom: 1rem;
+}
+
+.db-dashboard-score-bar {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.db-dashboard-score-fill {
+    height: 100%;
+    background: white;
+    transition: width 0.5s ease;
+}
+
+.db-dashboard-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.db-dashboard-stat {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f9fafb;
+    border-radius: 12px;
+    border: 2px solid #e5e7eb;
+}
+
+.db-dashboard-stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.db-dashboard-stat-icon.db-dashboard-stat-alerts {
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+}
+
+.db-dashboard-stat-icon.db-dashboard-stat-incidents {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+}
+
+.db-dashboard-stat-icon.db-dashboard-stat-db {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+}
+
+.db-dashboard-stat-icon.db-dashboard-stat-disk {
+    background: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
+}
+
+.db-dashboard-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.db-dashboard-stat-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+/* Alertas */
+.db-alerts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.db-alert-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 12px;
+    border: 2px solid;
+    background: #f9fafb;
+}
+
+.db-alert-item.db-alert-critical {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.db-alert-item.db-alert-warning {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.db-alert-item.db-alert-info {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.db-alert-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.db-alert-item.db-alert-critical .db-alert-icon {
+    color: #ef4444;
+}
+
+.db-alert-item.db-alert-warning .db-alert-icon {
+    color: #f59e0b;
+}
+
+.db-alert-item.db-alert-info .db-alert-icon {
+    color: #3b82f6;
+}
+
+.db-alert-content {
+    flex: 1;
+}
+
+.db-alert-title {
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+}
+
+.db-alert-details {
+    font-size: 0.875rem;
+    color: #6b7280;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.db-alert-time {
+    color: #9ca3af;
+    font-size: 0.75rem;
+}
+
+/* Tendências */
+.db-trends-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.db-trends-chart-wrapper {
+    height: 300px;
+    margin-bottom: 1rem;
+}
+
+.db-trends-stats {
+    display: flex;
+    gap: 2rem;
+    padding: 1rem;
+    background: #f9fafb;
+    border-radius: 8px;
+}
+
+.db-trend-stats-item {
+    font-size: 0.875rem;
+    color: #374151;
+}
+
+.db-trend-stats-item strong {
+    color: #1f2937;
+    margin-right: 0.5rem;
+}
+
+/* Manutenção */
+.db-maintenance-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.db-maintenance-action {
+    display: flex;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: #f9fafb;
+    border-radius: 12px;
+    border: 2px solid #e5e7eb;
+}
+
+.db-maintenance-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    flex-shrink: 0;
+}
+
+.db-maintenance-icon.db-maintenance-cleanup {
+    background: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
+}
+
+.db-maintenance-icon.db-maintenance-optimize {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+}
+
+.db-maintenance-icon.db-maintenance-verify {
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+}
+
+.db-maintenance-content {
+    flex: 1;
+}
+
+.db-maintenance-content h4 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+}
+
+.db-maintenance-content p {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 1rem;
+}
+
+.db-maintenance-history {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 2px solid #e5e7eb;
+}
+
+.db-maintenance-history h4 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 1rem;
+}
+
+/* Dark Mode - Dashboard */
+[data-theme="dark"] .db-card-highlight {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(102, 126, 234, 0.1) 100%);
+    border-color: #667eea;
+}
+
+[data-theme="dark"] .db-dashboard-stat {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+[data-theme="dark"] .db-dashboard-stat-value {
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .db-dashboard-stat-label {
+    color: #9ca3af;
+}
+
+[data-theme="dark"] .db-alert-item {
+    background: #1f2937;
+}
+
+[data-theme="dark"] .db-alert-title {
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .db-alert-details {
+    color: #9ca3af;
+}
+
+[data-theme="dark"] .db-trends-stats {
+    background: #1f2937;
+}
+
+[data-theme="dark"] .db-trend-stats-item {
+    color: #e5e7eb;
+}
+
+[data-theme="dark"] .db-trend-stats-item strong {
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .db-maintenance-action {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+[data-theme="dark"] .db-maintenance-content h4 {
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .db-maintenance-content p {
+    color: #9ca3af;
+}
+
+[data-theme="dark"] .db-maintenance-history {
+    border-top-color: #374151;
+}
+
+[data-theme="dark"] .db-maintenance-history h4 {
     color: #f9fafb;
 }
 </style>

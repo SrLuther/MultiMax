@@ -3,9 +3,14 @@ from flask_login import login_required, current_user
 import os
 import shutil
 import time
-from datetime import datetime, date
+import subprocess
+import socket
+import logging
+from datetime import datetime, date, timedelta
+from zoneinfo import ZoneInfo
 from .. import db
-from ..models import UserLogin
+from ..models import UserLogin, SystemLog, Incident, MetricHistory, Alert, MaintenanceLog, QueryLog, BackupVerification
+from sqlalchemy import text
 
 try:
     import psutil  # type: ignore
@@ -13,6 +18,872 @@ except Exception:
     psutil = None
 
 bp = Blueprint('dbadmin', __name__, url_prefix='/db')
+
+# ============================================================================
+# Controle de Acesso
+# ============================================================================
+
+def _check_dev_access():
+    """Verifica se o usuário tem permissão de desenvolvedor"""
+    if not current_user.is_authenticated:
+        return False
+    return current_user.nivel == 'DEV'
+
+def _log_unauthorized_access():
+    """Registra tentativa de acesso não autorizada"""
+    try:
+        log = SystemLog()
+        log.origem = 'Segurança'
+        log.evento = 'acesso_negado'
+        log.detalhes = f'Tentativa de acesso não autorizada à página Banco de Dados - Usuário: {current_user.username if current_user.is_authenticated else "Não autenticado"}'
+        log.usuario = current_user.username if current_user.is_authenticated else 'Sistema'
+        db.session.add(log)
+        db.session.commit()
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+
+# ============================================================================
+# Health Checks
+# ============================================================================
+
+def _check_database_health():
+    """Verifica saúde do banco de dados"""
+    try:
+        start = time.time()
+        db.session.execute(text('SELECT 1'))
+        db.session.commit()
+        response_time = (time.time() - start) * 1000  # ms
+        
+        status = 'ok'
+        if response_time > 1000:
+            status = 'warning'
+        if response_time > 5000:
+            status = 'error'
+        
+        return {
+            'status': status,
+            'response_time_ms': round(response_time, 2),
+            'message': f'Banco de dados respondendo em {response_time:.2f}ms' if status == 'ok' else f'Resposta lenta: {response_time:.2f}ms',
+            'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+        }
+    except Exception as e:
+        _register_incident('database', 'connection_error', str(e))
+        return {
+            'status': 'error',
+            'response_time_ms': None,
+            'message': f'Erro de conexão: {str(e)}',
+            'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+        }
+
+def _check_backend_health():
+    """Verifica saúde do backend"""
+    try:
+        # Verifica se a aplicação Flask está respondendo
+        start = time.time()
+        with current_app.test_client() as client:
+            response = client.get('/health')
+            response_time = (time.time() - start) * 1000
+        
+        status = 'ok'
+        if response.status_code != 200:
+            status = 'error'
+        elif response_time > 1000:
+            status = 'warning'
+        
+        return {
+            'status': status,
+            'response_time_ms': round(response_time, 2),
+            'status_code': response.status_code,
+            'message': f'Backend respondendo (HTTP {response.status_code})' if status == 'ok' else f'Backend com problemas (HTTP {response.status_code})',
+            'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+        }
+    except Exception as e:
+        _register_incident('backend', 'connection_error', str(e))
+        return {
+            'status': 'error',
+            'response_time_ms': None,
+            'status_code': None,
+            'message': f'Erro ao verificar backend: {str(e)}',
+            'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+        }
+
+def _check_nginx_health():
+    """Verifica saúde do Nginx"""
+    try:
+        # Tenta conectar na porta 80 (HTTP) ou verifica processo
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(2)
+        result = sock.connect_ex(('127.0.0.1', 80))
+        sock.close()
+        
+        if result == 0:
+            return {
+                'status': 'ok',
+                'message': 'Nginx respondendo na porta 80',
+                'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+            }
+        else:
+            # Verifica se processo nginx está rodando
+            try:
+                if psutil:
+                    for proc in psutil.process_iter(['pid', 'name']):
+                        if 'nginx' in proc.info['name'].lower():
+                            return {
+                                'status': 'warning',
+                                'message': 'Processo Nginx encontrado mas porta 80 não responde',
+                                'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+                            }
+            except Exception:
+                pass
+            
+            _register_incident('nginx', 'service_down', 'Nginx não está respondendo')
+            return {
+                'status': 'error',
+                'message': 'Nginx não está respondendo',
+                'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+            }
+    except Exception as e:
+        _register_incident('nginx', 'check_error', str(e))
+        return {
+            'status': 'error',
+            'message': f'Erro ao verificar Nginx: {str(e)}',
+            'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+        }
+
+def _check_port_health(port=5000):
+    """Verifica se a porta da aplicação está aberta"""
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1)
+        result = sock.connect_ex(('127.0.0.1', port))
+        sock.close()
+        
+        if result == 0:
+            return {
+                'status': 'ok',
+                'message': f'Porta {port} está aberta e respondendo',
+                'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+            }
+        else:
+            _register_incident('port', 'port_closed', f'Porta {port} não está respondendo')
+            return {
+                'status': 'error',
+                'message': f'Porta {port} não está respondendo',
+                'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+            }
+    except Exception as e:
+        _register_incident('port', 'check_error', str(e))
+        return {
+            'status': 'error',
+            'message': f'Erro ao verificar porta {port}: {str(e)}',
+            'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+        }
+
+def _check_cpu_health():
+    """Verifica uso de CPU"""
+    try:
+        if psutil is None:
+            return {
+                'status': 'warning',
+                'usage_percent': None,
+                'message': 'psutil não disponível',
+                'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+            }
+        
+        cpu_percent = psutil.cpu_percent(interval=0.1)
+        status = 'ok'
+        if cpu_percent > 80:
+            status = 'error'
+            _register_incident('cpu', 'high_usage', f'Uso de CPU alto: {cpu_percent:.1f}%')
+        elif cpu_percent > 60:
+            status = 'warning'
+        
+        return {
+            'status': status,
+            'usage_percent': round(cpu_percent, 1),
+            'message': f'CPU: {cpu_percent:.1f}%' if status == 'ok' else f'Uso de CPU alto: {cpu_percent:.1f}%',
+            'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+        }
+    except Exception as e:
+        _register_incident('cpu', 'check_error', str(e))
+        return {
+            'status': 'error',
+            'usage_percent': None,
+            'message': f'Erro ao verificar CPU: {str(e)}',
+            'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+        }
+
+def _check_memory_health():
+    """Verifica uso de memória"""
+    try:
+        if psutil is None:
+            return {
+                'status': 'warning',
+                'usage_percent': None,
+                'available_gb': None,
+                'message': 'psutil não disponível',
+                'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+            }
+        
+        mem = psutil.virtual_memory()
+        mem_percent = mem.percent
+        mem_available_gb = mem.available / (1024**3)
+        
+        status = 'ok'
+        if mem_percent > 90:
+            status = 'error'
+            _register_incident('memory', 'high_usage', f'Uso de memória alto: {mem_percent:.1f}%')
+        elif mem_percent > 80:
+            status = 'warning'
+        
+        return {
+            'status': status,
+            'usage_percent': round(mem_percent, 1),
+            'available_gb': round(mem_available_gb, 2),
+            'message': f'Memória: {mem_percent:.1f}% ({mem_available_gb:.2f} GB livres)',
+            'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+        }
+    except Exception as e:
+        _register_incident('memory', 'check_error', str(e))
+        return {
+            'status': 'error',
+            'usage_percent': None,
+            'available_gb': None,
+            'message': f'Erro ao verificar memória: {str(e)}',
+            'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+        }
+
+def _check_disk_health():
+    """Verifica espaço em disco"""
+    try:
+        if psutil is None:
+            return {
+                'status': 'warning',
+                'usage_percent': None,
+                'free_gb': None,
+                'message': 'psutil não disponível',
+                'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+            }
+        
+        disk = psutil.disk_usage('/')
+        disk_percent = disk.percent
+        disk_free_gb = disk.free / (1024**3)
+        
+        status = 'ok'
+        if disk_percent > 90:
+            status = 'error'
+            _register_incident('disk', 'low_space', f'Espaço em disco baixo: {disk_percent:.1f}% usado')
+        elif disk_percent > 80:
+            status = 'warning'
+        
+        return {
+            'status': status,
+            'usage_percent': round(disk_percent, 1),
+            'free_gb': round(disk_free_gb, 2),
+            'message': f'Disco: {disk_percent:.1f}% usado ({disk_free_gb:.2f} GB livres)',
+            'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+        }
+    except Exception as e:
+        _register_incident('disk', 'check_error', str(e))
+        return {
+            'status': 'error',
+            'usage_percent': None,
+            'free_gb': None,
+            'message': f'Erro ao verificar disco: {str(e)}',
+            'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+        }
+
+def _get_all_health_checks():
+    """Executa todos os health checks"""
+    health_checks = {
+        'database': _check_database_health(),
+        'backend': _check_backend_health(),
+        'nginx': _check_nginx_health(),
+        'port': _check_port_health(5000),
+        'cpu': _check_cpu_health(),
+        'memory': _check_memory_health(),
+        'disk': _check_disk_health(),
+        'http_latency': _check_http_latency()
+    }
+    
+    # Salvar métricas no histórico
+    _save_health_metrics_to_history(health_checks)
+    
+    # Verificar e criar alertas
+    _check_and_create_alerts(health_checks)
+    
+    return health_checks
+
+# ============================================================================
+# Registro de Incidentes
+# ============================================================================
+
+def _register_incident(service, error_type, message, severity='error'):
+    """Registra um incidente automaticamente"""
+    try:
+        # Evita duplicar incidentes muito recentes (últimos 5 minutos)
+        cutoff = datetime.now(ZoneInfo('America/Sao_Paulo')) - timedelta(minutes=5)
+        recent = Incident.query.filter(
+            Incident.service == service,
+            Incident.error_type == error_type,
+            Incident.created_at >= cutoff,
+            Incident.status == 'open'
+        ).first()
+        
+        if recent:
+            return  # Já existe incidente recente
+        
+        incident = Incident()
+        incident.service = service
+        incident.error_type = error_type
+        incident.message = message[:1000] if len(message) > 1000 else message
+        incident.severity = severity
+        incident.status = 'open'
+        db.session.add(incident)
+        db.session.commit()
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+
+# ============================================================================
+# Sistema de Alertas Proativos
+# ============================================================================
+
+ALERT_THRESHOLDS = {
+    'cpu': {'warning': 60.0, 'critical': 80.0},
+    'memory': {'warning': 80.0, 'critical': 90.0},
+    'disk': {'warning': 80.0, 'critical': 90.0},
+    'database_response_time': {'warning': 1000.0, 'critical': 5000.0},  # ms
+    'http_latency': {'warning': 500.0, 'critical': 2000.0}  # ms
+}
+
+def _check_and_create_alerts(health_checks):
+    """Verifica métricas e cria alertas proativos"""
+    try:
+        now = datetime.now(ZoneInfo('America/Sao_Paulo'))
+        
+        # CPU
+        if 'cpu' in health_checks:
+            cpu = health_checks['cpu']
+            if cpu.get('usage_percent') is not None:
+                cpu_val = cpu['usage_percent']
+                if cpu_val >= ALERT_THRESHOLDS['cpu']['critical']:
+                    _create_alert('cpu_high', 'cpu', ALERT_THRESHOLDS['cpu']['critical'], cpu_val, 
+                                f'CPU crítica: {cpu_val:.1f}%', 'critical')
+                elif cpu_val >= ALERT_THRESHOLDS['cpu']['warning']:
+                    _create_alert('cpu_high', 'cpu', ALERT_THRESHOLDS['cpu']['warning'], cpu_val, 
+                                f'CPU alta: {cpu_val:.1f}%', 'warning')
+        
+        # Memória
+        if 'memory' in health_checks:
+            mem = health_checks['memory']
+            if mem.get('usage_percent') is not None:
+                mem_val = mem['usage_percent']
+                if mem_val >= ALERT_THRESHOLDS['memory']['critical']:
+                    _create_alert('memory_high', 'memory', ALERT_THRESHOLDS['memory']['critical'], mem_val, 
+                                f'Memória crítica: {mem_val:.1f}%', 'critical')
+                elif mem_val >= ALERT_THRESHOLDS['memory']['warning']:
+                    _create_alert('memory_high', 'memory', ALERT_THRESHOLDS['memory']['warning'], mem_val, 
+                                f'Memória alta: {mem_val:.1f}%', 'warning')
+        
+        # Disco
+        if 'disk' in health_checks:
+            disk = health_checks['disk']
+            if disk.get('usage_percent') is not None:
+                disk_val = disk['usage_percent']
+                if disk_val >= ALERT_THRESHOLDS['disk']['critical']:
+                    _create_alert('disk_high', 'disk', ALERT_THRESHOLDS['disk']['critical'], disk_val, 
+                                f'Espaço em disco crítico: {disk_val:.1f}% usado', 'critical')
+                elif disk_val >= ALERT_THRESHOLDS['disk']['warning']:
+                    _create_alert('disk_high', 'disk', ALERT_THRESHOLDS['disk']['warning'], disk_val, 
+                                f'Espaço em disco alto: {disk_val:.1f}% usado', 'warning')
+        
+        # Database response time
+        if 'database' in health_checks:
+            db = health_checks['database']
+            if db.get('response_time_ms') is not None:
+                db_time = db['response_time_ms']
+                if db_time >= ALERT_THRESHOLDS['database_response_time']['critical']:
+                    _create_alert('database_slow', 'database_response_time', 
+                                ALERT_THRESHOLDS['database_response_time']['critical'], db_time, 
+                                f'Banco de dados muito lento: {db_time:.2f}ms', 'critical')
+                elif db_time >= ALERT_THRESHOLDS['database_response_time']['warning']:
+                    _create_alert('database_slow', 'database_response_time', 
+                                ALERT_THRESHOLDS['database_response_time']['warning'], db_time, 
+                                f'Banco de dados lento: {db_time:.2f}ms', 'warning')
+    except Exception:
+        pass
+
+def _create_alert(alert_type, metric_type, threshold, current_value, message, severity='warning'):
+    """Cria um alerta se não existir um ativo recente"""
+    try:
+        cutoff = datetime.now(ZoneInfo('America/Sao_Paulo')) - timedelta(minutes=5)
+        recent = Alert.query.filter(
+            Alert.alert_type == alert_type,
+            Alert.status == 'active',
+            Alert.created_at >= cutoff
+        ).first()
+        
+        if recent:
+            return
+        
+        alert = Alert()
+        alert.alert_type = alert_type
+        alert.metric_type = metric_type
+        alert.threshold_value = threshold
+        alert.current_value = current_value
+        alert.message = message
+        alert.severity = severity
+        alert.status = 'active'
+        db.session.add(alert)
+        db.session.commit()
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+
+# ============================================================================
+# Histórico de Métricas e Análise de Tendências
+# ============================================================================
+
+def _save_metric_history(metric_type, value, unit=None, extra_data=None):
+    """Salva métrica no histórico"""
+    try:
+        import json
+        metric = MetricHistory()
+        metric.metric_type = metric_type
+        metric.value = value
+        metric.unit = unit
+        if extra_data:
+            metric.extra_data = json.dumps(extra_data) if isinstance(extra_data, dict) else str(extra_data)
+        db.session.add(metric)
+        db.session.commit()
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+
+def _save_health_metrics_to_history(health_checks):
+    """Salva métricas dos health checks no histórico"""
+    try:
+        if 'cpu' in health_checks and health_checks['cpu'].get('usage_percent') is not None:
+            _save_metric_history('cpu', health_checks['cpu']['usage_percent'], 'percent')
+        if 'memory' in health_checks and health_checks['memory'].get('usage_percent') is not None:
+            _save_metric_history('memory', health_checks['memory']['usage_percent'], 'percent')
+        if 'disk' in health_checks and health_checks['disk'].get('usage_percent') is not None:
+            _save_metric_history('disk', health_checks['disk']['usage_percent'], 'percent')
+        if 'database' in health_checks and health_checks['database'].get('response_time_ms') is not None:
+            _save_metric_history('database_response_time', health_checks['database']['response_time_ms'], 'ms')
+    except Exception:
+        pass
+
+def _get_metric_trends(metric_type, hours=24):
+    """Obtém tendências de métricas"""
+    try:
+        cutoff = datetime.now(ZoneInfo('America/Sao_Paulo')) - timedelta(hours=hours)
+        metrics = MetricHistory.query.filter(
+            MetricHistory.metric_type == metric_type,
+            MetricHistory.timestamp >= cutoff
+        ).order_by(MetricHistory.timestamp.asc()).all()
+        
+        if not metrics:
+            return None
+        
+        values = [m.value for m in metrics]
+        timestamps = [m.timestamp.isoformat() if m.timestamp else None for m in metrics]
+        
+        avg = sum(values) / len(values) if values else 0
+        min_val = min(values) if values else 0
+        max_val = max(values) if values else 0
+        
+        # Tendência (últimos 25% vs primeiros 25%)
+        if len(values) >= 4:
+            first_quarter = values[:len(values)//4]
+            last_quarter = values[-len(values)//4:]
+            first_avg = sum(first_quarter) / len(first_quarter)
+            last_avg = sum(last_quarter) / len(last_quarter)
+            trend = 'increasing' if last_avg > first_avg * 1.1 else ('decreasing' if last_avg < first_avg * 0.9 else 'stable')
+        else:
+            trend = 'stable'
+        
+        return {
+            'values': values,
+            'timestamps': timestamps,
+            'average': round(avg, 2),
+            'min': round(min_val, 2),
+            'max': round(max_val, 2),
+            'trend': trend,
+            'count': len(values)
+        }
+    except Exception:
+        return None
+
+def _predict_disk_full_date():
+    """Prediz quando o disco ficará cheio baseado na taxa de crescimento"""
+    try:
+        if psutil is None:
+            return None
+        
+        disk = psutil.disk_usage('/')
+        current_usage_percent = disk.percent
+        current_free_gb = disk.free / (1024**3)
+        
+        if current_usage_percent >= 95:
+            return {'predicted_date': None, 'message': 'Disco quase cheio', 'days_remaining': 0}
+        
+        # Buscar histórico dos últimos 7 dias
+        cutoff = datetime.now(ZoneInfo('America/Sao_Paulo')) - timedelta(days=7)
+        metrics = MetricHistory.query.filter(
+            MetricHistory.metric_type == 'disk',
+            MetricHistory.timestamp >= cutoff
+        ).order_by(MetricHistory.timestamp.asc()).all()
+        
+        if len(metrics) < 2:
+            return None
+        
+        # Calcular taxa de crescimento diária
+        first_usage = metrics[0].value
+        last_usage = metrics[-1].value
+        days_passed = (metrics[-1].timestamp - metrics[0].timestamp).total_seconds() / 86400
+        
+        if days_passed < 1:
+            return None
+        
+        daily_growth = (last_usage - first_usage) / days_passed
+        
+        if daily_growth <= 0:
+            return {'predicted_date': None, 'message': 'Sem crescimento detectado', 'days_remaining': None}
+        
+        # Calcular quando atingirá 90%
+        remaining_to_90 = 90 - current_usage_percent
+        days_to_90 = remaining_to_90 / daily_growth if daily_growth > 0 else None
+        
+        if days_to_90 and days_to_90 > 0:
+            predicted_date = datetime.now(ZoneInfo('America/Sao_Paulo')) + timedelta(days=int(days_to_90))
+            return {
+                'predicted_date': predicted_date.isoformat(),
+                'days_remaining': int(days_to_90),
+                'daily_growth_percent': round(daily_growth, 2),
+                'current_usage_percent': round(current_usage_percent, 2)
+            }
+        
+        return None
+    except Exception:
+        return None
+
+# ============================================================================
+# Monitoramento de Queries do Banco
+# ============================================================================
+
+def _log_slow_query(query, execution_time_ms, rows_returned=None, endpoint=None, user_id=None):
+    """Registra query lenta (>1s)"""
+    try:
+        if execution_time_ms < 1000:
+            return
+        
+        query_log = QueryLog()
+        query_log.query = query[:5000] if len(query) > 5000 else query
+        query_log.execution_time_ms = execution_time_ms
+        query_log.rows_returned = rows_returned
+        query_log.endpoint = endpoint
+        query_log.user_id = user_id
+        db.session.add(query_log)
+        db.session.commit()
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+
+def _get_slow_queries(limit=20):
+    """Obtém queries mais lentas"""
+    try:
+        return QueryLog.query.order_by(QueryLog.execution_time_ms.desc()).limit(limit).all()
+    except Exception:
+        return []
+
+def _get_database_stats():
+    """Obtém estatísticas do banco de dados"""
+    try:
+        uri = current_app.config.get('SQLALCHEMY_DATABASE_URI', '')
+        is_sqlite = isinstance(uri, str) and uri.startswith('sqlite:')
+        
+        if is_sqlite:
+            db_path = str(current_app.config.get('DB_FILE_PATH') or '').strip()
+            if db_path and os.path.exists(db_path):
+                size_bytes = os.path.getsize(db_path)
+                size_mb = size_bytes / (1024 * 1024)
+                
+                # Contar tabelas
+                result = db.session.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))
+                tables = [row[0] for row in result]
+                tables_count = len([t for t in tables if not t.startswith('sqlite_')])
+                
+                return {
+                    'size_mb': round(size_mb, 2),
+                    'size_bytes': size_bytes,
+                    'tables_count': tables_count,
+                    'type': 'SQLite'
+                }
+        
+        return {'type': 'Unknown', 'size_mb': None, 'tables_count': None}
+    except Exception:
+        return {'type': 'Error', 'size_mb': None, 'tables_count': None}
+
+# ============================================================================
+# Verificação de Backups
+# ============================================================================
+
+def _verify_backup(backup_path):
+    """Verifica integridade de um backup"""
+    try:
+        if not os.path.exists(backup_path):
+            return {'status': 'failed', 'message': 'Arquivo não encontrado'}
+        
+        size = os.path.getsize(backup_path)
+        if size == 0:
+            return {'status': 'corrupted', 'message': 'Arquivo vazio'}
+        
+        # Para SQLite, verifica se é um arquivo válido
+        if backup_path.endswith('.sqlite'):
+            try:
+                # Tenta abrir o arquivo
+                with open(backup_path, 'rb') as f:
+                    header = f.read(16)
+                    if not header.startswith(b'SQLite format 3'):
+                        return {'status': 'corrupted', 'message': 'Formato SQLite inválido'}
+            except Exception as e:
+                return {'status': 'corrupted', 'message': f'Erro ao ler arquivo: {str(e)}'}
+        
+        return {'status': 'verified', 'message': 'Backup verificado com sucesso', 'size': size}
+    except Exception as e:
+        return {'status': 'failed', 'message': f'Erro na verificação: {str(e)}'}
+
+def _verify_all_backups():
+    """Verifica todos os backups"""
+    try:
+        bdir = str(current_app.config.get('BACKUP_DIR') or '').strip()
+        if not bdir:
+            return []
+        
+        results = []
+        for name in os.listdir(bdir):
+            path = os.path.join(bdir, name)
+            if os.path.isfile(path) and name.endswith('.sqlite'):
+                verification = _verify_backup(path)
+                
+                # Salvar verificação no banco
+                backup_ver = BackupVerification()
+                backup_ver.backup_filename = name
+                backup_ver.backup_size = verification.get('size')
+                backup_ver.verification_status = verification['status']
+                backup_ver.verification_method = 'size_check'
+                backup_ver.error_message = verification.get('message') if verification['status'] != 'verified' else None
+                backup_ver.verified_by = 'system'
+                db.session.add(backup_ver)
+                
+                results.append({
+                    'filename': name,
+                    'status': verification['status'],
+                    'message': verification.get('message')
+                })
+        
+        db.session.commit()
+        return results
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        return []
+
+# ============================================================================
+# Limpeza e Otimização Automática
+# ============================================================================
+
+def _cleanup_old_logs(days=30):
+    """Limpa logs antigos"""
+    try:
+        start_time = time.time()
+        cutoff = datetime.now(ZoneInfo('America/Sao_Paulo')) - timedelta(days=days)
+        
+        # Limpar SystemLog
+        deleted_system = SystemLog.query.filter(SystemLog.data < cutoff).delete()
+        
+        # Limpar QueryLog antigo (manter últimos 1000)
+        query_logs = QueryLog.query.order_by(QueryLog.timestamp.desc()).offset(1000).all()
+        deleted_queries = 0
+        for qlog in query_logs:
+            db.session.delete(qlog)
+            deleted_queries += 1
+        
+        # Limpar MetricHistory antigo (manter últimos 30 dias)
+        deleted_metrics = MetricHistory.query.filter(MetricHistory.timestamp < cutoff).delete()
+        
+        db.session.commit()
+        duration = time.time() - start_time
+        
+        # Registrar manutenção
+        maint = MaintenanceLog()
+        maint.maintenance_type = 'cleanup_logs'
+        maint.description = f'Limpeza de logs: {deleted_system} SystemLog, {deleted_queries} QueryLog, {deleted_metrics} MetricHistory'
+        maint.status = 'completed'
+        maint.duration_seconds = duration
+        maint.items_processed = deleted_system + deleted_queries + deleted_metrics
+        maint.executed_by = 'system'
+        db.session.add(maint)
+        db.session.commit()
+        
+        return {'deleted': deleted_system + deleted_queries + deleted_metrics, 'duration': duration}
+    except Exception as e:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        return {'error': str(e)}
+
+def _optimize_database():
+    """Otimiza banco de dados"""
+    try:
+        start_time = time.time()
+        uri = current_app.config.get('SQLALCHEMY_DATABASE_URI', '')
+        is_sqlite = isinstance(uri, str) and uri.startswith('sqlite:')
+        
+        if is_sqlite:
+            # VACUUM e ANALYZE para SQLite
+            db.session.execute(text('VACUUM'))
+            db.session.execute(text('ANALYZE'))
+            db.session.commit()
+        
+        duration = time.time() - start_time
+        
+        # Registrar manutenção
+        maint = MaintenanceLog()
+        maint.maintenance_type = 'optimize_database'
+        maint.description = 'Otimização do banco de dados (VACUUM + ANALYZE)'
+        maint.status = 'completed'
+        maint.duration_seconds = duration
+        maint.executed_by = 'system'
+        db.session.add(maint)
+        db.session.commit()
+        
+        return {'status': 'completed', 'duration': duration}
+    except Exception as e:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        return {'error': str(e)}
+
+def _cleanup_old_backups(keep_count=20):
+    """Remove backups antigos, mantendo apenas os N mais recentes"""
+    try:
+        bdir = str(current_app.config.get('BACKUP_DIR') or '').strip()
+        if not bdir:
+            return {'deleted': 0}
+        
+        backups = []
+        for name in os.listdir(bdir):
+            path = os.path.join(bdir, name)
+            if os.path.isfile(path) and name.endswith('.sqlite'):
+                try:
+                    mtime = os.path.getmtime(path)
+                    backups.append((mtime, path, name))
+                except Exception:
+                    pass
+        
+        backups.sort(key=lambda x: x[0], reverse=True)
+        
+        deleted = 0
+        if len(backups) > keep_count:
+            for mtime, path, name in backups[keep_count:]:
+                try:
+                    if not name.startswith('backup-24h'):  # Não deletar backup diário
+                        os.remove(path)
+                        deleted += 1
+                except Exception:
+                    pass
+        
+        return {'deleted': deleted}
+    except Exception:
+        return {'deleted': 0}
+
+# ============================================================================
+# Dashboard Consolidado
+# ============================================================================
+
+def _get_system_health_score(health_checks):
+    """Calcula score de saúde do sistema (0-100)"""
+    try:
+        scores = []
+        
+        if 'database' in health_checks:
+            db_status = health_checks['database'].get('status', 'error')
+            scores.append(100 if db_status == 'ok' else (50 if db_status == 'warning' else 0))
+        
+        if 'backend' in health_checks:
+            backend_status = health_checks['backend'].get('status', 'error')
+            scores.append(100 if backend_status == 'ok' else (50 if backend_status == 'warning' else 0))
+        
+        if 'cpu' in health_checks:
+            cpu_percent = health_checks['cpu'].get('usage_percent', 100)
+            scores.append(max(0, 100 - cpu_percent))
+        
+        if 'memory' in health_checks:
+            mem_percent = health_checks['memory'].get('usage_percent', 100)
+            scores.append(max(0, 100 - mem_percent))
+        
+        if 'disk' in health_checks:
+            disk_percent = health_checks['disk'].get('usage_percent', 100)
+            scores.append(max(0, 100 - disk_percent))
+        
+        return round(sum(scores) / len(scores), 1) if scores else 0
+    except Exception:
+        return 0
+
+# ============================================================================
+# Monitoramento de Rede e Latência
+# ============================================================================
+
+def _check_http_latency():
+    """Verifica latência HTTP"""
+    try:
+        start = time.time()
+        with current_app.test_client() as client:
+            response = client.get('/health')
+            latency_ms = (time.time() - start) * 1000
+        
+        status = 'ok'
+        if latency_ms > 2000:
+            status = 'error'
+        elif latency_ms > 500:
+            status = 'warning'
+        
+        return {
+            'status': status,
+            'latency_ms': round(latency_ms, 2),
+            'status_code': response.status_code,
+            'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+        }
+    except Exception as e:
+        return {
+            'status': 'error',
+            'latency_ms': None,
+            'status_code': None,
+            'error': str(e),
+            'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+        }
+
+# ============================================================================
+# Backups
+# ============================================================================
 
 def _list_backups():
     bdir = str(current_app.config.get('BACKUP_DIR') or '').strip()
@@ -46,12 +917,19 @@ def _list_backups():
         pass
     return items
 
+# ============================================================================
+# Rotas
+# ============================================================================
+
 @bp.route('/', methods=['GET'], strict_slashes=False)
 @login_required
 def index():
-    if current_user.nivel not in ('admin', 'DEV'):
-        flash('Apenas Gerente pode acessar Banco de Dados.', 'danger')
+    """Página principal - Acesso exclusivo para desenvolvedores"""
+    if not _check_dev_access():
+        _log_unauthorized_access()
+        flash('Acesso negado. Esta página é exclusiva para desenvolvedores.', 'danger')
         return redirect(url_for('home.index'))
+    
     uri = current_app.config.get('SQLALCHEMY_DATABASE_URI', '')
     is_sqlite = isinstance(uri, str) and uri.startswith('sqlite:')
     backups = _list_backups()
@@ -60,6 +938,8 @@ def index():
         daily = next((it for it in backups if it.get('name') == 'backup-24h.sqlite'), None)
     except Exception:
         daily = None
+    
+    # Paginação de backups
     try:
         page = int(request.args.get('page', '1'))
     except Exception:
@@ -74,6 +954,8 @@ def index():
     start = (page - 1) * per_page
     end = start + per_page
     backups_page = backups[start:end]
+    
+    # Paginação de logins
     try:
         login_page = int(request.args.get('login_page', '1'))
     except Exception:
@@ -86,6 +968,29 @@ def index():
     except Exception:
         logins_pag = None
         logins = []
+    
+    # Health checks iniciais
+    health_checks = _get_all_health_checks()
+    health_score = _get_system_health_score(health_checks)
+    
+    # Incidentes recentes
+    try:
+        incidents = Incident.query.order_by(Incident.created_at.desc()).limit(20).all()
+    except Exception:
+        incidents = []
+    
+    # Alertas ativos
+    try:
+        active_alerts = Alert.query.filter(Alert.status == 'active').order_by(Alert.created_at.desc()).limit(10).all()
+    except Exception:
+        active_alerts = []
+    
+    # Estatísticas do banco
+    db_stats = _get_database_stats()
+    
+    # Previsão de disco
+    disk_prediction = _predict_disk_full_date()
+    
     return render_template(
         'db.html',
         active_page='dbadmin',
@@ -95,34 +1000,322 @@ def index():
         total_pages=total_pages,
         daily_backup=daily,
         logins=logins,
-        logins_pag=logins_pag
+        logins_pag=logins_pag,
+        health_checks=health_checks,
+        health_score=health_score,
+        incidents=incidents,
+        active_alerts=active_alerts,
+        db_stats=db_stats,
+        disk_prediction=disk_prediction
     )
+
+@bp.route('/health', methods=['GET'], strict_slashes=False)
+@login_required
+def health():
+    """Endpoint JSON para health checks"""
+    if not _check_dev_access():
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    health_checks = _get_all_health_checks()
+    return jsonify({'ok': True, 'health': health_checks})
 
 @bp.route('/metrics', methods=['GET'], strict_slashes=False)
 @login_required
 def metrics():
-    if current_user.nivel not in ('admin', 'DEV'):
+    """Endpoint JSON para métricas de recursos"""
+    if not _check_dev_access():
         return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
     cpu = None
     mem = None
+    disk = None
     try:
         if psutil is not None:
             cpu = float(psutil.cpu_percent(interval=0.05))
             mem = float(psutil.virtual_memory().percent)
+            disk_usage = psutil.disk_usage('/')
+            disk = float(disk_usage.percent)
         else:
             cpu = None
             mem = None
+            disk = None
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)}), 500
+    
     from datetime import datetime
-    return jsonify({'ok': True, 'ts': datetime.now().isoformat(), 'cpu': cpu, 'mem': mem})
+    return jsonify({
+        'ok': True,
+        'ts': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat(),
+        'cpu': cpu,
+        'mem': mem,
+        'disk': disk
+    })
+
+@bp.route('/logs', methods=['GET'], strict_slashes=False)
+@login_required
+def logs():
+    """Endpoint JSON para logs em tempo real"""
+    if not _check_dev_access():
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    log_type = request.args.get('type', 'all')  # 'all', 'app', 'system', 'database'
+    level = request.args.get('level', 'all')  # 'all', 'INFO', 'WARNING', 'ERROR'
+    limit = int(request.args.get('limit', 100))
+    
+    try:
+        # Logs do sistema (SystemLog)
+        system_logs = []
+        query = SystemLog.query
+        
+        if log_type in ('system', 'all'):
+            if level != 'all':
+                # SystemLog não tem nível, mas podemos filtrar por evento
+                if level == 'ERROR':
+                    query = query.filter(SystemLog.evento.in_(['erro', 'falha', 'error', 'exception']))
+                elif level == 'WARNING':
+                    query = query.filter(SystemLog.evento.in_(['aviso', 'warning', 'alerta']))
+            
+            system_logs_query = query.order_by(SystemLog.data.desc()).limit(limit).all()
+            for log in system_logs_query:
+                system_logs.append({
+                    'timestamp': log.data.isoformat() if log.data else datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat(),
+                    'type': 'system',
+                    'level': 'INFO',
+                    'origin': log.origem or 'Sistema',
+                    'event': log.evento or '',
+                    'message': log.detalhes or '',
+                    'user': log.usuario or ''
+                })
+        
+        # Ordenar por timestamp
+        all_logs = sorted(system_logs, key=lambda x: x['timestamp'], reverse=True)[:limit]
+        
+        return jsonify({'ok': True, 'logs': all_logs})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@bp.route('/incidents', methods=['GET'], strict_slashes=False)
+@login_required
+def incidents():
+    """Endpoint JSON para listar incidentes"""
+    if not _check_dev_access():
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    service = request.args.get('service', 'all')
+    status = request.args.get('status', 'all')
+    limit = int(request.args.get('limit', 50))
+    
+    try:
+        query = Incident.query
+        
+        if service != 'all':
+            query = query.filter(Incident.service == service)
+        if status != 'all':
+            query = query.filter(Incident.status == status)
+        
+        incidents_list = query.order_by(Incident.created_at.desc()).limit(limit).all()
+        
+        result = []
+        for inc in incidents_list:
+            result.append({
+                'id': inc.id,
+                'created_at': inc.created_at.isoformat() if inc.created_at else None,
+                'service': inc.service,
+                'error_type': inc.error_type,
+                'message': inc.message,
+                'status': inc.status,
+                'severity': inc.severity,
+                'resolved_at': inc.resolved_at.isoformat() if inc.resolved_at else None
+            })
+        
+        return jsonify({'ok': True, 'incidents': result})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@bp.route('/alerts', methods=['GET'], strict_slashes=False)
+@login_required
+def alerts():
+    """Endpoint JSON para listar alertas"""
+    if not _check_dev_access():
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    status = request.args.get('status', 'active')
+    limit = int(request.args.get('limit', 50))
+    
+    try:
+        query = Alert.query
+        if status != 'all':
+            query = query.filter(Alert.status == status)
+        
+        alerts_list = query.order_by(Alert.created_at.desc()).limit(limit).all()
+        
+        result = []
+        for alert in alerts_list:
+            result.append({
+                'id': alert.id,
+                'created_at': alert.created_at.isoformat() if alert.created_at else None,
+                'alert_type': alert.alert_type,
+                'metric_type': alert.metric_type,
+                'threshold_value': alert.threshold_value,
+                'current_value': alert.current_value,
+                'message': alert.message,
+                'severity': alert.severity,
+                'status': alert.status,
+                'acknowledged_at': alert.acknowledged_at.isoformat() if alert.acknowledged_at else None,
+                'resolved_at': alert.resolved_at.isoformat() if alert.resolved_at else None
+            })
+        
+        return jsonify({'ok': True, 'alerts': result})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@bp.route('/metrics/trends', methods=['GET'], strict_slashes=False)
+@login_required
+def metrics_trends():
+    """Endpoint JSON para análise de tendências"""
+    if not _check_dev_access():
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    metric_type = request.args.get('type', 'cpu')
+    hours = int(request.args.get('hours', 24))
+    
+    try:
+        trends = _get_metric_trends(metric_type, hours)
+        return jsonify({'ok': True, 'trends': trends})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@bp.route('/metrics/predict', methods=['GET'], strict_slashes=False)
+@login_required
+def metrics_predict():
+    """Endpoint JSON para análise preditiva"""
+    if not _check_dev_access():
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    try:
+        prediction = _predict_disk_full_date()
+        return jsonify({'ok': True, 'prediction': prediction})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@bp.route('/queries/slow', methods=['GET'], strict_slashes=False)
+@login_required
+def slow_queries():
+    """Endpoint JSON para queries lentas"""
+    if not _check_dev_access():
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    limit = int(request.args.get('limit', 20))
+    
+    try:
+        queries = _get_slow_queries(limit)
+        result = []
+        for q in queries:
+            result.append({
+                'id': q.id,
+                'timestamp': q.timestamp.isoformat() if q.timestamp else None,
+                'query': q.query[:200] + '...' if len(q.query) > 200 else q.query,
+                'execution_time_ms': q.execution_time_ms,
+                'rows_returned': q.rows_returned,
+                'endpoint': q.endpoint
+            })
+        return jsonify({'ok': True, 'queries': result})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@bp.route('/database/stats', methods=['GET'], strict_slashes=False)
+@login_required
+def database_stats():
+    """Endpoint JSON para estatísticas do banco"""
+    if not _check_dev_access():
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    try:
+        stats = _get_database_stats()
+        return jsonify({'ok': True, 'stats': stats})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@bp.route('/backups/verify', methods=['POST'], strict_slashes=False)
+@login_required
+def verify_backups():
+    """Verifica integridade de todos os backups"""
+    if not _check_dev_access():
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    try:
+        results = _verify_all_backups()
+        return jsonify({'ok': True, 'results': results})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@bp.route('/maintenance/cleanup', methods=['POST'], strict_slashes=False)
+@login_required
+def maintenance_cleanup():
+    """Executa limpeza de logs antigos"""
+    if not _check_dev_access():
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    days = int(request.args.get('days', 30))
+    
+    try:
+        result = _cleanup_old_logs(days)
+        return jsonify({'ok': True, 'result': result})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@bp.route('/maintenance/optimize', methods=['POST'], strict_slashes=False)
+@login_required
+def maintenance_optimize():
+    """Executa otimização do banco de dados"""
+    if not _check_dev_access():
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    try:
+        result = _optimize_database()
+        return jsonify({'ok': True, 'result': result})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@bp.route('/dashboard', methods=['GET'], strict_slashes=False)
+@login_required
+def dashboard():
+    """Endpoint JSON para dashboard consolidado"""
+    if not _check_dev_access():
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    try:
+        health_checks = _get_all_health_checks()
+        health_score = _get_system_health_score(health_checks)
+        db_stats = _get_database_stats()
+        disk_prediction = _predict_disk_full_date()
+        
+        # Alertas ativos
+        active_alerts = Alert.query.filter(Alert.status == 'active').count()
+        
+        # Incidentes abertos
+        open_incidents = Incident.query.filter(Incident.status == 'open').count()
+        
+        return jsonify({
+            'ok': True,
+            'health_score': health_score,
+            'health_checks': health_checks,
+            'database_stats': db_stats,
+            'disk_prediction': disk_prediction,
+            'active_alerts': active_alerts,
+            'open_incidents': open_incidents
+        })
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
 
 @bp.route('/backup', methods=['POST'], strict_slashes=False)
 @login_required
 def backup_now():
-    if current_user.nivel not in ('admin', 'DEV'):
-        flash('Apenas Gerente pode executar backup.', 'danger')
+    if not _check_dev_access():
+        _log_unauthorized_access()
+        flash('Acesso negado.', 'danger')
         return redirect(url_for('home.index'))
+    
     ok = False
     try:
         fn = getattr(current_app, 'perform_backup', None)
@@ -133,14 +1326,14 @@ def backup_now():
     flash('Backup criado.' if ok else 'Falha ao criar backup.', 'success' if ok else 'danger')
     return redirect(url_for('dbadmin.index'))
 
-
-
 @bp.route('/download/<path:name>', methods=['GET'], strict_slashes=False)
 @login_required
 def download(name: str):
-    if current_user.nivel not in ('admin', 'DEV'):
-        flash('Apenas Gerente pode baixar backup.', 'danger')
+    if not _check_dev_access():
+        _log_unauthorized_access()
+        flash('Acesso negado.', 'danger')
         return redirect(url_for('home.index'))
+    
     bdir = str(current_app.config.get('BACKUP_DIR') or '').strip()
     if not bdir:
         flash('Diretório de backup inválido.', 'danger')
@@ -154,9 +1347,11 @@ def download(name: str):
 @bp.route('/excluir/<path:name>', methods=['POST'], strict_slashes=False)
 @login_required
 def excluir(name: str):
-    if current_user.nivel not in ('admin', 'DEV'):
-        flash('Apenas Gerente pode excluir backups.', 'danger')
+    if not _check_dev_access():
+        _log_unauthorized_access()
+        flash('Acesso negado.', 'danger')
         return redirect(url_for('home.index'))
+    
     bdir = str(current_app.config.get('BACKUP_DIR') or '').strip()
     if not bdir:
         flash('Diretório de backup inválido.', 'danger')
@@ -175,9 +1370,11 @@ def excluir(name: str):
 @bp.route('/restaurar/<path:name>', methods=['POST'], strict_slashes=False)
 @login_required
 def restaurar(name: str):
-    if current_user.nivel not in ('admin', 'DEV'):
-        flash('Apenas Gerente pode restaurar backups.', 'danger')
+    if not _check_dev_access():
+        _log_unauthorized_access()
+        flash('Acesso negado.', 'danger')
         return redirect(url_for('home.index'))
+    
     uri = current_app.config.get('SQLALCHEMY_DATABASE_URI', '')
     is_sqlite = isinstance(uri, str) and uri.startswith('sqlite:')
     if not is_sqlite:
@@ -221,9 +1418,11 @@ def restaurar(name: str):
 @bp.route('/restaurar/snapshot', methods=['POST'], strict_slashes=False)
 @login_required
 def restaurar_snapshot():
-    if current_user.nivel not in ('admin', 'DEV'):
-        flash('Apenas Gerente pode restaurar backups.', 'danger')
+    if not _check_dev_access():
+        _log_unauthorized_access()
+        flash('Acesso negado.', 'danger')
         return redirect(url_for('home.index'))
+    
     uri = current_app.config.get('SQLALCHEMY_DATABASE_URI', '')
     is_sqlite = isinstance(uri, str) and uri.startswith('sqlite:')
     if not is_sqlite:

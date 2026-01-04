@@ -343,6 +343,80 @@ class UserLogin(db.Model):
     
     user = db.relationship('User', backref='logins', lazy=True)
 
+class Incident(db.Model):
+    """Registro de incidentes e falhas do sistema"""
+    __tablename__ = 'incident'
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')), nullable=False, index=True)
+    service = db.Column(db.String(50), nullable=False, index=True)  # 'database', 'backend', 'nginx', 'cpu', 'memory', 'disk'
+    error_type = db.Column(db.String(50), nullable=False)  # 'connection_error', 'timeout', 'high_usage', etc
+    message = db.Column(db.Text, nullable=False)  # Mensagem técnica do erro
+    status = db.Column(db.String(20), nullable=False, default='open')  # 'open', 'resolved', 'acknowledged'
+    resolved_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    severity = db.Column(db.String(20), nullable=False, default='error')  # 'error', 'warning', 'info'
+
+class MetricHistory(db.Model):
+    """Histórico de métricas do sistema para análise de tendências"""
+    __tablename__ = 'metric_history'
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')), nullable=False, index=True)
+    metric_type = db.Column(db.String(50), nullable=False, index=True)  # 'cpu', 'memory', 'disk', 'database_response_time', 'http_latency'
+    value = db.Column(db.Float, nullable=False)
+    unit = db.Column(db.String(20), nullable=True)  # 'percent', 'ms', 'gb', 'mb'
+    extra_data = db.Column(db.Text, nullable=True)  # JSON com informações adicionais
+
+class Alert(db.Model):
+    """Sistema de alertas proativos"""
+    __tablename__ = 'alert'
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')), nullable=False, index=True)
+    alert_type = db.Column(db.String(50), nullable=False, index=True)  # 'cpu_high', 'memory_high', 'disk_high', 'database_slow', etc
+    metric_type = db.Column(db.String(50), nullable=False)
+    threshold_value = db.Column(db.Float, nullable=False)
+    current_value = db.Column(db.Float, nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    severity = db.Column(db.String(20), nullable=False, default='warning')  # 'critical', 'warning', 'info'
+    status = db.Column(db.String(20), nullable=False, default='active')  # 'active', 'acknowledged', 'resolved'
+    acknowledged_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    resolved_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    acknowledged_by = db.Column(db.String(100), nullable=True)
+
+class MaintenanceLog(db.Model):
+    """Log de operações de manutenção executadas"""
+    __tablename__ = 'maintenance_log'
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')), nullable=False, index=True)
+    maintenance_type = db.Column(db.String(50), nullable=False, index=True)  # 'cleanup_logs', 'optimize_database', 'cleanup_backups', etc
+    description = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='completed')  # 'completed', 'failed', 'running'
+    duration_seconds = db.Column(db.Float, nullable=True)
+    items_processed = db.Column(db.Integer, nullable=True)  # Quantos itens foram processados
+    operation_details = db.Column(db.Text, nullable=True)  # JSON com detalhes da operação
+    executed_by = db.Column(db.String(100), nullable=True)  # 'system' ou username
+
+class QueryLog(db.Model):
+    """Log de queries lentas do banco de dados"""
+    __tablename__ = 'query_log'
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')), nullable=False, index=True)
+    query = db.Column(db.Text, nullable=False)
+    execution_time_ms = db.Column(db.Float, nullable=False, index=True)
+    rows_returned = db.Column(db.Integer, nullable=True)
+    endpoint = db.Column(db.String(200), nullable=True, index=True)
+    user_id = db.Column(db.Integer, nullable=True)
+
+class BackupVerification(db.Model):
+    """Verificação de integridade de backups"""
+    __tablename__ = 'backup_verification'
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')), nullable=False, index=True)
+    backup_filename = db.Column(db.String(255), nullable=False)
+    backup_size = db.Column(db.BigInteger, nullable=True)
+    verification_status = db.Column(db.String(20), nullable=False)  # 'verified', 'failed', 'corrupted'
+    verification_method = db.Column(db.String(50), nullable=False)  # 'size_check', 'integrity_check', 'restore_test'
+    error_message = db.Column(db.Text, nullable=True)
+    verified_by = db.Column(db.String(100), nullable=True)  # 'system' ou username
+
 
 class Vacation(db.Model):
     __tablename__ = 'vacation'
