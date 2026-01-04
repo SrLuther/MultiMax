@@ -1,5 +1,23 @@
 # Changelog — MultiMax
 
+## [2.3.2] - 2025-01-04
+
+### 🔧 Melhorias
+
+#### Monitoramento de Saúde do Sistema
+- **Verificação do Nginx com Hostname Real**: Atualização da função `_check_nginx_health()` para usar hostname real
+  - Substituído `127.0.0.1` por `multimax.tec.br` em todas as verificações
+  - Verifica portas 80 (HTTP) e 443 (HTTPS) usando o hostname real
+  - Detecta redirecionamentos HTTP → HTTPS através do hostname real
+  - Mantém compatibilidade total com dashboard `/db`
+
+### 📝 Arquivos Modificados
+- `multimax/routes/dbadmin.py`: 
+  - Função `_check_nginx_health()` atualizada para usar `multimax.tec.br`
+  - Testes de porta e requisições HTTP agora usam hostname real
+
+---
+
 ## [2.3.1] - 2025-01-04
 
 ### 🔧 Melhorias
