@@ -6,6 +6,8 @@ import time
 import subprocess
 import socket
 import logging
+import urllib.request
+import urllib.error
 from datetime import datetime, date, timedelta
 from zoneinfo import ZoneInfo
 from .. import db
@@ -111,40 +113,105 @@ def _check_backend_health():
         }
 
 def _check_nginx_health():
-    """Verifica saúde do Nginx"""
+    """Verifica saúde do Nginx - testa portas 80 (HTTP) e 443 (HTTPS) e segue redirecionamentos"""
     try:
-        # Tenta conectar na porta 80 (HTTP) ou verifica processo
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(2)
-        result = sock.connect_ex(('127.0.0.1', 80))
-        sock.close()
+        # Função auxiliar para testar conexão em uma porta
+        def _test_port(host, port, timeout=2):
+            """Testa se uma porta está aberta e respondendo"""
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(timeout)
+                result = sock.connect_ex((host, port))
+                sock.close()
+                return result == 0
+            except Exception:
+                return False
         
-        if result == 0:
+        # Função auxiliar para verificar redirecionamento HTTP → HTTPS
+        def _check_http_redirect():
+            """Verifica se HTTP redireciona para HTTPS"""
+            try:
+                # Cria um opener que segue redirecionamentos
+                opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
+                opener.addheaders = [('User-Agent', 'MultiMax-HealthCheck/1.0')]
+                
+                # Tenta fazer requisição HTTP para localhost
+                req = urllib.request.Request('http://127.0.0.1/', method='HEAD')
+                response = opener.open(req, timeout=3)
+                
+                # Verifica se houve redirecionamento
+                if hasattr(response, 'url') and response.url.startswith('https://'):
+                    return True, 'HTTP redireciona para HTTPS'
+                return True, 'HTTP respondendo'
+            except urllib.error.HTTPError as e:
+                # Alguns códigos HTTP ainda indicam que o servidor está respondendo
+                if e.code in (301, 302, 303, 307, 308):
+                    # Verifica o header Location
+                    location = e.headers.get('Location', '')
+                    if location.startswith('https://'):
+                        return True, f'HTTP redireciona para HTTPS (código {e.code})'
+                return False, f'HTTP retornou código {e.code}'
+            except (urllib.error.URLError, socket.timeout, Exception) as e:
+                return False, None
+        
+        # Testa porta 80 (HTTP)
+        port_80_ok = _test_port('127.0.0.1', 80)
+        
+        # Testa porta 443 (HTTPS)
+        port_443_ok = _test_port('127.0.0.1', 443)
+        
+        # Se ambas as portas estão abertas
+        if port_80_ok and port_443_ok:
             return {
                 'status': 'ok',
-                'message': 'Nginx respondendo na porta 80',
+                'message': 'Nginx respondendo nas portas 80 (HTTP) e 443 (HTTPS)',
                 'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
             }
-        else:
-            # Verifica se processo nginx está rodando
-            try:
-                if psutil:
-                    for proc in psutil.process_iter(['pid', 'name']):
-                        if 'nginx' in proc.info['name'].lower():
-                            return {
-                                'status': 'warning',
-                                'message': 'Processo Nginx encontrado mas porta 80 não responde',
-                                'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
-                            }
-            except Exception:
-                pass
-            
-            _register_incident('nginx', 'service_down', 'Nginx não está respondendo')
+        
+        # Se apenas porta 443 está aberta
+        if port_443_ok:
             return {
-                'status': 'error',
-                'message': 'Nginx não está respondendo',
+                'status': 'ok',
+                'message': 'Nginx respondendo na porta 443 (HTTPS)',
                 'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
             }
+        
+        # Se apenas porta 80 está aberta, verifica redirecionamento
+        if port_80_ok:
+            redirect_ok, redirect_msg = _check_http_redirect()
+            if redirect_ok:
+                return {
+                    'status': 'ok',
+                    'message': f'Nginx respondendo na porta 80: {redirect_msg}',
+                    'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+                }
+            else:
+                return {
+                    'status': 'ok',
+                    'message': 'Nginx respondendo na porta 80 (HTTP)',
+                    'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+                }
+        
+        # Se nenhuma porta responde, verifica se processo nginx está rodando
+        try:
+            if psutil:
+                for proc in psutil.process_iter(['pid', 'name']):
+                    if 'nginx' in proc.info['name'].lower():
+                        return {
+                            'status': 'warning',
+                            'message': 'Processo Nginx encontrado mas portas 80 e 443 não respondem',
+                            'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+                        }
+        except Exception:
+            pass
+        
+        # Nenhuma porta responde e processo não encontrado
+        _register_incident('nginx', 'service_down', 'Nginx não está respondendo nas portas 80 e 443')
+        return {
+            'status': 'error',
+            'message': 'Nginx não está respondendo nas portas 80 (HTTP) e 443 (HTTPS)',
+            'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+        }
     except Exception as e:
         _register_incident('nginx', 'check_error', str(e))
         return {

@@ -1,6 +1,26 @@
 # Changelog — MultiMax
 
-## [2.2.3] - 2025-01-03
+## [2.3.1] - 2025-01-04
+
+### 🔧 Melhorias
+
+#### Monitoramento de Saúde do Sistema
+- **Verificação Aprimorada do Nginx**: Melhorias na função `_check_nginx_health()` para verificação mais robusta
+  - Agora verifica tanto a porta 80 (HTTP) quanto a porta 443 (HTTPS)
+  - Detecta automaticamente redirecionamentos HTTP → HTTPS
+  - Segue redirecionamentos e verifica se o servidor está respondendo corretamente
+  - Mensagens de status mais informativas indicando qual porta está respondendo
+  - Melhor tratamento de casos onde apenas uma das portas está disponível
+
+### 📝 Arquivos Modificados
+- `multimax/routes/dbadmin.py`: 
+  - Função `_check_nginx_health()` completamente refatorada
+  - Adicionadas funções auxiliares `_test_port()` e `_check_http_redirect()`
+  - Importações adicionadas: `urllib.request` e `urllib.error`
+
+---
+
+## [2.3] - 2025-01-XX
 
 ### 🎉 Novas Funcionalidades
 
