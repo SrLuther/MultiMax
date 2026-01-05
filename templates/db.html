@@ -81,20 +81,24 @@
                 
                 <div class="db-git-status-grid" id="gitStatusGrid">
                     <div class="db-git-status-item">
-                        <div class="db-git-status-label">Versão Atual do Sistema</div>
+                        <div class="db-git-status-label">Versão Local Atual</div>
                         <div class="db-git-status-value" id="currentVersion">Carregando...</div>
+                        <small class="db-git-status-hint">Versão aplicada no servidor</small>
                     </div>
                     <div class="db-git-status-item">
-                        <div class="db-git-status-label">Commit Atual</div>
+                        <div class="db-git-status-label">Commit Local</div>
                         <div class="db-git-status-value" id="currentCommit">Carregando...</div>
+                        <small class="db-git-status-hint">Commit atual do sistema</small>
                     </div>
                     <div class="db-git-status-item">
                         <div class="db-git-status-label">Último Commit Remoto</div>
                         <div class="db-git-status-value" id="latestCommit">Carregando...</div>
+                        <small class="db-git-status-hint">Commit mais recente no GitHub</small>
                     </div>
                     <div class="db-git-status-item">
                         <div class="db-git-status-label">Mensagem do Commit</div>
                         <div class="db-git-status-value db-git-commit-message" id="commitMessage">Carregando...</div>
+                        <small class="db-git-status-hint">Descrição da última alteração</small>
                     </div>
                 </div>
                 
@@ -3039,12 +3043,120 @@ window.addEventListener('beforeunload', function() {
     margin-bottom: 1rem;
 }
 
+.db-git-countdown-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 2rem 0;
+    padding: 2rem;
+    background: rgba(59, 130, 246, 0.05);
+    border-radius: 12px;
+    border: 2px solid rgba(59, 130, 246, 0.2);
+}
+
 .db-git-countdown {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
     text-align: center;
-    padding: 1.5rem;
-    background: rgba(239, 68, 68, 0.1);
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.db-git-processing-msg,
+.db-git-success-msg,
+.db-git-error-msg {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
     border-radius: 8px;
-    margin: 1rem 0;
+    margin-top: 1rem;
+    font-size: 0.95rem;
+}
+
+.db-git-processing-msg {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.db-git-success-msg {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.db-git-error-msg {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.db-git-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    z-index: 10001;
+    max-width: 400px;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.db-git-notification-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.db-git-notification-content i {
+    font-size: 1.5rem;
+    color: #2563eb;
+    flex-shrink: 0;
+}
+
+.db-git-notification-content strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #1f2937;
+}
+
+.db-git-notification-content p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+    line-height: 1.5;
 }
 
 .db-git-countdown-value {
