@@ -509,11 +509,24 @@ def perfil():
     day_value = 0.0
     if collab:
         try:
-            from ..routes.jornada import _calculate_collaborator_values, _get_day_value
+            # Importar funções da jornada
+            from multimax.routes.jornada import _calculate_collaborator_values, _get_day_value
             collaborator_values = _calculate_collaborator_values(collab.id)
             day_value = _get_day_value()
-        except Exception:
-            pass
+        except ImportError:
+            try:
+                # Fallback: importação relativa
+                from ..routes.jornada import _calculate_collaborator_values, _get_day_value
+                collaborator_values = _calculate_collaborator_values(collab.id)
+                day_value = _get_day_value()
+            except Exception as e:
+                current_app.logger.error(f'Erro ao calcular valores do colaborador: {e}')
+                collaborator_values = None
+                day_value = 0.0
+        except Exception as e:
+            current_app.logger.error(f'Erro ao calcular valores do colaborador: {e}')
+            collaborator_values = None
+            day_value = 0.0
     
     is_on_break = False
     is_on_vacation = False
