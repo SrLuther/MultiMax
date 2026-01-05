@@ -1,5 +1,26 @@
 # Changelog — MultiMax
 
+## [2.3.10] - 2025-01-04
+
+### 🐛 Correções
+
+#### Correções de Exibição
+- **Card Git na Página Banco de Dados**: Corrigido problema de visibilidade do card de monitoramento Git
+  - Adicionado CSS com `!important` para garantir que o card seja sempre visível
+  - Card agora aparece corretamente para usuários DEV
+- **Valores no Perfil do Usuário**: Corrigido cálculo e exibição de valores a receber
+  - Reimplementado cálculo diretamente no perfil sem dependência de importação
+  - Adicionado `AppSetting` aos imports necessários
+  - Melhorada condição de exibição com mensagens informativas
+  - Valores agora aparecem corretamente quando colaborador está vinculado
+
+### 📝 Arquivos Modificados
+- `multimax/routes/usuarios.py`: Reimplementado cálculo de valores no perfil
+- `templates/perfil.html`: Melhorada exibição de valores com mensagens informativas
+- `templates/db.html`: Corrigida visibilidade do card Git
+
+---
+
 ## [2.3.9] - 2025-01-04
 
 ### ✨ Novas Funcionalidades
