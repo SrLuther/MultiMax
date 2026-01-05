@@ -1454,14 +1454,59 @@ function applyUpdate() {
         countdownValue.style.color = '#16a34a';
     }
     
-    // Mostrar mensagem de processamento
+    // Função para atualizar etapas visuais
+    function updateStep(stepNum, status) {
+        const stepEl = document.getElementById(`step${stepNum}`);
+        if (stepEl) {
+            if (status === 'processing') {
+                stepEl.innerHTML = stepEl.innerHTML.replace(/[✓⏳]/g, '⏳');
+                stepEl.style.opacity = '1';
+                stepEl.style.fontWeight = '600';
+            } else if (status === 'completed') {
+                stepEl.innerHTML = stepEl.innerHTML.replace(/[✓⏳]/g, '✓');
+                stepEl.style.opacity = '1';
+                stepEl.style.color = '#059669';
+            }
+        }
+    }
+    
+    // Mostrar mensagem de processamento com etapas
     const modalBody = document.querySelector('.db-git-modal-body');
     if (modalBody) {
         const processingMsg = document.createElement('div');
         processingMsg.id = 'processingMsg';
         processingMsg.className = 'db-git-processing-msg';
-        processingMsg.innerHTML = '<i class="bi bi-arrow-repeat" style="animation: spin 1s linear infinite;"></i> <span>Aplicando atualização... Aguarde.</span>';
+        processingMsg.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <i class="bi bi-arrow-repeat" style="animation: spin 1s linear infinite;"></i>
+                    <span><strong>Aplicando atualização completa...</strong></span>
+                </div>
+                <div id="updateSteps" style="margin-left: 2rem; font-size: 0.9rem; color: #6b7280;">
+                    <div id="step1">✓ Atualizando código do GitHub...</div>
+                    <div id="step2" style="opacity: 0.5;">⏳ Parando containers...</div>
+                    <div id="step3" style="opacity: 0.5;">⏳ Rebuild do container (pode demorar alguns minutos)...</div>
+                    <div id="step4" style="opacity: 0.5;">⏳ Iniciando containers...</div>
+                </div>
+            </div>
+        `;
         modalBody.appendChild(processingMsg);
+        
+        // Simular progresso das etapas (o backend não retorna progresso em tempo real)
+        let stepTimeout = 2000; // 2 segundos entre etapas
+        updateStep(1, 'processing');
+        setTimeout(() => {
+            updateStep(1, 'completed');
+            updateStep(2, 'processing');
+            setTimeout(() => {
+                updateStep(2, 'completed');
+                updateStep(3, 'processing');
+                setTimeout(() => {
+                    updateStep(3, 'completed');
+                    updateStep(4, 'processing');
+                }, stepTimeout * 2); // Build demora mais
+            }, stepTimeout);
+        }, stepTimeout);
     }
     
     fetch('{{ url_for("dbadmin.git_update") }}', {
