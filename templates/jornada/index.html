@@ -266,6 +266,150 @@
     </div>
     {% endif %}
 
+    <!-- Cards de Valores -->
+    <div class="valores-card-modern">
+        <div class="valores-header-modern">
+            <h3 class="valores-title">
+                <i class="bi bi-cash-coin"></i>
+                Valores a Receber
+            </h3>
+            <button type="button" class="btn-config-valor" data-bs-toggle="modal" data-bs-target="#modalConfigValor" title="Configurar valor por dia">
+                <i class="bi bi-gear"></i>
+                Configurações
+            </button>
+        </div>
+        <div class="valores-body-modern">
+            <div class="valores-grid-modern">
+                <!-- Card 1: Valor Dias Completos (Individual) -->
+                <div class="valor-card-modern valor-card-individual" id="cardValorDiasCompletos">
+                    <div class="valor-card-icon-modern">
+                        <i class="bi bi-calendar-check-fill"></i>
+                    </div>
+                    <div class="valor-card-content-modern">
+                        <div class="valor-card-label-modern">Valor Dias Completos (Individual)</div>
+                        <div class="valor-card-value-modern" id="valorDiasCompletos">
+                            {% if collaborator_values %}
+                            R$ {{ "%.2f"|format(collaborator_values.value_full_days) }}
+                            {% else %}
+                            R$ 0,00
+                            {% endif %}
+                        </div>
+                        <div class="valor-card-detail-modern">
+                            {% if collaborator_values %}
+                            {{ collaborator_values.full_days }} dia(s) × R$ {{ "%.2f"|format(day_value) }}
+                            {% else %}
+                            0 dia(s)
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Valor Dias + Horas (Individual) -->
+                <div class="valor-card-modern valor-card-individual" id="cardValorDiasHoras">
+                    <div class="valor-card-icon-modern">
+                        <i class="bi bi-clock-fill"></i>
+                    </div>
+                    <div class="valor-card-content-modern">
+                        <div class="valor-card-label-modern">Valor Dias + Horas (Individual)</div>
+                        <div class="valor-card-value-modern" id="valorDiasHoras">
+                            {% if collaborator_values %}
+                            R$ {{ "%.2f"|format(collaborator_values.value_residual_hours) }}
+                            {% else %}
+                            R$ 0,00
+                            {% endif %}
+                        </div>
+                        <div class="valor-card-detail-modern">
+                            {% if collaborator_values %}
+                            {{ "%.2f"|format(collaborator_values.residual_hours) }}h × (R$ {{ "%.2f"|format(day_value) }} ÷ 8h)
+                            {% else %}
+                            0,00h
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Valor Total Individual -->
+                <div class="valor-card-modern valor-card-total-individual" id="cardValorTotalIndividual">
+                    <div class="valor-card-icon-modern">
+                        <i class="bi bi-wallet2"></i>
+                    </div>
+                    <div class="valor-card-content-modern">
+                        <div class="valor-card-label-modern">Valor Total Individual</div>
+                        <div class="valor-card-value-modern valor-card-value-highlight" id="valorTotalIndividual">
+                            {% if collaborator_values %}
+                            R$ {{ "%.2f"|format(collaborator_values.value_total_individual) }}
+                            {% else %}
+                            R$ 0,00
+                            {% endif %}
+                        </div>
+                        <div class="valor-card-detail-modern">
+                            {% if collaborator_values %}
+                            Dias completos + Horas parciais
+                            {% else %}
+                            Nenhum colaborador selecionado
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 4: Valor Total Geral -->
+                <div class="valor-card-modern valor-card-total-geral" id="cardValorTotalGeral">
+                    <div class="valor-card-icon-modern">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                    <div class="valor-card-content-modern">
+                        <div class="valor-card-label-modern">Valor Total Geral</div>
+                        <div class="valor-card-value-modern valor-card-value-highlight" id="valorTotalGeral">
+                            {% if total_values %}
+                            R$ {{ "%.2f"|format(total_values.total_value) }}
+                            {% else %}
+                            R$ 0,00
+                            {% endif %}
+                        </div>
+                        <div class="valor-card-detail-modern">
+                            {% if total_values %}
+                            Todos os colaboradores ({{ total_values.total_full_days }} dias + {{ "%.2f"|format(total_values.total_residual_hours) }}h)
+                            {% else %}
+                            Nenhum dado disponível
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Configurações -->
+    <div class="modal fade" id="modalConfigValor" tabindex="-1" aria-labelledby="modalConfigValorLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalConfigValorLabel">
+                        <i class="bi bi-gear"></i>
+                        Configurar Valor por Dia
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formConfigValor">
+                        <div class="mb-3">
+                            <label for="inputValorDia" class="form-label">Valor por Dia Completo (R$)</label>
+                            <input type="number" class="form-control" id="inputValorDia" step="0.01" min="0" value="{{ "%.2f"|format(day_value) }}" required>
+                            <div class="form-text">Este valor será usado para calcular os valores a receber. Horas parciais serão calculadas proporcionalmente (valor ÷ 8h).</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btnSalvarValor">
+                        <i class="bi bi-check-lg"></i>
+                        Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Registros -->
     {% if records %}
     <div class="registros-card-modern">
@@ -1538,5 +1682,292 @@
 [data-theme="dark"] .registro-row-modern:hover {
     background: #374151;
 }
+
+/* Cards de Valores */
+.valores-card-modern {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+    overflow: hidden;
+}
+
+.valores-header-modern {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.valores-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.valores-title i {
+    font-size: 1.5rem;
+}
+
+.btn-config-valor {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-config-valor:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.valores-body-modern {
+    padding: 1.5rem;
+}
+
+.valores-grid-modern {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.valor-card-modern {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.valor-card-modern::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.valor-card-modern:hover::before {
+    transform: scaleX(1);
+}
+
+.valor-card-modern:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    transform: translateY(-4px);
+}
+
+.valor-card-individual {
+    border-left: 4px solid #3b82f6;
+}
+
+.valor-card-total-individual {
+    border-left: 4px solid #10b981;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.02) 100%);
+}
+
+.valor-card-total-geral {
+    border-left: 4px solid #f59e0b;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0.02) 100%);
+}
+
+.valor-card-icon-modern {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.valor-card-content-modern {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.valor-card-label-modern {
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.valor-card-value-modern {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1.2;
+}
+
+.valor-card-value-highlight {
+    color: #667eea;
+    font-size: 2.25rem;
+}
+
+.valor-card-detail-modern {
+    font-size: 0.875rem;
+    color: #9ca3af;
+    margin-top: 0.25rem;
+}
+
+[data-theme="dark"] .valores-card-modern,
+[data-theme="dark"] .valor-card-modern {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+[data-theme="dark"] .valor-card-value-modern {
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .valor-card-label-modern {
+    color: #d1d5db;
+}
+
+[data-theme="dark"] .valor-card-detail-modern {
+    color: #9ca3af;
+}
+
+@media (max-width: 768px) {
+    .valores-grid-modern {
+        grid-template-columns: 1fr;
+    }
+    
+    .valores-header-modern {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+    
+    .valor-card-value-modern {
+        font-size: 1.75rem;
+    }
+    
+    .valor-card-value-highlight {
+        font-size: 2rem;
+    }
+}
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Carregar valor atual ao abrir modal
+    const modalConfigValor = document.getElementById('modalConfigValor');
+    if (modalConfigValor) {
+        modalConfigValor.addEventListener('show.bs.modal', function() {
+            loadDayValue();
+        });
+    }
+    
+    // Salvar valor
+    const btnSalvarValor = document.getElementById('btnSalvarValor');
+    if (btnSalvarValor) {
+        btnSalvarValor.addEventListener('click', function() {
+            saveDayValue();
+        });
+    }
+    
+    // Atualizar cards quando filtros mudarem
+    const formFiltros = document.querySelector('.filtros-form-modern');
+    if (formFiltros) {
+        formFiltros.addEventListener('submit', function() {
+            // Os cards serão atualizados automaticamente após o reload da página
+        });
+    }
+});
+
+function loadDayValue() {
+    fetch('{{ url_for("jornada.get_day_value") }}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.ok) {
+                const input = document.getElementById('inputValorDia');
+                if (input) {
+                    input.value = parseFloat(data.day_value).toFixed(2);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar valor:', error);
+        });
+}
+
+function saveDayValue() {
+    const input = document.getElementById('inputValorDia');
+    if (!input) return;
+    
+    const dayValue = parseFloat(input.value);
+    if (isNaN(dayValue) || dayValue < 0) {
+        alert('Por favor, insira um valor válido maior ou igual a zero.');
+        return;
+    }
+    
+    const btnSalvar = document.getElementById('btnSalvarValor');
+    if (btnSalvar) {
+        btnSalvar.disabled = true;
+        btnSalvar.innerHTML = '<i class="bi bi-hourglass-split"></i> Salvando...';
+    }
+    
+    fetch('{{ url_for("jornada.set_day_value") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ day_value: dayValue })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.ok) {
+            // Fechar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalConfigValor'));
+            if (modal) {
+                modal.hide();
+            }
+            
+            // Recarregar página para atualizar os cards
+            window.location.reload();
+        } else {
+            alert('Erro ao salvar: ' + (data.error || 'Erro desconhecido'));
+            if (btnSalvar) {
+                btnSalvar.disabled = false;
+                btnSalvar.innerHTML = '<i class="bi bi-check-lg"></i> Salvar';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao salvar valor:', error);
+        alert('Erro ao salvar configuração. Tente novamente.');
+        if (btnSalvar) {
+            btnSalvar.disabled = false;
+            btnSalvar.innerHTML = '<i class="bi bi-check-lg"></i> Salvar';
+        }
+    });
+}
+</script>
 {% endblock %}

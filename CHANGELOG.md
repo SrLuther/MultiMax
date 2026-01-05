@@ -1,5 +1,48 @@
 # Changelog — MultiMax
 
+## [2.3.3] - 2025-01-04
+
+### 🎉 Novas Funcionalidades
+
+#### Sistema de Valores na Jornada
+- **Cards de Valores a Receber**: Sistema completo de cálculo e exibição de valores monetários
+  - **Card 1 - Valor Dias Completos (Individual)**: Exibe o valor referente aos dias completos de um colaborador (dias × valor por dia)
+  - **Card 2 - Valor Dias + Horas (Individual)**: Exibe o valor referente às horas parciais (< 8h) calculadas proporcionalmente
+  - **Card 3 - Valor Total Individual**: Soma dos valores dos cards 1 e 2, mostrando o valor final que o colaborador tem a receber
+  - **Card 4 - Valor Total Geral**: Soma o valor de todos os colaboradores, incluindo dias completos e horas parciais
+- **Modal de Configurações**: Interface para configurar o valor por dia completo (x)
+  - Botão "Configurações" no header dos cards
+  - Validação de entrada (valor deve ser positivo)
+  - Atualização automática dos cards após salvar
+  - Log de alterações no sistema
+- **Cálculo Proporcional**: Horas parciais (< 8h) são calculadas proporcionalmente ao valor de x
+  - Fórmula: (horas ÷ 8h) × valor por dia
+  - Suporte a filtros de data (início e fim)
+- **Atualização Automática**: Cards atualizam automaticamente quando:
+  - O valor por dia é alterado
+  - Os dados de dias e horas dos colaboradores mudam
+  - Filtros de data são aplicados
+
+### 📝 Arquivos Modificados
+- `multimax/routes/jornada.py`: 
+  - Adicionadas funções `_get_day_value()`, `_calculate_collaborator_values()`, `_calculate_total_values()`
+  - Novas rotas `GET/POST /jornada/config/valor-dia` para configuração
+  - Importação do modelo `AppSetting` para armazenar configuração
+  - Atualização da rota `index()` para calcular e passar valores para o template
+- `templates/jornada/index.html`: 
+  - Adicionados 4 cards de valores com design moderno e responsivo
+  - Modal de configurações para valor por dia
+  - CSS completo para estilização dos cards (suporte a tema dark)
+  - JavaScript para carregar/salvar configuração e atualização automática
+
+### 🔧 Melhorias Técnicas
+- **Armazenamento de Configuração**: Uso do modelo `AppSetting` para persistir o valor por dia
+- **Cálculos Eficientes**: Funções otimizadas para calcular valores considerando filtros de data
+- **Interface Responsiva**: Cards adaptáveis para diferentes tamanhos de tela
+- **Validações Robustas**: Validação de entrada e tratamento de erros
+
+---
+
 ## [2.3.2] - 2025-01-04
 
 ### 🔧 Melhorias

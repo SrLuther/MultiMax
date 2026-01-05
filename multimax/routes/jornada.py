@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, session
 from flask_login import login_required, current_user
 from .. import db
-from ..models import Collaborator, User, TimeOffRecord, Holiday, SystemLog, Vacation, MedicalCertificate, JornadaArchive
+from ..models import Collaborator, User, TimeOffRecord, Holiday, SystemLog, Vacation, MedicalCertificate, JornadaArchive, AppSetting
 from ..filename_utils import secure_filename
 from datetime import datetime, date
 from zoneinfo import ZoneInfo
@@ -98,6 +98,59 @@ def _calculate_collaborator_balance(collaborator_id, date_start=None, date_end=N
 def _get_all_collaborators():
     """Retorna todos os colaboradores ativos com informações de usuário (User e Collaborator são uma coisa só)"""
     return Collaborator.query.filter_by(active=True).order_by(Collaborator.name.asc()).all()
+
+def _get_day_value():
+    """Retorna o valor configurado por dia completo (padrão: 0.0)"""
+    try:
+        setting = AppSetting.query.filter_by(key='jornada_valor_dia').first()
+        if setting and setting.value:
+            return float(setting.value)
+    except Exception:
+        pass
+    return 0.0
+
+def _calculate_collaborator_values(collaborator_id, date_start=None, date_end=None):
+    """Calcula os valores monetários de um colaborador"""
+    balance = _calculate_collaborator_balance(collaborator_id, date_start, date_end)
+    day_value = _get_day_value()
+    
+    # Dias completos (saldo de folgas)
+    full_days = max(0, balance['saldo_days'])
+    value_full_days = full_days * day_value
+    
+    # Horas residuais (menos de 8h) - cálculo proporcional
+    residual_hours = max(0.0, balance['residual_hours'])
+    value_residual_hours = (residual_hours / 8.0) * day_value if residual_hours > 0 else 0.0
+    
+    # Valor total individual (dias completos + horas parciais)
+    value_total_individual = value_full_days + value_residual_hours
+    
+    return {
+        'full_days': full_days,
+        'residual_hours': residual_hours,
+        'day_value': day_value,
+        'value_full_days': value_full_days,
+        'value_residual_hours': value_residual_hours,
+        'value_total_individual': value_total_individual
+    }
+
+def _calculate_total_values(all_stats, date_start=None, date_end=None):
+    """Calcula o valor total geral de todos os colaboradores"""
+    total_full_days = 0
+    total_residual_hours = 0.0
+    total_value = 0.0
+    
+    for item in all_stats:
+        values = _calculate_collaborator_values(item['collaborator'].id, date_start, date_end)
+        total_full_days += values['full_days']
+        total_residual_hours += values['residual_hours']
+        total_value += values['value_total_individual']
+    
+    return {
+        'total_full_days': total_full_days,
+        'total_residual_hours': total_residual_hours,
+        'total_value': total_value
+    }
 
 def _get_all_collaborators_with_users():
     """Retorna todos os colaboradores ativos com informações de usuário para exibição"""
@@ -200,6 +253,14 @@ def index():
     if selected_collaborator:
         ferias = Vacation.query.filter_by(collaborator_id=selected_collaborator.id).order_by(Vacation.data_inicio.desc()).limit(50).all()
         atestados = MedicalCertificate.query.filter_by(collaborator_id=selected_collaborator.id).order_by(MedicalCertificate.data_inicio.desc()).limit(50).all()
+    
+    # Calcular valores monetários
+    collaborator_values = None
+    if selected_collaborator:
+        collaborator_values = _calculate_collaborator_values(selected_collaborator.id, di, df)
+    
+    total_values = _calculate_total_values(all_stats, di, df) if all_stats else None
+    day_value = _get_day_value()
 
     return render_template(
         'jornada/index.html',
@@ -215,6 +276,9 @@ def index():
         data_inicio=data_inicio,
         data_fim=data_fim,
         record_type=record_type,
+        collaborator_values=collaborator_values,
+        total_values=total_values,
+        day_value=day_value,
         active_page='jornada'
     )
 
@@ -859,4 +923,55 @@ def historico_colaborador(collaborator_id):
                          total_folgas_usadas=total_folgas_usadas,
                          total_conversoes=total_conversoes,
                          total_valor_pago=total_valor_pago)
+
+@bp.route('/config/valor-dia', methods=['GET'], strict_slashes=False)
+@login_required
+def get_day_value():
+    """Retorna o valor configurado por dia"""
+    if current_user.nivel not in ('admin', 'DEV', 'operador'):
+        return jsonify({'ok': False, 'error': 'Acesso negado'}), 403
+    
+    day_value = _get_day_value()
+    return jsonify({'ok': True, 'day_value': day_value})
+
+@bp.route('/config/valor-dia', methods=['POST'], strict_slashes=False)
+@login_required
+def set_day_value():
+    """Salva o valor configurado por dia"""
+    if current_user.nivel not in ('admin', 'DEV', 'operador'):
+        return jsonify({'ok': False, 'error': 'Acesso negado'}), 403
+    
+    try:
+        data = request.get_json()
+        if not data or 'day_value' not in data:
+            return jsonify({'ok': False, 'error': 'Valor não fornecido'}), 400
+        
+        day_value = float(data['day_value'])
+        if day_value < 0:
+            return jsonify({'ok': False, 'error': 'Valor deve ser positivo'}), 400
+        
+        setting = AppSetting.query.filter_by(key='jornada_valor_dia').first()
+        if not setting:
+            setting = AppSetting(key='jornada_valor_dia', value=str(day_value))
+            db.session.add(setting)
+        else:
+            setting.value = str(day_value)
+        
+        db.session.commit()
+        
+        # Registrar no log
+        log = SystemLog()
+        log.origem = 'Jornada'
+        log.evento = 'configuracao_valor_dia'
+        log.detalhes = f'Valor por dia atualizado para R$ {day_value:.2f} por {current_user.username}'
+        log.usuario = current_user.username
+        db.session.add(log)
+        db.session.commit()
+        
+        return jsonify({'ok': True, 'day_value': day_value})
+    except ValueError:
+        return jsonify({'ok': False, 'error': 'Valor inválido'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': str(e)}), 500
 
