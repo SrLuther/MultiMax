@@ -1,5 +1,19 @@
 # Changelog — MultiMax
 
+## [2.3.5] - 2025-01-04
+
+### 🔧 Correções
+
+#### Banco de Dados SQLite
+- **Caminho Absoluto do Banco de Dados**: Corrigida lógica de definição do caminho do banco SQLite
+  - Agora usa caminho absoluto fixo, eliminando dependência do diretório de execução
+  - Prioridade: variável de ambiente `DB_FILE_PATH` > padrão `/opt/multimax/multimax-data/estoque.db`
+  - Funciona tanto dentro quanto fora do Docker
+  - Garante que o diretório do banco seja criado automaticamente se não existir
+  - Mantém compatibilidade com configurações existentes via variáveis de ambiente
+
+---
+
 ## [2.3.4] - 2025-01-04
 
 ### 🔧 Correções

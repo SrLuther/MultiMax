@@ -66,27 +66,29 @@ def create_app():
         template_folder=os.path.join(base_dir, 'templates'),
         static_folder=os.path.join(base_dir, 'static'),
     )
+    # Definir caminho do banco de dados SQLite (caminho absoluto)
+    # Prioridade: DB_FILE_PATH > padrão /opt/multimax/multimax-data/estoque.db
+    db_file_path_env = os.getenv('DB_FILE_PATH')
+    if db_file_path_env:
+        # Se DB_FILE_PATH foi definido, usar diretamente
+        db_path = os.path.abspath(db_file_path_env).replace('\\', '/')
+    else:
+        # Caminho padrão absoluto (funciona dentro e fora do Docker)
+        db_path = '/opt/multimax/multimax-data/estoque.db'
+    
+    # Garantir que o diretório do banco existe
+    db_dir = os.path.dirname(db_path)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
+    
+    # Definir data_dir para backups e outras funcionalidades
     data_dir = (os.getenv('DATA_DIR') or os.getenv('MULTIMAX_DATA_DIR') or None)
     if not data_dir:
-        parent_dir = os.path.abspath(os.path.join(base_dir, '..'))
-        try:
-            pd = os.path.join(parent_dir, 'multimax-data')
-            os.makedirs(pd, exist_ok=True)
-            data_dir = pd
-        except Exception:
-            data_dir = None
-    if not data_dir:
-        if os.name == 'nt':
-            localapp = os.getenv('LOCALAPPDATA')
-            if localapp:
-                data_dir = os.path.join(localapp, 'MultiMax')
-        else:
-            home = os.path.expanduser('~')
-            data_dir = os.path.join(home, '.multimax')
+        # Usar o mesmo diretório do banco de dados
+        data_dir = db_dir if db_dir else '/opt/multimax/multimax-data'
     data_dir_str = cast(str, data_dir)
     os.makedirs(data_dir_str, exist_ok=True)
-    db_file_name = (os.getenv('DB_FILE_NAME') or 'estoque.db').strip() or 'estoque.db'
-    db_path = os.path.join(data_dir_str, db_file_name).replace('\\', '/')
+    
     uri_env = os.getenv('SQLALCHEMY_DATABASE_URI') or os.getenv('DATABASE_URL')
     uri_env = _normalize_db_uri(uri_env)
     selected_uri = uri_env if uri_env else ('sqlite:///' + db_path)
