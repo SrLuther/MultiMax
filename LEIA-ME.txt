@@ -72,7 +72,7 @@ NIVEIS DE ACESSO:
 - operador: Operador com acesso a funcionalidades operacionais
 - visualizador: Apenas visualização (sem permissão de edição)
 
-PRINCIPAIS FUNCIONALIDADES DA VERSÃO 2.3.7:
+PRINCIPAIS FUNCIONALIDADES DA VERSÃO 2.3.8:
 -------------------------------------------
 - Sistema de Arquivamento de Jornada: Arquivamento de dados por período
 - Histórico Completo: Visualização de histórico arquivado + atual
