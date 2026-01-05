@@ -87,10 +87,12 @@
                     <i class="bi bi-gear mm-nav-icon"></i>
                     <span class="mm-nav-text">Gestão</span>
                 </a>
-                <a href="{{ url_for('dbadmin.index') }}" class="mm-nav-item {% if 'dbadmin' in request.endpoint %}active{% endif %}">
+                {% if current_user.is_authenticated and current_user.nivel == 'DEV' %}
+                <a href="{{ url_for('dbadmin.index') if 'dbadmin.index' in app.view_functions else '#' }}" class="mm-nav-item {% if 'dbadmin' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-database mm-nav-icon"></i>
                     <span class="mm-nav-text">Banco de Dados</span>
                 </a>
+                {% endif %}
                 <a href="{{ url_for('temporarios.index') }}" class="mm-nav-item {% if 'temporarios' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-hourglass-split mm-nav-icon"></i>
                     <span class="mm-nav-text">Dados Temporários</span>

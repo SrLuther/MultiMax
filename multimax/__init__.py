@@ -162,7 +162,8 @@ def create_app():
             notificacoes_bp = None
     try:
         from .routes.dbadmin import bp as dbadmin_bp
-    except Exception:
+    except Exception as e:
+        app.logger.warning(f'Erro ao importar blueprint dbadmin: {e}')
         dbadmin_bp = None
 
     app.register_blueprint(auth_bp)
