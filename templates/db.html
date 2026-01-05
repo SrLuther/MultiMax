@@ -110,9 +110,14 @@
                 </div>
                 
                 <div class="db-git-actions">
-                    <button type="button" class="db-btn-modern db-btn-primary" id="applyUpdateBtn" onclick="showUpdateConfirmation()" disabled>
-                        <i class="bi bi-download"></i>
-                        Aplicar Atualização
+                    <button type="button" class="db-btn-modern db-btn-primary db-btn-lg" id="applyUpdateBtn" onclick="showUpdateConfirmation()" disabled style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="bi bi-cloud-arrow-down"></i>
+                            <span>Aplicar Atualização Completa</span>
+                        </div>
+                        <small style="font-size: 0.75rem; opacity: 0.8; font-weight: normal;">
+                            Inclui rebuild do container
+                        </small>
                     </button>
                 </div>
             </div>
