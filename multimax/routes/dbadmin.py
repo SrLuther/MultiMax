@@ -1533,3 +1533,216 @@ def restaurar_snapshot():
     except Exception as e:
         flash(f'Erro ao restaurar snapshot: {e}', 'danger')
     return redirect(url_for('dbadmin.index'))
+
+@bp.route('/git/status', methods=['GET'], strict_slashes=False)
+@login_required
+def git_status():
+    """Retorna status do Git e commit mais recente"""
+    if not _check_dev_access():
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    try:
+        repo_dir = '/opt/multimax'  # Diretório do repositório na VPS
+        
+        # Verificar se é diretório Git
+        if not os.path.exists(os.path.join(repo_dir, '.git')):
+            return jsonify({
+                'ok': False,
+                'error': 'Diretório não é um repositório Git',
+                'current_version': None,
+                'latest_commit': None
+            })
+        
+        # Obter versão atual do sistema
+        current_version = None
+        try:
+            # Tentar obter versão do Git
+            result = subprocess.run(
+                ['git', 'describe', '--tags', '--abbrev=0'],
+                cwd=repo_dir,
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                current_version = result.stdout.strip()
+            else:
+                # Fallback: versão do __init__.py
+                init_path = os.path.join(repo_dir, 'multimax', '__init__.py')
+                if os.path.exists(init_path):
+                    with open(init_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        import re
+                        match = re.search(r"return '([\d.]+)'", content)
+                        if match:
+                            current_version = match.group(1)
+        except Exception:
+            pass
+        
+        # Obter commit atual
+        try:
+            result = subprocess.run(
+                ['git', 'rev-parse', 'HEAD'],
+                cwd=repo_dir,
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            current_commit = result.stdout.strip() if result.returncode == 0 else None
+        except Exception:
+            current_commit = None
+        
+        # Obter commit mais recente do branch remoto
+        try:
+            # Fetch do branch remoto
+            subprocess.run(
+                ['git', 'fetch', 'origin', 'nova-versao-deploy'],
+                cwd=repo_dir,
+                capture_output=True,
+                timeout=10
+            )
+            
+            # Obter último commit do branch remoto
+            result = subprocess.run(
+                ['git', 'rev-parse', 'origin/nova-versao-deploy'],
+                cwd=repo_dir,
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            latest_commit_hash = result.stdout.strip() if result.returncode == 0 else None
+            
+            # Obter mensagem do commit
+            commit_message = None
+            if latest_commit_hash:
+                result = subprocess.run(
+                    ['git', 'log', '-1', '--pretty=format:%s', latest_commit_hash],
+                    cwd=repo_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                commit_message = result.stdout.strip() if result.returncode == 0 else None
+                
+                # Obter data do commit
+                result = subprocess.run(
+                    ['git', 'log', '-1', '--pretty=format:%ci', latest_commit_hash],
+                    cwd=repo_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                commit_date = result.stdout.strip() if result.returncode == 0 else None
+            else:
+                commit_date = None
+        except Exception as e:
+            latest_commit_hash = None
+            commit_message = None
+            commit_date = None
+        
+        # Verificar se há atualização disponível
+        update_available = False
+        if current_commit and latest_commit_hash:
+            update_available = current_commit != latest_commit_hash
+        
+        return jsonify({
+            'ok': True,
+            'current_version': current_version,
+            'current_commit': current_commit[:7] if current_commit else None,
+            'latest_commit': latest_commit_hash[:7] if latest_commit_hash else None,
+            'latest_commit_full': latest_commit_hash,
+            'commit_message': commit_message,
+            'commit_date': commit_date,
+            'update_available': update_available,
+            'repo_url': 'https://github.com/SrLuther/MultiMax',
+            'branch': 'nova-versao-deploy'
+        })
+    except Exception as e:
+        return jsonify({
+            'ok': False,
+            'error': str(e),
+            'current_version': None,
+            'latest_commit': None
+        }), 500
+
+@bp.route('/git/update', methods=['POST'], strict_slashes=False)
+@login_required
+def git_update():
+    """Aplica atualização do Git e reinicia containers Docker"""
+    if not _check_dev_access():
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    try:
+        repo_dir = '/opt/multimax'
+        
+        # Verificar se é diretório Git
+        if not os.path.exists(os.path.join(repo_dir, '.git')):
+            return jsonify({'ok': False, 'error': 'Diretório não é um repositório Git'}), 400
+        
+        commands = [
+            (['git', 'fetch', 'origin'], 'Fetch do repositório'),
+            (['git', 'reset', '--hard', 'origin/nova-versao-deploy'], 'Reset para branch remoto'),
+            (['docker-compose', 'down'], 'Parando containers Docker'),
+            (['docker-compose', 'up', '-d'], 'Iniciando containers Docker')
+        ]
+        
+        results = []
+        for cmd, description in commands:
+            try:
+                result = subprocess.run(
+                    cmd,
+                    cwd=repo_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=60
+                )
+                results.append({
+                    'command': ' '.join(cmd),
+                    'description': description,
+                    'success': result.returncode == 0,
+                    'stdout': result.stdout,
+                    'stderr': result.stderr
+                })
+                
+                if result.returncode != 0:
+                    return jsonify({
+                        'ok': False,
+                        'error': f'Erro ao executar: {description}',
+                        'details': result.stderr,
+                        'results': results
+                    }), 500
+            except subprocess.TimeoutExpired:
+                return jsonify({
+                    'ok': False,
+                    'error': f'Timeout ao executar: {description}',
+                    'results': results
+                }), 500
+            except Exception as e:
+                return jsonify({
+                    'ok': False,
+                    'error': f'Erro ao executar {description}: {str(e)}',
+                    'results': results
+                }), 500
+        
+        # Registrar no log
+        try:
+            log = SystemLog()
+            log.origem = 'Sistema'
+            log.evento = 'atualizacao_git'
+            log.detalhes = f'Atualização aplicada com sucesso. Commit: {results[1].get("stdout", "").strip()[:7] if len(results) > 1 else "N/A"}'
+            log.usuario = current_user.username
+            db.session.add(log)
+            db.session.commit()
+        except Exception:
+            pass
+        
+        return jsonify({
+            'ok': True,
+            'message': 'Atualização aplicada com sucesso',
+            'results': results
+        })
+    except Exception as e:
+        return jsonify({
+            'ok': False,
+            'error': str(e)
+        }), 500
