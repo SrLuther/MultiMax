@@ -1,5 +1,31 @@
 # Changelog — MultiMax
 
+## [2.3.8] - 2025-01-04
+
+### ✨ Novas Funcionalidades
+
+#### Visualizador de PDF na Jornada
+- **Visualização de PDF no Navegador**: Adicionada página dedicada para visualizar PDFs de jornada diretamente no navegador
+  - PDF exibido em iframe responsivo
+  - Interface otimizada para dispositivos móveis
+  - Suporte completo para visualização, download, compartilhar e imprimir
+- **Controles de Ação**:
+  - Botão de Download para salvar PDF localmente
+  - Botão de Compartilhar com suporte a Web Share API (nativo em mobile)
+  - Botão de Imprimir que abre diálogo de impressão do navegador
+  - Botão Voltar para retornar à página Jornada
+- **Otimização Mobile**:
+  - Layout totalmente responsivo
+  - Botões em coluna para melhor usabilidade em telas pequenas
+  - Suporte a gestos e toques
+  - Indicador de carregamento
+- **Melhorias de UX**:
+  - Links na página Jornada agora abrem visualizador ao invés de download direto
+  - Fallback para copiar link quando Web Share API não está disponível
+  - Tratamento de erros de carregamento
+
+---
+
 ## [2.3.7] - 2025-01-04
 
 ### 🐛 Correções

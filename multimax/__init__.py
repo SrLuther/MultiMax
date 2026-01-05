@@ -638,7 +638,7 @@ def create_app():
             # Log apenas se não for erro esperado (git não disponível)
             if 'git' not in str(e).lower():
                 app.logger.debug(f"Erro ao obter versão: {e}")
-        return '2.3.7'
+        return '2.3.8'
 
     resolved_version = _get_version()
     app.config['APP_VERSION_RESOLVED'] = resolved_version.lstrip('vV') if isinstance(resolved_version, str) else resolved_version
