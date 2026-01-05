@@ -1284,11 +1284,11 @@ function refreshGitStatus() {
 }
 
 function updateGitStatusDisplay(data) {
-    // Atualizar valores
+    // Atualizar valores - usar campos retornados pela rota
     document.getElementById('currentVersion').textContent = data.current_version || 'N/A';
-    document.getElementById('currentCommit').textContent = data.current_commit_hash || 'N/A';
-    document.getElementById('latestCommit').textContent = data.remote_commit_hash || 'N/A';
-    document.getElementById('commitMessage').textContent = data.remote_commit_msg || 'N/A';
+    document.getElementById('currentCommit').textContent = data.current_commit || data.current_commit_hash || 'N/A';
+    document.getElementById('latestCommit').textContent = data.latest_commit_hash || data.remote_commit_hash || 'N/A';
+    document.getElementById('commitMessage').textContent = data.commit_message || data.remote_commit_msg || 'N/A';
     
     // Atualizar indicador de status
     const indicator = document.getElementById('updateIndicator');
