@@ -1291,7 +1291,7 @@ function updateGitStatusDisplay(data) {
     // Atualizar valores - usar campos retornados pela rota
     document.getElementById('currentVersion').textContent = data.current_version || 'N/A';
     document.getElementById('currentCommit').textContent = data.current_commit || data.current_commit_hash || 'N/A';
-    document.getElementById('latestCommit').textContent = data.latest_commit_hash || data.remote_commit_hash || 'N/A';
+    document.getElementById('latestCommit').textContent = data.latest_commit || data.latest_commit_hash || data.remote_commit_hash || 'N/A';
     document.getElementById('commitMessage').textContent = data.commit_message || data.remote_commit_msg || 'N/A';
     
     // Atualizar indicador de status
@@ -1315,8 +1315,20 @@ function updateGitStatusDisplay(data) {
 
 function showGitError(message) {
     const indicator = document.getElementById('updateIndicator');
-    indicator.className = 'db-git-update-indicator error';
-    indicator.innerHTML = `<i class="bi bi-x-circle-fill"></i><span>${message}</span>`;
+    if (indicator) {
+        indicator.className = 'db-git-update-indicator error';
+        indicator.innerHTML = `<i class="bi bi-x-circle-fill"></i><span>${message}</span>`;
+    }
+    
+    // Atualizar campos com mensagem de erro
+    const fields = ['currentVersion', 'currentCommit', 'latestCommit', 'commitMessage'];
+    fields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.textContent = 'Erro ao carregar';
+            field.style.color = '#dc2626';
+        }
+    });
     
     const applyBtn = document.getElementById('applyUpdateBtn');
     if (applyBtn) {

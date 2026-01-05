@@ -1542,15 +1542,38 @@ def git_status():
         return jsonify({'ok': False, 'error': 'forbidden'}), 403
     
     try:
-        repo_dir = '/opt/multimax'  # Diretório do repositório na VPS
+        # Tentar encontrar o diretório do repositório Git
+        # 1. Variável de ambiente
+        repo_dir = os.getenv('GIT_REPO_DIR')
+        
+        # 2. Tentar diretório padrão da VPS
+        if not repo_dir or not os.path.exists(os.path.join(repo_dir, '.git')):
+            repo_dir = '/opt/multimax'
+        
+        # 3. Tentar diretório atual (desenvolvimento)
+        if not os.path.exists(os.path.join(repo_dir, '.git')):
+            # Tentar encontrar .git no diretório atual ou pai
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            # Subir até encontrar .git ou chegar na raiz
+            search_dirs = [
+                current_dir,
+                os.path.dirname(current_dir),
+                os.path.dirname(os.path.dirname(current_dir)),
+                os.path.dirname(os.path.dirname(os.path.dirname(current_dir))),
+            ]
+            for dir_path in search_dirs:
+                if os.path.exists(os.path.join(dir_path, '.git')):
+                    repo_dir = dir_path
+                    break
         
         # Verificar se é diretório Git
-        if not os.path.exists(os.path.join(repo_dir, '.git')):
+        if not repo_dir or not os.path.exists(os.path.join(repo_dir, '.git')):
             return jsonify({
                 'ok': False,
-                'error': 'Diretório não é um repositório Git',
+                'error': f'Repositório Git não encontrado. Procurado em: {repo_dir or "N/A"}',
                 'current_version': None,
-                'latest_commit': None
+                'latest_commit': None,
+                'repo_dir': repo_dir
             })
         
         # Obter versão atual do sistema
@@ -1682,12 +1705,30 @@ def git_update():
     if not _check_dev_access():
         return jsonify({'ok': False, 'error': 'forbidden'}), 403
     
-    repo_dir = '/opt/multimax'
-    db_path = '/opt/multimax-data/estoque.db'
+    # Tentar encontrar o diretório do repositório Git (mesma lógica do git_status)
+    repo_dir = os.getenv('GIT_REPO_DIR', '/opt/multimax')
+    if not os.path.exists(os.path.join(repo_dir, '.git')):
+        # Tentar diretório atual (desenvolvimento)
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        search_dirs = [
+            current_dir,
+            os.path.dirname(current_dir),
+            os.path.dirname(os.path.dirname(current_dir)),
+            os.path.dirname(os.path.dirname(os.path.dirname(current_dir))),
+        ]
+        for dir_path in search_dirs:
+            if os.path.exists(os.path.join(dir_path, '.git')):
+                repo_dir = dir_path
+                break
+    
+    db_path = os.getenv('DB_FILE_PATH', '/opt/multimax-data/estoque.db')
+    # Fallback para desenvolvimento
+    if not os.path.exists(db_path):
+        db_path = os.path.join(os.path.dirname(repo_dir), 'data', 'estoque.db') if repo_dir else None
     
     # Verificar se é diretório Git
-    if not os.path.exists(os.path.join(repo_dir, '.git')):
-        error_msg = 'Diretório não é um repositório Git'
+    if not repo_dir or not os.path.exists(os.path.join(repo_dir, '.git')):
+        error_msg = f'Repositório Git não encontrado. Procurado em: {repo_dir or "N/A"}'
         _log_git_update_error(error_msg, current_user.username)
         return jsonify({'ok': False, 'error': error_msg}), 400
     
