@@ -25,6 +25,9 @@ Quando for solicitada a atualização da versão, verificar e atualizar:
 - [ ] CHANGELOG.md - adicionar nova entrada no topo
 - [ ] multimax/__init__.py - atualizar fallback na linha 634
 - [ ] LEIA-ME.txt - atualizar linha 3 e linha 75
+- [ ] VERSION_SYNC.md - atualizar versão atual
+- [ ] **CRIAR TAG GIT**: `git tag -a vX.Y.Z -m "Versão X.Y.Z - Descrição"`
+- [ ] **PUSH DA TAG**: `git push origin vX.Y.Z`
 
 ## Nota importante:
 
@@ -32,4 +35,14 @@ Quando for solicitada a atualização da versão, verificar e atualizar:
 - `docker-compose.yml` contém `version: '3.9'` - isso é a versão do formato do docker-compose, NÃO a versão do projeto. Não alterar.
 
 ## Versão atual: 2.3.7
+
+## Processo de Release:
+
+Após atualizar a versão em todos os arquivos e fazer commit:
+
+1. Criar tag anotada: `git tag -a vX.Y.Z -m "Versão X.Y.Z - Descrição das mudanças"`
+2. Fazer push da tag: `git push origin vX.Y.Z`
+3. A tag aparecerá no GitHub e poderá ser usada para criar releases
+
+**IMPORTANTE**: Sempre criar a tag com a mesma versão atualizada nos arquivos!
 
