@@ -667,7 +667,9 @@ def perfil():
                          medical_end_date=medical_end_date, 
                          break_end_timestamp=break_end_timestamp, 
                          next_shift_date=next_shift_date, 
-                         next_shift_hour=next_shift_hour)
+                         next_shift_hour=next_shift_hour,
+                         collaborator_values=collaborator_values,
+                         day_value=day_value)
 
 @bp.route('/perfil/senha', methods=['POST'])
 @login_required
