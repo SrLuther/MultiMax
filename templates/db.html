@@ -1242,6 +1242,194 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Inicializar queries lentas
   updateSlowQueries();
+  
+  // Iniciar monitoramento Git
+  if (document.getElementById('gitUpdateCard')) {
+    refreshGitStatus();
+    gitStatusInterval = setInterval(refreshGitStatus, 30000);
+  }
+});
+
+// Git Update Monitoring
+let gitStatusInterval = null;
+let updateCountdownInterval = null;
+let updateCountdown = 10;
+
+function refreshGitStatus() {
+    const btn = document.getElementById('refreshGitBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Atualizando...';
+    }
+    
+    fetch('{{ url_for("dbadmin.git_status") }}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.ok) {
+                updateGitStatusDisplay(data);
+            } else {
+                showGitError(data.error || 'Erro ao buscar status do Git');
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao buscar status Git:', error);
+            showGitError('Erro de conexão ao buscar status do Git');
+        })
+        .finally(() => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Atualizar';
+            }
+        });
+}
+
+function updateGitStatusDisplay(data) {
+    // Atualizar valores
+    document.getElementById('currentVersion').textContent = data.current_version || 'N/A';
+    document.getElementById('currentCommit').textContent = data.current_commit || 'N/A';
+    document.getElementById('latestCommit').textContent = data.latest_commit || 'N/A';
+    document.getElementById('commitMessage').textContent = data.commit_message || 'N/A';
+    
+    // Atualizar indicador de status
+    const indicator = document.getElementById('updateIndicator');
+    const applyBtn = document.getElementById('applyUpdateBtn');
+    
+    if (data.update_available) {
+        indicator.className = 'db-git-update-indicator update-available';
+        indicator.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i><span><strong>Atualização disponível!</strong> Há uma nova versão no repositório remoto.</span>';
+        if (applyBtn) {
+            applyBtn.disabled = false;
+        }
+    } else {
+        indicator.className = 'db-git-update-indicator up-to-date';
+        indicator.innerHTML = '<i class="bi bi-check-circle-fill"></i><span>Sistema está atualizado. Você está na versão mais recente.</span>';
+        if (applyBtn) {
+            applyBtn.disabled = true;
+        }
+    }
+}
+
+function showGitError(message) {
+    const indicator = document.getElementById('updateIndicator');
+    indicator.className = 'db-git-update-indicator error';
+    indicator.innerHTML = `<i class="bi bi-x-circle-fill"></i><span>${message}</span>`;
+    
+    const applyBtn = document.getElementById('applyUpdateBtn');
+    if (applyBtn) {
+        applyBtn.disabled = true;
+    }
+}
+
+function showUpdateConfirmation() {
+    // Criar modal
+    const overlay = document.createElement('div');
+    overlay.className = 'db-git-modal-overlay';
+    overlay.id = 'updateModalOverlay';
+    
+    const modal = document.createElement('div');
+    modal.className = 'db-git-modal';
+    
+    modal.innerHTML = `
+        <div class="db-git-modal-header">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <h3 class="db-git-modal-title">Confirmar Atualização</h3>
+        </div>
+        <div class="db-git-modal-body">
+            <p><strong>O sistema precisará reiniciar para aplicar a atualização.</strong></p>
+            <p>A página ficará temporariamente indisponível. Aguarde até 1 minuto e então atualize a página.</p>
+            <div class="db-git-countdown">
+                <div class="db-git-countdown-value" id="countdownValue">10</div>
+                <div class="db-git-countdown-label">segundos</div>
+            </div>
+        </div>
+        <div class="db-git-modal-actions">
+            <button type="button" class="db-git-modal-btn db-git-modal-btn-cancel" onclick="closeUpdateModal()">Cancelar</button>
+            <button type="button" class="db-git-modal-btn db-git-modal-btn-confirm" id="confirmUpdateBtn" onclick="applyUpdate()" disabled>Aplicar Atualização</button>
+        </div>
+    `;
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // Iniciar contagem regressiva
+    updateCountdown = 10;
+    const countdownValue = document.getElementById('countdownValue');
+    const confirmBtn = document.getElementById('confirmUpdateBtn');
+    
+    updateCountdownInterval = setInterval(() => {
+        updateCountdown--;
+        if (countdownValue) {
+            countdownValue.textContent = updateCountdown;
+        }
+        
+        if (updateCountdown <= 0) {
+            clearInterval(updateCountdownInterval);
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+            }
+        }
+    }, 1000);
+}
+
+function closeUpdateModal() {
+    const overlay = document.getElementById('updateModalOverlay');
+    if (overlay) {
+        overlay.remove();
+    }
+    if (updateCountdownInterval) {
+        clearInterval(updateCountdownInterval);
+    }
+    updateCountdown = 10;
+}
+
+function applyUpdate() {
+    const confirmBtn = document.getElementById('confirmUpdateBtn');
+    if (confirmBtn) {
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Aplicando...';
+    }
+    
+    fetch('{{ url_for("dbadmin.git_update") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.ok) {
+            closeUpdateModal();
+            alert('Atualização aplicada com sucesso! O sistema será reiniciado. Aguarde 1 minuto e atualize a página.');
+            // Atualizar status após alguns segundos
+            setTimeout(() => {
+                refreshGitStatus();
+            }, 2000);
+        } else {
+            alert('Erro ao aplicar atualização: ' + (data.error || 'Erro desconhecido'));
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Aplicar Atualização';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao aplicar atualização:', error);
+        alert('Erro de conexão ao aplicar atualização. Verifique se o sistema está acessível.');
+        if (confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Aplicar Atualização';
+        }
+    });
+}
+
+// Limpar intervalo ao sair da página
+window.addEventListener('beforeunload', function() {
+    if (gitStatusInterval) {
+        clearInterval(gitStatusInterval);
+    }
+    if (updateCountdownInterval) {
+        clearInterval(updateCountdownInterval);
+    }
 });
 </script>
 
