@@ -67,14 +67,21 @@ def create_app():
         static_folder=os.path.join(base_dir, 'static'),
     )
     # Definir caminho do banco de dados SQLite (caminho absoluto)
-    # Prioridade: DB_FILE_PATH > padrão /opt/multimax/multimax-data/estoque.db
+    # Prioridade: DB_FILE_PATH > padrão /multimax-data/estoque.db (dentro do container) ou /opt/multimax-data/estoque.db (fora do container)
     db_file_path_env = os.getenv('DB_FILE_PATH')
     if db_file_path_env:
         # Se DB_FILE_PATH foi definido, usar diretamente
         db_path = os.path.abspath(db_file_path_env).replace('\\', '/')
     else:
-        # Caminho padrão absoluto (funciona dentro e fora do Docker)
-        db_path = '/opt/multimax/multimax-data/estoque.db'
+        # Caminho padrão absoluto
+        # Dentro do Docker: /multimax-data/estoque.db (mapeado de /opt/multimax-data no host)
+        # Fora do Docker: /opt/multimax-data/estoque.db
+        if os.path.exists('/multimax-data'):
+            # Dentro do container Docker
+            db_path = '/multimax-data/estoque.db'
+        else:
+            # Fora do container (desenvolvimento local)
+            db_path = '/opt/multimax-data/estoque.db'
     
     # Garantir que o diretório do banco existe
     db_dir = os.path.dirname(db_path)
@@ -85,7 +92,7 @@ def create_app():
     data_dir = (os.getenv('DATA_DIR') or os.getenv('MULTIMAX_DATA_DIR') or None)
     if not data_dir:
         # Usar o mesmo diretório do banco de dados
-        data_dir = db_dir if db_dir else '/opt/multimax/multimax-data'
+        data_dir = db_dir if db_dir else ('/multimax-data' if os.path.exists('/multimax-data') else '/opt/multimax-data')
     data_dir_str = cast(str, data_dir)
     os.makedirs(data_dir_str, exist_ok=True)
     
