@@ -504,6 +504,17 @@ def perfil():
     residual_hours = balance_data['residual_hours'] if balance_data else 0.0
     folga_balance = balance_data['saldo_days'] if balance_data else 0
     
+    # Calcular valores monetários a receber
+    collaborator_values = None
+    day_value = 0.0
+    if collab:
+        try:
+            from ..routes.jornada import _calculate_collaborator_values, _get_day_value
+            collaborator_values = _calculate_collaborator_values(collab.id)
+            day_value = _get_day_value()
+        except Exception:
+            pass
+    
     is_on_break = False
     is_on_vacation = False
     vacation_end_date = None

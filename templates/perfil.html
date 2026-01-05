@@ -221,6 +221,88 @@
     </div>
 </div>
 
+<!-- Valores a Receber (se tiver colaborador vinculado) -->
+{% if collab and collaborator_values %}
+<div class="mm-card mm-mb-6" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05)); border-left: 4px solid var(--mm-success);">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <i class="bi bi-cash-coin mm-text-success"></i>
+            Valores a Receber
+        </h3>
+        <a href="{{ url_for('jornada.index', collaborator_id=collab.id) }}" class="mm-btn mm-btn-outline mm-btn-sm">
+            <i class="bi bi-arrow-right"></i>
+            Ver Detalhes na Jornada
+        </a>
+    </div>
+    <div class="mm-card-body">
+        <div class="mm-grid mm-grid-cols-4 mm-gap-4">
+            <!-- Valor Dias Completos -->
+            <div class="mm-card mm-kpi-card" style="background: white;">
+                <div class="mm-kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--mm-primary);">
+                    <i class="bi bi-calendar-check-fill"></i>
+                </div>
+                <div class="mm-kpi-label">Valor Dias Completos</div>
+                <div class="mm-kpi-value mm-text-primary" style="font-size: 1.5rem; font-weight: 700;">
+                    R$ {{ "%.2f"|format(collaborator_values.value_full_days) }}
+                </div>
+                <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">
+                    {{ collaborator_values.full_days }} dia(s) × R$ {{ "%.2f"|format(day_value) }}
+                </small>
+            </div>
+            
+            <!-- Valor Horas Parciais -->
+            <div class="mm-card mm-kpi-card" style="background: white;">
+                <div class="mm-kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning);">
+                    <i class="bi bi-clock-fill"></i>
+                </div>
+                <div class="mm-kpi-label">Valor Horas Parciais</div>
+                <div class="mm-kpi-value mm-text-warning" style="font-size: 1.5rem; font-weight: 700;">
+                    R$ {{ "%.2f"|format(collaborator_values.value_residual_hours) }}
+                </div>
+                <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">
+                    {{ "%.2f"|format(collaborator_values.residual_hours) }}h proporcional
+                </small>
+            </div>
+            
+            <!-- Valor Total Individual -->
+            <div class="mm-card mm-kpi-card" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.1)); border: 2px solid var(--mm-success);">
+                <div class="mm-kpi-icon" style="background: rgba(16, 185, 129, 0.2); color: var(--mm-success);">
+                    <i class="bi bi-wallet2"></i>
+                </div>
+                <div class="mm-kpi-label" style="font-weight: 600;">Valor Total Individual</div>
+                <div class="mm-kpi-value mm-text-success" style="font-size: 2rem; font-weight: 800;">
+                    R$ {{ "%.2f"|format(collaborator_values.value_total_individual) }}
+                </div>
+                <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">
+                    Dias completos + Horas parciais
+                </small>
+            </div>
+            
+            <!-- Valor por Dia -->
+            <div class="mm-card mm-kpi-card" style="background: white;">
+                <div class="mm-kpi-icon" style="background: rgba(139, 92, 246, 0.15); color: #8B5CF6;">
+                    <i class="bi bi-info-circle"></i>
+                </div>
+                <div class="mm-kpi-label">Valor por Dia</div>
+                <div class="mm-kpi-value" style="color: #8B5CF6; font-size: 1.5rem; font-weight: 700;">
+                    R$ {{ "%.2f"|format(day_value) }}
+                </div>
+                <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">
+                    Configurado no sistema
+                </small>
+            </div>
+        </div>
+        
+        {% if day_value == 0 %}
+        <div class="mm-info-box mm-mt-4" style="background: rgba(245, 158, 11, 0.1); border-left: 3px solid var(--mm-warning);">
+            <i class="bi bi-exclamation-triangle mm-text-warning"></i>
+            <span><strong>Atenção:</strong> O valor por dia ainda não foi configurado. Entre em contato com o administrador para configurar o valor na página Jornada.</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
 <!-- Detalhamento de Horas e Folgas -->
 <div class="mm-grid mm-grid-cols-2 mm-gap-6 mm-mb-6">
     <!-- Banco de Horas -->
