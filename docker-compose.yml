@@ -9,7 +9,7 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - /opt/multimax/multimax-data/:/app/data
+      - /opt/multimax/multimax-data:/app/data
     environment:
       - HOST=0.0.0.0
       - PORT=5000

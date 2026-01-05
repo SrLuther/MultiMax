@@ -1,5 +1,18 @@
 # Changelog — MultiMax
 
+## [2.3.6] - 2025-01-04
+
+### 🔧 Correções
+
+#### Docker Compose - Volume do Banco de Dados
+- **Volume Persistente em Produção**: Corrigido volume do banco SQLite no docker-compose.yml
+  - Volume atualizado para usar caminho absoluto `/opt/multimax/multimax-data:/app/data`
+  - Garante persistência definitiva dos dados na VPS em produção
+  - Container continua lendo o banco como `/app/data/estoque.db` internamente
+  - Elimina dependência de caminhos relativos que podem variar
+
+---
+
 ## [2.3.5] - 2025-01-04
 
 ### 🔧 Correções
