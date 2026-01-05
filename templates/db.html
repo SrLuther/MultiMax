@@ -51,6 +51,70 @@
     </div>
     {% endif %}
 
+    <!-- Card de Monitoramento de Atualizações Git -->
+    <div class="db-card-modern db-card-highlight" id="gitUpdateCard">
+        <div class="db-card-header-modern">
+            <h3 class="db-card-title">
+                <i class="bi bi-git"></i>
+                Monitoramento de Atualizações Git
+            </h3>
+            <button type="button" class="db-btn-modern db-btn-outline" onclick="refreshGitStatus()" id="refreshGitBtn">
+                <i class="bi bi-arrow-repeat"></i>
+                Atualizar
+            </button>
+        </div>
+        <div class="db-card-body-modern">
+            <div class="db-git-info">
+                <div class="db-git-repo-info">
+                    <div class="db-git-repo-item">
+                        <span class="db-git-label">Repositório:</span>
+                        <a href="https://github.com/SrLuther/MultiMax" target="_blank" class="db-git-link">
+                            https://github.com/SrLuther/MultiMax
+                            <i class="bi bi-box-arrow-up-right"></i>
+                        </a>
+                    </div>
+                    <div class="db-git-repo-item">
+                        <span class="db-git-label">Branch:</span>
+                        <span class="db-git-value">nova-versao-deploy</span>
+                    </div>
+                </div>
+                
+                <div class="db-git-status-grid" id="gitStatusGrid">
+                    <div class="db-git-status-item">
+                        <div class="db-git-status-label">Versão Atual do Sistema</div>
+                        <div class="db-git-status-value" id="currentVersion">Carregando...</div>
+                    </div>
+                    <div class="db-git-status-item">
+                        <div class="db-git-status-label">Commit Atual</div>
+                        <div class="db-git-status-value" id="currentCommit">Carregando...</div>
+                    </div>
+                    <div class="db-git-status-item">
+                        <div class="db-git-status-label">Último Commit Remoto</div>
+                        <div class="db-git-status-value" id="latestCommit">Carregando...</div>
+                    </div>
+                    <div class="db-git-status-item">
+                        <div class="db-git-status-label">Mensagem do Commit</div>
+                        <div class="db-git-status-value db-git-commit-message" id="commitMessage">Carregando...</div>
+                    </div>
+                </div>
+                
+                <div class="db-git-update-status" id="updateStatus">
+                    <div class="db-git-update-indicator" id="updateIndicator">
+                        <i class="bi bi-hourglass-split"></i>
+                        <span>Verificando atualizações...</span>
+                    </div>
+                </div>
+                
+                <div class="db-git-actions">
+                    <button type="button" class="db-btn-modern db-btn-primary" id="applyUpdateBtn" onclick="showUpdateConfirmation()" disabled>
+                        <i class="bi bi-download"></i>
+                        Aplicar Atualização
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Dashboard Consolidado -->
     <div class="db-card-modern db-card-highlight">
         <div class="db-card-header-modern">
@@ -2490,6 +2554,268 @@ document.addEventListener('DOMContentLoaded', function() {
 [data-theme="dark"] .db-card-highlight {
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(102, 126, 234, 0.1) 100%);
     border-color: #667eea;
+}
+
+/* Git Update Card Styles */
+.db-git-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.db-git-repo-info {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    padding: 1rem;
+    background: rgba(59, 130, 246, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.db-git-repo-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.db-git-label {
+    font-weight: 600;
+    color: #4b5563;
+    font-size: 0.875rem;
+}
+
+.db-git-value {
+    font-weight: 500;
+    color: #1f2937;
+    font-size: 0.875rem;
+    padding: 0.25rem 0.75rem;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+}
+
+.db-git-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-size: 0.875rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: color 0.2s;
+}
+
+.db-git-link:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+}
+
+.db-git-status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.db-git-status-item {
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.db-git-status-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.db-git-status-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1f2937;
+    word-break: break-all;
+}
+
+.db-git-commit-message {
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: #4b5563;
+    font-style: italic;
+}
+
+.db-git-update-status {
+    padding: 1rem;
+    border-radius: 8px;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.db-git-update-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.db-git-update-indicator i {
+    animation: spin 1s linear infinite;
+}
+
+.db-git-update-indicator.update-available {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.db-git-update-indicator.update-available i {
+    animation: none;
+}
+
+.db-git-update-indicator.up-to-date {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.db-git-update-indicator.error {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.db-git-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+/* Modal de Confirmação */
+.db-git-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 1rem;
+}
+
+.db-git-modal {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.db-git-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.db-git-modal-header i {
+    font-size: 1.5rem;
+    color: #f59e0b;
+}
+
+.db-git-modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+.db-git-modal-body {
+    margin-bottom: 1.5rem;
+}
+
+.db-git-modal-body p {
+    color: #4b5563;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.db-git-countdown {
+    text-align: center;
+    padding: 1.5rem;
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 8px;
+    margin: 1rem 0;
+}
+
+.db-git-countdown-value {
+    font-size: 3rem;
+    font-weight: 800;
+    color: #dc2626;
+    line-height: 1;
+}
+
+.db-git-countdown-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-top: 0.5rem;
+}
+
+.db-git-modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.db-git-modal-btn {
+    padding: 0.625rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.db-git-modal-btn-cancel {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.db-git-modal-btn-cancel:hover {
+    background: #e5e7eb;
+}
+
+.db-git-modal-btn-confirm {
+    background: #dc2626;
+    color: white;
+}
+
+.db-git-modal-btn-confirm:hover {
+    background: #b91c1c;
+}
+
+.db-git-modal-btn-confirm:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 [data-theme="dark"] .db-dashboard-stat {
