@@ -28,14 +28,14 @@
                         </li>
                         {% if collaborator_id %}
                         <li>
-                            <a class="dropdown-item" href="{{ url_for('exportacao.exportar_jornada_colaborador_pdf', collaborator_id=collaborator_id, inicio=data_inicio, fim=data_fim) }}">
-                                <i class="bi bi-file-earmark-pdf"></i> Exportar PDF Individual
+                            <a class="dropdown-item" href="{{ url_for('exportacao.view_jornada_pdf', collaborator_id=collaborator_id, inicio=data_inicio, fim=data_fim, tipo='individual') }}">
+                                <i class="bi bi-file-earmark-pdf"></i> Visualizar PDF Individual
                             </a>
                         </li>
                         {% endif %}
                         <li>
-                            <a class="dropdown-item" href="{{ url_for('exportacao.exportar_jornada_todos_pdf', inicio=data_inicio, fim=data_fim) }}">
-                                <i class="bi bi-file-earmark-pdf-fill"></i> Exportar PDF Todos
+                            <a class="dropdown-item" href="{{ url_for('exportacao.view_jornada_pdf', inicio=data_inicio, fim=data_fim, tipo='todos') }}">
+                                <i class="bi bi-file-earmark-pdf-fill"></i> Visualizar PDF Todos
                             </a>
                         </li>
                     </ul>

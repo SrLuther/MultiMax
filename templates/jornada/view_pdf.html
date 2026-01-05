@@ -1,0 +1,322 @@
+{% extends 'base.html' %}
+{% block title %}Visualizar PDF - Jornada — MultiMax{% endblock %}
+
+{% block head %}
+<style>
+    .pdf-viewer-container {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 120px);
+        min-height: 500px;
+        background: #f5f5f5;
+        padding: 1rem;
+    }
+    
+    .pdf-viewer-header {
+        background: white;
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .pdf-viewer-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .pdf-viewer-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    
+    .btn-pdf-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .btn-pdf-action i {
+        font-size: 1rem;
+    }
+    
+    .btn-pdf-download {
+        background: #3b82f6;
+        color: white;
+    }
+    
+    .btn-pdf-download:hover {
+        background: #2563eb;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    
+    .btn-pdf-share {
+        background: #10b981;
+        color: white;
+    }
+    
+    .btn-pdf-share:hover {
+        background: #059669;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    
+    .btn-pdf-print {
+        background: #6366f1;
+        color: white;
+    }
+    
+    .btn-pdf-print:hover {
+        background: #4f46e5;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+    
+    .btn-pdf-back {
+        background: #6b7280;
+        color: white;
+    }
+    
+    .btn-pdf-back:hover {
+        background: #4b5563;
+        color: white;
+    }
+    
+    .pdf-viewer-content {
+        flex: 1;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: hidden;
+        position: relative;
+        min-height: 400px;
+    }
+    
+    .pdf-embed {
+        width: 100%;
+        height: 100%;
+        border: none;
+        display: block;
+    }
+    
+    .pdf-loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        color: #6b7280;
+    }
+    
+    .pdf-loading i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    
+    /* Mobile optimizations */
+    @media (max-width: 768px) {
+        .pdf-viewer-container {
+            height: calc(100vh - 80px);
+            padding: 0.5rem;
+        }
+        
+        .pdf-viewer-header {
+            padding: 0.75rem 1rem;
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .pdf-viewer-title {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .pdf-viewer-actions {
+            flex-direction: column;
+            width: 100%;
+        }
+        
+        .btn-pdf-action {
+            width: 100%;
+            justify-content: center;
+            padding: 0.75rem 1rem;
+            font-size: 0.9375rem;
+        }
+        
+        .pdf-viewer-content {
+            border-radius: 8px;
+        }
+    }
+    
+    /* Print styles */
+    @media print {
+        .pdf-viewer-header {
+            display: none;
+        }
+        
+        .pdf-viewer-container {
+            height: auto;
+            padding: 0;
+            background: white;
+        }
+        
+        .pdf-viewer-content {
+            box-shadow: none;
+            border-radius: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pdf-viewer-container">
+    <div class="pdf-viewer-header">
+        <h1 class="pdf-viewer-title">
+            <i class="bi bi-file-earmark-pdf-fill"></i>
+            Relatório de Jornada
+        </h1>
+        <div class="pdf-viewer-actions">
+            <a href="{{ pdf_url }}&download=1" class="btn-pdf-action btn-pdf-download" download>
+                <i class="bi bi-download"></i>
+                <span>Download</span>
+            </a>
+            <button class="btn-pdf-action btn-pdf-share" onclick="sharePDF()">
+                <i class="bi bi-share"></i>
+                <span>Compartilhar</span>
+            </button>
+            <button class="btn-pdf-action btn-pdf-print" onclick="printPDF()">
+                <i class="bi bi-printer"></i>
+                <span>Imprimir</span>
+            </button>
+            <a href="{{ url_for('jornada.index', collaborator_id=collaborator_id, inicio=inicio, fim=fim) }}" class="btn-pdf-action btn-pdf-back">
+                <i class="bi bi-arrow-left"></i>
+                <span>Voltar</span>
+            </a>
+        </div>
+    </div>
+    
+    <div class="pdf-viewer-content">
+        <div class="pdf-loading" id="pdfLoading">
+            <i class="bi bi-hourglass-split"></i>
+            <p>Carregando PDF...</p>
+        </div>
+        <iframe 
+            class="pdf-embed" 
+            id="pdfFrame"
+            src="{{ pdf_url }}&mode=view"
+            onload="hideLoading()"
+        ></iframe>
+    </div>
+</div>
+
+<script>
+function hideLoading() {
+    const loading = document.getElementById('pdfLoading');
+    if (loading) {
+        loading.style.display = 'none';
+    }
+}
+
+function printPDF() {
+    const frame = document.getElementById('pdfFrame');
+    if (frame && frame.contentWindow) {
+        try {
+            frame.contentWindow.focus();
+            frame.contentWindow.print();
+        } catch (e) {
+            // Fallback: abrir PDF em nova janela para impressão
+            window.open('{{ pdf_url }}&mode=print', '_blank');
+        }
+    } else {
+        window.open('{{ pdf_url }}&mode=print', '_blank');
+    }
+}
+
+function sharePDF() {
+    const pdfUrl = '{{ pdf_url }}&download=1';
+    const title = 'Relatório de Jornada - MultiMax';
+    
+    if (navigator.share) {
+        // Web Share API (suportado em dispositivos móveis)
+        navigator.share({
+            title: title,
+            text: 'Relatório de Jornada do MultiMax',
+            url: pdfUrl
+        }).catch(err => {
+            console.log('Erro ao compartilhar:', err);
+            fallbackShare(pdfUrl, title);
+        });
+    } else {
+        fallbackShare(pdfUrl, title);
+    }
+}
+
+function fallbackShare(url, title) {
+    // Fallback: copiar URL para clipboard
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(() => {
+            alert('Link do PDF copiado para a área de transferência!');
+        }).catch(() => {
+            copyToClipboardFallback(url);
+        });
+    } else {
+        copyToClipboardFallback(url);
+    }
+}
+
+function copyToClipboardFallback(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+        document.execCommand('copy');
+        alert('Link do PDF copiado para a área de transferência!');
+    } catch (err) {
+        alert('Não foi possível copiar o link. Por favor, copie manualmente: ' + text);
+    }
+    document.body.removeChild(textarea);
+}
+
+// Detectar se PDF não carregou após 10 segundos
+setTimeout(() => {
+    const loading = document.getElementById('pdfLoading');
+    const frame = document.getElementById('pdfFrame');
+    if (loading && loading.style.display !== 'none') {
+        loading.innerHTML = '<i class="bi bi-exclamation-triangle"></i><p>Erro ao carregar PDF. <a href="{{ pdf_url }}&download=1">Clique aqui para baixar</a></p>';
+    }
+}, 10000);
+</script>
+{% endblock %}
+

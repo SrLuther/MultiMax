@@ -13,6 +13,7 @@ from ..models import Collaborator, TimeOffRecord
 from ..routes.jornada import _calculate_collaborator_balance, _get_collaborator_display_name
 from sqlalchemy import func, or_
 from flask import render_template
+from urllib.parse import urlencode
 from io import BytesIO
 from typing import Any
 from reportlab.platypus import Image
@@ -1390,6 +1391,36 @@ def exportar_jornada_colaborador_pdf(collaborator_id):
     except Exception as e:
         flash(f'Erro ao gerar PDF de Jornada: {e}', 'danger')
         return redirect(url_for('jornada.index'))
+
+@bp.route('/exportar/jornada/view')
+@login_required
+def view_jornada_pdf():
+    """Página para visualizar PDF de jornada com controles de download, compartilhar e imprimir"""
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
+        flash('Você não tem permissão para visualizar relatório de jornada.', 'danger')
+        return redirect(url_for('jornada.index'))
+    
+    collaborator_id = request.args.get('collaborator_id', type=int)
+    inicio = request.args.get('inicio', '').strip()
+    fim = request.args.get('fim', '').strip()
+    tipo = request.args.get('tipo', 'todos')  # 'individual' ou 'todos'
+    
+    # Construir URL do PDF baseado no tipo
+    if tipo == 'individual' and collaborator_id:
+        pdf_url = url_for('exportacao.exportar_jornada_colaborador_pdf', 
+                         collaborator_id=collaborator_id, 
+                         inicio=inicio, 
+                         fim=fim)
+    else:
+        pdf_url = url_for('exportacao.exportar_jornada_todos_pdf', 
+                         inicio=inicio, 
+                         fim=fim)
+    
+    return render_template('jornada/view_pdf.html',
+                         pdf_url=pdf_url,
+                         collaborator_id=collaborator_id,
+                         inicio=inicio,
+                         fim=fim)
 
 @bp.route('/exportar/jornada/todos.pdf')
 @login_required
