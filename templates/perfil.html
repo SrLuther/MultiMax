@@ -299,6 +299,22 @@
             <span><strong>Atenção:</strong> O valor por dia ainda não foi configurado. Entre em contato com o administrador para configurar o valor na página Jornada.</span>
         </div>
         {% endif %}
+        
+        {% if not collaborator_values %}
+        <div class="mm-info-box mm-mt-4" style="background: rgba(59, 130, 246, 0.1); border-left: 3px solid var(--mm-primary);">
+            <i class="bi bi-info-circle mm-text-primary"></i>
+            <span>Os valores serão calculados automaticamente quando houver dados de jornada disponíveis.</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% elif collab %}
+<div class="mm-card mm-mb-6" style="background: rgba(59, 130, 246, 0.05); border-left: 4px solid var(--mm-primary);">
+    <div class="mm-card-body">
+        <div class="mm-info-box">
+            <i class="bi bi-info-circle mm-text-primary"></i>
+            <span>Você tem um colaborador vinculado, mas os valores ainda não foram calculados. Os valores aparecerão aqui quando houver dados de jornada disponíveis.</span>
+        </div>
     </div>
 </div>
 {% endif %}
