@@ -1,5 +1,16 @@
 # Changelog — MultiMax
 
+## [2.3.4] - 2025-01-04
+
+### 🔧 Correções
+
+#### Docker Compose
+- **Volume Persistente na VPS**: Corrigido caminho do volume para apontar para diretório persistente
+  - Alterado de `./data:/app/data` para `/opt/multimax/multimax-data/:/app/data`
+  - Garante persistência dos dados na VPS mesmo após atualizações do container
+
+---
+
 ## [2.3.3] - 2025-01-04
 
 ### 🎉 Novas Funcionalidades

@@ -9,7 +9,7 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./data:/app/data
+      - /opt/multimax/multimax-data/:/app/data
     environment:
       - HOST=0.0.0.0
       - PORT=5000
@@ -21,6 +21,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+
 
 
 
