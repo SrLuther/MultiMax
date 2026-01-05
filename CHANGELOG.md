@@ -1,5 +1,18 @@
 # Changelog — MultiMax
 
+## [2.3.7] - 2025-01-04
+
+### 🐛 Correções
+
+#### Sistema de Valores na Jornada
+- **Card Valor Dias + Horas (Individual)**: Corrigido cálculo e exibição do card
+  - Agora mostra corretamente a soma de dias completos + horas parciais (value_total_individual)
+  - Antes mostrava apenas o valor das horas parciais (value_residual_hours)
+  - Detalhe atualizado para mostrar "X dia(s) + Yh proporcional" de forma mais clara
+  - Todos os cards agora refletem os cálculos corretamente
+
+---
+
 ## [2.3.6] - 2025-01-04
 
 ### 🔧 Correções
