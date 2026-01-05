@@ -1751,33 +1751,42 @@ def git_update():
         current_app.logger.error(f'Erro ao registrar início da atualização: {e}')
     
     # Comandos a serem executados sequencialmente
+    # Inclui rebuild completo do container para garantir que todas as mudanças sejam aplicadas
     commands = [
         (['git', 'fetch', 'origin'], 'Fetch do repositório remoto'),
         (['git', 'reset', '--hard', 'origin/nova-versao-deploy'], 'Reset para branch remoto'),
         (['docker-compose', 'down'], 'Parando containers Docker'),
+        (['docker-compose', 'build', '--no-cache'], 'Rebuild completo do container (sem cache)'),
         (['docker-compose', 'up', '-d'], 'Iniciando containers Docker')
     ]
     
     results = []
     for cmd, description in commands:
-        try:
-            current_app.logger.info(f'Executando: {" ".join(cmd)} em {repo_dir}')
-            result = subprocess.run(
-                cmd,
-                cwd=repo_dir,
-                capture_output=True,
-                text=True,
-                timeout=120  # Timeout aumentado para docker-compose
-            )
+            try:
+                current_app.logger.info(f'Executando: {" ".join(cmd)} em {repo_dir}')
+                # Timeout maior para build (pode demorar mais)
+                timeout_value = 300 if 'build' in ' '.join(cmd) else 120
+                result = subprocess.run(
+                    cmd,
+                    cwd=repo_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout_value
+                )
             
             result_info = {
                 'command': ' '.join(cmd),
                 'description': description,
                 'success': result.returncode == 0,
                 'stdout': result.stdout[:500] if result.stdout else '',  # Limitar tamanho
-                'stderr': result.stderr[:500] if result.stderr else ''
+                'stderr': result.stderr[:500] if result.stderr else '',
+                'step': step_number,
+                'total_steps': total_steps
             }
             results.append(result_info)
+            
+            # Log de progresso
+            current_app.logger.info(f'Etapa {step_number}/{total_steps} concluída: {description}')
             
             if result.returncode != 0:
                 error_msg = f'Erro ao executar: {description}. Código: {result.returncode}'

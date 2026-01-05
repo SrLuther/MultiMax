@@ -1361,8 +1361,16 @@ function showUpdateConfirmation() {
         </div>
         <div class="db-git-modal-body">
             <div class="db-git-modal-message">
-                <p style="font-size: 1.1rem; margin-bottom: 1rem;"><strong>O sistema aplicará a atualização.</strong></p>
-                <p style="margin-bottom: 1.5rem;">A página ficará temporariamente indisponível. Aguarde até 1 minuto e depois atualize a página.</p>
+                <p style="font-size: 1.1rem; margin-bottom: 1rem;"><strong>O sistema aplicará a atualização completa.</strong></p>
+                <p style="margin-bottom: 0.75rem;">Esta operação inclui:</p>
+                <ul style="margin-left: 1.5rem; margin-bottom: 1rem; color: #4b5563;">
+                    <li>Atualização do código do GitHub</li>
+                    <li>Rebuild completo do container Docker (sem cache)</li>
+                    <li>Reinicialização do sistema</li>
+                </ul>
+                <p style="margin-bottom: 1.5rem; color: #dc2626; font-weight: 600;">
+                    ⚠️ A página ficará temporariamente indisponível. Aguarde até 1 minuto e depois atualize a página.
+                </p>
             </div>
             <div class="db-git-countdown-container">
                 <div class="db-git-countdown">
@@ -1460,13 +1468,26 @@ function applyUpdate() {
     .then(response => response.json())
     .then(data => {
         if (data.ok) {
+            // Marcar todas as etapas como concluídas
+            for (let i = 1; i <= 4; i++) {
+                updateStep(i, 'completed');
+            }
+            
             // Mostrar mensagem de sucesso antes de fechar
             const modalBody = document.querySelector('.db-git-modal-body');
             if (modalBody) {
                 const processingMsg = document.getElementById('processingMsg');
                 if (processingMsg) {
                     processingMsg.className = 'db-git-success-msg';
-                    processingMsg.innerHTML = '<i class="bi bi-check-circle-fill"></i> <span>Atualização aplicada com sucesso! O sistema será reiniciado.</span>';
+                    processingMsg.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <i class="bi bi-check-circle-fill"></i>
+                            <div>
+                                <strong>Atualização completa aplicada com sucesso!</strong>
+                                <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">O sistema será reiniciado. Aguarde até 1 minuto.</p>
+                            </div>
+                        </div>
+                    `;
                 }
             }
             
