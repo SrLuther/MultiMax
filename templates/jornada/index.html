@@ -1885,6 +1885,21 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Garantir que os cards de valores estejam visíveis
+    const valoresCard = document.querySelector('.valores-card-modern');
+    if (valoresCard) {
+        valoresCard.style.display = 'block';
+        valoresCard.style.visibility = 'visible';
+        valoresCard.style.opacity = '1';
+    }
+    
+    const valoresGrid = document.querySelector('.valores-grid-modern');
+    if (valoresGrid) {
+        valoresGrid.style.display = 'grid';
+        valoresGrid.style.visibility = 'visible';
+        valoresGrid.style.opacity = '1';
+    }
+    
     // Carregar valor atual ao abrir modal
     const modalConfigValor = document.getElementById('modalConfigValor');
     if (modalConfigValor) {
