@@ -313,16 +313,16 @@
                         <div class="valor-card-label-modern">Valor Dias + Horas (Individual)</div>
                         <div class="valor-card-value-modern" id="valorDiasHoras">
                             {% if collaborator_values %}
-                            R$ {{ "%.2f"|format(collaborator_values.value_residual_hours) }}
+                            R$ {{ "%.2f"|format(collaborator_values.value_total_individual) }}
                             {% else %}
                             R$ 0,00
                             {% endif %}
                         </div>
                         <div class="valor-card-detail-modern">
                             {% if collaborator_values %}
-                            {{ "%.2f"|format(collaborator_values.residual_hours) }}h × (R$ {{ "%.2f"|format(day_value) }} ÷ 8h)
+                            {{ collaborator_values.full_days }} dia(s) + {{ "%.2f"|format(collaborator_values.residual_hours) }}h proporcional
                             {% else %}
-                            0,00h
+                            0 dia(s) + 0,00h
                             {% endif %}
                         </div>
                     </div>
