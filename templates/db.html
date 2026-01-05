@@ -1267,17 +1267,26 @@ function refreshGitStatus() {
     }
     
     fetch('{{ url_for("dbadmin.git_status") }}')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || `HTTP ${response.status}`);
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.ok) {
                 updateGitStatusDisplay(data);
             } else {
-                showGitError(data.error || 'Erro ao buscar status do Git');
+                const errorMsg = data.error || 'Erro ao buscar status do Git';
+                console.error('Erro na resposta:', errorMsg);
+                showGitError(errorMsg);
             }
         })
         .catch(error => {
             console.error('Erro ao buscar status Git:', error);
-            showGitError('Erro de conexão ao buscar status do Git');
+            showGitError('Erro de conexão: ' + error.message);
         })
         .finally(() => {
             if (btn) {
