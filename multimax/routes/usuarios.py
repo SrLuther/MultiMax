@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from ..password_hash import generate_password_hash, check_password_hash
 from ..filename_utils import secure_filename
 from .. import db
-from ..models import User, Produto, Historico, CleaningHistory, SystemLog, NotificationRead, Collaborator, JobRole, Shift, CleaningTask, Vacation, MedicalCertificate, Holiday, TimeOffRecord
+from ..models import User, Produto, Historico, CleaningHistory, SystemLog, NotificationRead, Collaborator, JobRole, Shift, CleaningTask, Vacation, MedicalCertificate, Holiday, TimeOffRecord, AppSetting
 from datetime import datetime
 from typing import cast, Sequence
 import os
@@ -509,20 +509,44 @@ def perfil():
     day_value = 0.0
     if collab:
         try:
-            # Importar funções da jornada
-            from multimax.routes.jornada import _calculate_collaborator_values, _get_day_value
-            collaborator_values = _calculate_collaborator_values(collab.id)
-            day_value = _get_day_value()
-        except ImportError:
+            # Obter valor por dia
             try:
-                # Fallback: importação relativa
-                from ..routes.jornada import _calculate_collaborator_values, _get_day_value
-                collaborator_values = _calculate_collaborator_values(collab.id)
-                day_value = _get_day_value()
-            except Exception as e:
-                current_app.logger.error(f'Erro ao calcular valores do colaborador: {e}')
-                collaborator_values = None
+                setting = AppSetting.query.filter_by(key='jornada_valor_dia').first()
+                if setting and setting.value:
+                    day_value = float(setting.value)
+            except Exception:
                 day_value = 0.0
+            
+            # Calcular valores usando a mesma lógica da jornada
+            from sqlalchemy import func, or_
+            from datetime import date as _date
+            
+            # Calcular saldo (mesma lógica do perfil)
+            filters = [TimeOffRecord.collaborator_id == collab.id]
+            hq = TimeOffRecord.query.filter(*filters, TimeOffRecord.record_type == 'horas')
+            total_bruto_hours = sum(float(r.hours or 0.0) for r in hq.all() if (r.hours or 0.0) > 0)
+            days_from_hours = int(total_bruto_hours // 8.0) if total_bruto_hours >= 0.0 else 0
+            residual_hours = (total_bruto_hours % 8.0) if total_bruto_hours >= 0.0 else 0.0
+            
+            credits_sum = int(TimeOffRecord.query.filter(*filters, TimeOffRecord.record_type == 'folga_adicional', or_(TimeOffRecord.origin != 'horas', TimeOffRecord.origin.is_(None))).with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
+            assigned_sum = int(TimeOffRecord.query.filter(*filters, TimeOffRecord.record_type == 'folga_usada').with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
+            converted_sum = int(TimeOffRecord.query.filter(*filters, TimeOffRecord.record_type == 'conversao').with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
+            saldo_days = credits_sum + days_from_hours - assigned_sum - converted_sum
+            
+            # Calcular valores monetários
+            full_days = max(0, saldo_days)
+            value_full_days = full_days * day_value
+            value_residual_hours = (residual_hours / 8.0) * day_value if residual_hours > 0 else 0.0
+            value_total_individual = value_full_days + value_residual_hours
+            
+            collaborator_values = {
+                'full_days': full_days,
+                'residual_hours': residual_hours,
+                'day_value': day_value,
+                'value_full_days': value_full_days,
+                'value_residual_hours': value_residual_hours,
+                'value_total_individual': value_total_individual
+            }
         except Exception as e:
             current_app.logger.error(f'Erro ao calcular valores do colaborador: {e}')
             collaborator_values = None
