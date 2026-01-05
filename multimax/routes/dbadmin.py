@@ -1668,81 +1668,154 @@ def git_status():
 @bp.route('/git/update', methods=['POST'], strict_slashes=False)
 @login_required
 def git_update():
-    """Aplica atualização do Git e reinicia containers Docker"""
+    """Aplica atualização do Git e reinicia containers Docker
+    
+    Executa os comandos na sequência:
+    1. cd /opt/multimax
+    2. git fetch origin
+    3. git reset --hard origin/nova-versao-deploy
+    4. docker-compose down
+    5. docker-compose up -d
+    
+    Garante que o banco de dados em /opt/multimax-data/estoque.db não seja afetado.
+    """
     if not _check_dev_access():
         return jsonify({'ok': False, 'error': 'forbidden'}), 403
     
+    repo_dir = '/opt/multimax'
+    db_path = '/opt/multimax-data/estoque.db'
+    
+    # Verificar se é diretório Git
+    if not os.path.exists(os.path.join(repo_dir, '.git')):
+        error_msg = 'Diretório não é um repositório Git'
+        _log_git_update_error(error_msg, current_user.username)
+        return jsonify({'ok': False, 'error': error_msg}), 400
+    
+    # Verificar se o banco de dados existe (proteção)
+    if not os.path.exists(db_path):
+        error_msg = f'Banco de dados não encontrado em {db_path}. Atualização cancelada por segurança.'
+        _log_git_update_error(error_msg, current_user.username)
+        return jsonify({'ok': False, 'error': error_msg}), 500
+    
+    # Registrar início da atualização
     try:
-        repo_dir = '/opt/multimax'
-        
-        # Verificar se é diretório Git
-        if not os.path.exists(os.path.join(repo_dir, '.git')):
-            return jsonify({'ok': False, 'error': 'Diretório não é um repositório Git'}), 400
-        
-        commands = [
-            (['git', 'fetch', 'origin'], 'Fetch do repositório'),
-            (['git', 'reset', '--hard', 'origin/nova-versao-deploy'], 'Reset para branch remoto'),
-            (['docker-compose', 'down'], 'Parando containers Docker'),
-            (['docker-compose', 'up', '-d'], 'Iniciando containers Docker')
-        ]
-        
-        results = []
-        for cmd, description in commands:
-            try:
-                result = subprocess.run(
-                    cmd,
-                    cwd=repo_dir,
-                    capture_output=True,
-                    text=True,
-                    timeout=60
-                )
-                results.append({
-                    'command': ' '.join(cmd),
-                    'description': description,
-                    'success': result.returncode == 0,
-                    'stdout': result.stdout,
-                    'stderr': result.stderr
-                })
-                
-                if result.returncode != 0:
-                    return jsonify({
-                        'ok': False,
-                        'error': f'Erro ao executar: {description}',
-                        'details': result.stderr,
-                        'results': results
-                    }), 500
-            except subprocess.TimeoutExpired:
-                return jsonify({
-                    'ok': False,
-                    'error': f'Timeout ao executar: {description}',
-                    'results': results
-                }), 500
-            except Exception as e:
-                return jsonify({
-                    'ok': False,
-                    'error': f'Erro ao executar {description}: {str(e)}',
-                    'results': results
-                }), 500
-        
-        # Registrar no log
-        try:
-            log = SystemLog()
-            log.origem = 'Sistema'
-            log.evento = 'atualizacao_git'
-            log.detalhes = f'Atualização aplicada com sucesso. Commit: {results[1].get("stdout", "").strip()[:7] if len(results) > 1 else "N/A"}'
-            log.usuario = current_user.username
-            db.session.add(log)
-            db.session.commit()
-        except Exception:
-            pass
-        
-        return jsonify({
-            'ok': True,
-            'message': 'Atualização aplicada com sucesso',
-            'results': results
-        })
+        log = SystemLog()
+        log.origem = 'GitUpdate'
+        log.evento = 'update_start'
+        log.detalhes = f'Iniciando atualização do Git na branch nova-versao-deploy por {current_user.username}'
+        log.usuario = current_user.username
+        db.session.add(log)
+        db.session.commit()
     except Exception as e:
+        current_app.logger.error(f'Erro ao registrar início da atualização: {e}')
+    
+    # Comandos a serem executados sequencialmente
+    commands = [
+        (['git', 'fetch', 'origin'], 'Fetch do repositório remoto'),
+        (['git', 'reset', '--hard', 'origin/nova-versao-deploy'], 'Reset para branch remoto'),
+        (['docker-compose', 'down'], 'Parando containers Docker'),
+        (['docker-compose', 'up', '-d'], 'Iniciando containers Docker')
+    ]
+    
+    results = []
+    for cmd, description in commands:
+        try:
+            current_app.logger.info(f'Executando: {" ".join(cmd)} em {repo_dir}')
+            result = subprocess.run(
+                cmd,
+                cwd=repo_dir,
+                capture_output=True,
+                text=True,
+                timeout=120  # Timeout aumentado para docker-compose
+            )
+            
+            result_info = {
+                'command': ' '.join(cmd),
+                'description': description,
+                'success': result.returncode == 0,
+                'stdout': result.stdout[:500] if result.stdout else '',  # Limitar tamanho
+                'stderr': result.stderr[:500] if result.stderr else ''
+            }
+            results.append(result_info)
+            
+            if result.returncode != 0:
+                error_msg = f'Erro ao executar: {description}. Código: {result.returncode}'
+                error_details = f'STDERR: {result.stderr[:200]}'
+                _log_git_update_error(f'{error_msg}. {error_details}', current_user.username, results)
+                return jsonify({
+                    'ok': False,
+                    'error': error_msg,
+                    'details': result.stderr[:200],
+                    'results': results
+                }), 500
+            
+            # Verificar se o banco de dados ainda existe após cada comando crítico
+            if 'reset' in description.lower() and not os.path.exists(db_path):
+                error_msg = f'ATENÇÃO: Banco de dados não encontrado após reset! Caminho: {db_path}'
+                _log_git_update_error(error_msg, current_user.username, results)
+                return jsonify({
+                    'ok': False,
+                    'error': 'Banco de dados não encontrado após atualização. Operação cancelada.',
+                    'results': results
+                }), 500
+                
+        except subprocess.TimeoutExpired as e:
+            error_msg = f'Timeout ao executar: {description} (limite: 120s)'
+            _log_git_update_error(error_msg, current_user.username, results)
+            return jsonify({
+                'ok': False,
+                'error': error_msg,
+                'results': results
+            }), 500
+        except Exception as e:
+            error_msg = f'Erro ao executar {description}: {str(e)}'
+            _log_git_update_error(error_msg, current_user.username, results)
+            return jsonify({
+                'ok': False,
+                'error': error_msg,
+                'results': results
+            }), 500
+    
+    # Verificar novamente se o banco de dados existe após todas as operações
+    if not os.path.exists(db_path):
+        error_msg = f'ATENÇÃO: Banco de dados não encontrado após atualização completa! Caminho: {db_path}'
+        _log_git_update_error(error_msg, current_user.username, results)
         return jsonify({
             'ok': False,
-            'error': str(e)
+            'error': 'Banco de dados não encontrado após atualização. Verifique o sistema.',
+            'results': results
         }), 500
+    
+    # Registrar sucesso no log
+    try:
+        log = SystemLog()
+        log.origem = 'GitUpdate'
+        log.evento = 'update_success'
+        log.detalhes = f'Atualização aplicada com sucesso por {current_user.username}. Todos os comandos executados com sucesso.'
+        log.usuario = current_user.username
+        db.session.add(log)
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(f'Erro ao registrar sucesso da atualização: {e}')
+    
+    return jsonify({
+        'ok': True,
+        'message': 'Atualização aplicada com sucesso. Sistema será reiniciado.',
+        'results': results
+    })
+
+def _log_git_update_error(error_msg, username, results=None):
+    """Registra erro de atualização Git no log do sistema"""
+    try:
+        log = SystemLog()
+        log.origem = 'GitUpdate'
+        log.evento = 'update_error'
+        log.detalhes = f'Erro na atualização por {username}: {error_msg}'
+        log.usuario = username
+        log.severity = 'ERROR'
+        if results:
+            log.detalhes += f' | Resultados: {len(results)} comandos executados'
+        db.session.add(log)
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(f'Erro ao registrar erro de atualização: {e}')

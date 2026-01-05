@@ -1331,20 +1331,27 @@ function showUpdateConfirmation() {
     
     modal.innerHTML = `
         <div class="db-git-modal-header">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-            <h3 class="db-git-modal-title">Confirmar Atualização</h3>
+            <i class="bi bi-exclamation-triangle-fill" style="color: #f59e0b; font-size: 2rem;"></i>
+            <h3 class="db-git-modal-title">Confirmar Atualização do Sistema</h3>
         </div>
         <div class="db-git-modal-body">
-            <p><strong>O sistema precisará reiniciar para aplicar a atualização.</strong></p>
-            <p>A página ficará temporariamente indisponível. Aguarde até 1 minuto e então atualize a página.</p>
-            <div class="db-git-countdown">
-                <div class="db-git-countdown-value" id="countdownValue">10</div>
-                <div class="db-git-countdown-label">segundos</div>
+            <div class="db-git-modal-message">
+                <p style="font-size: 1.1rem; margin-bottom: 1rem;"><strong>O sistema aplicará a atualização.</strong></p>
+                <p style="margin-bottom: 1.5rem;">A página ficará temporariamente indisponível. Aguarde até 1 minuto e depois atualize a página.</p>
+            </div>
+            <div class="db-git-countdown-container">
+                <div class="db-git-countdown">
+                    <div class="db-git-countdown-value" id="countdownValue" style="font-size: 3rem; font-weight: 700; color: #dc2626;">10</div>
+                    <div class="db-git-countdown-label">segundos</div>
+                </div>
             </div>
         </div>
         <div class="db-git-modal-actions">
             <button type="button" class="db-git-modal-btn db-git-modal-btn-cancel" onclick="closeUpdateModal()">Cancelar</button>
-            <button type="button" class="db-git-modal-btn db-git-modal-btn-confirm" id="confirmUpdateBtn" onclick="applyUpdate()" disabled>Aplicar Atualização</button>
+            <button type="button" class="db-git-modal-btn db-git-modal-btn-confirm" id="confirmUpdateBtn" onclick="applyUpdate()" disabled>
+                <i class="bi bi-cloud-arrow-down"></i>
+                Aplicar Atualização
+            </button>
         </div>
     `;
     
@@ -1360,13 +1367,26 @@ function showUpdateConfirmation() {
         updateCountdown--;
         if (countdownValue) {
             countdownValue.textContent = updateCountdown;
+            // Mudar cor quando próximo de zero
+            if (updateCountdown <= 3) {
+                countdownValue.style.color = '#dc2626';
+                countdownValue.style.animation = 'pulse 0.5s infinite';
+            }
         }
         
         if (updateCountdown <= 0) {
             clearInterval(updateCountdownInterval);
             if (confirmBtn) {
                 confirmBtn.disabled = false;
+                confirmBtn.style.opacity = '1';
+                confirmBtn.style.cursor = 'pointer';
             }
+            // Auto-fechar após 10 segundos se não houver ação
+            setTimeout(() => {
+                if (document.getElementById('updateModalOverlay')) {
+                    closeUpdateModal();
+                }
+            }, 10000);
         }
     }, 1000);
 }
@@ -1384,9 +1404,26 @@ function closeUpdateModal() {
 
 function applyUpdate() {
     const confirmBtn = document.getElementById('confirmUpdateBtn');
+    const countdownValue = document.getElementById('countdownValue');
+    
     if (confirmBtn) {
         confirmBtn.disabled = true;
-        confirmBtn.textContent = 'Aplicando...';
+        confirmBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Aplicando...';
+    }
+    
+    if (countdownValue) {
+        countdownValue.textContent = '0';
+        countdownValue.style.color = '#16a34a';
+    }
+    
+    // Mostrar mensagem de processamento
+    const modalBody = document.querySelector('.db-git-modal-body');
+    if (modalBody) {
+        const processingMsg = document.createElement('div');
+        processingMsg.id = 'processingMsg';
+        processingMsg.className = 'db-git-processing-msg';
+        processingMsg.innerHTML = '<i class="bi bi-arrow-repeat" style="animation: spin 1s linear infinite;"></i> <span>Aplicando atualização... Aguarde.</span>';
+        modalBody.appendChild(processingMsg);
     }
     
     fetch('{{ url_for("dbadmin.git_update") }}', {
@@ -1398,26 +1435,71 @@ function applyUpdate() {
     .then(response => response.json())
     .then(data => {
         if (data.ok) {
-            closeUpdateModal();
-            alert('Atualização aplicada com sucesso! O sistema será reiniciado. Aguarde 1 minuto e atualize a página.');
-            // Atualizar status após alguns segundos
+            // Mostrar mensagem de sucesso antes de fechar
+            const modalBody = document.querySelector('.db-git-modal-body');
+            if (modalBody) {
+                const processingMsg = document.getElementById('processingMsg');
+                if (processingMsg) {
+                    processingMsg.className = 'db-git-success-msg';
+                    processingMsg.innerHTML = '<i class="bi bi-check-circle-fill"></i> <span>Atualização aplicada com sucesso! O sistema será reiniciado.</span>';
+                }
+            }
+            
+            // Fechar modal após 3 segundos
             setTimeout(() => {
-                refreshGitStatus();
-            }, 2000);
+                closeUpdateModal();
+                // Mostrar notificação final
+                const notification = document.createElement('div');
+                notification.className = 'db-git-notification';
+                notification.innerHTML = `
+                    <div class="db-git-notification-content">
+                        <i class="bi bi-info-circle-fill"></i>
+                        <div>
+                            <strong>Atualização em andamento</strong>
+                            <p>A página ficará temporariamente indisponível. Aguarde até 1 minuto e depois atualize a página manualmente.</p>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(notification);
+                
+                // Remover notificação após 10 segundos
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 10000);
+            }, 3000);
         } else {
-            alert('Erro ao aplicar atualização: ' + (data.error || 'Erro desconhecido'));
+            // Mostrar erro
+            const modalBody = document.querySelector('.db-git-modal-body');
+            if (modalBody) {
+                const processingMsg = document.getElementById('processingMsg');
+                if (processingMsg) {
+                    processingMsg.className = 'db-git-error-msg';
+                    processingMsg.innerHTML = `<i class="bi bi-x-circle-fill"></i> <span>Erro: ${data.error || 'Erro desconhecido'}</span>`;
+                }
+            }
+            
             if (confirmBtn) {
                 confirmBtn.disabled = false;
-                confirmBtn.textContent = 'Aplicar Atualização';
+                confirmBtn.innerHTML = '<i class="bi bi-cloud-arrow-down"></i> Aplicar Atualização';
             }
         }
     })
     .catch(error => {
         console.error('Erro ao aplicar atualização:', error);
-        alert('Erro de conexão ao aplicar atualização. Verifique se o sistema está acessível.');
+        const modalBody = document.querySelector('.db-git-modal-body');
+        if (modalBody) {
+            const processingMsg = document.getElementById('processingMsg');
+            if (processingMsg) {
+                processingMsg.className = 'db-git-error-msg';
+                processingMsg.innerHTML = '<i class="bi bi-x-circle-fill"></i> <span>Erro de conexão. Verifique se o sistema está acessível.</span>';
+            }
+        }
+        
         if (confirmBtn) {
             confirmBtn.disabled = false;
-            confirmBtn.textContent = 'Aplicar Atualização';
+            confirmBtn.innerHTML = '<i class="bi bi-cloud-arrow-down"></i> Aplicar Atualização';
         }
     });
 }
@@ -2831,6 +2913,15 @@ window.addEventListener('beforeunload', function() {
     font-weight: 600;
     color: #1f2937;
     word-break: break-all;
+    margin-bottom: 0.25rem;
+}
+
+.db-git-status-hint {
+    font-size: 0.7rem;
+    color: #9ca3af;
+    font-style: italic;
+    display: block;
+    margin-top: 0.25rem;
 }
 
 .db-git-commit-message {
