@@ -1,5 +1,35 @@
 # Changelog — MultiMax
 
+## [2.3.9] - 2025-01-04
+
+### ✨ Novas Funcionalidades
+
+#### Monitoramento de Atualizações Git na Página Banco de Dados
+- **Card de Monitoramento Git**: Adicionado card na página Banco de Dados para monitorar atualizações do repositório Git
+  - Monitora automaticamente o branch `nova-versao-deploy` a cada 30 segundos
+  - Exibe versão atual do sistema, commit atual e último commit remoto
+  - Mostra mensagem do commit mais recente
+  - Indica claramente se há atualização disponível
+- **Botão "Aplicar Atualização"**:
+  - Popup de confirmação com aviso sobre reinicialização do sistema
+  - Contagem regressiva de 10 segundos antes de permitir confirmação
+  - Executa comandos em sequência: `git fetch`, `git reset --hard`, `docker-compose down`, `docker-compose up -d`
+  - Atualização automática do card após aplicar mudanças
+- **Rotas Backend**:
+  - `/db/git/status`: Retorna status do Git e commits
+  - `/db/git/update`: Aplica atualização e reinicia containers Docker
+- **Segurança**: Acesso restrito apenas para desenvolvedores (nível DEV)
+
+#### Valores a Receber no Perfil do Usuário
+- **Seção de Valores no Perfil**: Adicionada seção mostrando valores monetários a receber
+  - Exibe 4 cards: Valor Dias Completos, Valor Horas Parciais, Valor Total Individual e Valor por Dia
+  - Usa a mesma lógica de cálculo da página Jornada
+  - Design harmonioso com gradiente verde
+  - Link para ver detalhes na página Jornada
+  - Alerta quando valor por dia não está configurado
+
+---
+
 ## [2.3.8] - 2025-01-04
 
 ### ✨ Novas Funcionalidades
