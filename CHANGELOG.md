@@ -1,5 +1,21 @@
 # Changelog — MultiMax
 
+## [2.3.11] - 2025-01-04
+
+### 📝 Documentação
+
+#### Processo de Atualização de Versão
+- **Documento de Processo**: Criado `PROCESSO_ATUALIZACAO_VERSAO.md` com checklist obrigatório
+  - Define regra crítica: sempre atualizar versão e criar tag ao fazer push
+  - Inclui processo passo a passo completo
+  - Adiciona convenção de versionamento
+  - Fornece exemplos práticos de uso
+
+### 📝 Arquivos Modificados
+- `PROCESSO_ATUALIZACAO_VERSAO.md`: Novo documento com processo obrigatório
+
+---
+
 ## [2.3.10] - 2025-01-04
 
 ### 🐛 Correções
