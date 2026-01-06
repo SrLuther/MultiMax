@@ -162,8 +162,9 @@ def create_app():
             notificacoes_bp = None
     try:
         from .routes.dbadmin import bp as dbadmin_bp
+        app.logger.info(f'Blueprint dbadmin importado com sucesso. URL prefix: {dbadmin_bp.url_prefix}')
     except Exception as e:
-        app.logger.warning(f'Erro ao importar blueprint dbadmin: {e}')
+        app.logger.error(f'Erro ao importar blueprint dbadmin: {e}', exc_info=True)
         dbadmin_bp = None
 
     app.register_blueprint(auth_bp)
@@ -184,6 +185,9 @@ def create_app():
         app.register_blueprint(notificacoes_bp)
     if dbadmin_bp:
         app.register_blueprint(dbadmin_bp)
+        app.logger.info(f'Blueprint dbadmin registrado com sucesso. Rotas disponíveis: {[rule.rule for rule in app.url_map.iter_rules() if rule.endpoint.startswith("dbadmin.")]}')
+    else:
+        app.logger.warning('Blueprint dbadmin não foi registrado (dbadmin_bp é None)')
 
     @app.context_processor
     def _inject_version():
