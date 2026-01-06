@@ -1293,7 +1293,16 @@ function refreshGitStatus() {
         btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Atualizando...';
     }
     
-    fetch('{{ url_for("dbadmin.git_status") }}')
+    // Adicionar timestamp para evitar cache
+    const url = '{{ url_for("dbadmin.git_status") }}' + '?t=' + Date.now();
+    
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+        }
+    })
         .then(response => {
             if (!response.ok) {
                 return response.json().then(data => {
@@ -1305,6 +1314,11 @@ function refreshGitStatus() {
         .then(data => {
             if (data.ok) {
                 updateGitStatusDisplay(data);
+                console.log('Status Git atualizado:', {
+                    current_commit: data.current_commit,
+                    latest_commit: data.latest_commit,
+                    update_available: data.update_available
+                });
             } else {
                 const errorMsg = data.error || 'Erro ao buscar status do Git';
                 console.error('Erro na resposta:', errorMsg);

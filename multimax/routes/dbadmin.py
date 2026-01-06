@@ -1661,16 +1661,18 @@ def git_status():
         commit_message = None
         commit_date = None
         try:
-            # Fetch do branch remoto
+            # Fetch do branch remoto (sempre fazer fetch para obter commits mais recentes)
             fetch_result = subprocess.run(
                 ['git', 'fetch', 'origin', 'nova-versao-deploy'],
                 cwd=repo_dir,
                 capture_output=True,
                 text=True,
-                timeout=10
+                timeout=15  # Aumentado timeout para garantir que o fetch complete
             )
             if fetch_result.returncode != 0:
                 current_app.logger.warning(f'Erro ao fazer fetch: {fetch_result.stderr[:200]}')
+            else:
+                current_app.logger.info(f'Fetch realizado com sucesso. Output: {fetch_result.stdout[:100]}')
             
             # Obter último commit do branch remoto
             result = subprocess.run(
@@ -1717,6 +1719,9 @@ def git_status():
         update_available = False
         if current_commit and latest_commit_hash:
             update_available = current_commit != latest_commit_hash
+            current_app.logger.info(f'Comparação de commits: local={current_commit[:7] if current_commit else None}, remoto={latest_commit_hash[:7] if latest_commit_hash else None}, atualização disponível={update_available}')
+        else:
+            current_app.logger.warning(f'Não foi possível comparar commits: current_commit={current_commit[:7] if current_commit else None}, latest_commit_hash={latest_commit_hash[:7] if latest_commit_hash else None}')
         
         return jsonify({
             'ok': True,
