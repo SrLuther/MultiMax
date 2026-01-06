@@ -109,8 +109,15 @@
                             </td>
                             {% for dia in dias_semana %}
                             {% set turno = turnos_map.get((colab.id, dia.data.isoformat())) %}
+                            {% set status = status_map.get((colab.id, dia.data.isoformat())) %}
                             <td class="grade-turno-cell {% if dia.is_today %}dia-today{% endif %}">
-                                {% if turno %}
+                                {% if status %}
+                                {# Prioridade: mostrar status (Folga, Férias, Atestado) sobre o turno #}
+                                <div class="grade-turno-badge grade-turno-status grade-status-{{ status|lower }}" 
+                                     title="{{ status }}">
+                                    {{ status }}
+                                </div>
+                                {% elif turno %}
                                 <div class="grade-turno-badge grade-turno-{{ turno.turno|lower|replace(' ', '-') }} {% if current_user.nivel in ('operador', 'admin', 'DEV') %}grade-turno-editable{% endif %}" 
                                      title="{{ turno.observacao or '' }}"
                                      {% if current_user.nivel in ('operador', 'admin', 'DEV') %}

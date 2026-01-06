@@ -75,6 +75,58 @@ def escala():
         key = (t.collaborator_id, t.date.isoformat())
         turnos_map[key] = t
     
+    # Mapa de status (Folga, Férias, Atestado) por colaborador e data
+    status_map = {}
+    for colab in cols:
+        for dia in dias_semana:
+            key = (colab.id, dia['data'].isoformat())
+            status = None
+            
+            # Verificar Folga (folga_usada)
+            try:
+                folgas = TimeOffRecord.query.filter(
+                    TimeOffRecord.collaborator_id == colab.id,
+                    TimeOffRecord.record_type == 'folga_usada',
+                    TimeOffRecord.date <= dia['data']
+                ).order_by(TimeOffRecord.date.desc()).limit(5).all()
+                for folga in folgas:
+                    days = max(1, int(folga.days or 1))
+                    end_date = folga.date + timedelta(days=days - 1)
+                    if folga.date <= dia['data'] <= end_date:
+                        status = 'Folga'
+                        break
+            except Exception:
+                pass
+            
+            # Verificar Férias (prioridade sobre folga)
+            if not status:
+                try:
+                    vac = VacationModel.query.filter(
+                        VacationModel.collaborator_id == colab.id,
+                        VacationModel.data_inicio <= dia['data'],
+                        VacationModel.data_fim >= dia['data']
+                    ).first()
+                    if vac:
+                        status = 'Férias'
+                except Exception:
+                    pass
+            
+            # Verificar Atestado (prioridade sobre férias e folga)
+            if not status:
+                try:
+                    mc = MedicalCertificate.query.filter(
+                        MedicalCertificate.collaborator_id == colab.id,
+                        MedicalCertificate.data_inicio <= dia['data'],
+                        MedicalCertificate.data_fim >= dia['data']
+                    ).first()
+                    if mc:
+                        status = 'Atestado'
+                except Exception:
+                    pass
+            
+            if status:
+                status_map[key] = status
+    
     horas_turno = {
         'Abertura 5h': 8,  # 5h-11h e 13h-15h (2 pessoas)
         'Abertura 6h': 8,  # 6h-11h e 13h-16h (1 pessoa)
