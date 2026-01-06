@@ -1657,14 +1657,20 @@ def git_status():
             current_app.logger.error(f'Erro ao obter commit atual: {e}', exc_info=True)
         
         # Obter commit mais recente do branch remoto
+        latest_commit_hash = None
+        commit_message = None
+        commit_date = None
         try:
             # Fetch do branch remoto
-            subprocess.run(
+            fetch_result = subprocess.run(
                 ['git', 'fetch', 'origin', 'nova-versao-deploy'],
                 cwd=repo_dir,
                 capture_output=True,
+                text=True,
                 timeout=10
             )
+            if fetch_result.returncode != 0:
+                current_app.logger.warning(f'Erro ao fazer fetch: {fetch_result.stderr[:200]}')
             
             # Obter último commit do branch remoto
             result = subprocess.run(
@@ -1674,10 +1680,13 @@ def git_status():
                 text=True,
                 timeout=5
             )
-            latest_commit_hash = result.stdout.strip() if result.returncode == 0 else None
+            if result.returncode == 0 and result.stdout.strip():
+                latest_commit_hash = result.stdout.strip()
+                current_app.logger.info(f'Commit remoto obtido: {latest_commit_hash[:7]}')
+            else:
+                current_app.logger.warning(f'Erro ao obter commit remoto. Return code: {result.returncode}, stderr: {result.stderr[:200]}')
             
             # Obter mensagem do commit
-            commit_message = None
             if latest_commit_hash:
                 result = subprocess.run(
                     ['git', 'log', '-1', '--pretty=format:%s', latest_commit_hash],
@@ -1686,7 +1695,10 @@ def git_status():
                     text=True,
                     timeout=5
                 )
-                commit_message = result.stdout.strip() if result.returncode == 0 else None
+                if result.returncode == 0 and result.stdout.strip():
+                    commit_message = result.stdout.strip()
+                else:
+                    current_app.logger.warning(f'Erro ao obter mensagem do commit: {result.stderr[:200]}')
                 
                 # Obter data do commit
                 result = subprocess.run(
@@ -1696,13 +1708,10 @@ def git_status():
                     text=True,
                     timeout=5
                 )
-                commit_date = result.stdout.strip() if result.returncode == 0 else None
-            else:
-                commit_date = None
+                if result.returncode == 0 and result.stdout.strip():
+                    commit_date = result.stdout.strip()
         except Exception as e:
-            latest_commit_hash = None
-            commit_message = None
-            commit_date = None
+            current_app.logger.error(f'Erro ao obter commit remoto: {e}', exc_info=True)
         
         # Verificar se há atualização disponível
         update_available = False
