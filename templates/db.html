@@ -188,6 +188,28 @@
                     {% endif %}
                 </div>
             </div>
+            <div class="db-card-footer-modern" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--mm-border);">
+                <div class="db-info-box-modern" style="background: rgba(102, 126, 234, 0.05); border-left: 3px solid #667eea;">
+                    <i class="bi bi-info-circle" style="color: #667eea;"></i>
+                    <div>
+                        <strong style="color: #667eea;">Sobre o Score de Saúde</strong>
+                        <p style="margin: 0.5rem 0 0 0; color: var(--mm-text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                            O Score de Saúde é calculado como uma média ponderada dos seguintes componentes do sistema:
+                        </p>
+                        <ul style="margin: 0.75rem 0 0 1.5rem; color: var(--mm-text-secondary); font-size: 0.9rem; line-height: 1.8;">
+                            <li><strong>Banco de Dados:</strong> 100 pontos (operacional), 50 pontos (lento), 0 pontos (erro)</li>
+                            <li><strong>Backend:</strong> 100 pontos (operacional), 50 pontos (lento), 0 pontos (erro)</li>
+                            <li><strong>CPU:</strong> 100 - percentual de uso (ex: 30% de uso = 70 pontos)</li>
+                            <li><strong>Memória:</strong> 100 - percentual de uso (ex: 50% de uso = 50 pontos)</li>
+                            <li><strong>Disco:</strong> 100 - percentual de uso (ex: 80% de uso = 20 pontos)</li>
+                        </ul>
+                        <p style="margin: 0.75rem 0 0 0; color: var(--mm-text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                            <strong>Interpretação:</strong> Um score próximo de 100 indica que todos os componentes estão operando de forma ideal. 
+                            Scores abaixo de 70 podem indicar problemas que requerem atenção. O score é atualizado automaticamente a cada verificação.
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
