@@ -7,6 +7,7 @@ WORKDIR /app
 # Instala dependências do sistema necessárias
 RUN apt-get update && apt-get install -y \
     gcc \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Copia o arquivo de dependências
