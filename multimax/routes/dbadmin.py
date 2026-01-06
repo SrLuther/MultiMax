@@ -1621,6 +1621,7 @@ def git_status():
             )
             if result.returncode == 0 and result.stdout.strip():
                 current_version = result.stdout.strip()
+                current_app.logger.info(f'Versão obtida do Git: {current_version}')
             else:
                 # Fallback: versão do __init__.py
                 init_path = os.path.join(repo_dir, 'multimax', '__init__.py')
@@ -1631,10 +1632,14 @@ def git_status():
                         match = re.search(r"return '([\d.]+)'", content)
                         if match:
                             current_version = match.group(1)
-        except Exception:
-            pass
+                            current_app.logger.info(f'Versão obtida do __init__.py: {current_version}')
+                else:
+                    current_app.logger.warning(f'Arquivo __init__.py não encontrado em: {init_path}')
+        except Exception as e:
+            current_app.logger.error(f'Erro ao obter versão: {e}', exc_info=True)
         
         # Obter commit atual
+        current_commit = None
         try:
             result = subprocess.run(
                 ['git', 'rev-parse', 'HEAD'],
@@ -1643,9 +1648,13 @@ def git_status():
                 text=True,
                 timeout=5
             )
-            current_commit = result.stdout.strip() if result.returncode == 0 else None
-        except Exception:
-            current_commit = None
+            if result.returncode == 0 and result.stdout.strip():
+                current_commit = result.stdout.strip()
+                current_app.logger.info(f'Commit atual obtido: {current_commit[:7]}')
+            else:
+                current_app.logger.warning(f'Erro ao obter commit atual. Return code: {result.returncode}, stderr: {result.stderr[:200]}')
+        except Exception as e:
+            current_app.logger.error(f'Erro ao obter commit atual: {e}', exc_info=True)
         
         # Obter commit mais recente do branch remoto
         try:
