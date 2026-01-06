@@ -1543,18 +1543,29 @@ def git_status():
     
     try:
         # Tentar encontrar o diretório do repositório Git
-        # 1. Variável de ambiente
-        repo_dir = os.getenv('GIT_REPO_DIR')
+        repo_dir = None
         
-        # 2. Tentar diretório padrão da VPS
-        if not repo_dir or not os.path.exists(os.path.join(repo_dir, '.git')):
-            repo_dir = '/opt/multimax'
+        # 1. Variável de ambiente (prioridade)
+        env_repo_dir = os.getenv('GIT_REPO_DIR')
+        if env_repo_dir and os.path.exists(os.path.join(env_repo_dir, '.git')):
+            repo_dir = env_repo_dir
         
-        # 3. Tentar diretório atual (desenvolvimento)
-        if not os.path.exists(os.path.join(repo_dir, '.git')):
-            # Tentar encontrar .git no diretório atual ou pai
+        # 2. Tentar diretórios padrão de produção
+        if not repo_dir:
+            production_dirs = [
+                '/opt/multimax',
+                '/app',  # Dentro do container Docker
+                os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),  # Raiz do projeto
+            ]
+            for dir_path in production_dirs:
+                if dir_path and os.path.exists(os.path.join(dir_path, '.git')):
+                    repo_dir = dir_path
+                    current_app.logger.info(f'Repositório Git encontrado em: {repo_dir}')
+                    break
+        
+        # 3. Tentar diretório atual e pais (desenvolvimento)
+        if not repo_dir:
             current_dir = os.path.dirname(os.path.abspath(__file__))
-            # Subir até encontrar .git ou chegar na raiz
             search_dirs = [
                 current_dir,
                 os.path.dirname(current_dir),
@@ -1562,18 +1573,26 @@ def git_status():
                 os.path.dirname(os.path.dirname(os.path.dirname(current_dir))),
             ]
             for dir_path in search_dirs:
-                if os.path.exists(os.path.join(dir_path, '.git')):
+                if dir_path and os.path.exists(os.path.join(dir_path, '.git')):
                     repo_dir = dir_path
+                    current_app.logger.info(f'Repositório Git encontrado em (dev): {repo_dir}')
                     break
         
         # Verificar se é diretório Git
         if not repo_dir or not os.path.exists(os.path.join(repo_dir, '.git')):
+            searched_dirs = [
+                env_repo_dir or 'N/A (GIT_REPO_DIR não definido)',
+                '/opt/multimax',
+                '/app',
+                'diretórios pais do arquivo atual'
+            ]
             return jsonify({
                 'ok': False,
-                'error': f'Repositório Git não encontrado. Procurado em: {repo_dir or "N/A"}',
+                'error': f'Repositório Git não encontrado. Procurado em: {", ".join(searched_dirs)}',
                 'current_version': None,
                 'latest_commit': None,
-                'repo_dir': repo_dir
+                'repo_dir': repo_dir,
+                'hint': 'Configure a variável de ambiente GIT_REPO_DIR ou verifique se o diretório contém .git'
             })
         
         # Obter versão atual do sistema
@@ -1706,9 +1725,28 @@ def git_update():
         return jsonify({'ok': False, 'error': 'forbidden'}), 403
     
     # Tentar encontrar o diretório do repositório Git (mesma lógica do git_status)
-    repo_dir = os.getenv('GIT_REPO_DIR', '/opt/multimax')
-    if not os.path.exists(os.path.join(repo_dir, '.git')):
-        # Tentar diretório atual (desenvolvimento)
+    repo_dir = None
+    
+    # 1. Variável de ambiente (prioridade)
+    env_repo_dir = os.getenv('GIT_REPO_DIR')
+    if env_repo_dir and os.path.exists(os.path.join(env_repo_dir, '.git')):
+        repo_dir = env_repo_dir
+    
+    # 2. Tentar diretórios padrão de produção
+    if not repo_dir:
+        production_dirs = [
+            '/opt/multimax',
+            '/app',  # Dentro do container Docker
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),  # Raiz do projeto
+        ]
+        for dir_path in production_dirs:
+            if dir_path and os.path.exists(os.path.join(dir_path, '.git')):
+                repo_dir = dir_path
+                current_app.logger.info(f'Repositório Git encontrado em: {repo_dir}')
+                break
+    
+    # 3. Tentar diretório atual e pais (desenvolvimento)
+    if not repo_dir:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         search_dirs = [
             current_dir,
@@ -1717,8 +1755,9 @@ def git_update():
             os.path.dirname(os.path.dirname(os.path.dirname(current_dir))),
         ]
         for dir_path in search_dirs:
-            if os.path.exists(os.path.join(dir_path, '.git')):
+            if dir_path and os.path.exists(os.path.join(dir_path, '.git')):
                 repo_dir = dir_path
+                current_app.logger.info(f'Repositório Git encontrado em (dev): {repo_dir}')
                 break
     
     db_path = os.getenv('DB_FILE_PATH', '/opt/multimax-data/estoque.db')
