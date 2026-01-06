@@ -14,6 +14,7 @@ services:
       - HOST=0.0.0.0
       - PORT=5000
       - DEBUG=false
+      - GIT_REPO_DIR=/opt/multimax
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000').read()"]
