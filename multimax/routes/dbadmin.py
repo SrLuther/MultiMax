@@ -1650,7 +1650,7 @@ def git_status():
             )
             if result.returncode == 0 and result.stdout.strip():
                 current_commit = result.stdout.strip()
-                current_app.logger.info(f'Commit atual obtido: {current_commit[:7]}')
+                current_app.logger.info(f'Commit atual obtido: {current_commit[:7]} (full: {current_commit})')
             else:
                 current_app.logger.warning(f'Erro ao obter commit atual. Return code: {result.returncode}, stderr: {result.stderr[:200]}')
         except Exception as e:
@@ -1661,18 +1661,42 @@ def git_status():
         commit_message = None
         commit_date = None
         try:
-            # Fetch do branch remoto (sempre fazer fetch para obter commits mais recentes)
-            fetch_result = subprocess.run(
-                ['git', 'fetch', 'origin', 'nova-versao-deploy'],
+            # Verificar se o repositório remoto está configurado
+            remote_check = subprocess.run(
+                ['git', 'remote', '-v'],
                 cwd=repo_dir,
                 capture_output=True,
                 text=True,
-                timeout=15  # Aumentado timeout para garantir que o fetch complete
+                timeout=5
+            )
+            if remote_check.returncode == 0:
+                current_app.logger.info(f'Remotes configurados: {remote_check.stdout[:200]}')
+            
+            # Fetch do branch remoto (sempre fazer fetch para obter commits mais recentes)
+            # Usar --prune para limpar referências obsoletas e garantir fetch completo
+            fetch_result = subprocess.run(
+                ['git', 'fetch', 'origin', 'nova-versao-deploy', '--prune'],
+                cwd=repo_dir,
+                capture_output=True,
+                text=True,
+                timeout=20  # Aumentado timeout para garantir que o fetch complete
             )
             if fetch_result.returncode != 0:
-                current_app.logger.warning(f'Erro ao fazer fetch: {fetch_result.stderr[:200]}')
+                current_app.logger.warning(f'Erro ao fazer fetch. Return code: {fetch_result.returncode}, stderr: {fetch_result.stderr[:300]}, stdout: {fetch_result.stdout[:300]}')
             else:
-                current_app.logger.info(f'Fetch realizado com sucesso. Output: {fetch_result.stdout[:100]}')
+                current_app.logger.info(f'Fetch realizado com sucesso. Output: {fetch_result.stdout[:200] if fetch_result.stdout else "sem output"}')
+            
+            # Verificar se a referência remota existe após o fetch
+            ref_check = subprocess.run(
+                ['git', 'ls-remote', '--heads', 'origin', 'nova-versao-deploy'],
+                cwd=repo_dir,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            if ref_check.returncode == 0 and ref_check.stdout.strip():
+                remote_ref_hash = ref_check.stdout.strip().split()[0] if ref_check.stdout.strip() else None
+                current_app.logger.info(f'Commit remoto via ls-remote: {remote_ref_hash[:7] if remote_ref_hash else "N/A"}')
             
             # Obter último commit do branch remoto
             result = subprocess.run(
@@ -1684,9 +1708,13 @@ def git_status():
             )
             if result.returncode == 0 and result.stdout.strip():
                 latest_commit_hash = result.stdout.strip()
-                current_app.logger.info(f'Commit remoto obtido: {latest_commit_hash[:7]}')
+                current_app.logger.info(f'Commit remoto obtido via rev-parse: {latest_commit_hash[:7]} (full: {latest_commit_hash})')
             else:
-                current_app.logger.warning(f'Erro ao obter commit remoto. Return code: {result.returncode}, stderr: {result.stderr[:200]}')
+                current_app.logger.warning(f'Erro ao obter commit remoto. Return code: {result.returncode}, stderr: {result.stderr[:300]}, stdout: {result.stdout[:300]}')
+                # Tentar alternativa: usar ls-remote diretamente
+                if 'remote_ref_hash' in locals() and remote_ref_hash:
+                    latest_commit_hash = remote_ref_hash
+                    current_app.logger.info(f'Usando commit remoto de ls-remote: {latest_commit_hash[:7]}')
             
             # Obter mensagem do commit
             if latest_commit_hash:
