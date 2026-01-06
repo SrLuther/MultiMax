@@ -1,5 +1,24 @@
 # Changelog — MultiMax
 
+## [2.3.16] - 2025-01-05
+
+### ✨ Novas Funcionalidades
+
+#### Grade Semanal da Escala
+- **Exibição de Status**: A grade semanal agora exibe automaticamente quando um colaborador está de Folga, Férias ou Atestado
+- **Prioridade sobre Turno**: O status (Folga/Férias/Atestado) tem prioridade sobre o turno configurado na escala
+- **Badges Visuais**: Cada tipo de status possui um badge visual distinto:
+  - **Folga**: Badge cinza com gradiente
+  - **Férias**: Badge azul com gradiente
+  - **Atestado**: Badge laranja com gradiente
+- **Verificação Automática**: O sistema verifica automaticamente folgas agendadas, períodos de férias e atestados médicos
+
+### 📝 Arquivos Modificados
+- `multimax/routes/colaboradores.py`: Lógica de verificação de status e criação de status_map
+- `templates/escala.html`: Exibição de status na grade semanal e estilos CSS
+
+---
+
 ## [2.3.15] - 2025-01-05
 
 ### 🐛 Correções
