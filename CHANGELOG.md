@@ -1,5 +1,34 @@
 # Changelog — MultiMax
 
+## [2.3.12] - 2025-01-05
+
+### ✨ Novas Funcionalidades
+
+#### Explicação do Score de Saúde
+- **Dashboard Consolidado**: Adicionada explicação detalhada no rodapé do card sobre como o Score de Saúde é calculado
+- **Componentes Explicados**: Lista completa dos componentes considerados (Banco de Dados, Backend, CPU, Memória, Disco)
+- **Interpretação**: Guia de interpretação do score (100 = ideal, <70 = atenção necessária)
+
+### 🐛 Correções
+
+#### Funcionalidade de Atualização Git
+- **Instalação do Git**: Adicionado Git ao Dockerfile para permitir execução de comandos Git dentro do container
+- **Mapeamento de Volume**: Adicionado volume `/opt/multimax:/opt/multimax:ro` no docker-compose.yml para acesso ao repositório Git
+- **Variável de Ambiente**: Definida `GIT_REPO_DIR=/opt/multimax` no docker-compose.yml
+- **Logs Detalhados**: Melhorados logs para diagnóstico de problemas com repositório Git
+- **Tratamento de Erros**: Melhorado tratamento de exceções com logs informativos
+
+### 📝 Arquivos Modificados
+- `templates/db.html`: Explicação do Score de Saúde
+- `Dockerfile`: Instalação do Git
+- `docker-compose.yml`: Volume do repositório Git e variável de ambiente
+- `multimax/routes/dbadmin.py`: Logs detalhados e melhor tratamento de erros
+- `multimax/__init__.py`: Versão atualizada
+- `LEIA-ME.txt`: Versão atualizada
+- `VERSION_SYNC.md`: Versão atualizada
+
+---
+
 ## [2.3.11] - 2025-01-04
 
 ### 📝 Documentação
