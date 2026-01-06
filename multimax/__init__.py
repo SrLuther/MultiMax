@@ -1546,7 +1546,7 @@ def create_app():
                                 time.sleep(60)
                     except Exception:
                         pass
-                    time.sleep(15)
+                    time.sleep(60)  # Otimizado: de 15s para 60s para reduzir uso de CPU
             t = threading.Thread(target=_loop, daemon=True)
             t.start()
 
