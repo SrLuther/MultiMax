@@ -432,6 +432,7 @@ def escala():
         semana_proxima=semana_proxima,
         dias_semana=dias_semana,
         turnos_map=turnos_map,
+        status_map=status_map,
         horas_semana=horas_semana,
         total_turnos_semana=total_turnos_semana,
         conflicts=conflicts
