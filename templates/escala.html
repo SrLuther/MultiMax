@@ -816,6 +816,31 @@ function excluirTurno() {
 .grade-turno-domingo-6h { background: #f97316; }
 .grade-turno-folga { background: #6b7280; }
 
+/* Badges de Status (Folga, Férias, Atestado) - Prioridade sobre turnos */
+.grade-turno-status {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.grade-status-folga {
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+    color: white;
+    box-shadow: 0 2px 4px rgba(107, 114, 128, 0.3);
+}
+
+.grade-status-férias {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.grade-status-atestado {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+}
+
 .grade-btn-add {
     width: 32px;
     height: 32px;
