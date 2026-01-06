@@ -1,5 +1,20 @@
 # Changelog — MultiMax
 
+## [2.3.15] - 2025-01-05
+
+### 🐛 Correções
+
+#### Modo Dark - Legibilidade
+- **Score de Saúde**: Corrigida legibilidade de textos no modo dark
+  - Parágrafos, listas e itens agora usam cor clara (#e5e7eb) no modo dark
+  - Elementos `<strong>` usam cor azul clara (#93c5fd) para melhor contraste
+  - Garante leitura adequada de todos os textos explicativos
+
+### 📝 Arquivos Modificados
+- `templates/db.html`: Estilos CSS para modo dark na seção Score de Saúde
+
+---
+
 ## [2.3.14] - 2025-01-05
 
 ### ⚡ Performance
