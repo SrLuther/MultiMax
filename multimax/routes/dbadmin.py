@@ -1761,18 +1761,21 @@ def git_update():
     ]
     
     results = []
+    step_number = 0
+    total_steps = len(commands)
     for cmd, description in commands:
-            try:
-                current_app.logger.info(f'Executando: {" ".join(cmd)} em {repo_dir}')
-                # Timeout maior para build (pode demorar mais)
-                timeout_value = 300 if 'build' in ' '.join(cmd) else 120
-                result = subprocess.run(
-                    cmd,
-                    cwd=repo_dir,
-                    capture_output=True,
-                    text=True,
-                    timeout=timeout_value
-                )
+        step_number += 1
+        try:
+            current_app.logger.info(f'Executando: {" ".join(cmd)} em {repo_dir}')
+            # Timeout maior para build (pode demorar mais)
+            timeout_value = 300 if 'build' in ' '.join(cmd) else 120
+            result = subprocess.run(
+                cmd,
+                cwd=repo_dir,
+                capture_output=True,
+                text=True,
+                timeout=timeout_value
+            )
             
             result_info = {
                 'command': ' '.join(cmd),
