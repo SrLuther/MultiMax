@@ -1747,9 +1747,18 @@ def git_status():
         update_available = False
         if current_commit and latest_commit_hash:
             update_available = current_commit != latest_commit_hash
-            current_app.logger.info(f'Comparação de commits: local={current_commit[:7] if current_commit else None}, remoto={latest_commit_hash[:7] if latest_commit_hash else None}, atualização disponível={update_available}')
+            current_app.logger.info(f'Comparação de commits: local={current_commit[:7] if current_commit else None} (full: {current_commit}), remoto={latest_commit_hash[:7] if latest_commit_hash else None} (full: {latest_commit_hash}), atualização disponível={update_available}')
+            if not update_available:
+                current_app.logger.info(f'Commits são idênticos - sistema está atualizado')
+            else:
+                current_app.logger.info(f'Atualização disponível! Commit remoto é diferente do local.')
         else:
-            current_app.logger.warning(f'Não foi possível comparar commits: current_commit={current_commit[:7] if current_commit else None}, latest_commit_hash={latest_commit_hash[:7] if latest_commit_hash else None}')
+            missing = []
+            if not current_commit:
+                missing.append('current_commit')
+            if not latest_commit_hash:
+                missing.append('latest_commit_hash')
+            current_app.logger.warning(f'Não foi possível comparar commits. Faltando: {", ".join(missing)}. current_commit={current_commit[:7] if current_commit else None}, latest_commit_hash={latest_commit_hash[:7] if latest_commit_hash else None}')
         
         return jsonify({
             'ok': True,
