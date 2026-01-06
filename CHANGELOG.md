@@ -1,5 +1,22 @@
 # Changelog — MultiMax
 
+## [2.3.13] - 2025-01-05
+
+### 🐛 Correções
+
+#### Detecção de Atualizações Git
+- **Timeout Aumentado**: Aumentado timeout do `git fetch` de 10 para 15 segundos para garantir que o fetch complete
+- **Cache do Navegador**: Adicionado timestamp na URL e headers no-cache para evitar cache do navegador
+- **Logs Detalhados**: Adicionados logs informativos sobre fetch, commits e comparação
+- **Debug no Frontend**: Adicionado console.log para facilitar diagnóstico no navegador
+- **Comparação de Commits**: Melhorada lógica de comparação com logs detalhados
+
+### 📝 Arquivos Modificados
+- `multimax/routes/dbadmin.py`: Melhorias na detecção de atualizações Git
+- `templates/db.html`: Prevenção de cache e logs de debug
+
+---
+
 ## [2.3.12] - 2025-01-05
 
 ### ✨ Novas Funcionalidades
