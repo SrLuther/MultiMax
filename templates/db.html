@@ -864,7 +864,7 @@ function startResourceCharts(){
     } catch(e){}
   }
   fetchMetrics();
-  setInterval(fetchMetrics, 1000);
+  setInterval(fetchMetrics, 5000); // Reduzido de 1s para 5s para otimizar CPU
 }
 function resizeDbFrame() {
   var f = document.getElementById('dbStatusFrame');
@@ -1254,11 +1254,11 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Inicializar health checks
   refreshHealthChecks();
-  healthCheckInterval = setInterval(refreshHealthChecks, 10000); // A cada 10 segundos
+  healthCheckInterval = setInterval(refreshHealthChecks, 30000); // Otimizado: de 10s para 30s
   
   // Inicializar logs
   updateLogs();
-  logsInterval = setInterval(updateLogs, 3000); // A cada 3 segundos
+  logsInterval = setInterval(updateLogs, 10000); // Otimizado: de 3s para 10s
   
   // Inicializar incidentes
   updateIncidents();
@@ -1266,7 +1266,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Inicializar dashboard
   refreshDashboard();
-  setInterval(refreshDashboard, 60000); // A cada 1 minuto
+  setInterval(refreshDashboard, 120000); // Otimizado: de 1min para 2min
   
   // Inicializar tendências
   updateTrends();
@@ -1277,7 +1277,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Iniciar monitoramento Git
   if (document.getElementById('gitUpdateCard')) {
     refreshGitStatus();
-    gitStatusInterval = setInterval(refreshGitStatus, 30000);
+    gitStatusInterval = setInterval(refreshGitStatus, 60000); // Otimizado: de 30s para 60s
   }
 });
 
