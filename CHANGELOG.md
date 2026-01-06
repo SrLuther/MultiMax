@@ -1,5 +1,25 @@
 # Changelog — MultiMax
 
+## [2.3.14] - 2025-01-05
+
+### ⚡ Performance
+
+#### Otimização de Uso de CPU
+- **Intervalos de Atualização Frontend**: Reduzidos intervalos de atualização automática na página Banco de Dados
+  - `fetchMetrics`: 1s → 5s (redução de 80%)
+  - `refreshHealthChecks`: 10s → 30s (redução de 66%)
+  - `updateLogs`: 3s → 10s (redução de 70%)
+  - `refreshGitStatus`: 30s → 60s (redução de 50%)
+  - `refreshDashboard`: 60s → 120s (redução de 50%)
+- **Scheduler de Notificações**: Intervalo de verificação otimizado de 15s para 60s (redução de 75%)
+- **Impacto**: Redução significativa no número de requisições HTTP e processamento no servidor
+
+### 📝 Arquivos Modificados
+- `templates/db.html`: Intervalos de atualização otimizados
+- `multimax/__init__.py`: Intervalo do scheduler de notificações otimizado
+
+---
+
 ## [2.3.13] - 2025-01-05
 
 ### 🐛 Correções
