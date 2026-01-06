@@ -1552,13 +1552,26 @@ def git_status():
         
         # 2. Tentar diretórios padrão de produção
         if not repo_dir:
+            # Calcular diretório raiz do projeto
+            current_file = os.path.abspath(__file__)
+            project_root = current_file
+            # Subir até encontrar arquivos característicos do projeto
+            for _ in range(5):
+                if os.path.exists(os.path.join(project_root, 'multimax')) or \
+                   os.path.exists(os.path.join(project_root, 'app.py')) or \
+                   os.path.exists(os.path.join(project_root, 'docker-compose.yml')):
+                    break
+                project_root = os.path.dirname(project_root)
+                if project_root == os.path.dirname(project_root):  # Chegou na raiz
+                    break
+            
             production_dirs = [
-                '/opt/multimax',
+                '/opt/multimax',  # VPS produção
                 '/app',  # Dentro do container Docker
-                os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),  # Raiz do projeto
+                project_root,  # Raiz calculada do projeto
             ]
             for dir_path in production_dirs:
-                if dir_path and os.path.exists(os.path.join(dir_path, '.git')):
+                if dir_path and os.path.exists(dir_path) and os.path.exists(os.path.join(dir_path, '.git')):
                     repo_dir = dir_path
                     current_app.logger.info(f'Repositório Git encontrado em: {repo_dir}')
                     break
@@ -1734,13 +1747,26 @@ def git_update():
     
     # 2. Tentar diretórios padrão de produção
     if not repo_dir:
+        # Calcular diretório raiz do projeto
+        current_file = os.path.abspath(__file__)
+        project_root = current_file
+        # Subir até encontrar arquivos característicos do projeto
+        for _ in range(5):
+            if os.path.exists(os.path.join(project_root, 'multimax')) or \
+               os.path.exists(os.path.join(project_root, 'app.py')) or \
+               os.path.exists(os.path.join(project_root, 'docker-compose.yml')):
+                break
+            project_root = os.path.dirname(project_root)
+            if project_root == os.path.dirname(project_root):  # Chegou na raiz
+                break
+        
         production_dirs = [
-            '/opt/multimax',
+            '/opt/multimax',  # VPS produção
             '/app',  # Dentro do container Docker
-            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),  # Raiz do projeto
+            project_root,  # Raiz calculada do projeto
         ]
         for dir_path in production_dirs:
-            if dir_path and os.path.exists(os.path.join(dir_path, '.git')):
+            if dir_path and os.path.exists(dir_path) and os.path.exists(os.path.join(dir_path, '.git')):
                 repo_dir = dir_path
                 current_app.logger.info(f'Repositório Git encontrado em: {repo_dir}')
                 break
