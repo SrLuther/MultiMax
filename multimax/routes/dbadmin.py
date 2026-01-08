@@ -1537,9 +1537,15 @@ def restaurar_snapshot():
 @bp.route('/git/status', methods=['GET'], strict_slashes=False)
 @login_required
 def git_status():
-    """Retorna status do Git e commit mais recente"""
+    """Retorna status do Git e commit mais recente
+    
+    Parâmetros:
+        force (bool): Se True, força um fetch mais agressivo com --all e --prune
+    """
     if not _check_dev_access():
         return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    force = request.args.get('force', 'false').lower() == 'true'
     
     try:
         # Tentar encontrar o diretório do repositório Git
@@ -1673,13 +1679,20 @@ def git_status():
                 current_app.logger.info(f'Remotes configurados: {remote_check.stdout[:200]}')
             
             # Fetch do branch remoto (sempre fazer fetch para obter commits mais recentes)
-            # Usar --prune para limpar referências obsoletas e garantir fetch completo
+            # Se force=True, usar --all para buscar todos os remotes e --prune para limpar referências obsoletas
+            fetch_cmd = ['git', 'fetch']
+            if force:
+                fetch_cmd.extend(['--all', '--prune', '--force'])
+                current_app.logger.info('Forçando fetch completo (--all --prune --force)')
+            else:
+                fetch_cmd.extend(['origin', 'nova-versao-deploy', '--prune'])
+            
             fetch_result = subprocess.run(
-                ['git', 'fetch', 'origin', 'nova-versao-deploy', '--prune'],
+                fetch_cmd,
                 cwd=repo_dir,
                 capture_output=True,
                 text=True,
-                timeout=20  # Aumentado timeout para garantir que o fetch complete
+                timeout=30 if force else 20  # Timeout maior para fetch forçado
             )
             if fetch_result.returncode != 0:
                 current_app.logger.warning(f'Erro ao fazer fetch. Return code: {fetch_result.returncode}, stderr: {fetch_result.stderr[:300]}, stdout: {fetch_result.stdout[:300]}')
@@ -1790,12 +1803,24 @@ def git_update():
     2. git fetch origin
     3. git reset --hard origin/nova-versao-deploy
     4. docker-compose down
-    5. docker-compose up -d
+    5. docker-compose build --no-cache
+    6. docker-compose up -d
+    
+    Parâmetros JSON:
+        force (bool): Se True, força atualização mesmo se o sistema estiver atualizado
     
     Garante que o banco de dados em /opt/multimax-data/estoque.db não seja afetado.
     """
     if not _check_dev_access():
         return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    # Verificar se é atualização forçada
+    force = False
+    try:
+        data = request.get_json() or {}
+        force = data.get('force', False)
+    except Exception:
+        pass
     
     # Tentar encontrar o diretório do repositório Git (mesma lógica do git_status)
     repo_dir = None
@@ -1863,12 +1888,50 @@ def git_update():
         _log_git_update_error(error_msg, current_user.username)
         return jsonify({'ok': False, 'error': error_msg}), 500
     
+    # Verificar se há atualização disponível (a menos que seja forçado)
+    if not force:
+        try:
+            # Fazer fetch rápido para verificar
+            fetch_check = subprocess.run(
+                ['git', 'fetch', 'origin', 'nova-versao-deploy', '--prune'],
+                cwd=repo_dir,
+                capture_output=True,
+                text=True,
+                timeout=15
+            )
+            # Verificar commits
+            local_commit = subprocess.run(
+                ['git', 'rev-parse', 'HEAD'],
+                cwd=repo_dir,
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            remote_commit = subprocess.run(
+                ['git', 'rev-parse', 'origin/nova-versao-deploy'],
+                cwd=repo_dir,
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if (local_commit.returncode == 0 and remote_commit.returncode == 0 and 
+                local_commit.stdout.strip() == remote_commit.stdout.strip()):
+                current_app.logger.info('Sistema já está atualizado. Use force=true para reinstalar mesmo assim.')
+                return jsonify({
+                    'ok': False,
+                    'error': 'Sistema já está atualizado. Use "Reinstalar Atualização" para forçar atualização.',
+                    'already_up_to_date': True
+                }), 200
+        except Exception as e:
+            current_app.logger.warning(f'Erro ao verificar atualização disponível: {e}. Prosseguindo com atualização.')
+    
     # Registrar início da atualização
     try:
         log = SystemLog()
         log.origem = 'GitUpdate'
         log.evento = 'update_start'
-        log.detalhes = f'Iniciando atualização do Git na branch nova-versao-deploy por {current_user.username}'
+        update_type = 'forçada' if force else 'normal'
+        log.detalhes = f'Iniciando atualização {update_type} do Git na branch nova-versao-deploy por {current_user.username}'
         log.usuario = current_user.username
         db.session.add(log)
         db.session.commit()

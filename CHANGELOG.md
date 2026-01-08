@@ -1,3 +1,32 @@
+## [2.3.18] - 2025-01-06
+
+### ✨ Novas Funcionalidades
+
+#### Monitoramento de Atualizações Git - Opções Avançadas
+- **Forçar Checagem**: Novo botão que força uma checagem completa do repositório remoto com fetch agressivo (`--all --prune --force`)
+- **Reinstalar Atualização**: Novo botão que permite forçar atualização mesmo quando o sistema já está atualizado
+- **Verificação Inteligente**: Sistema verifica se há atualização disponível antes de executar (a menos que seja forçado)
+- **Mensagens Contextuais**: Mensagens específicas quando o sistema já está atualizado, sugerindo usar "Reinstalar Atualização"
+
+### 🔧 Melhorias
+
+#### Backend
+- Rota `git_status` agora aceita parâmetro `force` para fetch mais agressivo
+- Rota `git_update` agora aceita parâmetro `force` no JSON para ignorar verificação de atualização
+- Timeout aumentado para 30 segundos em checagens forçadas
+- Logs melhorados indicando se é atualização normal ou forçada
+
+#### Frontend
+- Tratamento de erro melhorado quando sistema já está atualizado
+- Estilos CSS adicionados para botão de warning (Reinstalar)
+- Modal atualizado para mostrar se é atualização forçada
+
+### 📝 Arquivos Modificados
+- `multimax/routes/dbadmin.py`: Adicionado suporte a parâmetro `force` nas rotas Git
+- `templates/db.html`: Adicionados botões "Forçar Checagem" e "Reinstalar Atualização"
+
+---
+
 ## [2.3.17] - 2025-01-06
 
 ### 🐛 Correções

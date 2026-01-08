@@ -58,10 +58,16 @@
                 <i class="bi bi-git"></i>
                 Monitoramento de Atualizações Git
             </h3>
-            <button type="button" class="db-btn-modern db-btn-outline" onclick="refreshGitStatus()" id="refreshGitBtn">
-                <i class="bi bi-arrow-repeat"></i>
-                Atualizar
-            </button>
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="button" class="db-btn-modern db-btn-outline" onclick="refreshGitStatus(false)" id="refreshGitBtn">
+                    <i class="bi bi-arrow-repeat"></i>
+                    Atualizar
+                </button>
+                <button type="button" class="db-btn-modern db-btn-outline" onclick="refreshGitStatus(true)" id="forceCheckBtn" title="Força uma checagem completa do repositório remoto">
+                    <i class="bi bi-arrow-repeat"></i>
+                    Forçar Checagem
+                </button>
+            </div>
         </div>
         <div class="db-card-body-modern">
             <div class="db-git-info">
@@ -109,14 +115,23 @@
                     </div>
                 </div>
                 
-                <div class="db-git-actions">
-                    <button type="button" class="db-btn-modern db-btn-primary db-btn-lg" id="applyUpdateBtn" onclick="showUpdateConfirmation()" disabled style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+                <div class="db-git-actions" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <button type="button" class="db-btn-modern db-btn-primary db-btn-lg" id="applyUpdateBtn" onclick="showUpdateConfirmation(false)" disabled style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
                             <i class="bi bi-cloud-arrow-down"></i>
                             <span>Aplicar Atualização Completa</span>
                         </div>
                         <small style="font-size: 0.75rem; opacity: 0.8; font-weight: normal;">
                             Inclui rebuild do container
+                        </small>
+                    </button>
+                    <button type="button" class="db-btn-modern db-btn-warning db-btn-lg" id="reinstallUpdateBtn" onclick="showUpdateConfirmation(true)" style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="bi bi-arrow-clockwise"></i>
+                            <span>Reinstalar Atualização</span>
+                        </div>
+                        <small style="font-size: 0.75rem; opacity: 0.8; font-weight: normal;">
+                            Força atualização mesmo se já estiver atualizado
                         </small>
                     </button>
                 </div>
@@ -1286,15 +1301,15 @@ let gitStatusInterval = null;
 let updateCountdownInterval = null;
 let updateCountdown = 10;
 
-function refreshGitStatus() {
-    const btn = document.getElementById('refreshGitBtn');
+function refreshGitStatus(force = false) {
+    const btn = document.getElementById(force ? 'forceCheckBtn' : 'refreshGitBtn');
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Atualizando...';
+        btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> ' + (force ? 'Forçando...' : 'Atualizando...');
     }
     
-    // Adicionar timestamp para evitar cache
-    const url = '{{ url_for("dbadmin.git_status") }}' + '?t=' + Date.now();
+    // Adicionar timestamp e parâmetro force para evitar cache
+    const url = '{{ url_for("dbadmin.git_status") }}' + '?t=' + Date.now() + (force ? '&force=true' : '');
     
     fetch(url, {
         method: 'GET',
@@ -1332,7 +1347,7 @@ function refreshGitStatus() {
         .finally(() => {
             if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Atualizar';
+                btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> ' + (force ? 'Forçar Checagem' : 'Atualizar');
             }
         });
 }
@@ -1386,7 +1401,7 @@ function showGitError(message) {
     }
 }
 
-function showUpdateConfirmation() {
+function showUpdateConfirmation(force = false) {
     // Criar modal
     const overlay = document.createElement('div');
     overlay.className = 'db-git-modal-overlay';
@@ -1402,10 +1417,11 @@ function showUpdateConfirmation() {
         </div>
         <div class="db-git-modal-body">
             <div class="db-git-modal-message">
-                <p style="font-size: 1.1rem; margin-bottom: 1rem;"><strong>O sistema aplicará a atualização completa.</strong></p>
+                <p style="font-size: 1.1rem; margin-bottom: 1rem;"><strong>${force ? 'O sistema aplicará a atualização forçada (reinstalação).' : 'O sistema aplicará a atualização completa.'}</strong></p>
+                ${force ? '<p style="margin-bottom: 0.75rem; color: #f59e0b; font-weight: 600;">⚠️ Esta é uma reinstalação forçada. O sistema será atualizado mesmo se já estiver na versão mais recente.</p>' : ''}
                 <p style="margin-bottom: 0.75rem;">Esta operação inclui:</p>
                 <ul style="margin-left: 1.5rem; margin-bottom: 1rem; color: #4b5563;">
-                    <li>Atualização do código do GitHub</li>
+                    <li>Atualização do código do GitHub${force ? ' (forçado)' : ''}</li>
                     <li>Rebuild completo do container Docker (sem cache)</li>
                     <li>Reinicialização do sistema</li>
                 </ul>
@@ -1422,9 +1438,9 @@ function showUpdateConfirmation() {
         </div>
         <div class="db-git-modal-actions">
             <button type="button" class="db-git-modal-btn db-git-modal-btn-cancel" onclick="closeUpdateModal()">Cancelar</button>
-            <button type="button" class="db-git-modal-btn db-git-modal-btn-confirm" id="confirmUpdateBtn" onclick="applyUpdate()" disabled>
+            <button type="button" class="db-git-modal-btn db-git-modal-btn-confirm" id="confirmUpdateBtn" onclick="applyUpdate(${force})" disabled>
                 <i class="bi bi-cloud-arrow-down"></i>
-                Aplicar Atualização
+                ${force ? 'Reinstalar Atualização' : 'Aplicar Atualização'}
             </button>
         </div>
     `;
@@ -1476,7 +1492,7 @@ function closeUpdateModal() {
     updateCountdown = 10;
 }
 
-function applyUpdate() {
+function applyUpdate(force = false) {
     const confirmBtn = document.getElementById('confirmUpdateBtn');
     const countdownValue = document.getElementById('countdownValue');
     
@@ -1548,10 +1564,22 @@ function applyUpdate() {
     fetch('{{ url_for("dbadmin.git_update") }}', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
-        }
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ force: force })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => {
+                // Se for erro de "já está atualizado", mostrar mensagem específica
+                if (err.already_up_to_date) {
+                    throw new Error(err.error || 'Sistema já está atualizado');
+                }
+                throw new Error(err.error || `HTTP ${response.status}`);
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.ok) {
             // Marcar todas as etapas como concluídas
@@ -1624,14 +1652,23 @@ function applyUpdate() {
         if (modalBody) {
             const processingMsg = document.getElementById('processingMsg');
             if (processingMsg) {
+                const isAlreadyUpdated = error.message && error.message.includes('já está atualizado');
                 processingMsg.className = 'db-git-error-msg';
-                processingMsg.innerHTML = '<i class="bi bi-x-circle-fill"></i> <span>Erro de conexão. Verifique se o sistema está acessível.</span>';
+                processingMsg.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 0.75rem; color: ${isAlreadyUpdated ? '#f59e0b' : '#dc2626'};">
+                        <i class="bi bi-${isAlreadyUpdated ? 'exclamation-triangle-fill' : 'x-circle-fill'}"></i>
+                        <div>
+                            <span><strong>${isAlreadyUpdated ? 'Aviso:' : 'Erro:'}</strong> ${error.message || 'Erro de conexão. Verifique se o sistema está acessível.'}</span>
+                            ${isAlreadyUpdated ? '<p style="margin-top: 0.5rem; color: #6b7280; font-size: 0.875rem;">Use o botão "Reinstalar Atualização" para forçar a atualização mesmo assim.</p>' : ''}
+                        </div>
+                    </div>
+                `;
             }
         }
         
         if (confirmBtn) {
             confirmBtn.disabled = false;
-            confirmBtn.innerHTML = '<i class="bi bi-cloud-arrow-down"></i> Aplicar Atualização';
+            confirmBtn.innerHTML = '<i class="bi bi-cloud-arrow-down"></i> ' + (force ? 'Reinstalar Atualização' : 'Aplicar Atualização');
         }
     });
 }
@@ -2239,6 +2276,16 @@ window.addEventListener('beforeunload', function() {
 .db-btn-outline:hover {
     background: #f3f4f6;
     border-color: #d1d5db;
+}
+
+.db-btn-warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+}
+
+.db-btn-warning:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
 }
 
 .db-btn-action-small {
