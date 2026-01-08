@@ -98,14 +98,14 @@
                             <i class="bi bi-calendar3"></i>
                             Data Início
                         </label>
-                        <input type="date" name="inicio" class="form-input-modern" value="{{ data_inicio }}">
+                        <input type="date" name="inicio" class="form-input-modern" value="{{ data_inicio }}" onchange="this.form.submit()">
                     </div>
                     <div class="form-group-modern">
                         <label class="form-label-modern">
                             <i class="bi bi-calendar-check"></i>
                             Data Fim
                         </label>
-                        <input type="date" name="fim" class="form-input-modern" value="{{ data_fim }}">
+                        <input type="date" name="fim" class="form-input-modern" value="{{ data_fim }}" onchange="this.form.submit()">
                     </div>
                 </div>
             </form>
