@@ -580,12 +580,20 @@ def fechado_revisao():
         colaboradores = _get_all_collaborators()
         
         # Calcular estatísticas dos meses fechados
+        # IMPORTANTE: Calcular balance considerando apenas registros dos meses fechados
         all_stats = []
         for colab in colaboradores:
             # Filtrar registros do colaborador nos meses fechados
             colab_records = [r for r in records if r.collaborator_id == colab.id]
             if colab_records:
-                balance = _calculate_collaborator_balance(colab.id)
+                # Calcular balance apenas com registros dos meses fechados
+                # Determinar período mínimo e máximo dos registros
+                if colab_records:
+                    min_date = min(r.date for r in colab_records)
+                    max_date = max(r.date for r in colab_records)
+                    balance = _calculate_collaborator_balance(colab.id, min_date, max_date)
+                else:
+                    balance = _calculate_collaborator_balance(colab.id)
                 all_stats.append({
                     'collaborator': colab,
                     'display_name': _get_collaborator_display_name(colab),
@@ -1984,26 +1992,20 @@ def situacao_final():
         # Registros arquivados estão em JornadaArchive, então não aparecem em TimeOffRecord
         balance = _calculate_collaborator_balance(colab.id)
         
-        # Buscar registros ativos para estatísticas
-        active_records = TimeOffRecord.query.filter_by(collaborator_id=colab.id).all()
-        
-        # Calcular totais
-        total_horas = sum(float(r.hours or 0.0) for r in active_records if r.record_type == 'horas' and (r.hours or 0.0) > 0)
-        total_folgas_adicionadas = sum(int(r.days or 0) for r in active_records if r.record_type == 'folga_adicional' and (not r.origin or r.origin != 'horas'))
-        total_folgas_usadas = sum(int(r.days or 0) for r in active_records if r.record_type == 'folga_usada')
-        total_conversoes = sum(int(r.days or 0) for r in active_records if r.record_type == 'conversao')
-        
+        # Usar valores do balance calculado (fonte única de verdade)
+        # Isso garante consistência com todas as outras páginas
         situacoes.append({
             'collaborator': colab,
             'display_name': _get_collaborator_display_name(colab),
-            'total_horas': total_horas,
+            'total_horas': balance.get('total_bruto_hours', 0.0),
             'horas_residuais': balance.get('residual_hours', 0.0),
             'dias_das_horas': balance.get('days_from_hours', 0),
-            'folgas_adicionadas': total_folgas_adicionadas,
-            'folgas_usadas': total_folgas_usadas,
-            'conversoes': total_conversoes,
+            'folgas_adicionadas': balance.get('credits_sum', 0),  # Folgas adicionais MANUAIS
+            'folgas_usadas': balance.get('assigned_sum', 0),
+            'conversoes': balance.get('converted_sum', 0),
             'saldo_folgas': balance.get('saldo_days', 0),
-            'total_dias_disponiveis': balance.get('saldo_days', 0) + total_folgas_adicionadas
+            # CORREÇÃO: total_dias_disponiveis = saldo_days (já inclui folgas adicionais + dias das horas - folgas usadas - conversões)
+            'total_dias_disponiveis': balance.get('saldo_days', 0)
         })
     
     # Ordenar por nome do colaborador
@@ -2021,10 +2023,12 @@ def situacao_final():
         active_page='jornada',
         situacoes=situacoes,
         total_geral_horas=total_geral_horas,
+        total_geral_horas_residuais=total_geral_horas_residuais,
         total_geral_folgas_adicionadas=total_geral_folgas_adicionadas,
         total_geral_folgas_usadas=total_geral_folgas_usadas,
         total_geral_conversoes=total_geral_conversoes,
-        total_geral_saldo=total_geral_saldo
+        total_geral_saldo=total_geral_saldo,
+        total_geral_dias_das_horas=total_geral_dias_das_horas
     )
 
 @bp.route('/calendario/<int:year>/<int:month>', methods=['GET'], strict_slashes=False)
