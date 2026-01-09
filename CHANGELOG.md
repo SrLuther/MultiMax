@@ -1,3 +1,17 @@
+## [2.3.26] - 2025-01-15
+
+### 🔧 Correções Críticas
+
+#### Módulo Jornada - Cores e Dados 2025
+- **Tokens de Cor Separados**: Paletas completamente independentes para light e dark mode
+- **Títulos no Dark Mode**: Alto contraste com branco puro para legibilidade imediata
+- **Tabela Resumo Geral**: Zebra striping, cabeçalho distinto, bordas visíveis e contraste adequado
+- **Dados de 2025 Obrigatórios**: Todos os registros de 2025 agora aparecem em "Fechado para Revisão"
+- **Meses de 2025**: Incluídos automaticamente na lista de meses fechados
+- **Legibilidade**: Texto, bordas e fundos com contraste adequado em ambos os temas
+
+---
+
 ## [2.3.25] - 2025-01-15
 
 ### ✨ Novas Funcionalidades
