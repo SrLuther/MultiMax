@@ -1,3 +1,19 @@
+## [2.3.21] - 2025-01-15
+
+### 🔧 Correções
+
+#### Sistema de Jornada
+- **Correção do Filtro Jinja2**: Removido uso do filtro `date` inexistente no template `em_aberto.html`, substituído por atualização dinâmica via JavaScript
+- **Criação Automática de Todas as Tabelas**: Sistema agora cria automaticamente TODAS as tabelas ausentes do banco de dados na inicialização
+- **Importação Completa de Modelos**: Garantida importação explícita de todos os modelos para registro no SQLAlchemy metadata
+- **Logs Informativos**: Adicionados logs detalhados sobre criação automática de tabelas
+
+#### Banco de Dados - Git Update
+- **Melhorias no Tratamento de Erros Git Fetch**: Adicionada verificação prévia de remotes configurados
+- **Diagnóstico de Erros**: Mensagens de erro mais detalhadas com sugestões específicas para resolver problemas
+- **Exibição de Sugestões no Frontend**: Interface melhorada para exibir sugestões e detalhes de erros do git fetch
+
+---
 ## [2.3.20] - 2025-01-15
 
 ### 🔧 Correções

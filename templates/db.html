@@ -1621,7 +1621,17 @@ function applyUpdate(force = false) {
                 if (err.already_up_to_date) {
                     throw new Error(err.error || 'Sistema já está atualizado');
                 }
-                throw new Error(err.error || `HTTP ${response.status}`);
+                // Construir mensagem de erro com sugestões se disponível
+                let errorMsg = err.error || `HTTP ${response.status}`;
+                if (err.suggestion) {
+                    errorMsg += '\n\n💡 Sugestão: ' + err.suggestion;
+                }
+                if (err.details) {
+                    errorMsg += '\n\nDetalhes: ' + err.details.substring(0, 300);
+                }
+                const errorObj = new Error(errorMsg);
+                errorObj.errorData = err; // Preservar dados do erro
+                throw errorObj;
             });
         }
         return response.json();
@@ -1676,13 +1686,21 @@ function applyUpdate(force = false) {
                 }, 10000);
             }, 3000);
         } else {
-            // Mostrar erro
+            // Mostrar erro com sugestões
             const modalBody = document.querySelector('.db-git-modal-body');
             if (modalBody) {
                 const processingMsg = document.getElementById('processingMsg');
                 if (processingMsg) {
+                    let errorHtml = `<i class="bi bi-x-circle-fill"></i> <div style="flex: 1;"><strong>Erro: ${data.error || 'Erro desconhecido'}</strong>`;
+                    if (data.suggestion) {
+                        errorHtml += `<div style="margin-top: 0.5rem; padding: 0.75rem; background: rgba(245, 158, 11, 0.1); border-left: 3px solid #f59e0b; border-radius: 4px;"><strong>💡 Sugestão:</strong> ${data.suggestion}</div>`;
+                    }
+                    if (data.details) {
+                        errorHtml += `<div style="margin-top: 0.5rem; padding: 0.75rem; background: rgba(0, 0, 0, 0.05); border-radius: 4px; font-family: monospace; font-size: 0.85rem; max-height: 150px; overflow-y: auto;"><strong>Detalhes:</strong><br>${data.details.substring(0, 500)}</div>`;
+                    }
+                    errorHtml += '</div>';
                     processingMsg.className = 'db-git-error-msg';
-                    processingMsg.innerHTML = `<i class="bi bi-x-circle-fill"></i> <span>Erro: ${data.error || 'Erro desconhecido'}</span>`;
+                    processingMsg.innerHTML = errorHtml;
                 }
             }
             
@@ -1699,16 +1717,26 @@ function applyUpdate(force = false) {
             const processingMsg = document.getElementById('processingMsg');
             if (processingMsg) {
                 const isAlreadyUpdated = error.message && error.message.includes('já está atualizado');
-                processingMsg.className = 'db-git-error-msg';
-                processingMsg.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 0.75rem; color: ${isAlreadyUpdated ? '#f59e0b' : '#dc2626'};">
+                let errorHtml = `<div style="display: flex; align-items: center; gap: 0.75rem; color: ${isAlreadyUpdated ? '#f59e0b' : '#dc2626'};">
                         <i class="bi bi-${isAlreadyUpdated ? 'exclamation-triangle-fill' : 'x-circle-fill'}"></i>
-                        <div>
+                        <div style="flex: 1;">
                             <span><strong>${isAlreadyUpdated ? 'Aviso:' : 'Erro:'}</strong> ${error.message || 'Erro de conexão. Verifique se o sistema está acessível.'}</span>
                             ${isAlreadyUpdated ? '<p style="margin-top: 0.5rem; color: #6b7280; font-size: 0.875rem;">Use o botão "Reinstalar Atualização" para forçar a atualização mesmo assim.</p>' : ''}
                         </div>
-                    </div>
-                `;
+                    </div>`;
+                
+                // Se houver dados de erro do servidor, mostrar sugestões
+                if (error.errorData) {
+                    if (error.errorData.suggestion) {
+                        errorHtml += `<div style="margin-top: 0.75rem; padding: 0.75rem; background: rgba(245, 158, 11, 0.1); border-left: 3px solid #f59e0b; border-radius: 4px;"><strong>💡 Sugestão:</strong> ${error.errorData.suggestion}</div>`;
+                    }
+                    if (error.errorData.details) {
+                        errorHtml += `<div style="margin-top: 0.5rem; padding: 0.75rem; background: rgba(0, 0, 0, 0.05); border-radius: 4px; font-family: monospace; font-size: 0.85rem; max-height: 150px; overflow-y: auto;"><strong>Detalhes:</strong><br>${error.errorData.details.substring(0, 500)}</div>`;
+                    }
+                }
+                
+                processingMsg.className = 'db-git-error-msg';
+                processingMsg.innerHTML = errorHtml;
             }
         }
         

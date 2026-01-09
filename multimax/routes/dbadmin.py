@@ -2009,10 +2009,37 @@ def git_update():
     except Exception as e:
         current_app.logger.error(f'Erro ao registrar início da atualização: {e}')
     
+    # Verificar configuração do Git antes de executar comandos
+    try:
+        # Verificar remotes configurados
+        remote_check = subprocess.run(
+            ['git', 'remote', '-v'],
+            cwd=repo_dir,
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if remote_check.returncode == 0:
+            current_app.logger.info(f'Remotos Git configurados: {remote_check.stdout[:300]}')
+        else:
+            current_app.logger.warning(f'Erro ao verificar remotos Git: {remote_check.stderr[:200]}')
+        
+        # Verificar se o remote origin existe
+        if 'origin' not in (remote_check.stdout or ''):
+            error_msg = 'Remote "origin" não configurado. Configure com: git remote add origin <url>'
+            _log_git_update_error(error_msg, current_user.username)
+            return jsonify({
+                'ok': False,
+                'error': error_msg,
+                'suggestion': 'Configure o remote origin antes de tentar atualizar.'
+            }), 400
+    except Exception as e:
+        current_app.logger.warning(f'Erro ao verificar configuração Git: {e}')
+    
     # Comandos a serem executados sequencialmente
     # Inclui rebuild completo do container para garantir que todas as mudanças sejam aplicadas
     commands = [
-        (['git', 'fetch', 'origin'], 'Fetch do repositório remoto'),
+        (['git', 'fetch', 'origin', '--all', '--prune'], 'Fetch do repositório remoto'),
         (['git', 'reset', '--hard', 'origin/nova-versao-deploy'], 'Reset para branch remoto'),
         (['docker-compose', 'down'], 'Parando containers Docker'),
         (['docker-compose', 'build', '--no-cache'], 'Rebuild completo do container (sem cache)'),
@@ -2028,12 +2055,29 @@ def git_update():
             current_app.logger.info(f'Executando: {" ".join(cmd)} em {repo_dir}')
             # Timeout maior para build (pode demorar mais)
             timeout_value = 300 if 'build' in ' '.join(cmd) else 120
+            
+            # Para git fetch, adicionar tratamento especial de erros
+            if 'fetch' in ' '.join(cmd):
+                # Verificar configuração do git remoto antes
+                try:
+                    remote_check = subprocess.run(
+                        ['git', 'remote', '-v'],
+                        cwd=repo_dir,
+                        capture_output=True,
+                        text=True,
+                        timeout=5
+                    )
+                    current_app.logger.info(f'Remotos configurados: {remote_check.stdout[:200] if remote_check.stdout else "N/A"}')
+                except Exception as e:
+                    current_app.logger.warning(f'Erro ao verificar remotos: {e}')
+            
             result = subprocess.run(
                 cmd,
                 cwd=repo_dir,
                 capture_output=True,
                 text=True,
-                timeout=timeout_value
+                timeout=timeout_value,
+                env=dict(os.environ, GIT_TERMINAL_PROMPT='0')  # Desabilitar prompts interativos
             )
             
             result_info = {
@@ -2043,23 +2087,65 @@ def git_update():
                 'stdout': result.stdout[:500] if result.stdout else '',  # Limitar tamanho
                 'stderr': result.stderr[:500] if result.stderr else '',
                 'step': step_number,
-                'total_steps': total_steps
+                'total_steps': total_steps,
+                'returncode': result.returncode
             }
             results.append(result_info)
             
             # Log de progresso
-            current_app.logger.info(f'Etapa {step_number}/{total_steps} concluída: {description}')
+            if result.returncode == 0:
+                current_app.logger.info(f'Etapa {step_number}/{total_steps} concluída: {description}')
+            else:
+                current_app.logger.warning(f'Etapa {step_number}/{total_steps} falhou: {description} (código {result.returncode})')
             
             if result.returncode != 0:
-                error_msg = f'Erro ao executar: {description}. Código: {result.returncode}'
-                error_details = f'STDERR: {result.stderr[:200]}'
-                _log_git_update_error(f'{error_msg}. {error_details}', current_user.username, results)
-                return jsonify({
-                    'ok': False,
-                    'error': error_msg,
-                    'details': result.stderr[:200],
-                    'results': results
-                }), 500
+                # Tratamento especial para git fetch (código 255 geralmente é autenticação/conexão)
+                if 'fetch' in ' '.join(cmd):
+                    stderr_full = result.stderr[:1000] if result.stderr else ''
+                    stdout_full = result.stdout[:1000] if result.stdout else ''
+                    
+                    # Diagnosticar o tipo de erro
+                    error_type = 'desconhecido'
+                    suggestion = 'Verifique os logs do sistema para mais detalhes.'
+                    
+                    if result.returncode == 255:
+                        error_type = 'autenticação/conexão'
+                        suggestion = 'Verifique: 1) Credenciais Git configuradas (git config --global user.name/email), 2) Acesso ao repositório remoto, 3) Conexão com a internet, 4) Se usa SSH, verifique as chaves SSH.'
+                    elif 'permission denied' in stderr_full.lower() or 'authentication' in stderr_full.lower():
+                        error_type = 'autenticação negada'
+                        suggestion = 'Credenciais Git inválidas ou expiradas. Configure novamente ou use token de acesso pessoal.'
+                    elif 'could not resolve host' in stderr_full.lower() or 'connection' in stderr_full.lower():
+                        error_type = 'problema de conexão'
+                        suggestion = 'Problema de conectividade com o servidor Git. Verifique a conexão com a internet.'
+                    elif 'not found' in stderr_full.lower():
+                        error_type = 'repositório não encontrado'
+                        suggestion = 'O repositório remoto não foi encontrado. Verifique a URL do remote (git remote -v).'
+                    
+                    error_msg = f'Erro ao fazer fetch do repositório remoto ({error_type}). Código: {result.returncode}'
+                    error_details = f'STDERR: {stderr_full}\nSTDOUT: {stdout_full}'
+                    
+                    current_app.logger.error(f'Git fetch falhou ({error_type}): {error_details}')
+                    _log_git_update_error(f'{error_msg}. {error_details}', current_user.username, results)
+                    
+                    return jsonify({
+                        'ok': False,
+                        'error': error_msg,
+                        'details': error_details,
+                        'suggestion': suggestion,
+                        'error_type': error_type,
+                        'returncode': result.returncode,
+                        'results': results
+                    }), 500
+                else:
+                    error_msg = f'Erro ao executar: {description}. Código: {result.returncode}'
+                    error_details = f'STDERR: {result.stderr[:500] if result.stderr else result.stdout[:500] if result.stdout else "Sem detalhes"}'
+                    _log_git_update_error(f'{error_msg}. {error_details}', current_user.username, results)
+                    return jsonify({
+                        'ok': False,
+                        'error': error_msg,
+                        'details': error_details,
+                        'results': results
+                    }), 500
             
             # Verificar se o banco de dados ainda existe após cada comando crítico (apenas se db_path foi definido)
             if db_path and 'reset' in description.lower() and not os.path.exists(db_path):

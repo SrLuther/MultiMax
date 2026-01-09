@@ -643,7 +643,7 @@ def create_app():
             # Log apenas se não for erro esperado (git não disponível)
             if 'git' not in str(e).lower():
                 app.logger.debug(f"Erro ao obter versão: {e}")
-            return '2.3.20'
+            return '2.3.21'
 
     resolved_version = _get_version()
     app.config['APP_VERSION_RESOLVED'] = resolved_version.lstrip('vV') if isinstance(resolved_version, str) else resolved_version
@@ -748,18 +748,54 @@ def create_app():
         app.config['DB_IS_SQLITE'] = is_sqlite
         try:
             from sqlalchemy import inspect
-            # Importar todos os modelos para garantir que estejam no metadata
-            from .models import MonthStatus  # Garantir que MonthStatus está no metadata
+            # Importar TODOS os modelos para garantir que estejam no metadata
+            # Isso é crítico para que db.create_all() crie todas as tabelas automaticamente
+            # Importação explícita garante que SQLAlchemy registre todas as tabelas
+            from .models import (
+                User, Collaborator, Produto, Historico, CleaningTask, CleaningHistory,
+                CleaningChecklistTemplate, CleaningChecklistItem, CleaningHistoryPhoto,
+                NotificationRead, AppSetting, TimeOffRecord, Holiday, SystemLog, 
+                Vacation, MedicalCertificate, JornadaArchive, MonthStatus, Shift, 
+                TemporaryEntry, JobRole, MeatReception, MeatCarrier, MeatPart,
+                NotificacaoDiaria, NotificacaoPersonalizada, EventoDoDia,
+                Recipe, RecipeIngredient, UserLogin, Incident, MetricHistory,
+                Alert, MaintenanceLog, QueryLog, BackupVerification,
+                IngredientCatalog, CustomSchedule, HelpArticle,
+                RegistroJornada, RegistroJornadaChange, ArticleVote,
+                Suggestion, SuggestionVote
+            )
+            # Verificar quais tabelas existem e quais devem existir
             insp = inspect(db.engine)
-            tables = set(insp.get_table_names())
-            declared = set(db.metadata.tables.keys())
-            if declared - tables:
+            existing_tables = set(insp.get_table_names())
+            declared_tables = set(db.metadata.tables.keys())
+            
+            # Se houver tabelas declaradas que não existem, criar todas automaticamente
+            missing_tables = declared_tables - existing_tables
+            if missing_tables:
+                current_app.logger.info(f'Criando automaticamente {len(missing_tables)} tabela(s) ausente(s): {missing_tables}')
                 db.create_all()
-        except Exception:
+                db.session.commit()
+                current_app.logger.info('Tabelas criadas automaticamente com sucesso')
+            else:
+                current_app.logger.debug('Todas as tabelas necessárias já existem no banco de dados')
+        except Exception as e:
+            current_app.logger.error(f'Erro ao verificar/criar tabelas: {e}', exc_info=True)
             try:
                 db.session.rollback()
             except Exception:
                 pass
+            # Tentar criar todas as tabelas mesmo em caso de erro (fallback)
+            try:
+                current_app.logger.warning('Tentando criar todas as tabelas como fallback...')
+                db.create_all()
+                db.session.commit()
+                current_app.logger.info('Tabelas criadas com sucesso (fallback)')
+            except Exception as create_error:
+                current_app.logger.error(f'Erro ao criar tabelas (fallback): {create_error}', exc_info=True)
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
         if not is_sqlite and db_ok:
             try:
                 from sqlalchemy import text
