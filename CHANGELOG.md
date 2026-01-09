@@ -1,3 +1,17 @@
+## [2.3.25] - 2025-01-15
+
+### ✨ Novas Funcionalidades
+
+#### Evolução Completa do Módulo Jornada
+- **Arquivamento por Período Aprimorado**: Validação de status FECHADO_REVISAO antes de arquivar, transações atômicas e atualização automática de status dos meses
+- **Componente Card Resumo Padronizado**: Criado componente reutilizável `_card_resumo.html` para todas as subpáginas
+- **Navegação Completa**: Todas as subpáginas agora incluem link para "Situação Final"
+- **Estrutura de PDF**: Base criada para geração de PDF em todas as subpáginas (Em Aberto, Fechado para Revisão, Arquivados, Situação Final)
+- **Validação de Arquivamento**: Sistema valida que todos os meses do período estão em FECHADO_REVISAO antes de permitir arquivamento
+- **Transações Atômicas**: Arquivamento agora é totalmente transacional com rollback em caso de falha
+
+---
+
 ## [2.3.24] - 2025-01-15
 
 ### ✨ Novas Funcionalidades
