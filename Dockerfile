@@ -4,11 +4,18 @@ FROM python:3.11-slim
 # Define o diretório de trabalho
 WORKDIR /app
 
-# Instala dependências do sistema necessárias
-RUN apt-get update && apt-get install -y \
-    gcc \
-    git \
-    && rm -rf /var/lib/apt/lists/*
+# Instala dependências do sistema necessárias (gcc, git e bibliotecas para WeasyPrint)
+RUN apt-get update && \
+    apt-get install -y \
+        gcc \
+        git \
+        libgobject-2.0-0 \
+        libpango-1.0-0 \
+        libpangocairo-1.0-0 \
+        libcairo2 \
+        libffi-dev \
+        shared-mime-info && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copia o arquivo de dependências
 COPY requirements.txt .
