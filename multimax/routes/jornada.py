@@ -475,69 +475,69 @@ def fechado_revisao():
         
         # Buscar registros dos meses fechados
         records = []
-    for mes_status in meses_fechados:
-        from calendar import monthrange
-        first_day = date(mes_status.year, mes_status.month, 1)
-        last_day = date(mes_status.year, mes_status.month, monthrange(mes_status.year, mes_status.month)[1])
+        for mes_status in meses_fechados:
+            from calendar import monthrange
+            first_day = date(mes_status.year, mes_status.month, 1)
+            last_day = date(mes_status.year, mes_status.month, monthrange(mes_status.year, mes_status.month)[1])
+            
+            mes_records = TimeOffRecord.query.filter(
+                TimeOffRecord.date >= first_day,
+                TimeOffRecord.date <= last_day
+            ).order_by(TimeOffRecord.date.desc(), TimeOffRecord.id.desc()).all()
+            
+            records.extend(mes_records)
         
-        mes_records = TimeOffRecord.query.filter(
-            TimeOffRecord.date >= first_day,
-            TimeOffRecord.date <= last_day
+        # OBRIGATÓRIO: Incluir TODOS os registros de 2025, independente do status
+        # Usar comparação de data para compatibilidade com SQLite e PostgreSQL
+        records_2025 = TimeOffRecord.query.filter(
+            TimeOffRecord.date >= date(2025, 1, 1),
+            TimeOffRecord.date < date(2026, 1, 1)
         ).order_by(TimeOffRecord.date.desc(), TimeOffRecord.id.desc()).all()
         
-        records.extend(mes_records)
-    
-    # OBRIGATÓRIO: Incluir TODOS os registros de 2025, independente do status
-    # Usar comparação de data para compatibilidade com SQLite e PostgreSQL
-    records_2025 = TimeOffRecord.query.filter(
-        TimeOffRecord.date >= date(2025, 1, 1),
-        TimeOffRecord.date < date(2026, 1, 1)
-    ).order_by(TimeOffRecord.date.desc(), TimeOffRecord.id.desc()).all()
-    
-    # Combinar registros, evitando duplicatas
-    existing_ids = {r.id for r in records}
-    for r in records_2025:
-        if r.id not in existing_ids:
-            records.append(r)
-    
-    # Garantir que meses de 2025 apareçam na lista de meses fechados
-    meses_2025 = MonthStatus.query.filter(
-        MonthStatus.year == 2025
-    ).all()
-    for mes_2025 in meses_2025:
-        if mes_2025 not in meses_fechados:
-            meses_fechados.append(mes_2025)
-    
-    # Ordenar novamente após adicionar meses de 2025
-    meses_fechados.sort(key=lambda m: (m.year, m.month), reverse=True)
-    
-    # Filtros
-    collaborator_id = request.args.get('collaborator_id', type=int)
-    record_type = request.args.get('tipo', '').strip()
-    
-    if collaborator_id:
-        records = [r for r in records if r.collaborator_id == collaborator_id]
-    if record_type:
-        records = [r for r in records if r.record_type == record_type]
-    
-    colaboradores = _get_all_collaborators()
-    
-    # Calcular estatísticas dos meses fechados
-    all_stats = []
-    for colab in colaboradores:
-        # Filtrar registros do colaborador nos meses fechados
-        colab_records = [r for r in records if r.collaborator_id == colab.id]
-        if colab_records:
-            balance = _calculate_collaborator_balance(colab.id)
-            all_stats.append({
-                'collaborator': colab,
-                'display_name': _get_collaborator_display_name(colab),
-                'balance': balance
-            })
-    
-    # Verificar permissões (DEV e ADMIN podem editar meses fechados)
-    can_edit = current_user.nivel in ('admin', 'DEV')
-    
+        # Combinar registros, evitando duplicatas
+        existing_ids = {r.id for r in records}
+        for r in records_2025:
+            if r.id not in existing_ids:
+                records.append(r)
+        
+        # Garantir que meses de 2025 apareçam na lista de meses fechados
+        meses_2025 = MonthStatus.query.filter(
+            MonthStatus.year == 2025
+        ).all()
+        for mes_2025 in meses_2025:
+            if mes_2025 not in meses_fechados:
+                meses_fechados.append(mes_2025)
+        
+        # Ordenar novamente após adicionar meses de 2025
+        meses_fechados.sort(key=lambda m: (m.year, m.month), reverse=True)
+        
+        # Filtros
+        collaborator_id = request.args.get('collaborator_id', type=int)
+        record_type = request.args.get('tipo', '').strip()
+        
+        if collaborator_id:
+            records = [r for r in records if r.collaborator_id == collaborator_id]
+        if record_type:
+            records = [r for r in records if r.record_type == record_type]
+        
+        colaboradores = _get_all_collaborators()
+        
+        # Calcular estatísticas dos meses fechados
+        all_stats = []
+        for colab in colaboradores:
+            # Filtrar registros do colaborador nos meses fechados
+            colab_records = [r for r in records if r.collaborator_id == colab.id]
+            if colab_records:
+                balance = _calculate_collaborator_balance(colab.id)
+                all_stats.append({
+                    'collaborator': colab,
+                    'display_name': _get_collaborator_display_name(colab),
+                    'balance': balance
+                })
+        
+        # Verificar permissões (DEV e ADMIN podem editar meses fechados)
+        can_edit = current_user.nivel in ('admin', 'DEV')
+        
         # Calcular totais para o card de resumo
         total_horas = sum(float(s['balance'].get('total_bruto_hours', 0.0)) for s in all_stats)
         total_horas_residuais = sum(float(s['balance'].get('residual_hours', 0.0)) for s in all_stats)
@@ -581,9 +581,9 @@ def arquivados():
         meses_arquivados = MonthStatus.query.filter_by(status='arquivado').order_by(
             MonthStatus.year.desc(), MonthStatus.month.desc()
         ).all()
-    
-    # Buscar registros arquivados (da tabela JornadaArchive)
-    collaborator_id = request.args.get('collaborator_id', type=int)
+        
+        # Buscar registros arquivados (da tabela JornadaArchive)
+        collaborator_id = request.args.get('collaborator_id', type=int)
     data_inicio = request.args.get('inicio', '').strip()
     data_fim = request.args.get('fim', '').strip()
     record_type = request.args.get('tipo', '').strip()
