@@ -766,13 +766,13 @@ def create_app():
                     Suggestion, SuggestionVote
                 )
             except ImportError as import_err:
-                current_app.logger.warning(f'Erro ao importar alguns modelos: {import_err}. Continuando...')
+                app.logger.warning(f'Erro ao importar alguns modelos: {import_err}. Continuando...')
                 # Tentar importação alternativa - importar tudo de uma vez
                 try:
                     from . import models
-                    current_app.logger.info('Modelos importados via importação de módulo completo')
+                    app.logger.info('Modelos importados via importação de módulo completo')
                 except Exception as alt_err:
-                    current_app.logger.error(f'Erro na importação alternativa de modelos: {alt_err}', exc_info=True)
+                    app.logger.error(f'Erro na importação alternativa de modelos: {alt_err}', exc_info=True)
             
             # Verificar quais tabelas existem e quais devem existir
             try:
@@ -783,38 +783,38 @@ def create_app():
                 # Se houver tabelas declaradas que não existem, criar todas automaticamente
                 missing_tables = declared_tables - existing_tables
                 if missing_tables:
-                    current_app.logger.info(f'Criando automaticamente {len(missing_tables)} tabela(s) ausente(s): {missing_tables}')
+                    app.logger.info(f'Criando automaticamente {len(missing_tables)} tabela(s) ausente(s): {missing_tables}')
                     db.create_all()
                     db.session.commit()
-                    current_app.logger.info('Tabelas criadas automaticamente com sucesso')
+                    app.logger.info('Tabelas criadas automaticamente com sucesso')
                 else:
-                    current_app.logger.debug('Todas as tabelas necessárias já existem no banco de dados')
+                    app.logger.debug('Todas as tabelas necessárias já existem no banco de dados')
             except Exception as inspect_err:
-                current_app.logger.warning(f'Erro ao verificar tabelas: {inspect_err}. Tentando criar todas...')
+                app.logger.warning(f'Erro ao verificar tabelas: {inspect_err}. Tentando criar todas...')
                 try:
                     db.create_all()
                     db.session.commit()
-                    current_app.logger.info('Tabelas criadas com sucesso (modo fallback)')
+                    app.logger.info('Tabelas criadas com sucesso (modo fallback)')
                 except Exception as create_err:
-                    current_app.logger.error(f'Erro ao criar tabelas: {create_err}', exc_info=True)
+                    app.logger.error(f'Erro ao criar tabelas: {create_err}', exc_info=True)
                     try:
                         db.session.rollback()
                     except Exception:
                         pass
         except Exception as e:
-            current_app.logger.error(f'Erro geral ao verificar/criar tabelas: {e}', exc_info=True)
+            app.logger.error(f'Erro geral ao verificar/criar tabelas: {e}', exc_info=True)
             try:
                 db.session.rollback()
             except Exception:
                 pass
             # Tentar criar todas as tabelas mesmo em caso de erro (fallback final)
             try:
-                current_app.logger.warning('Tentando criar todas as tabelas como fallback final...')
+                app.logger.warning('Tentando criar todas as tabelas como fallback final...')
                 db.create_all()
                 db.session.commit()
-                current_app.logger.info('Tabelas criadas com sucesso (fallback final)')
+                app.logger.info('Tabelas criadas com sucesso (fallback final)')
             except Exception as create_error:
-                current_app.logger.error(f'Erro ao criar tabelas (fallback final): {create_error}', exc_info=True)
+                app.logger.error(f'Erro ao criar tabelas (fallback final): {create_error}', exc_info=True)
                 try:
                     db.session.rollback()
                 except Exception:
