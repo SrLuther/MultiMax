@@ -2058,6 +2058,44 @@ def git_update():
             
             # Para git fetch, adicionar tratamento especial de erros
             if 'fetch' in ' '.join(cmd):
+                # Verificar permissões do diretório .git antes de executar
+                git_dir = os.path.join(repo_dir, '.git')
+                fetch_head = os.path.join(git_dir, 'FETCH_HEAD')
+                
+                # Verificar se o diretório .git existe e é acessível
+                if not os.path.exists(git_dir):
+                    error_msg = 'Diretório .git não encontrado'
+                    current_app.logger.error(f'{error_msg} em {repo_dir}')
+                    return jsonify({
+                        'ok': False,
+                        'error': error_msg,
+                        'details': f'O diretório .git não existe em {repo_dir}',
+                        'suggestion': 'Verifique se o diretório é um repositório Git válido.',
+                        'error_type': 'repositório inválido',
+                        'results': results
+                    }), 500
+                
+                # Verificar se podemos escrever no diretório .git
+                try:
+                    test_file = os.path.join(git_dir, '.write_test')
+                    try:
+                        with open(test_file, 'w') as f:
+                            f.write('test')
+                        os.remove(test_file)
+                    except (IOError, OSError, PermissionError) as perm_error:
+                        error_msg = 'Sistema de arquivos somente leitura'
+                        current_app.logger.error(f'{error_msg}: Não é possível escrever em {git_dir}: {perm_error}')
+                        return jsonify({
+                            'ok': False,
+                            'error': error_msg,
+                            'details': f'Não é possível escrever no diretório .git: {str(perm_error)}',
+                            'suggestion': 'Soluções: 1) Verifique permissões (chmod -R u+w .git), 2) Se em Docker, verifique montagem do volume, 3) Execute: sudo chown -R $USER:$USER .git',
+                            'error_type': 'sistema de arquivos somente leitura',
+                            'results': results
+                        }), 500
+                except Exception as perm_check_error:
+                    current_app.logger.warning(f'Erro ao verificar permissões: {perm_check_error}')
+                
                 # Verificar configuração do git remoto antes
                 try:
                     remote_check = subprocess.run(
@@ -2108,7 +2146,11 @@ def git_update():
                     error_type = 'desconhecido'
                     suggestion = 'Verifique os logs do sistema para mais detalhes.'
                     
-                    if result.returncode == 255:
+                    # Verificar se é erro de sistema de arquivos somente leitura
+                    if 'read-only file system' in stderr_full.lower() or 'readonly' in stderr_full.lower() or 'cannot open' in stderr_full.lower() and 'FETCH_HEAD' in stderr_full:
+                        error_type = 'sistema de arquivos somente leitura'
+                        suggestion = 'O diretório .git está em modo somente leitura. Soluções: 1) Verifique permissões do diretório (chmod -R u+w .git), 2) Se estiver em Docker, verifique se o volume está montado corretamente, 3) Verifique se o sistema de arquivos não está montado como somente leitura (mount | grep ro), 4) Execute: sudo chown -R $USER:$USER .git'
+                    elif result.returncode == 255:
                         error_type = 'autenticação/conexão'
                         suggestion = 'Verifique: 1) Credenciais Git configuradas (git config --global user.name/email), 2) Acesso ao repositório remoto, 3) Conexão com a internet, 4) Se usa SSH, verifique as chaves SSH.'
                     elif 'permission denied' in stderr_full.lower() or 'authentication' in stderr_full.lower():
