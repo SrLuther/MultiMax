@@ -2011,12 +2011,14 @@ def situacao_final():
     # Ordenar por nome do colaborador
     situacoes.sort(key=lambda x: x['display_name'])
     
-    # Calcular totais gerais
+    # Calcular totais gerais usando os valores do balance (consistente)
     total_geral_horas = sum(s['total_horas'] for s in situacoes)
+    total_geral_horas_residuais = sum(s['horas_residuais'] for s in situacoes)
     total_geral_folgas_adicionadas = sum(s['folgas_adicionadas'] for s in situacoes)
     total_geral_folgas_usadas = sum(s['folgas_usadas'] for s in situacoes)
     total_geral_conversoes = sum(s['conversoes'] for s in situacoes)
     total_geral_saldo = sum(s['saldo_folgas'] for s in situacoes)
+    total_geral_dias_das_horas = sum(s['dias_das_horas'] for s in situacoes)
     
     return render_template(
         'jornada/situacao_final.html',
