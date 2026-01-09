@@ -515,29 +515,51 @@ def fechado_revisao():
             MonthStatus.year == 2025
         ).all()
         
-        # Criar MonthStatus para meses de 2025 que têm registros mas não têm MonthStatus
-        meses_2025_existentes = {(m.year, m.month) for m in meses_2025}
+        # Identificar meses únicos de 2025 que têm registros
         meses_com_registros_2025 = set()
         for r in records_2025:
             meses_com_registros_2025.add((r.date.year, r.date.month))
         
-        # Criar MonthStatus para meses de 2025 que têm registros mas não têm MonthStatus
+        # Criar ou atualizar MonthStatus para meses de 2025 que têm registros
+        meses_2025_existentes = {(m.year, m.month): m for m in meses_2025}
         for year, month in meses_com_registros_2025:
-            if (year, month) not in meses_2025_existentes:
-                # Criar MonthStatus para o mês de 2025
-                novo_mes = MonthStatus()
-                novo_mes.year = year
-                novo_mes.month = month
-                novo_mes.status = 'fechado'  # Meses de 2025 devem aparecer como fechados
-                db.session.add(novo_mes)
-                meses_2025.append(novo_mes)
+            if (year, month) in meses_2025_existentes:
+                # Mês já existe - garantir que apareça na lista se não estiver
+                mes_existente = meses_2025_existentes[(year, month)]
+                if mes_existente not in meses_fechados:
+                    # Se o status não for 'fechado', alterar para 'fechado' para aparecer na lista
+                    if mes_existente.status != 'fechado':
+                        mes_existente.status = 'fechado'
+                        if not mes_existente.closed_at:
+                            mes_existente.closed_at = datetime.now(ZoneInfo('America/Sao_Paulo'))
+                        if not mes_existente.closed_by:
+                            mes_existente.closed_by = 'Sistema - Migração 2025'
+                    meses_fechados.append(mes_existente)
+            else:
+                # Criar MonthStatus para o mês de 2025 que não existe
+                try:
+                    novo_mes = MonthStatus()
+                    novo_mes.year = year
+                    novo_mes.month = month
+                    novo_mes.status = 'fechado'  # Meses de 2025 devem aparecer como fechados
+                    novo_mes.closed_at = datetime.now(ZoneInfo('America/Sao_Paulo'))
+                    novo_mes.closed_by = 'Sistema - Migração 2025'
+                    db.session.add(novo_mes)
+                    meses_fechados.append(novo_mes)
+                except Exception:
+                    # Se houver erro (ex: constraint única), tentar buscar novamente
+                    db.session.rollback()
+                    mes_existente = MonthStatus.query.filter_by(year=year, month=month).first()
+                    if mes_existente and mes_existente not in meses_fechados:
+                        if mes_existente.status != 'fechado':
+                            mes_existente.status = 'fechado'
+                            if not mes_existente.closed_at:
+                                mes_existente.closed_at = datetime.now(ZoneInfo('America/Sao_Paulo'))
+                            if not mes_existente.closed_by:
+                                mes_existente.closed_by = 'Sistema - Migração 2025'
+                        meses_fechados.append(mes_existente)
         
-        # Adicionar meses de 2025 à lista de meses fechados
-        for mes_2025 in meses_2025:
-            if mes_2025 not in meses_fechados:
-                meses_fechados.append(mes_2025)
-        
-        # Commit para salvar novos MonthStatus criados
+        # Commit para salvar novos MonthStatus criados ou atualizados
         try:
             db.session.commit()
         except Exception:
