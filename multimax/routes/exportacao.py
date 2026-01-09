@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from zoneinfo import ZoneInfo
 import os
 from reportlab.lib.pagesizes import letter
@@ -9,7 +9,7 @@ from reportlab.lib.units import inch, cm
 from flask import Blueprint, redirect, url_for, flash, send_file, request
 from flask_login import login_required, current_user
 from ..models import Produto, CleaningTask as CleaningTaskModel, CleaningHistory as CleaningHistoryModel, Historico, MeatReception, MeatCarrier, MeatPart, User, Recipe, RecipeIngredient
-from ..models import Collaborator, TimeOffRecord
+from ..models import Collaborator, TimeOffRecord, JornadaArchive, MonthStatus
 from ..routes.jornada import _calculate_collaborator_balance, _get_collaborator_display_name
 from sqlalchemy import func, or_
 from flask import render_template

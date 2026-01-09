@@ -1334,6 +1334,36 @@ def arquivar():
                                  available_months=available_months)
         
         try:
+            # VALIDAÇÃO: Verificar se todos os meses do período estão em FECHADO_REVISAO
+            from calendar import monthrange
+            months_to_check = set()
+            current_date = period_start
+            while current_date <= period_end:
+                months_to_check.add((current_date.year, current_date.month))
+                # Avançar para o primeiro dia do próximo mês
+                if current_date.month == 12:
+                    current_date = date(current_date.year + 1, 1, 1)
+                else:
+                    current_date = date(current_date.year, current_date.month + 1, 1)
+            
+            # Verificar status de cada mês
+            invalid_months = []
+            for year, month in months_to_check:
+                month_status = _get_month_status(year, month)
+                if month_status.status != 'fechado':
+                    invalid_months.append(f"{month:02d}/{year}")
+            
+            if invalid_months:
+                flash(f'Não é possível arquivar. Os seguintes meses não estão em FECHADO_REVISAO: {", ".join(invalid_months)}. Feche os meses antes de arquivar.', 'danger')
+                first_record = TimeOffRecord.query.order_by(TimeOffRecord.date.asc()).first()
+                last_record = TimeOffRecord.query.order_by(TimeOffRecord.date.desc()).first()
+                suggested_start = first_record.date if first_record else date.today()
+                suggested_end = last_record.date if last_record else date.today()
+                available_months = _get_available_months()
+                return render_template('jornada/arquivar.html', active_page='jornada', 
+                                     suggested_start=suggested_start, suggested_end=suggested_end,
+                                     available_months=available_months)
+            
             # Buscar todos os registros do período
             all_period_records = TimeOffRecord.query.filter(
                 TimeOffRecord.date >= period_start,
@@ -1401,22 +1431,36 @@ def arquivar():
                 db.session.add(archive_record)
                 archived_count += 1
             
+            # TRANSACIONAL: Arquivar e atualizar status dos meses em uma única transação
+            # Marcar meses como arquivados
+            months_archived = set()
+            for year, month in months_to_check:
+                month_status = _get_month_status(year, month)
+                if month_status.status == 'fechado' and month_status.payment_confirmed:
+                    month_status.status = 'arquivado'
+                    month_status.archived_at = archived_at
+                    month_status.archived_by = current_user.username or current_user.name
+                    months_archived.add((year, month))
+            
             # Deletar apenas os registros arquivados
             for record in records_to_archive:
                 db.session.delete(record)
             
+            # Commit transacional - tudo ou nada
             db.session.commit()
             
             message = f'{archived_count} registro(s) arquivado(s) com sucesso.'
             if preserved_count > 0:
                 message += f' {preserved_count} registro(s) foram preservados para manter Horas Residuais e Saldo de Folgas pendentes.'
+            if months_archived:
+                message += f' {len(months_archived)} mês(es) marcado(s) como arquivado(s).'
             
             flash(message, 'success')
             return redirect(url_for('jornada.em_aberto'))
             
         except Exception as e:
             db.session.rollback()
-            flash(f'Erro ao arquivar: {e}', 'danger')
+            flash(f'Erro ao arquivar: {e}. Todas as alterações foram revertidas.', 'danger')
     
     first_record = TimeOffRecord.query.order_by(TimeOffRecord.date.asc()).first()
     last_record = TimeOffRecord.query.order_by(TimeOffRecord.date.desc()).first()

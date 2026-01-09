@@ -28,6 +28,10 @@
                         <i class="bi bi-archive-fill"></i>
                         <span>Arquivados</span>
                     </a>
+                    <a href="{{ url_for('jornada.situacao_final') }}" class="jornada-nav-item">
+                        <i class="bi bi-clipboard-data"></i>
+                        <span>Situação Final</span>
+                    </a>
                 </div>
                 {% if current_user.nivel in ('admin', 'DEV', 'operador') %}
                 <div class="btn-group">
