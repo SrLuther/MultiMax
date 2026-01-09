@@ -1,3 +1,15 @@
+## [2.3.30] - 2025-01-15
+
+### 🔧 Correções Críticas
+
+#### Correção de Indentação - 502 Bad Gateway
+- **Erro Corrigido**: `IndentationError` na linha 1499 de `multimax/routes/jornada.py`
+- **Impacto**: Restaura funcionamento do domínio multimax.tec.br
+- **Causa**: Indentação incorreta em `archived_count += 1` dentro do loop de arquivamento
+- **Solução**: Ajuste de indentação e alinhamento dos parâmetros do construtor `JornadaArchive`
+
+---
+
 ## [2.3.29] - 2025-01-15
 
 ### ✨ Novas Funcionalidades

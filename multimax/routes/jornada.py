@@ -1489,13 +1489,13 @@ def arquivar():
                     amount_paid=record.amount_paid,
                     rate_per_day=record.rate_per_day,
                     origin=record.origin,
-                notes=record.notes,
-                created_at=record.created_at,
-                created_by=record.created_by,
-                payment_date=payment_date,  # Data do pagamento confirmado
-                payment_amount=payment_amount  # Valor total pago no mês
-            )
-            db.session.add(archive_record)
+                    notes=record.notes,
+                    created_at=record.created_at,
+                    created_by=record.created_by,
+                    payment_date=payment_date,  # Data do pagamento confirmado
+                    payment_amount=payment_amount  # Valor total pago no mês
+                )
+                db.session.add(archive_record)
                 archived_count += 1
             
             # TRANSACIONAL: Arquivar e atualizar status dos meses em uma única transação
