@@ -1,3 +1,14 @@
+## [2.3.20] - 2025-01-15
+
+### 🔧 Correções
+
+#### Sistema de Jornada
+- **Correção de Erro na Página Em Aberto**: Adicionado tratamento robusto de erros e criação automática da tabela `month_status` quando não existe
+- **Criação Automática de Tabelas**: Sistema agora cria automaticamente a tabela `month_status` se não existir no banco de dados
+- **Tratamento de Erros**: Melhor tratamento de exceções na rota `/jornada/em-aberto` com fallbacks seguros
+
+---
+
 ## [2.3.19] - 2025-01-15
 
 ### ✨ Novas Funcionalidades

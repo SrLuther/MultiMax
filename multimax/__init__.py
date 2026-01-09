@@ -643,7 +643,7 @@ def create_app():
             # Log apenas se não for erro esperado (git não disponível)
             if 'git' not in str(e).lower():
                 app.logger.debug(f"Erro ao obter versão: {e}")
-            return '2.3.19'
+            return '2.3.20'
 
     resolved_version = _get_version()
     app.config['APP_VERSION_RESOLVED'] = resolved_version.lstrip('vV') if isinstance(resolved_version, str) else resolved_version
@@ -748,6 +748,8 @@ def create_app():
         app.config['DB_IS_SQLITE'] = is_sqlite
         try:
             from sqlalchemy import inspect
+            # Importar todos os modelos para garantir que estejam no metadata
+            from .models import MonthStatus  # Garantir que MonthStatus está no metadata
             insp = inspect(db.engine)
             tables = set(insp.get_table_names())
             declared = set(db.metadata.tables.keys())

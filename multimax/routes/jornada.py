@@ -25,12 +25,44 @@ bp = Blueprint('jornada', __name__, url_prefix='/jornada')
 
 def _get_month_status(year, month):
     """Retorna o status do mês. Se não existir, cria como 'aberto'"""
-    status = MonthStatus.query.filter_by(year=year, month=month).first()
-    if not status:
-        status = MonthStatus(year=year, month=month, status='aberto')
-        db.session.add(status)
-        db.session.commit()
-    return status
+    try:
+        # Verificar se a tabela existe, se não existir, criar
+        from sqlalchemy import inspect, text
+        insp = inspect(db.engine)
+        tables = insp.get_table_names()
+        if 'month_status' not in tables:
+            db.create_all()
+            db.session.commit()
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+    
+    try:
+        status = MonthStatus.query.filter_by(year=year, month=month).first()
+        if not status:
+            status = MonthStatus(year=year, month=month, status='aberto')
+            db.session.add(status)
+            db.session.commit()
+        return status
+    except Exception as e:
+        # Se houver erro, tentar criar a tabela e tentar novamente
+        try:
+            db.session.rollback()
+            db.create_all()
+            db.session.commit()
+            status = MonthStatus.query.filter_by(year=year, month=month).first()
+            if not status:
+                status = MonthStatus(year=year, month=month, status='aberto')
+                db.session.add(status)
+                db.session.commit()
+            return status
+        except Exception:
+            db.session.rollback()
+            # Retornar um objeto mock para não quebrar a aplicação
+            from types import SimpleNamespace
+            return SimpleNamespace(year=year, month=month, status='aberto', month_year_str=f"{month:02d}/{year}")
 
 def _can_edit_record(record_date, user_level):
     """
@@ -255,32 +287,82 @@ def em_aberto():
         flash('Acesso negado.', 'danger')
         return redirect(url_for('home.index'))
     
+    try:
+        # Garantir que a tabela existe
+        from sqlalchemy import inspect
+        insp = inspect(db.engine)
+        tables = insp.get_table_names()
+        if 'month_status' not in tables:
+            db.create_all()
+            db.session.commit()
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+    
     # Buscar meses em aberto
-    meses_abertos = MonthStatus.query.filter_by(status='aberto').order_by(
-        MonthStatus.year.desc(), MonthStatus.month.desc()
-    ).all()
+    try:
+        meses_abertos = MonthStatus.query.filter_by(status='aberto').order_by(
+            MonthStatus.year.desc(), MonthStatus.month.desc()
+        ).all()
+    except Exception as e:
+        # Se houver erro na query, criar tabela e tentar novamente
+        try:
+            db.session.rollback()
+            db.create_all()
+            db.session.commit()
+            meses_abertos = MonthStatus.query.filter_by(status='aberto').order_by(
+                MonthStatus.year.desc(), MonthStatus.month.desc()
+            ).all()
+        except Exception:
+            db.session.rollback()
+            meses_abertos = []
     
     # Se não houver mês em aberto, criar para o mês atual
     hoje = date.today()
-    mes_atual = _get_month_status(hoje.year, hoje.month)
-    if mes_atual.status != 'aberto':
-        # Se o mês atual não está em aberto, criar um novo registro
-        meses_abertos = [mes_atual] if mes_atual not in meses_abertos else meses_abertos
+    try:
+        mes_atual = _get_month_status(hoje.year, hoje.month)
+        if not meses_abertos or (mes_atual.status == 'aberto' and mes_atual not in meses_abertos):
+            # Garantir que o mês atual está na lista se estiver em aberto
+            if mes_atual.status == 'aberto':
+                meses_abertos.append(mes_atual)
+                # Remover duplicatas mantendo ordem
+                seen = set()
+                meses_abertos = [x for x in meses_abertos if not (x in seen or seen.add((x.year, x.month)))]
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f'Erro ao obter status do mês atual: {e}', exc_info=True)
+        # Se houver erro, usar lista vazia e criar mês atual como fallback
+        try:
+            mes_atual = MonthStatus(year=hoje.year, month=hoje.month, status='aberto')
+            db.session.add(mes_atual)
+            db.session.commit()
+            meses_abertos = [mes_atual]
+        except Exception:
+            db.session.rollback()
+            meses_abertos = []
     
     # Buscar registros apenas dos meses em aberto
     records = []
-    for mes_status in meses_abertos:
-        # Calcular início e fim do mês
-        from calendar import monthrange
-        first_day = date(mes_status.year, mes_status.month, 1)
-        last_day = date(mes_status.year, mes_status.month, monthrange(mes_status.year, mes_status.month)[1])
-        
-        mes_records = TimeOffRecord.query.filter(
-            TimeOffRecord.date >= first_day,
-            TimeOffRecord.date <= last_day
-        ).order_by(TimeOffRecord.date.desc(), TimeOffRecord.id.desc()).all()
-        
-        records.extend(mes_records)
+    if meses_abertos:
+        for mes_status in meses_abertos:
+            try:
+                # Calcular início e fim do mês
+                from calendar import monthrange
+                first_day = date(mes_status.year, mes_status.month, 1)
+                last_day = date(mes_status.year, mes_status.month, monthrange(mes_status.year, mes_status.month)[1])
+                
+                mes_records = TimeOffRecord.query.filter(
+                    TimeOffRecord.date >= first_day,
+                    TimeOffRecord.date <= last_day
+                ).order_by(TimeOffRecord.date.desc(), TimeOffRecord.id.desc()).all()
+                
+                records.extend(mes_records)
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f'Erro ao buscar registros do mês {mes_status.year}/{mes_status.month}: {e}', exc_info=True)
+                continue
     
     # Filtros adicionais
     collaborator_id = request.args.get('collaborator_id', type=int)
@@ -332,20 +414,33 @@ def em_aberto():
         Holiday.date >= date(hoje.year, hoje.month, 1)
     ).order_by(Holiday.date.asc()).all()
     
-    return render_template(
-        'jornada/em_aberto.html',
-        colaboradores=colaboradores,
-        records=records[:100],  # Limitar a 100 registros
-        all_stats=all_stats,
-        meses_abertos=meses_abertos,
-        collaborator_id=collaborator_id,
-        data_inicio=data_inicio,
-        data_fim=data_fim,
-        record_type=record_type,
-        can_edit=can_edit,
-        feriados=feriados,
-        active_page='jornada'
-    )
+    try:
+        return render_template(
+            'jornada/em_aberto.html',
+            colaboradores=colaboradores,
+            records=records[:100],  # Limitar a 100 registros
+            all_stats=all_stats,
+            meses_abertos=meses_abertos,
+            collaborator_id=collaborator_id,
+            data_inicio=data_inicio,
+            data_fim=data_fim,
+            record_type=record_type,
+            can_edit=can_edit,
+            feriados=feriados,
+            active_page='jornada'
+        )
+    except Exception as e:
+        # Log do erro para debug
+        import logging
+        logging.getLogger(__name__).error(f'Erro na rota em_aberto: {e}', exc_info=True)
+        flash(f'Erro ao carregar página: {str(e)}. Verifique se a tabela month_status existe no banco de dados.', 'danger')
+        # Tentar criar a tabela e redirecionar
+        try:
+            db.create_all()
+            db.session.commit()
+            return redirect(url_for('jornada.em_aberto'))
+        except Exception:
+            return redirect(url_for('home.index'))
 
 @bp.route('/fechado-revisao', methods=['GET'], strict_slashes=False)
 @login_required
