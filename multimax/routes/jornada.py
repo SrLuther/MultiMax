@@ -463,14 +463,15 @@ def em_aberto():
 @login_required
 def fechado_revisao():
     """Subpágina: FECHADO PARA REVISÃO - exibe apenas meses fechados aguardando pagamento E registros de 2025"""
-    if current_user.nivel not in ['operador', 'admin', 'DEV']:
-        flash('Acesso negado.', 'danger')
-        return redirect(url_for('home.index'))
-    
-    # Buscar meses fechados
-    meses_fechados = MonthStatus.query.filter_by(status='fechado').order_by(
-        MonthStatus.year.desc(), MonthStatus.month.desc()
-    ).all()
+    try:
+        if current_user.nivel not in ['operador', 'admin', 'DEV']:
+            flash('Acesso negado.', 'danger')
+            return redirect(url_for('home.index'))
+        
+        # Buscar meses fechados
+        meses_fechados = MonthStatus.query.filter_by(status='fechado').order_by(
+            MonthStatus.year.desc(), MonthStatus.month.desc()
+        ).all()
     
     # Buscar registros dos meses fechados
     records = []
@@ -537,42 +538,49 @@ def fechado_revisao():
     # Verificar permissões (DEV e ADMIN podem editar meses fechados)
     can_edit = current_user.nivel in ('admin', 'DEV')
     
-    # Calcular totais para o card de resumo
-    total_horas = sum(float(s['balance'].get('total_bruto_hours', 0.0)) for s in all_stats)
-    total_horas_residuais = sum(float(s['balance'].get('residual_hours', 0.0)) for s in all_stats)
-    total_saldo_folgas = sum(int(s['balance'].get('saldo_days', 0)) for s in all_stats)
-    total_folgas_usadas = sum(int(s['balance'].get('assigned_sum', 0)) for s in all_stats)
-    total_conversoes = sum(int(s['balance'].get('converted_sum', 0)) for s in all_stats)
-    
-    return render_template(
-        'jornada/fechado_revisao.html',
-        colaboradores=colaboradores,
-        records=records[:100],
-        all_stats=all_stats,
-        meses_fechados=meses_fechados,
-        collaborator_id=collaborator_id,
-        record_type=record_type,
-        can_edit=can_edit,
-        total_horas=total_horas,
-        total_horas_residuais=total_horas_residuais,
-        total_saldo_folgas=total_saldo_folgas,
-        total_folgas_usadas=total_folgas_usadas,
-        total_conversoes=total_conversoes,
-        active_page='jornada'
-    )
+        # Calcular totais para o card de resumo
+        total_horas = sum(float(s['balance'].get('total_bruto_hours', 0.0)) for s in all_stats)
+        total_horas_residuais = sum(float(s['balance'].get('residual_hours', 0.0)) for s in all_stats)
+        total_saldo_folgas = sum(int(s['balance'].get('saldo_days', 0)) for s in all_stats)
+        total_folgas_usadas = sum(int(s['balance'].get('assigned_sum', 0)) for s in all_stats)
+        total_conversoes = sum(int(s['balance'].get('converted_sum', 0)) for s in all_stats)
+        
+        return render_template(
+            'jornada/fechado_revisao.html',
+            colaboradores=colaboradores,
+            records=records[:100],
+            all_stats=all_stats,
+            meses_fechados=meses_fechados,
+            collaborator_id=collaborator_id,
+            record_type=record_type,
+            can_edit=can_edit,
+            total_horas=total_horas,
+            total_horas_residuais=total_horas_residuais,
+            total_saldo_folgas=total_saldo_folgas,
+            total_folgas_usadas=total_folgas_usadas,
+            total_conversoes=total_conversoes,
+            active_page='jornada'
+        )
+    except Exception as e:
+        import traceback
+        db.session.rollback()
+        flash(f'Erro ao carregar página: {str(e)}', 'danger')
+        current_app.logger.error(f'Erro em fechado_revisao: {str(e)}\n{traceback.format_exc()}')
+        return redirect(url_for('jornada.em_aberto'))
 
 @bp.route('/arquivados', methods=['GET'], strict_slashes=False)
 @login_required
 def arquivados():
     """Subpágina: ARQUIVADOS - exibe apenas meses arquivados (após pagamento confirmado)"""
-    if current_user.nivel not in ['operador', 'admin', 'DEV']:
-        flash('Acesso negado.', 'danger')
-        return redirect(url_for('home.index'))
-    
-    # Buscar meses arquivados
-    meses_arquivados = MonthStatus.query.filter_by(status='arquivado').order_by(
-        MonthStatus.year.desc(), MonthStatus.month.desc()
-    ).all()
+    try:
+        if current_user.nivel not in ['operador', 'admin', 'DEV']:
+            flash('Acesso negado.', 'danger')
+            return redirect(url_for('home.index'))
+        
+        # Buscar meses arquivados
+        meses_arquivados = MonthStatus.query.filter_by(status='arquivado').order_by(
+            MonthStatus.year.desc(), MonthStatus.month.desc()
+        ).all()
     
     # Buscar registros arquivados (da tabela JornadaArchive)
     collaborator_id = request.args.get('collaborator_id', type=int)
@@ -648,6 +656,8 @@ def arquivados():
             'hours': arch.hours,
             'days': arch.days,
             'amount_paid': arch.amount_paid,
+            'rate_per_day': arch.rate_per_day,
+            'origin': arch.origin,
             'notes': arch.notes,
             'archived_at': arch.archived_at,
             'archived_by': arch.archived_by,
@@ -666,46 +676,52 @@ def arquivados():
     if record_type:
         stats_query = stats_query.filter(JornadaArchive.record_type == record_type)
     
-    all_archived = stats_query.all()
-    total_hours = sum(float(r.hours or 0.0) for r in all_archived if r.record_type == 'horas' and (r.hours or 0.0) > 0)
-    total_folgas_creditos = sum(int(r.days or 0) for r in all_archived if r.record_type == 'folga_adicional' and (not r.origin or r.origin != 'horas'))
-    total_folgas_usadas = sum(int(r.days or 0) for r in all_archived if r.record_type == 'folga_usada')
-    total_conversoes = sum(int(r.days or 0) for r in all_archived if r.record_type == 'conversao')
-    total_valor_pago = sum(float(r.amount_paid or 0.0) for r in all_archived if r.amount_paid)
-    
-    colaboradores = _get_all_collaborators()
-    
-    # Permissões: apenas DEV pode editar meses arquivados
-    can_edit = current_user.nivel == 'DEV'
-    
-    tipo_labels = {
-        'horas': 'Horas Trabalhadas',
-        'folga_adicional': 'Folga Adicional',
-        'folga_usada': 'Folga Usada',
-        'conversao': 'Conversão em R$'
-    }
-    
-    return render_template(
-        'jornada/arquivados.html',
-        active_page='jornada',
-        records=records,
-        archived_records_pag=archived_records_pag,
-        meses_arquivados=meses_arquivados,
-        colaboradores=colaboradores,
-        collaborator_id=collaborator_id,
-        data_inicio=data_inicio,
-        data_fim=data_fim,
-        record_type=record_type,
-        periodo_inicio=periodo_inicio,
-        periodo_fim=periodo_fim,
-        tipo_labels=tipo_labels,
-        total_hours=total_hours,
-        total_folgas_creditos=total_folgas_creditos,
-        total_folgas_usadas=total_folgas_usadas,
-        total_conversoes=total_conversoes,
-        total_valor_pago=total_valor_pago,
-        can_edit=can_edit
-    )
+        all_archived = stats_query.all()
+        total_hours = sum(float(r.hours or 0.0) for r in all_archived if r.record_type == 'horas' and (r.hours or 0.0) > 0)
+        total_folgas_creditos = sum(int(r.days or 0) for r in all_archived if r.record_type == 'folga_adicional' and (not getattr(r, 'origin', None) or getattr(r, 'origin', None) != 'horas'))
+        total_folgas_usadas = sum(int(r.days or 0) for r in all_archived if r.record_type == 'folga_usada')
+        total_conversoes = sum(int(r.days or 0) for r in all_archived if r.record_type == 'conversao')
+        total_valor_pago = sum(float(r.amount_paid or 0.0) for r in all_archived if r.amount_paid)
+        
+        colaboradores = _get_all_collaborators()
+        
+        # Permissões: apenas DEV pode editar meses arquivados
+        can_edit = current_user.nivel == 'DEV'
+        
+        tipo_labels = {
+            'horas': 'Horas Trabalhadas',
+            'folga_adicional': 'Folga Adicional',
+            'folga_usada': 'Folga Usada',
+            'conversao': 'Conversão em R$'
+        }
+        
+        return render_template(
+            'jornada/arquivados.html',
+            active_page='jornada',
+            records=records,
+            archived_records_pag=archived_records_pag,
+            meses_arquivados=meses_arquivados,
+            colaboradores=colaboradores,
+            collaborator_id=collaborator_id,
+            data_inicio=data_inicio,
+            data_fim=data_fim,
+            record_type=record_type,
+            periodo_inicio=periodo_inicio,
+            periodo_fim=periodo_fim,
+            tipo_labels=tipo_labels,
+            total_hours=total_hours,
+            total_folgas_creditos=total_folgas_creditos,
+            total_folgas_usadas=total_folgas_usadas,
+            total_conversoes=total_conversoes,
+            total_valor_pago=total_valor_pago,
+            can_edit=can_edit
+        )
+    except Exception as e:
+        import traceback
+        db.session.rollback()
+        flash(f'Erro ao carregar página: {str(e)}', 'danger')
+        current_app.logger.error(f'Erro em arquivados: {str(e)}\n{traceback.format_exc()}')
+        return redirect(url_for('jornada.em_aberto'))
 
 @bp.route('/novo', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
