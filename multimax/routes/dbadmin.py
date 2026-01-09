@@ -2039,7 +2039,7 @@ def git_update():
     # Comandos a serem executados sequencialmente
     # Inclui rebuild completo do container para garantir que todas as mudanças sejam aplicadas
     commands = [
-        (['git', 'fetch', 'origin', '--all', '--prune'], 'Fetch do repositório remoto'),
+        (['git', 'fetch', '--all', '--prune'], 'Fetch do repositório remoto'),
         (['git', 'reset', '--hard', 'origin/nova-versao-deploy'], 'Reset para branch remoto'),
         (['docker-compose', 'down'], 'Parando containers Docker'),
         (['docker-compose', 'build', '--no-cache'], 'Rebuild completo do container (sem cache)'),

@@ -4,27 +4,27 @@
 {% block content %}
 <div class="jornada-container">
     <!-- Hero Header com Navegação -->
-    <div class="jornada-hero" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+    <div class="jornada-hero">
         <div class="jornada-hero-content">
             <div>
-                <h1 class="jornada-title">
-                    <i class="bi bi-clock-history jornada-title-icon"></i>
+                <h1 class="jornada-title" style="background: var(--jornada-warning); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                    <i class="bi bi-clock-history jornada-title-icon" style="background: var(--jornada-warning); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></i>
                     Fechado para Revisão
                 </h1>
                 <p class="jornada-subtitle">Meses aguardando confirmação de pagamento</p>
             </div>
             <div class="jornada-hero-actions">
                 <!-- Navegação entre subpáginas -->
-                <div class="btn-group" role="group">
-                    <a href="{{ url_for('jornada.em_aberto') }}" class="btn-action btn-action-secondary">
+                <div class="jornada-nav">
+                    <a href="{{ url_for('jornada.em_aberto') }}" class="jornada-nav-item">
                         <i class="bi bi-circle-fill"></i>
                         <span>Em Aberto</span>
                     </a>
-                    <a href="{{ url_for('jornada.fechado_revisao') }}" class="btn-action btn-action-primary">
+                    <a href="{{ url_for('jornada.fechado_revisao') }}" class="jornada-nav-item active">
                         <i class="bi bi-clock-history"></i>
                         <span>Fechado para Revisão</span>
                     </a>
-                    <a href="{{ url_for('jornada.arquivados') }}" class="btn-action btn-action-secondary">
+                    <a href="{{ url_for('jornada.arquivados') }}" class="jornada-nav-item">
                         <i class="bi bi-archive-fill"></i>
                         <span>Arquivados</span>
                     </a>
@@ -35,92 +35,97 @@
 
     <!-- Status dos Meses Fechados -->
     {% if meses_fechados %}
-    <div class="alert alert-warning">
-        <i class="bi bi-exclamation-triangle"></i>
-        <strong>Meses Fechados Aguardando Pagamento:</strong>
-        {% for mes in meses_fechados %}
-        <div class="d-inline-block ms-3">
-            <span class="badge bg-warning text-dark">{{ mes.month_year_str }}</span>
-            <small class="text-muted ms-2">
-                Fechado em {{ mes.closed_at.strftime('%d/%m/%Y %H:%M') if mes.closed_at else '-' }} por {{ mes.closed_by or '-' }}
-            </small>
-            {% if current_user.nivel in ('admin', 'DEV') %}
-            <form method="POST" action="{{ url_for('jornada.confirmar_pagamento', year=mes.year, month=mes.month) }}" style="display: inline;" class="ms-2">
-                <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Confirmar pagamento e arquivar {{ mes.month_year_str }}? Esta ação não pode ser desfeita (exceto por DEV).');">
-                    <i class="bi bi-check-circle"></i> Confirmar Pagamento e Arquivar
-                </button>
-            </form>
-            {% endif %}
+    <div class="jornada-card" style="background: rgba(250, 112, 154, 0.1); border-color: rgba(250, 112, 154, 0.3);">
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="bi bi-exclamation-triangle" style="font-size: 1.5rem; color: #fca5a5;"></i>
+                <strong style="color: var(--jornada-text);">Meses Fechados Aguardando Pagamento:</strong>
+            </div>
+            {% for mes in meses_fechados %}
+            <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; padding: 1rem; background: rgba(255, 255, 255, 0.03); border-radius: 12px; border: 1px solid var(--jornada-border);">
+                <span class="jornada-badge jornada-badge-warning">{{ mes.month_year_str }}</span>
+                <small style="color: var(--jornada-text-muted);">
+                    Fechado em {{ mes.closed_at.strftime('%d/%m/%Y %H:%M') if mes.closed_at else '-' }} por {{ mes.closed_by or '-' }}
+                </small>
+                {% if current_user.nivel in ('admin', 'DEV') %}
+                <form method="POST" action="{{ url_for('jornada.confirmar_pagamento', year=mes.year, month=mes.month) }}" style="display: inline;">
+                    <button type="submit" class="btn-jornada btn-jornada-success" style="padding: 0.5rem 1rem; font-size: 0.875rem;" onclick="return confirm('Confirmar pagamento e arquivar {{ mes.month_year_str }}? Esta ação não pode ser desfeita (exceto por DEV).');">
+                        <i class="bi bi-check-circle"></i> Confirmar Pagamento e Arquivar
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+            {% endfor %}
         </div>
-        {% endfor %}
     </div>
     {% else %}
-    <div class="alert alert-info">
-        <i class="bi bi-info-circle"></i>
-        Nenhum mês fechado para revisão no momento.
+    <div class="jornada-card" style="background: rgba(79, 172, 254, 0.1); border-color: rgba(79, 172, 254, 0.3);">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="bi bi-info-circle" style="font-size: 1.5rem; color: #7dd3fc;"></i>
+            <span style="color: var(--jornada-text);">Nenhum mês fechado para revisão no momento.</span>
+        </div>
     </div>
     {% endif %}
 
     <!-- Filtros -->
-    <div class="filtros-card-modern">
-        <div class="filtros-header-modern">
-            <h3 class="filtros-title">
+    <div class="jornada-filters">
+        <div class="jornada-card-header">
+            <h3 class="jornada-card-title">
                 <i class="bi bi-funnel"></i>
                 Filtros
             </h3>
         </div>
-        <div class="filtros-body-modern">
-            <form method="GET" class="filtros-form-modern" action="{{ url_for('jornada.fechado_revisao') }}">
-                <div class="filtros-grid-modern">
-                    <div class="form-group-modern">
-                        <label class="form-label-modern">
-                            <i class="bi bi-person"></i>
-                            Colaborador
-                        </label>
-                        <select name="collaborator_id" class="form-input-modern" onchange="this.form.submit()">
-                            <option value="">— Todos —</option>
-                            {% for colab in colaboradores %}
-                            <option value="{{ colab.id }}" {% if collaborator_id == colab.id %}selected{% endif %}>
-                                {{ colab.user.name if colab.user else colab.name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group-modern">
-                        <label class="form-label-modern">
-                            <i class="bi bi-tag"></i>
-                            Tipo
-                        </label>
-                        <select name="tipo" class="form-input-modern">
-                            <option value="">— Todos —</option>
-                            <option value="horas" {% if record_type == 'horas' %}selected{% endif %}>Horas</option>
-                            <option value="folga_adicional" {% if record_type == 'folga_adicional' %}selected{% endif %}>Folga Adicional</option>
-                            <option value="folga_usada" {% if record_type == 'folga_usada' %}selected{% endif %}>Folga Usada</option>
-                            <option value="conversao" {% if record_type == 'conversao' %}selected{% endif %}>Conversão</option>
-                        </select>
-                    </div>
+        <form method="GET" action="{{ url_for('jornada.fechado_revisao') }}">
+            <div class="jornada-filter-grid">
+                <div class="jornada-form-group">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-person"></i>
+                        Colaborador
+                    </label>
+                    <select name="collaborator_id" class="jornada-form-select" onchange="this.form.submit()">
+                        <option value="">— Todos —</option>
+                        {% for colab in colaboradores %}
+                        <option value="{{ colab.id }}" {% if collaborator_id == colab.id %}selected{% endif %}>
+                            {{ colab.user.name if colab.user else colab.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
                 </div>
-            </form>
-        </div>
+                <div class="jornada-form-group">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-tag"></i>
+                        Tipo
+                    </label>
+                    <select name="tipo" class="jornada-form-select">
+                        <option value="">— Todos —</option>
+                        <option value="horas" {% if record_type == 'horas' %}selected{% endif %}>Horas</option>
+                        <option value="folga_adicional" {% if record_type == 'folga_adicional' %}selected{% endif %}>Folga Adicional</option>
+                        <option value="folga_usada" {% if record_type == 'folga_usada' %}selected{% endif %}>Folga Usada</option>
+                        <option value="conversao" {% if record_type == 'conversao' %}selected{% endif %}>Conversão</option>
+                    </select>
+                </div>
+            </div>
+        </form>
     </div>
 
     <!-- Registros -->
     {% if records %}
-    <div class="registros-card-modern">
-        <div class="registros-header-modern">
-            <h3 class="registros-title">
-                <i class="bi bi-table"></i>
-                Registros - Meses Fechados para Revisão
-            </h3>
-            {% if can_edit %}
-            <small class="text-muted">Edição permitida para ajustes necessários</small>
-            {% else %}
-            <small class="text-warning">Apenas visualização - mês fechado aguardando pagamento</small>
-            {% endif %}
+    <div class="jornada-card">
+        <div class="jornada-card-header">
+            <div>
+                <h3 class="jornada-card-title">
+                    <i class="bi bi-table"></i>
+                    Registros - Meses Fechados para Revisão
+                </h3>
+                {% if can_edit %}
+                <small style="color: var(--jornada-text-muted); margin-top: 0.5rem; display: block;">Edição permitida para ajustes necessários</small>
+                {% else %}
+                <small style="color: #fca5a5; margin-top: 0.5rem; display: block;">Apenas visualização - mês fechado aguardando pagamento</small>
+                {% endif %}
+            </div>
         </div>
-        <div class="registros-body-modern">
-            <div class="registros-table-wrapper">
-                <table class="registros-table-modern">
+        <div class="jornada-table-wrapper">
+            <table class="jornada-table">
                     <thead>
                         <tr>
                             <th>Data</th>
@@ -137,9 +142,9 @@
                     </thead>
                     <tbody>
                         {% for record in records %}
-                        <tr class="registro-row-modern">
-                            <td class="registro-date-modern">
-                                <i class="bi bi-calendar3"></i>
+                        <tr>
+                            <td>
+                                <i class="bi bi-calendar3" style="margin-right: 0.5rem; opacity: 0.7;"></i>
                                 {{ record.date.strftime('%d/%m/%Y') }}
                             </td>
                             <td>
@@ -147,16 +152,16 @@
                             </td>
                             <td>
                                 {% if record.record_type == 'horas' %}
-                                <span class="badge-tipo-modern badge-horas">Horas</span>
+                                <span class="jornada-badge jornada-badge-primary">Horas</span>
                                 {% elif record.record_type == 'folga_adicional' %}
-                                <span class="badge-tipo-modern badge-folga-adicional">Folga Adicional</span>
+                                <span class="jornada-badge jornada-badge-success">Folga Adicional</span>
                                 {% elif record.record_type == 'folga_usada' %}
-                                <span class="badge-tipo-modern badge-folga-usada">Folga Usada</span>
+                                <span class="jornada-badge jornada-badge-danger">Folga Usada</span>
                                 {% elif record.record_type == 'conversao' %}
-                                <span class="badge-tipo-modern badge-conversao">Conversão</span>
+                                <span class="jornada-badge jornada-badge-info">Conversão</span>
                                 {% endif %}
                             </td>
-                            <td class="registro-value-modern">
+                            <td>
                                 {% if record.record_type == 'horas' %}
                                 <strong>{{ "%.2f"|format(record.hours or 0) }}h</strong>
                                 {% elif record.record_type in ('folga_adicional', 'folga_usada') %}
@@ -165,17 +170,17 @@
                                 <strong>R$ {{ "%.2f"|format(record.amount_paid or 0) }}</strong>
                                 {% endif %}
                             </td>
-                            <td class="registro-origin-modern">{{ record.origin or '-' }}</td>
-                            <td class="registro-notes-modern">{{ record.notes or '-' }}</td>
-                            <td class="registro-created-by-modern">{{ record.created_by or '-' }}</td>
+                            <td>{{ record.origin or '-' }}</td>
+                            <td>{{ record.notes or '-' }}</td>
+                            <td>{{ record.created_by or '-' }}</td>
                             {% if can_edit %}
                             <td class="text-center">
-                                <div class="registro-actions-modern">
-                                    <a href="{{ url_for('jornada.editar', id=record.id) }}" class="btn-action-small btn-edit-small" title="Editar">
+                                <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                                    <a href="{{ url_for('jornada.editar', id=record.id) }}" class="btn-jornada btn-jornada-secondary" style="padding: 0.5rem; font-size: 0.875rem;" title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     <form method="POST" action="{{ url_for('jornada.excluir', id=record.id) }}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir este registro?');">
-                                        <button type="submit" class="btn-action-small btn-delete-small" title="Excluir">
+                                        <button type="submit" class="btn-jornada btn-jornada-danger" style="padding: 0.5rem; font-size: 0.875rem;" title="Excluir">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </form>
@@ -190,22 +195,13 @@
         </div>
     </div>
     {% else %}
-    <div class="empty-state-modern">
-        <div class="empty-icon-modern">
+    <div class="jornada-empty">
+        <div class="jornada-empty-icon">
             <i class="bi bi-inbox"></i>
         </div>
-        <h3 class="empty-title-modern">Nenhum registro encontrado</h3>
-        <p class="empty-text-modern">Nenhum registro encontrado nos meses fechados para revisão.</p>
+        <h3 class="jornada-empty-title">Nenhum registro encontrado</h3>
+        <p class="jornada-empty-text">Nenhum registro encontrado nos meses fechados para revisão.</p>
     </div>
     {% endif %}
 </div>
-
-<style>
-/* Reutilizar estilos de jornada/index.html */
-.jornada-container {
-    padding: 2rem;
-    max-width: 1600px;
-    margin: 0 auto;
-}
-</style>
 {% endblock %}

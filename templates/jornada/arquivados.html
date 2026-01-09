@@ -4,27 +4,27 @@
 {% block content %}
 <div class="jornada-container">
     <!-- Hero Header com Navegação -->
-    <div class="jornada-hero" style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);">
+    <div class="jornada-hero">
         <div class="jornada-hero-content">
             <div>
-                <h1 class="jornada-title">
-                    <i class="bi bi-archive-fill jornada-title-icon"></i>
+                <h1 class="jornada-title" style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                    <i class="bi bi-archive-fill jornada-title-icon" style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></i>
                     Registros Arquivados
                 </h1>
                 <p class="jornada-subtitle">Histórico completo de registros arquivados da jornada</p>
             </div>
             <div class="jornada-hero-actions">
                 <!-- Navegação entre subpáginas -->
-                <div class="btn-group" role="group">
-                    <a href="{{ url_for('jornada.em_aberto') }}" class="btn-action btn-action-secondary">
+                <div class="jornada-nav">
+                    <a href="{{ url_for('jornada.em_aberto') }}" class="jornada-nav-item">
                         <i class="bi bi-circle-fill"></i>
                         <span>Em Aberto</span>
                     </a>
-                    <a href="{{ url_for('jornada.fechado_revisao') }}" class="btn-action btn-action-secondary">
+                    <a href="{{ url_for('jornada.fechado_revisao') }}" class="jornada-nav-item">
                         <i class="bi bi-clock-history"></i>
                         <span>Fechado para Revisão</span>
                     </a>
-                    <a href="{{ url_for('jornada.arquivados') }}" class="btn-action btn-action-primary">
+                    <a href="{{ url_for('jornada.arquivados') }}" class="jornada-nav-item active">
                         <i class="bi bi-archive-fill"></i>
                         <span>Arquivados</span>
                     </a>
@@ -35,192 +35,173 @@
 
     <!-- Status dos Meses Arquivados -->
     {% if meses_arquivados %}
-    <div class="alert alert-success">
-        <i class="bi bi-check-circle"></i>
-        <strong>Meses Arquivados (Pagamento Confirmado):</strong>
-        {% for mes in meses_arquivados %}
-        <span class="badge bg-success ms-2">
-            {{ mes.month_year_str }}
-            <small class="ms-1">(Arquivado em {{ mes.archived_at.strftime('%d/%m/%Y') if mes.archived_at else '-' }})</small>
-        </span>
-        {% if current_user.nivel == 'DEV' %}
-        <form method="POST" action="{{ url_for('jornada.reabrir_mes', year=mes.year, month=mes.month) }}" style="display: inline;" class="ms-2">
-            <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('Reabrir {{ mes.month_year_str }}? Apenas DEV pode fazer isso.');">
-                <i class="bi bi-unlock"></i> Reabrir (DEV)
-            </button>
-        </form>
-        {% endif %}
-        {% endfor %}
+    <div class="jornada-card" style="background: rgba(79, 172, 254, 0.1); border-color: rgba(79, 172, 254, 0.3);">
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="bi bi-check-circle" style="font-size: 1.5rem; color: #7dd3fc;"></i>
+                <strong style="color: var(--jornada-text);">Meses Arquivados (Pagamento Confirmado):</strong>
+            </div>
+            {% for mes in meses_arquivados %}
+            <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; padding: 1rem; background: rgba(255, 255, 255, 0.03); border-radius: 12px; border: 1px solid var(--jornada-border);">
+                <span class="jornada-badge jornada-badge-success">
+                    {{ mes.month_year_str }}
+                    <small style="margin-left: 0.5rem; opacity: 0.8;">(Arquivado em {{ mes.archived_at.strftime('%d/%m/%Y') if mes.archived_at else '-' }})</small>
+                </span>
+                {% if current_user.nivel == 'DEV' %}
+                <form method="POST" action="{{ url_for('jornada.reabrir_mes', year=mes.year, month=mes.month) }}" style="display: inline;">
+                    <button type="submit" class="btn-jornada btn-jornada-warning" style="padding: 0.5rem 1rem; font-size: 0.875rem;" onclick="return confirm('Reabrir {{ mes.month_year_str }}? Apenas DEV pode fazer isso.');">
+                        <i class="bi bi-unlock"></i> Reabrir (DEV)
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
     </div>
     {% endif %}
 
     <!-- Estatísticas Gerais -->
-    <div class="resumo-card-modern">
-        <div class="resumo-header-modern">
-            <h3 class="resumo-title">
+    <div class="jornada-card">
+        <div class="jornada-card-header">
+            <h3 class="jornada-card-title">
                 <i class="bi bi-graph-up"></i>
                 Resumo dos Registros Arquivados
             </h3>
         </div>
-        <div class="resumo-body-modern">
-            <div class="row g-3">
-                <div class="col-md-3 col-sm-6">
-                    <div class="stat-card-jornada stat-primary">
-                        <div class="stat-icon-jornada">
-                            <i class="bi bi-clock"></i>
-                        </div>
-                        <div class="stat-content-jornada">
-                            <div class="stat-label-jornada">Total de Horas</div>
-                            <div class="stat-value-jornada">{{ "%.2f"|format(total_hours) }}h</div>
-                        </div>
-                    </div>
+        <div class="jornada-stats-grid">
+            <div class="jornada-stat-card">
+                <div class="jornada-stat-icon">
+                    <i class="bi bi-clock"></i>
                 </div>
-                <div class="col-md-3 col-sm-6">
-                    <div class="stat-card-jornada stat-success">
-                        <div class="stat-icon-jornada">
-                            <i class="bi bi-calendar-plus"></i>
-                        </div>
-                        <div class="stat-content-jornada">
-                            <div class="stat-label-jornada">Folgas Adicionais</div>
-                            <div class="stat-value-jornada">{{ total_folgas_creditos }} dias</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-sm-6">
-                    <div class="stat-card-jornada stat-warning">
-                        <div class="stat-icon-jornada">
-                            <i class="bi bi-calendar-x"></i>
-                        </div>
-                        <div class="stat-content-jornada">
-                            <div class="stat-label-jornada">Folgas Usadas</div>
-                            <div class="stat-value-jornada">{{ total_folgas_usadas }} dias</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-sm-6">
-                    <div class="stat-card-jornada stat-info">
-                        <div class="stat-icon-jornada">
-                            <i class="bi bi-cash-coin"></i>
-                        </div>
-                        <div class="stat-content-jornada">
-                            <div class="stat-label-jornada">Conversões</div>
-                            <div class="stat-value-jornada">{{ total_conversoes }} dias</div>
-                        </div>
-                    </div>
-                </div>
-                {% if total_valor_pago > 0 %}
-                <div class="col-md-3 col-sm-6">
-                    <div class="stat-card-jornada stat-secondary">
-                        <div class="stat-icon-jornada stat-icon-secondary">
-                            <i class="bi bi-wallet2"></i>
-                        </div>
-                        <div class="stat-content-jornada">
-                            <div class="stat-label-jornada">Total Pago</div>
-                            <div class="stat-value-jornada">R$ {{ "%.2f"|format(total_valor_pago) }}</div>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
+                <div class="jornada-stat-label">Total de Horas</div>
+                <div class="jornada-stat-value">{{ "%.2f"|format(total_hours) }}h</div>
             </div>
+            <div class="jornada-stat-card">
+                <div class="jornada-stat-icon" style="background: var(--jornada-success);">
+                    <i class="bi bi-calendar-plus"></i>
+                </div>
+                <div class="jornada-stat-label">Folgas Adicionais</div>
+                <div class="jornada-stat-value">{{ total_folgas_creditos }} dias</div>
+            </div>
+            <div class="jornada-stat-card">
+                <div class="jornada-stat-icon" style="background: var(--jornada-warning);">
+                    <i class="bi bi-calendar-x"></i>
+                </div>
+                <div class="jornada-stat-label">Folgas Usadas</div>
+                <div class="jornada-stat-value">{{ total_folgas_usadas }} dias</div>
+            </div>
+            <div class="jornada-stat-card">
+                <div class="jornada-stat-icon" style="background: var(--jornada-info);">
+                    <i class="bi bi-cash-coin"></i>
+                </div>
+                <div class="jornada-stat-label">Conversões</div>
+                <div class="jornada-stat-value">{{ total_conversoes }} dias</div>
+            </div>
+            {% if total_valor_pago > 0 %}
+            <div class="jornada-stat-card">
+                <div class="jornada-stat-icon" style="background: var(--jornada-secondary);">
+                    <i class="bi bi-wallet2"></i>
+                </div>
+                <div class="jornada-stat-label">Total Pago</div>
+                <div class="jornada-stat-value">R$ {{ "%.2f"|format(total_valor_pago) }}</div>
+            </div>
+            {% endif %}
         </div>
     </div>
 
     <!-- Filtros -->
-    <div class="filtros-card-modern">
-        <div class="filtros-header-modern">
-            <h3 class="filtros-title">
+    <div class="jornada-filters">
+        <div class="jornada-card-header">
+            <h3 class="jornada-card-title">
                 <i class="bi bi-funnel"></i>
                 Filtros
             </h3>
         </div>
-        <div class="filtros-body-modern">
-            <form method="GET" class="filtros-form-modern" action="{{ url_for('jornada.arquivados') }}">
-                <div class="filtros-grid-modern">
-                    <div class="form-group-modern">
-                        <label class="form-label-modern">
-                            <i class="bi bi-person"></i>
-                            Colaborador
-                        </label>
-                        <select name="collaborator_id" class="form-input-modern">
-                            <option value="">— Todos —</option>
-                            {% for colab in colaboradores %}
-                            <option value="{{ colab.id }}" {% if collaborator_id == colab.id %}selected{% endif %}>
-                                {{ colab.user.name if colab.user else colab.name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group-modern">
-                        <label class="form-label-modern">
-                            <i class="bi bi-tag"></i>
-                            Tipo
-                        </label>
-                        <select name="tipo" class="form-input-modern">
-                            <option value="">— Todos —</option>
-                            <option value="horas" {% if record_type == 'horas' %}selected{% endif %}>Horas</option>
-                            <option value="folga_adicional" {% if record_type == 'folga_adicional' %}selected{% endif %}>Folga Adicional</option>
-                            <option value="folga_usada" {% if record_type == 'folga_usada' %}selected{% endif %}>Folga Usada</option>
-                            <option value="conversao" {% if record_type == 'conversao' %}selected{% endif %}>Conversão</option>
-                        </select>
-                    </div>
-                    <div class="form-group-modern">
-                        <label class="form-label-modern">
-                            <i class="bi bi-calendar3"></i>
-                            Data do Registro - Início
-                        </label>
-                        <input type="date" name="inicio" class="form-input-modern" value="{{ data_inicio }}">
-                    </div>
-                    <div class="form-group-modern">
-                        <label class="form-label-modern">
-                            <i class="bi bi-calendar-check"></i>
-                            Data do Registro - Fim
-                        </label>
-                        <input type="date" name="fim" class="form-input-modern" value="{{ data_fim }}">
-                    </div>
-                    <div class="form-group-modern">
-                        <label class="form-label-modern">
-                            <i class="bi bi-calendar-range"></i>
-                            Período Arquivado - Início
-                        </label>
-                        <input type="date" name="periodo_inicio" class="form-input-modern" value="{{ periodo_inicio }}">
-                    </div>
-                    <div class="form-group-modern">
-                        <label class="form-label-modern">
-                            <i class="bi bi-calendar-range-fill"></i>
-                            Período Arquivado - Fim
-                        </label>
-                        <input type="date" name="periodo_fim" class="form-input-modern" value="{{ periodo_fim }}">
-                    </div>
+        <form method="GET" action="{{ url_for('jornada.arquivados') }}">
+            <div class="jornada-filter-grid">
+                <div class="jornada-form-group">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-person"></i>
+                        Colaborador
+                    </label>
+                    <select name="collaborator_id" class="jornada-form-select">
+                        <option value="">— Todos —</option>
+                        {% for colab in colaboradores %}
+                        <option value="{{ colab.id }}" {% if collaborator_id == colab.id %}selected{% endif %}>
+                            {{ colab.user.name if colab.user else colab.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
                 </div>
-                <div class="d-flex gap-2 justify-content-end mt-3">
-                    <a href="{{ url_for('jornada.arquivados') }}" class="btn btn-secondary">
-                        <i class="bi bi-x-circle"></i>
-                        Limpar Filtros
-                    </a>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-search"></i>
-                        Filtrar
-                    </button>
+                <div class="jornada-form-group">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-tag"></i>
+                        Tipo
+                    </label>
+                    <select name="tipo" class="jornada-form-select">
+                        <option value="">— Todos —</option>
+                        <option value="horas" {% if record_type == 'horas' %}selected{% endif %}>Horas</option>
+                        <option value="folga_adicional" {% if record_type == 'folga_adicional' %}selected{% endif %}>Folga Adicional</option>
+                        <option value="folga_usada" {% if record_type == 'folga_usada' %}selected{% endif %}>Folga Usada</option>
+                        <option value="conversao" {% if record_type == 'conversao' %}selected{% endif %}>Conversão</option>
+                    </select>
                 </div>
-            </form>
-        </div>
+                <div class="jornada-form-group">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-calendar3"></i>
+                        Data do Registro - Início
+                    </label>
+                    <input type="date" name="inicio" class="jornada-form-input" value="{{ data_inicio }}">
+                </div>
+                <div class="jornada-form-group">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-calendar-check"></i>
+                        Data do Registro - Fim
+                    </label>
+                    <input type="date" name="fim" class="jornada-form-input" value="{{ data_fim }}">
+                </div>
+                <div class="jornada-form-group">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-calendar-range"></i>
+                        Período Arquivado - Início
+                    </label>
+                    <input type="date" name="periodo_inicio" class="jornada-form-input" value="{{ periodo_inicio }}">
+                </div>
+                <div class="jornada-form-group">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-calendar-range-fill"></i>
+                        Período Arquivado - Fim
+                    </label>
+                    <input type="date" name="periodo_fim" class="jornada-form-input" value="{{ periodo_fim }}">
+                </div>
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                <a href="{{ url_for('jornada.arquivados') }}" class="btn-jornada btn-jornada-secondary">
+                    <i class="bi bi-x-circle"></i>
+                    Limpar Filtros
+                </a>
+                <button type="submit" class="btn-jornada btn-jornada-primary">
+                    <i class="bi bi-search"></i>
+                    Filtrar
+                </button>
+            </div>
+        </form>
     </div>
 
     <!-- Tabela de Registros -->
-    <div class="registros-card-modern">
-        <div class="registros-header-modern">
-            <h3 class="registros-title">
+    <div class="jornada-card">
+        <div class="jornada-card-header">
+            <h3 class="jornada-card-title">
                 <i class="bi bi-archive"></i>
                 Registros Arquivados
                 {% if archived_records_pag.total %}
-                <small class="text-muted">({{ archived_records_pag.total }} registro(s))</small>
+                <small style="color: var(--jornada-text-muted); font-weight: 400;">({{ archived_records_pag.total }} registro(s))</small>
                 {% endif %}
             </h3>
         </div>
-        <div class="registros-body-modern">
-            {% if records %}
-            <div class="registros-table-wrapper">
-                <table class="registros-table-modern">
+        {% if records %}
+        <div class="jornada-table-wrapper">
+            <table class="jornada-table">
                     <thead>
                         <tr>
                             <th>Data do Registro</th>
@@ -238,9 +219,9 @@
                     </thead>
                     <tbody>
                         {% for record in records %}
-                        <tr class="registro-row-modern">
-                            <td class="registro-date-modern">
-                                <i class="bi bi-calendar3"></i>
+                        <tr>
+                            <td>
+                                <i class="bi bi-calendar3" style="margin-right: 0.5rem; opacity: 0.7;"></i>
                                 {{ record.date.strftime('%d/%m/%Y') }}
                             </td>
                             <td>
@@ -248,16 +229,16 @@
                             </td>
                             <td>
                                 {% if record.record_type == 'horas' %}
-                                <span class="badge-tipo-modern badge-horas">Horas</span>
+                                <span class="jornada-badge jornada-badge-primary">Horas</span>
                                 {% elif record.record_type == 'folga_adicional' %}
-                                <span class="badge-tipo-modern badge-folga-adicional">Folga Adicional</span>
+                                <span class="jornada-badge jornada-badge-success">Folga Adicional</span>
                                 {% elif record.record_type == 'folga_usada' %}
-                                <span class="badge-tipo-modern badge-folga-usada">Folga Usada</span>
+                                <span class="jornada-badge jornada-badge-danger">Folga Usada</span>
                                 {% elif record.record_type == 'conversao' %}
-                                <span class="badge-tipo-modern badge-conversao">Conversão</span>
+                                <span class="jornada-badge jornada-badge-info">Conversão</span>
                                 {% endif %}
                             </td>
-                            <td class="registro-value-modern">
+                            <td>
                                 {% if record.record_type == 'horas' %}
                                 <strong>{{ "%.2f"|format(record.hours or 0) }}h</strong>
                                 {% elif record.record_type in ('folga_adicional', 'folga_usada') %}
@@ -267,30 +248,30 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <small class="text-muted">
+                                <small style="color: var(--jornada-text-muted);">
                                     {{ record.archive_period_start.strftime('%d/%m/%Y') }}<br>
                                     até {{ record.archive_period_end.strftime('%d/%m/%Y') }}
                                 </small>
                                 {% if record.description %}
-                                <br><small class="text-muted"><em>{{ record.description }}</em></small>
+                                <br><small style="color: var(--jornada-text-muted);"><em>{{ record.description }}</em></small>
                                 {% endif %}
                             </td>
                             <td>
-                                <small class="text-muted">
+                                <small style="color: var(--jornada-text-muted);">
                                     {{ record.archived_at.strftime('%d/%m/%Y') if record.archived_at else '-' }}<br>
                                     {{ record.archived_at.strftime('%H:%M') if record.archived_at else '' }}
                                 </small>
                             </td>
                             <td>
-                                <small class="text-muted">{{ record.archived_by or '-' }}</small>
+                                <small style="color: var(--jornada-text-muted);">{{ record.archived_by or '-' }}</small>
                             </td>
-                            <td class="registro-notes-modern">{{ record.notes or '-' }}</td>
+                            <td>{{ record.notes or '-' }}</td>
                             {% if can_edit %}
                             <td class="text-center">
-                                <div class="alert alert-warning mb-0 py-1 px-2" style="font-size: 0.75rem;">
+                                <span class="jornada-badge jornada-badge-warning" style="font-size: 0.75rem;">
                                     <i class="bi bi-exclamation-triangle"></i>
                                     Apenas DEV pode editar
-                                </div>
+                                </span>
                             </td>
                             {% endif %}
                         </tr>
@@ -301,65 +282,72 @@
 
             <!-- Paginação -->
             {% if archived_records_pag.pages > 1 %}
-            <nav aria-label="Paginação de registros arquivados" class="mt-4">
-                <ul class="pagination justify-content-center">
-                    {% if archived_records_pag.has_prev %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('jornada.arquivados', page=archived_records_pag.prev_num, collaborator_id=collaborator_id, inicio=data_inicio, fim=data_fim, tipo=record_type, periodo_inicio=periodo_inicio, periodo_fim=periodo_fim) }}">
-                            <i class="bi bi-chevron-left"></i> Anterior
-                        </a>
-                    </li>
-                    {% else %}
-                    <li class="page-item disabled">
-                        <span class="page-link"><i class="bi bi-chevron-left"></i> Anterior</span>
-                    </li>
-                    {% endif %}
-
-                    {% for page_num in archived_records_pag.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-                        {% if page_num %}
-                            {% if page_num == archived_records_pag.page %}
-                            <li class="page-item active">
-                                <span class="page-link">{{ page_num }}</span>
-                            </li>
-                            {% else %}
-                            <li class="page-item">
-                                <a class="page-link" href="{{ url_for('jornada.arquivados', page=page_num, collaborator_id=collaborator_id, inicio=data_inicio, fim=data_fim, tipo=record_type, periodo_inicio=periodo_inicio, periodo_fim=periodo_fim) }}">
-                                    {{ page_num }}
-                                </a>
-                            </li>
-                            {% endif %}
+            <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--jornada-border);">
+                <nav aria-label="Paginação de registros arquivados">
+                    <ul style="display: flex; justify-content: center; gap: 0.5rem; list-style: none; padding: 0; margin: 0;">
+                        {% if archived_records_pag.has_prev %}
+                        <li>
+                            <a class="btn-jornada btn-jornada-secondary" href="{{ url_for('jornada.arquivados', page=archived_records_pag.prev_num, collaborator_id=collaborator_id, inicio=data_inicio, fim=data_fim, tipo=record_type, periodo_inicio=periodo_inicio, periodo_fim=periodo_fim) }}" style="padding: 0.5rem 1rem;">
+                                <i class="bi bi-chevron-left"></i> Anterior
+                            </a>
+                        </li>
                         {% else %}
-                            <li class="page-item disabled">
-                                <span class="page-link">…</span>
-                            </li>
+                        <li>
+                            <span class="btn-jornada btn-jornada-secondary" style="opacity: 0.5; cursor: not-allowed; padding: 0.5rem 1rem;">
+                                <i class="bi bi-chevron-left"></i> Anterior
+                            </span>
+                        </li>
                         {% endif %}
-                    {% endfor %}
 
-                    {% if archived_records_pag.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('jornada.arquivados', page=archived_records_pag.next_num, collaborator_id=collaborator_id, inicio=data_inicio, fim=data_fim, tipo=record_type, periodo_inicio=periodo_inicio, periodo_fim=periodo_fim) }}">
-                            Próximo <i class="bi bi-chevron-right"></i>
-                        </a>
-                    </li>
-                    {% else %}
-                    <li class="page-item disabled">
-                        <span class="page-link">Próximo <i class="bi bi-chevron-right"></i></span>
-                    </li>
-                    {% endif %}
-                </ul>
-                <div class="text-center text-muted mt-2">
-                    Página {{ archived_records_pag.page }} de {{ archived_records_pag.pages }} 
-                    ({{ archived_records_pag.total }} registro(s) no total)
-                </div>
-            </nav>
+                        {% for page_num in archived_records_pag.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                            {% if page_num %}
+                                {% if page_num == archived_records_pag.page %}
+                                <li>
+                                    <span class="btn-jornada btn-jornada-primary" style="padding: 0.5rem 1rem;">{{ page_num }}</span>
+                                </li>
+                                {% else %}
+                                <li>
+                                    <a class="btn-jornada btn-jornada-secondary" href="{{ url_for('jornada.arquivados', page=page_num, collaborator_id=collaborator_id, inicio=data_inicio, fim=data_fim, tipo=record_type, periodo_inicio=periodo_inicio, periodo_fim=periodo_fim) }}" style="padding: 0.5rem 1rem;">
+                                        {{ page_num }}
+                                    </a>
+                                </li>
+                                {% endif %}
+                            {% else %}
+                                <li>
+                                    <span style="padding: 0.5rem 1rem; color: var(--jornada-text-muted);">…</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if archived_records_pag.has_next %}
+                        <li>
+                            <a class="btn-jornada btn-jornada-secondary" href="{{ url_for('jornada.arquivados', page=archived_records_pag.next_num, collaborator_id=collaborator_id, inicio=data_inicio, fim=data_fim, tipo=record_type, periodo_inicio=periodo_inicio, periodo_fim=periodo_fim) }}" style="padding: 0.5rem 1rem;">
+                                Próximo <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li>
+                            <span class="btn-jornada btn-jornada-secondary" style="opacity: 0.5; cursor: not-allowed; padding: 0.5rem 1rem;">
+                                Próximo <i class="bi bi-chevron-right"></i>
+                            </span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                    <div style="text-align: center; color: var(--jornada-text-muted); margin-top: 1rem;">
+                        Página {{ archived_records_pag.page }} de {{ archived_records_pag.pages }} 
+                        ({{ archived_records_pag.total }} registro(s) no total)
+                    </div>
+                </nav>
+            </div>
             {% endif %}
-            {% else %}
-            <div class="empty-state-modern">
-                <div class="empty-icon-modern">
-                    <i class="bi bi-archive"></i>
-                </div>
-                <h3 class="empty-title-modern">Nenhum registro arquivado encontrado</h3>
-                <p class="empty-text-modern">
+        </div>
+        {% else %}
+        <div class="jornada-empty">
+            <div class="jornada-empty-icon">
+                <i class="bi bi-archive"></i>
+            </div>
+            <h3 class="jornada-empty-title">Nenhum registro arquivado encontrado</h3>
+            <p class="jornada-empty-text">
                     {% if collaborator_id or data_inicio or data_fim or record_type or periodo_inicio or periodo_fim %}
                     Nenhum registro arquivado encontrado com os filtros aplicados. Tente ajustar os filtros.
                     {% else %}

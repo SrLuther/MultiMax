@@ -8,87 +8,127 @@
 {% endblock %}
 
 {% block content %}
-<div class="mm-page-header mm-mb-6">
-    <h1 class="mm-page-title">
-        <i class="bi bi-pencil mm-text-primary"></i>
-        Editar Registro de Jornada
-    </h1>
-    <p class="mm-text-muted">Atualize as informações do registro</p>
-</div>
+<div class="jornada-container">
+    <div class="jornada-hero">
+        <div class="jornada-hero-content">
+            <div>
+                <h1 class="jornada-title">
+                    <i class="bi bi-pencil jornada-title-icon"></i>
+                    Editar Registro de Jornada
+                </h1>
+                <p class="jornada-subtitle">Atualize as informações do registro</p>
+            </div>
+            <a href="{{ url_for('jornada.em_aberto', collaborator_id=record.collaborator_id) }}" class="btn-jornada btn-jornada-secondary">
+                <i class="bi bi-arrow-left"></i>
+                <span>Voltar</span>
+            </a>
+        </div>
+    </div>
 
-{% if not can_edit %}
-<div class="alert alert-danger">
-    <i class="bi bi-exclamation-triangle"></i>
-    <strong>Edição Bloqueada:</strong> O mês {{ month_status.month_year_str }} está {{ status_display }}. 
-    {% if current_user.nivel == 'admin' %}
-    Apenas DEV pode editar meses arquivados.
-    {% elif current_user.nivel == 'operador' %}
-    Operadores não podem editar registros.
+    {% if not can_edit %}
+    <div class="jornada-card" style="background: rgba(255, 107, 107, 0.1); border-color: rgba(255, 107, 107, 0.3);">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <i class="bi bi-exclamation-triangle" style="font-size: 1.5rem; color: #fca5a5;"></i>
+            <div>
+                <strong style="color: var(--jornada-text);">Edição Bloqueada:</strong> O mês {{ month_status.month_year_str }} está {{ status_display }}. 
+                {% if current_user.nivel == 'admin' %}
+                Apenas DEV pode editar meses arquivados.
+                {% elif current_user.nivel == 'operador' %}
+                Operadores não podem editar registros.
+                {% endif %}
+            </div>
+        </div>
+    </div>
     {% endif %}
-</div>
-{% endif %}
 
-<div class="mm-card">
-    <div class="mm-card-body">
+    <div class="jornada-card">
         <form method="POST">
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label">Colaborador</label>
-                    <input type="text" class="form-control" value="{{ record.collaborator.name }}" disabled>
-                    <small class="form-text text-muted">Não é possível alterar o colaborador</small>
+            <div class="jornada-filter-grid">
+                <div class="jornada-form-group">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-person"></i>
+                        Colaborador
+                    </label>
+                    <input type="text" class="jornada-form-input" value="{{ record.collaborator.name }}" disabled style="opacity: 0.6; cursor: not-allowed;">
+                    <small style="color: var(--jornada-text-muted); font-size: 0.75rem; margin-top: 0.25rem; display: block;">Não é possível alterar o colaborador</small>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label">Data <span class="text-danger">*</span></label>
-                    <input type="date" name="date" class="form-control" required value="{{ record.date.strftime('%Y-%m-%d') }}" {% if not can_edit %}disabled{% endif %}>
+                <div class="jornada-form-group">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-calendar3"></i>
+                        Data <span style="color: #ef4444;">*</span>
+                    </label>
+                    <input type="date" name="date" class="jornada-form-input" required value="{{ record.date.strftime('%Y-%m-%d') }}" {% if not can_edit %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label">Tipo</label>
-                    <input type="text" class="form-control" value="{{ record.record_type }}" disabled>
+                <div class="jornada-form-group">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-tag"></i>
+                        Tipo
+                    </label>
+                    <input type="text" class="jornada-form-input" value="{{ record.record_type }}" disabled style="opacity: 0.6; cursor: not-allowed;">
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label">Origem</label>
-                    <input type="text" class="form-control" value="{{ record.origin or '-' }}" disabled>
+                <div class="jornada-form-group">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-gear"></i>
+                        Origem
+                    </label>
+                    <input type="text" class="jornada-form-input" value="{{ record.origin or '-' }}" disabled style="opacity: 0.6; cursor: not-allowed;">
                 </div>
                 {% if record.record_type == 'horas' %}
-                <div class="col-md-6">
-                    <label class="form-label">Horas</label>
-                    <input type="number" name="hours" class="form-control" step="0.01" value="{{ record.hours or 0 }}" {% if not can_edit %}disabled{% endif %}>
+                <div class="jornada-form-group">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-clock"></i>
+                        Horas
+                    </label>
+                    <input type="number" name="hours" class="jornada-form-input" step="0.01" value="{{ record.hours or 0 }}" {% if not can_edit %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
                 </div>
                 {% elif record.record_type in ('folga_adicional', 'folga_usada') %}
-                <div class="col-md-6">
-                    <label class="form-label">Dias</label>
-                    <input type="number" name="days" class="form-control" value="{{ record.days or 1 }}" {% if not can_edit %}disabled{% endif %}>
+                <div class="jornada-form-group">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-calendar-check"></i>
+                        Dias
+                    </label>
+                    <input type="number" name="days" class="jornada-form-input" value="{{ record.days or 1 }}" {% if not can_edit %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
                 </div>
                 {% elif record.record_type == 'conversao' %}
-                <div class="col-md-6">
-                    <label class="form-label">Dias</label>
-                    <input type="number" name="days" class="form-control" value="{{ record.days or 0 }}" {% if not can_edit %}disabled{% endif %}>
+                <div class="jornada-form-group">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-calendar-check"></i>
+                        Dias
+                    </label>
+                    <input type="number" name="days" class="jornada-form-input" value="{{ record.days or 0 }}" {% if not can_edit %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label">Valor Pago (R$)</label>
-                    <input type="number" name="amount_paid" class="form-control" step="0.01" value="{{ record.amount_paid or 0 }}" {% if not can_edit %}disabled{% endif %}>
+                <div class="jornada-form-group">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-cash-coin"></i>
+                        Valor Pago (R$)
+                    </label>
+                    <input type="number" name="amount_paid" class="jornada-form-input" step="0.01" value="{{ record.amount_paid or 0 }}" {% if not can_edit %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
                 </div>
                 {% endif %}
-                <div class="col-12">
-                    <label class="form-label">Observações</label>
-                    <textarea name="notes" class="form-control" rows="3" {% if not can_edit %}disabled{% endif %}>{{ record.notes or '' }}</textarea>
+                <div class="jornada-form-group" style="grid-column: 1 / -1;">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-card-text"></i>
+                        Observações
+                    </label>
+                    <textarea name="notes" class="jornada-form-input" rows="3" style="resize: vertical;" {% if not can_edit %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>{{ record.notes or '' }}</textarea>
                 </div>
             </div>
-            <div class="mm-flex mm-gap-2 mm-mt-4">
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--jornada-border);">
+                <a href="{{ url_for('jornada.em_aberto', collaborator_id=record.collaborator_id) }}" class="btn-jornada btn-jornada-secondary">
+                    <i class="bi bi-x-circle"></i>
+                    Cancelar
+                </a>
                 {% if can_edit %}
-                <button type="submit" class="mm-btn mm-btn-primary">
+                <button type="submit" class="btn-jornada btn-jornada-primary">
                     <i class="bi bi-check-lg"></i>
                     Salvar Alterações
                 </button>
                 {% else %}
-                <button type="button" class="mm-btn mm-btn-secondary" disabled>
+                <button type="button" class="btn-jornada btn-jornada-secondary" disabled style="opacity: 0.5; cursor: not-allowed;">
                     <i class="bi bi-lock"></i>
                     Edição Bloqueada
                 </button>
                 {% endif %}
-                <a href="{{ url_for('jornada.em_aberto', collaborator_id=record.collaborator_id) }}" class="mm-btn mm-btn-outline">
-                    Cancelar
-                </a>
             </div>
         </form>
     </div>

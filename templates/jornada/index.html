@@ -16,7 +16,7 @@
             <div class="jornada-hero-actions">
                 {% if current_user.nivel in ('admin', 'DEV', 'operador') %}
                 <div class="btn-group">
-                    <button type="button" class="btn-action btn-action-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <button type="button" class="btn-jornada btn-jornada-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-download"></i>
                         <span>Exportar</span>
                     </button>
@@ -40,19 +40,19 @@
                         </li>
                     </ul>
                 </div>
-                <a class="btn-action btn-action-primary" href="{{ url_for('jornada.novo') }}">
+                <a class="btn-jornada btn-jornada-primary" href="{{ url_for('jornada.novo') }}">
                     <i class="bi bi-plus-circle"></i>
                     <span>Novo Registro</span>
                 </a>
                 {% endif %}
                 {% if current_user.nivel in ('admin', 'DEV') %}
-                <a class="btn-action btn-action-danger" href="{{ url_for('jornada.arquivar') }}" style="background: var(--mm-danger); border-color: var(--mm-danger); color: white;">
+                <a class="btn-jornada btn-jornada-danger" href="{{ url_for('jornada.arquivar') }}">
                     <i class="bi bi-archive"></i>
                     <span>Arquivar Dados</span>
                 </a>
                 {% endif %}
                 {% if current_user.nivel in ('operador', 'admin', 'DEV') %}
-                <a class="btn-action btn-action-secondary" href="{{ url_for('jornada.arquivados') }}" style="background: rgba(107, 114, 128, 0.9); border-color: rgba(107, 114, 128, 0.9); color: white;">
+                <a class="btn-jornada btn-jornada-secondary" href="{{ url_for('jornada.arquivados') }}">
                     <i class="bi bi-archive-fill"></i>
                     <span>Ver Arquivados</span>
                 </a>
@@ -62,211 +62,191 @@
     </div>
 
     <!-- Filtros -->
-    <div class="filtros-card-modern">
-        <div class="filtros-header-modern">
-            <h3 class="filtros-title">
+    <div class="jornada-filters">
+        <div class="jornada-card-header">
+            <h3 class="jornada-card-title">
                 <i class="bi bi-funnel"></i>
                 Filtros
             </h3>
         </div>
-        <div class="filtros-body-modern">
-            <form method="GET" class="filtros-form-modern">
-                <div class="filtros-grid-modern">
-                    <div class="form-group-modern">
-                        <label class="form-label-modern">
-                            <i class="bi bi-person"></i>
-                            Colaborador/Usuário
-                        </label>
-                        <select name="collaborator_id" class="form-input-modern" onchange="this.form.submit()">
-                            <option value="">— Todos —</option>
-                            {% for colab in colaboradores %}
-                            <option value="{{ colab.id }}" {% if collaborator_id == colab.id %}selected{% endif %}>
-                                {{ colab.user.name if colab.user else colab.name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group-modern">
-                        <label class="form-label-modern">
-                            <i class="bi bi-tag"></i>
-                            Tipo
-                        </label>
-                        <select name="tipo" class="form-input-modern">
-                            <option value="">— Todos —</option>
-                            <option value="horas" {% if record_type == 'horas' %}selected{% endif %}>Horas</option>
-                            <option value="folga_adicional" {% if record_type == 'folga_adicional' %}selected{% endif %}>Folga Adicional</option>
-                            <option value="folga_usada" {% if record_type == 'folga_usada' %}selected{% endif %}>Folga Usada</option>
-                            <option value="conversao" {% if record_type == 'conversao' %}selected{% endif %}>Conversão</option>
-                        </select>
-                    </div>
-                    <div class="form-group-modern">
-                        <label class="form-label-modern">
-                            <i class="bi bi-calendar3"></i>
-                            Data Início
-                        </label>
-                        <input type="date" name="inicio" class="form-input-modern" value="{{ data_inicio }}" onchange="this.form.submit()">
-                    </div>
-                    <div class="form-group-modern">
-                        <label class="form-label-modern">
-                            <i class="bi bi-calendar-check"></i>
-                            Data Fim
-                        </label>
-                        <input type="date" name="fim" class="form-input-modern" value="{{ data_fim }}" onchange="this.form.submit()">
-                    </div>
+        <form method="GET">
+            <div class="jornada-filter-grid">
+                <div class="jornada-form-group">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-person"></i>
+                        Colaborador/Usuário
+                    </label>
+                    <select name="collaborator_id" class="jornada-form-select" onchange="this.form.submit()">
+                        <option value="">— Todos —</option>
+                        {% for colab in colaboradores %}
+                        <option value="{{ colab.id }}" {% if collaborator_id == colab.id %}selected{% endif %}>
+                            {{ colab.user.name if colab.user else colab.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
                 </div>
-            </form>
-        </div>
+                <div class="jornada-form-group">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-tag"></i>
+                        Tipo
+                    </label>
+                    <select name="tipo" class="jornada-form-select">
+                        <option value="">— Todos —</option>
+                        <option value="horas" {% if record_type == 'horas' %}selected{% endif %}>Horas</option>
+                        <option value="folga_adicional" {% if record_type == 'folga_adicional' %}selected{% endif %}>Folga Adicional</option>
+                        <option value="folga_usada" {% if record_type == 'folga_usada' %}selected{% endif %}>Folga Usada</option>
+                        <option value="conversao" {% if record_type == 'conversao' %}selected{% endif %}>Conversão</option>
+                    </select>
+                </div>
+                <div class="jornada-form-group">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-calendar3"></i>
+                        Data Início
+                    </label>
+                    <input type="date" name="inicio" class="jornada-form-input" value="{{ data_inicio }}" onchange="this.form.submit()">
+                </div>
+                <div class="jornada-form-group">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-calendar-check"></i>
+                        Data Fim
+                    </label>
+                    <input type="date" name="fim" class="jornada-form-input" value="{{ data_fim }}" onchange="this.form.submit()">
+                </div>
+            </div>
+        </form>
     </div>
 
     <!-- Estatísticas Gerais -->
     {% if all_stats %}
-    <div class="resumo-card-modern">
-        <div class="resumo-header-modern">
-            <h3 class="resumo-title">
+    <div class="jornada-card">
+        <div class="jornada-card-header">
+            <h3 class="jornada-card-title">
                 <i class="bi bi-graph-up"></i>
                 Resumo Geral
             </h3>
         </div>
-        <div class="resumo-body-modern">
-            <div class="resumo-table-wrapper">
-                <table class="resumo-table-modern">
-                    <thead>
-                        <tr>
-                            <th>Colaborador/Usuário</th>
-                            <th class="text-center">Horas Residuais</th>
-                            <th class="text-center">Saldo de Folgas</th>
-                            <th class="text-center">Folgas Usadas</th>
-                            <th class="text-center">Conversões</th>
-                            <th class="text-center">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in all_stats %}
-                        <tr class="resumo-row-modern">
-                            <td>
-                                <div class="resumo-colab-modern">
-                                    <div class="resumo-avatar-modern">
-                                        {{ item.display_name[:2].upper() if item.display_name else '?' }}
-                                    </div>
-                                    <div>
-                                        <strong>{{ item.display_name }}</strong>
-                                        {% if item.collaborator.role %}
-                                        <div class="resumo-role-modern">{{ item.collaborator.role }}</div>
-                                        {% endif %}
-                                    </div>
+        <div class="jornada-table-wrapper">
+            <table class="jornada-table">
+                <thead>
+                    <tr>
+                        <th>Colaborador/Usuário</th>
+                        <th class="text-center">Horas Residuais</th>
+                        <th class="text-center">Saldo de Folgas</th>
+                        <th class="text-center">Folgas Usadas</th>
+                        <th class="text-center">Conversões</th>
+                        <th class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in all_stats %}
+                    <tr>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div style="width: 40px; height: 40px; border-radius: 10px; background: var(--jornada-primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.875rem;">
+                                    {{ item.display_name[:2].upper() if item.display_name else '?' }}
                                 </div>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge-horas-modern">{{ "%.2f"|format(item.balance.residual_hours) }}h</span>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge-success-modern">{{ item.balance.saldo_days }} dias</span>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge-warning-modern">{{ item.balance.assigned_sum }} dias</span>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge-info-modern">{{ item.balance.converted_sum }} dias</span>
-                            </td>
-                            <td class="text-center">
-                                <a href="{{ url_for('jornada.index', collaborator_id=item.collaborator.id) }}" class="btn-action-small btn-view-small" title="Ver detalhes">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                                <div>
+                                    <strong>{{ item.display_name }}</strong>
+                                    {% if item.collaborator.role %}
+                                    <div style="font-size: 0.75rem; color: var(--jornada-text-muted); margin-top: 0.25rem;">{{ item.collaborator.role }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            <span class="jornada-badge jornada-badge-primary">{{ "%.2f"|format(item.balance.residual_hours) }}h</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="jornada-badge jornada-badge-success">{{ item.balance.saldo_days }} dias</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="jornada-badge jornada-badge-warning">{{ item.balance.assigned_sum }} dias</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="jornada-badge jornada-badge-info">{{ item.balance.converted_sum }} dias</span>
+                        </td>
+                        <td class="text-center">
+                            <a href="{{ url_for('jornada.index', collaborator_id=item.collaborator.id) }}" class="btn-jornada btn-jornada-secondary" style="padding: 0.5rem 1rem; font-size: 0.875rem;" title="Ver detalhes">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
     {% endif %}
 
     <!-- Detalhes do Colaborador Selecionado -->
     {% if selected_collaborator and stats %}
-    <div class="colab-details-card-modern">
-        <div class="colab-details-header-modern">
-            <div class="colab-details-info">
-                <div class="colab-details-avatar-modern">
+    <div class="jornada-card">
+        <div class="jornada-card-header">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div style="width: 56px; height: 56px; border-radius: 14px; background: var(--jornada-primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.25rem;">
                     {{ (selected_collaborator.user.name if selected_collaborator.user else selected_collaborator.name)[:2].upper() }}
                 </div>
                 <div>
-                    <h2 class="colab-details-title">
+                    <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--jornada-text);">
                         {{ selected_collaborator.user.name if selected_collaborator.user else selected_collaborator.name }}
                     </h2>
                     {% if selected_collaborator.role %}
-                    <div class="colab-details-role">{{ selected_collaborator.role }}</div>
+                    <div style="font-size: 0.875rem; color: var(--jornada-text-muted); margin-top: 0.25rem;">{{ selected_collaborator.role }}</div>
                     {% endif %}
                 </div>
             </div>
             {% if current_user.nivel in ('admin', 'DEV') %}
-            <form method="POST" action="{{ url_for('jornada.converter_horas') }}" class="converter-form-modern">
+            <form method="POST" action="{{ url_for('jornada.converter_horas') }}" style="display: inline;">
                 <input type="hidden" name="collaborator_id" value="{{ selected_collaborator.id }}">
-                <button type="submit" class="btn-converter-modern">
+                <button type="submit" class="btn-jornada btn-jornada-success">
                     <i class="bi bi-arrow-repeat"></i>
                     Converter Horas em Dias
                 </button>
             </form>
             {% endif %}
         </div>
-        <div class="colab-details-body-modern">
-            <div class="stats-grid-jornada">
-                <div class="stat-card-jornada stat-primary">
-                    <div class="stat-icon-jornada">
-                        <i class="bi bi-clock"></i>
-                    </div>
-                    <div class="stat-content-jornada">
-                        <div class="stat-label-jornada">Horas Residuais</div>
-                        <div class="stat-value-jornada">{{ "%.2f"|format(stats.residual_hours) }}h</div>
-                    </div>
+        <div class="jornada-stats-grid">
+            <div class="jornada-stat-card">
+                <div class="jornada-stat-icon">
+                    <i class="bi bi-clock"></i>
                 </div>
-                <div class="stat-card-jornada stat-success">
-                    <div class="stat-icon-jornada">
-                        <i class="bi bi-calendar-check"></i>
-                    </div>
-                    <div class="stat-content-jornada">
-                        <div class="stat-label-jornada">Saldo de Folgas</div>
-                        <div class="stat-value-jornada">{{ stats.saldo_days }} dias</div>
-                    </div>
-                </div>
-                <div class="stat-card-jornada stat-warning">
-                    <div class="stat-icon-jornada">
-                        <i class="bi bi-calendar-x"></i>
-                    </div>
-                    <div class="stat-content-jornada">
-                        <div class="stat-label-jornada">Folgas Usadas</div>
-                        <div class="stat-value-jornada">{{ stats.assigned_sum }} dias</div>
-                    </div>
-                </div>
-                <div class="stat-card-jornada stat-info">
-                    <div class="stat-icon-jornada">
-                        <i class="bi bi-arrow-repeat"></i>
-                    </div>
-                    <div class="stat-content-jornada">
-                        <div class="stat-label-jornada">Conversões</div>
-                        <div class="stat-value-jornada">{{ stats.converted_sum }} dias</div>
-                    </div>
-                </div>
+                <div class="jornada-stat-label">Horas Residuais</div>
+                <div class="jornada-stat-value">{{ "%.2f"|format(stats.residual_hours) }}h</div>
             </div>
-            <div class="stats-secondary-grid-jornada">
-                <div class="stat-card-jornada stat-secondary">
-                    <div class="stat-icon-jornada stat-icon-secondary">
-                        <i class="bi bi-calculator"></i>
-                    </div>
-                    <div class="stat-content-jornada">
-                        <div class="stat-label-jornada">Total Bruto de Horas</div>
-                        <div class="stat-value-jornada">{{ "%.2f"|format(stats.total_bruto_hours) }}h</div>
-                    </div>
+            <div class="jornada-stat-card">
+                <div class="jornada-stat-icon" style="background: var(--jornada-success);">
+                    <i class="bi bi-calendar-check"></i>
                 </div>
-                <div class="stat-card-jornada stat-secondary">
-                    <div class="stat-icon-jornada stat-icon-secondary">
-                        <i class="bi bi-calendar-plus"></i>
-                    </div>
-                    <div class="stat-content-jornada">
-                        <div class="stat-label-jornada">Dias Convertidos das Horas</div>
-                        <div class="stat-value-jornada">{{ stats.days_from_hours }} dias</div>
-                    </div>
+                <div class="jornada-stat-label">Saldo de Folgas</div>
+                <div class="jornada-stat-value">{{ stats.saldo_days }} dias</div>
+            </div>
+            <div class="jornada-stat-card">
+                <div class="jornada-stat-icon" style="background: var(--jornada-warning);">
+                    <i class="bi bi-calendar-x"></i>
                 </div>
+                <div class="jornada-stat-label">Folgas Usadas</div>
+                <div class="jornada-stat-value">{{ stats.assigned_sum }} dias</div>
+            </div>
+            <div class="jornada-stat-card">
+                <div class="jornada-stat-icon" style="background: var(--jornada-info);">
+                    <i class="bi bi-arrow-repeat"></i>
+                </div>
+                <div class="jornada-stat-label">Conversões</div>
+                <div class="jornada-stat-value">{{ stats.converted_sum }} dias</div>
+            </div>
+            <div class="jornada-stat-card">
+                <div class="jornada-stat-icon" style="background: var(--jornada-secondary);">
+                    <i class="bi bi-calculator"></i>
+                </div>
+                <div class="jornada-stat-label">Total Bruto de Horas</div>
+                <div class="jornada-stat-value">{{ "%.2f"|format(stats.total_bruto_hours) }}h</div>
+            </div>
+            <div class="jornada-stat-card">
+                <div class="jornada-stat-icon" style="background: var(--jornada-secondary);">
+                    <i class="bi bi-calendar-plus"></i>
+                </div>
+                <div class="jornada-stat-label">Dias Convertidos das Horas</div>
+                <div class="jornada-stat-value">{{ stats.days_from_hours }} dias</div>
             </div>
         </div>
     </div>
