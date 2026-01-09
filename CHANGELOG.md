@@ -1,3 +1,22 @@
+## [2.3.33] - 2025-01-15
+
+### 🐳 Correções Docker
+
+#### Dependências do Sistema para WeasyPrint
+- **Problema**: 502 Bad Gateway causado por falta de dependências do sistema para WeasyPrint no container Docker
+- **Solução**: Adicionadas dependências do sistema no Dockerfile:
+  - `libgobject-2.0-0`
+  - `libpango-1.0-0`
+  - `libpangocairo-1.0-0`
+  - `libcairo2`
+  - `libffi-dev`
+  - `shared-mime-info`
+- **Otimização**: Consolidação de todas as dependências do sistema em um único RUN
+- **Limpeza**: Remoção de caches do apt para manter imagem Docker limpa
+- **Impacto**: WeasyPrint agora funciona corretamente no container, resolvendo 502 Bad Gateway
+
+---
+
 ## [2.3.32] - 2025-01-15
 
 ### 🧹 Limpeza de Código
