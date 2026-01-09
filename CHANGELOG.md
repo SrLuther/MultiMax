@@ -1,3 +1,15 @@
+## [2.3.27] - 2025-01-15
+
+### 🔧 Correções
+
+#### Git Update - Tratamento de Erros
+- **Read-only File System**: Detecção específica e tratamento de erro quando o diretório .git está em modo somente leitura
+- **Verificação Prévia de Permissões**: Sistema verifica permissões antes de executar git fetch
+- **Mensagens de Erro Melhoradas**: Sugestões claras para resolver problemas de permissão (chmod, chown, volumes Docker)
+- **Diagnóstico Aprimorado**: Identificação precisa do tipo de erro e soluções específicas
+
+---
+
 ## [2.3.26] - 2025-01-15
 
 ### 🔧 Correções Críticas
