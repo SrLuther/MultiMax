@@ -584,98 +584,98 @@ def arquivados():
         
         # Buscar registros arquivados (da tabela JornadaArchive)
         collaborator_id = request.args.get('collaborator_id', type=int)
-    data_inicio = request.args.get('inicio', '').strip()
-    data_fim = request.args.get('fim', '').strip()
-    record_type = request.args.get('tipo', '').strip()
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 50, type=int)
-    
-    # Processar datas
-    di = None
-    df = None
-    if data_inicio:
-        try:
-            di = datetime.strptime(data_inicio, '%Y-%m-%d').date()
-        except Exception:
-            pass
-    if data_fim:
-        try:
-            df = datetime.strptime(data_fim, '%Y-%m-%d').date()
-        except Exception:
-            pass
-    
-    # Filtros adicionais: período de arquivamento
-    periodo_inicio = request.args.get('periodo_inicio', '').strip()
-    periodo_fim = request.args.get('periodo_fim', '').strip()
-    periodo_di = None
-    periodo_df = None
-    if periodo_inicio:
-        try:
-            periodo_di = datetime.strptime(periodo_inicio, '%Y-%m-%d').date()
-        except Exception:
-            pass
-    if periodo_fim:
-        try:
-            periodo_df = datetime.strptime(periodo_fim, '%Y-%m-%d').date()
-        except Exception:
-            pass
-    
-    # Buscar registros arquivados
-    query = JornadaArchive.query
-    
-    if collaborator_id:
-        query = query.filter(JornadaArchive.collaborator_id == collaborator_id)
-    if di:
-        query = query.filter(JornadaArchive.date >= di)
-    if df:
-        query = query.filter(JornadaArchive.date <= df)
-    if record_type:
-        query = query.filter(JornadaArchive.record_type == record_type)
-    if periodo_di:
-        query = query.filter(JornadaArchive.archive_period_start >= periodo_di)
-    if periodo_df:
-        query = query.filter(JornadaArchive.archive_period_end <= periodo_df)
-    
-    archived_records_pag = query.order_by(
-        JornadaArchive.archived_at.desc(),
-        JornadaArchive.date.desc()
-    ).paginate(page=page, per_page=per_page, error_out=False)
-    
-    # Preparar dados
-    records = []
-    for arch in archived_records_pag.items:
-        collab = Collaborator.query.get(arch.collaborator_id)
-        display_name = _get_collaborator_display_name(collab) if collab else f"ID {arch.collaborator_id}"
+        data_inicio = request.args.get('inicio', '').strip()
+        data_fim = request.args.get('fim', '').strip()
+        record_type = request.args.get('tipo', '').strip()
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 50, type=int)
         
-        records.append({
-            'id': arch.id,
-            'collaborator_id': arch.collaborator_id,
-            'collaborator_name': display_name,
-            'date': arch.date,
-            'record_type': arch.record_type,
-            'hours': arch.hours,
-            'days': arch.days,
-            'amount_paid': arch.amount_paid,
-            'rate_per_day': arch.rate_per_day,
-            'origin': arch.origin,
-            'notes': arch.notes,
-            'archived_at': arch.archived_at,
-            'archived_by': arch.archived_by,
-            'archive_period_start': arch.archive_period_start,
-            'archive_period_end': arch.archive_period_end,
-        })
-    
-    # Estatísticas
-    stats_query = JornadaArchive.query
-    if collaborator_id:
-        stats_query = stats_query.filter(JornadaArchive.collaborator_id == collaborator_id)
-    if di:
-        stats_query = stats_query.filter(JornadaArchive.date >= di)
-    if df:
-        stats_query = stats_query.filter(JornadaArchive.date <= df)
-    if record_type:
-        stats_query = stats_query.filter(JornadaArchive.record_type == record_type)
-    
+        # Processar datas
+        di = None
+        df = None
+        if data_inicio:
+            try:
+                di = datetime.strptime(data_inicio, '%Y-%m-%d').date()
+            except Exception:
+                pass
+        if data_fim:
+            try:
+                df = datetime.strptime(data_fim, '%Y-%m-%d').date()
+            except Exception:
+                pass
+        
+        # Filtros adicionais: período de arquivamento
+        periodo_inicio = request.args.get('periodo_inicio', '').strip()
+        periodo_fim = request.args.get('periodo_fim', '').strip()
+        periodo_di = None
+        periodo_df = None
+        if periodo_inicio:
+            try:
+                periodo_di = datetime.strptime(periodo_inicio, '%Y-%m-%d').date()
+            except Exception:
+                pass
+        if periodo_fim:
+            try:
+                periodo_df = datetime.strptime(periodo_fim, '%Y-%m-%d').date()
+            except Exception:
+                pass
+        
+        # Buscar registros arquivados
+        query = JornadaArchive.query
+        
+        if collaborator_id:
+            query = query.filter(JornadaArchive.collaborator_id == collaborator_id)
+        if di:
+            query = query.filter(JornadaArchive.date >= di)
+        if df:
+            query = query.filter(JornadaArchive.date <= df)
+        if record_type:
+            query = query.filter(JornadaArchive.record_type == record_type)
+        if periodo_di:
+            query = query.filter(JornadaArchive.archive_period_start >= periodo_di)
+        if periodo_df:
+            query = query.filter(JornadaArchive.archive_period_end <= periodo_df)
+        
+        archived_records_pag = query.order_by(
+            JornadaArchive.archived_at.desc(),
+            JornadaArchive.date.desc()
+        ).paginate(page=page, per_page=per_page, error_out=False)
+        
+        # Preparar dados
+        records = []
+        for arch in archived_records_pag.items:
+            collab = Collaborator.query.get(arch.collaborator_id)
+            display_name = _get_collaborator_display_name(collab) if collab else f"ID {arch.collaborator_id}"
+            
+            records.append({
+                'id': arch.id,
+                'collaborator_id': arch.collaborator_id,
+                'collaborator_name': display_name,
+                'date': arch.date,
+                'record_type': arch.record_type,
+                'hours': arch.hours,
+                'days': arch.days,
+                'amount_paid': arch.amount_paid,
+                'rate_per_day': arch.rate_per_day,
+                'origin': arch.origin,
+                'notes': arch.notes,
+                'archived_at': arch.archived_at,
+                'archived_by': arch.archived_by,
+                'archive_period_start': arch.archive_period_start,
+                'archive_period_end': arch.archive_period_end,
+            })
+        
+        # Estatísticas
+        stats_query = JornadaArchive.query
+        if collaborator_id:
+            stats_query = stats_query.filter(JornadaArchive.collaborator_id == collaborator_id)
+        if di:
+            stats_query = stats_query.filter(JornadaArchive.date >= di)
+        if df:
+            stats_query = stats_query.filter(JornadaArchive.date <= df)
+        if record_type:
+            stats_query = stats_query.filter(JornadaArchive.record_type == record_type)
+        
         all_archived = stats_query.all()
         total_hours = sum(float(r.hours or 0.0) for r in all_archived if r.record_type == 'horas' and (r.hours or 0.0) > 0)
         total_folgas_creditos = sum(int(r.days or 0) for r in all_archived if r.record_type == 'folga_adicional' and (not getattr(r, 'origin', None) or getattr(r, 'origin', None) != 'horas'))
