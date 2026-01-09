@@ -1,3 +1,26 @@
+## [2.3.23] - 2025-01-15
+
+### 🎨 Melhorias de Interface
+
+#### Sistema de Jornada - Layout Moderno
+- **Refatoração Completa das Subpáginas**: Todas as subpáginas de Jornada agora utilizam design system moderno e elegante
+- **Design System Unificado**: Aplicação consistente de glassmorphism, gradientes e animações em todas as páginas
+- **Subpáginas Atualizadas**: 
+  - Fechado para Revisão: Layout moderno com cards de status e navegação elegante
+  - Arquivados: Estatísticas visuais, filtros modernos e paginação estilizada
+  - Novo Registro: Formulário moderno com campos estilizados e ícones
+  - Editar Registro: Interface elegante com feedback visual de bloqueios
+  - Arquivar: Seleção de meses com checkboxes estilizados e alertas modernos
+- **Calendário Automático**: Estilos modernos aplicados ao calendário com classes atualizadas
+- **Botões Adicionais**: Adicionados botões info e warning ao design system
+- **Responsividade**: Melhorias na experiência mobile para todas as subpáginas
+
+#### Correções Técnicas
+- **Git Fetch**: Corrigido comando `git fetch --all` removendo argumento `origin` incompatível
+- **Classes CSS**: Padronização de todas as classes para design system moderno
+
+---
+
 ## [2.3.22] - 2025-01-15
 
 ### 🔧 Correções Críticas
