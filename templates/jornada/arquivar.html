@@ -15,38 +15,74 @@
                 <i class="bi bi-exclamation-triangle"></i>
                 <strong>Atenção!</strong> Esta ação irá:
                 <ul class="mb-0 mt-2">
-                    <li>Copiar todos os registros do período especificado para o arquivo</li>
-                    <li><strong>Deletar permanentemente</strong> todos os registros do período</li>
-                    <li>Reiniciar os contadores de horas e folgas de todos os colaboradores</li>
+                    <li>Copiar os registros do período/meses selecionados para o arquivo</li>
+                    <li><strong>Deletar permanentemente</strong> os registros arquivados</li>
+                    <li><strong>NÃO arquivará</strong> registros que compõem Horas Residuais e Saldo de Folgas pendentes</li>
                 </ul>
                 <strong class="mt-2 d-block">Esta ação não pode ser desfeita!</strong>
+                <small class="d-block mt-2">Horas Residuais e Saldo de Folgas sempre serão preservados, pois são valores pendentes.</small>
             </div>
 
-            <form method="POST" action="{{ url_for('jornada.arquivar') }}">
-                <div class="mb-3">
-                    <label for="period_start" class="form-label">
-                        <i class="bi bi-calendar-event"></i>
-                        Data de Início do Período
+            <form method="POST" action="{{ url_for('jornada.arquivar') }}" id="arquivarForm">
+                <div class="mb-4">
+                    <label class="form-label fw-bold">
+                        <i class="bi bi-calendar-range"></i>
+                        Selecionar por Meses (recomendado)
                     </label>
-                    <input type="date" 
-                           class="form-control" 
-                           id="period_start" 
-                           name="period_start" 
-                           value="{{ suggested_start.strftime('%Y-%m-%d') if suggested_start else '' }}"
-                           required>
+                    <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                        {% if available_months %}
+                        <div class="row g-2">
+                            {% for month in available_months %}
+                            {% set month_parts = month.split('-') %}
+                            {% set year = month_parts[0] | int %}
+                            {% set month_num = month_parts[1] | int %}
+                            {% set month_names = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'] %}
+                            <div class="col-md-6 col-lg-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="months[]" value="{{ month }}" id="month_{{ month }}">
+                                    <label class="form-check-label" for="month_{{ month }}">
+                                        {{ month_names[month_num] }}/{{ year }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="text-muted mb-0">Nenhum registro encontrado.</p>
+                        {% endif %}
+                    </div>
+                    <small class="form-text text-muted">Selecione um ou mais meses para arquivar. Os registros de Horas Residuais e Saldo de Folgas serão preservados automaticamente.</small>
                 </div>
 
-                <div class="mb-3">
-                    <label for="period_end" class="form-label">
-                        <i class="bi bi-calendar-event-fill"></i>
-                        Data de Fim do Período
+                <div class="mb-4">
+                    <label class="form-label fw-bold">
+                        <span class="text-muted">OU</span> selecionar por Período
                     </label>
-                    <input type="date" 
-                           class="form-control" 
-                           id="period_end" 
-                           name="period_end" 
-                           value="{{ suggested_end.strftime('%Y-%m-%d') if suggested_end else '' }}"
-                           required>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="period_start" class="form-label">
+                            <i class="bi bi-calendar-event"></i>
+                            Data de Início do Período
+                        </label>
+                        <input type="date" 
+                               class="form-control" 
+                               id="period_start" 
+                               name="period_start" 
+                               value="{{ suggested_start.strftime('%Y-%m-%d') if suggested_start else '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="period_end" class="form-label">
+                            <i class="bi bi-calendar-event-fill"></i>
+                            Data de Fim do Período
+                        </label>
+                        <input type="date" 
+                               class="form-control" 
+                               id="period_end" 
+                               name="period_end" 
+                               value="{{ suggested_end.strftime('%Y-%m-%d') if suggested_end else '' }}">
+                    </div>
                 </div>
 
                 <div class="mb-3">
@@ -62,11 +98,15 @@
                 </div>
 
                 <div class="d-flex gap-2 justify-content-end">
+                    <a href="{{ url_for('jornada.arquivados') }}" class="btn btn-info text-white">
+                        <i class="bi bi-archive-fill"></i>
+                        Ver Arquivados
+                    </a>
                     <a href="{{ url_for('jornada.index') }}" class="btn btn-secondary">
                         <i class="bi bi-x-circle"></i>
                         Cancelar
                     </a>
-                    <button type="submit" class="btn btn-danger" onclick="return confirm('Tem certeza que deseja arquivar os dados? Esta ação não pode ser desfeita!');">
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Tem certeza que deseja arquivar os dados? Registros de Horas Residuais e Saldo de Folgas serão preservados. Esta ação não pode ser desfeita!');">
                         <i class="bi bi-archive"></i>
                         Arquivar Dados
                     </button>

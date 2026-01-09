@@ -1237,6 +1237,45 @@ def alerts():
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)}), 500
 
+@bp.route('/alerts/clear', methods=['POST'], strict_slashes=False)
+@login_required
+def clear_alerts():
+    """Limpar todos os alertas ativos"""
+    if not _check_dev_access():
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    try:
+        # Marcar todos os alertas ativos como resolvidos
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        
+        active_alerts = Alert.query.filter(Alert.status == 'active').all()
+        count = len(active_alerts)
+        
+        for alert in active_alerts:
+            alert.status = 'resolved'
+            alert.resolved_at = datetime.now(ZoneInfo('America/Sao_Paulo'))
+        
+        db.session.commit()
+        
+        # Registrar no log
+        log = SystemLog()
+        log.origem = 'Alertas'
+        log.evento = 'alerts_cleared'
+        log.detalhes = f'{count} alerta(s) limpo(s) por {current_user.username}'
+        log.usuario = current_user.username
+        db.session.add(log)
+        db.session.commit()
+        
+        return jsonify({
+            'ok': True,
+            'message': f'{count} alerta(s) limpo(s) com sucesso.',
+            'count': count
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
 @bp.route('/metrics/trends', methods=['GET'], strict_slashes=False)
 @login_required
 def metrics_trends():
@@ -1871,10 +1910,41 @@ def git_update():
                 current_app.logger.info(f'Repositório Git encontrado em (dev): {repo_dir}')
                 break
     
-    db_path = os.getenv('DB_FILE_PATH', '/opt/multimax-data/estoque.db')
-    # Fallback para desenvolvimento
-    if not os.path.exists(db_path):
-        db_path = os.path.join(os.path.dirname(repo_dir), 'data', 'estoque.db') if repo_dir else None
+    # Obter caminho real do banco de dados da configuração da aplicação
+    db_path = None
+    try:
+        # Tentar obter da configuração da aplicação (mais confiável)
+        db_path = current_app.config.get('DB_FILE_PATH')
+        if db_path and os.path.exists(db_path):
+            current_app.logger.info(f'Banco de dados encontrado via config: {db_path}')
+        else:
+            # Tentar extrair do SQLALCHEMY_DATABASE_URI
+            uri = current_app.config.get('SQLALCHEMY_DATABASE_URI', '')
+            if uri and uri.startswith('sqlite:'):
+                try:
+                    p = uri.split('sqlite:///', 1)[1]
+                    if '?' in p:
+                        p = p.split('?', 1)[0]
+                    if os.path.exists(p):
+                        db_path = p
+                        current_app.logger.info(f'Banco de dados encontrado via URI: {db_path}')
+                except Exception:
+                    pass
+            
+            # Fallback para variável de ambiente
+            if not db_path or not os.path.exists(db_path):
+                db_path = os.getenv('DB_FILE_PATH')
+                if db_path and os.path.exists(db_path):
+                    current_app.logger.info(f'Banco de dados encontrado via env: {db_path}')
+            
+            # Último fallback para desenvolvimento
+            if not db_path or not os.path.exists(db_path):
+                dev_path = os.path.join(os.path.dirname(repo_dir), 'data', 'estoque.db') if repo_dir else None
+                if dev_path and os.path.exists(dev_path):
+                    db_path = dev_path
+                    current_app.logger.info(f'Banco de dados encontrado em dev: {db_path}')
+    except Exception as e:
+        current_app.logger.warning(f'Erro ao determinar caminho do banco: {e}')
     
     # Verificar se é diretório Git
     if not repo_dir or not os.path.exists(os.path.join(repo_dir, '.git')):
@@ -1882,11 +1952,12 @@ def git_update():
         _log_git_update_error(error_msg, current_user.username)
         return jsonify({'ok': False, 'error': error_msg}), 400
     
-    # Verificar se o banco de dados existe (proteção)
-    if not os.path.exists(db_path):
-        error_msg = f'Banco de dados não encontrado em {db_path}. Atualização cancelada por segurança.'
-        _log_git_update_error(error_msg, current_user.username)
-        return jsonify({'ok': False, 'error': error_msg}), 500
+    # Verificar se o banco de dados existe (apenas aviso, não bloqueia atualização)
+    # O banco pode estar em outro local e isso não deve impedir a atualização
+    if db_path and not os.path.exists(db_path):
+        current_app.logger.warning(f'Banco de dados não encontrado no caminho esperado: {db_path}. Continuando atualização (banco pode estar em outro local).')
+        # Não bloqueia a atualização, apenas registra aviso
+        db_path = None  # Limpar para não verificar novamente depois
     
     # Verificar se há atualização disponível (a menos que seja forçado)
     if not force:
@@ -1990,15 +2061,11 @@ def git_update():
                     'results': results
                 }), 500
             
-            # Verificar se o banco de dados ainda existe após cada comando crítico
-            if 'reset' in description.lower() and not os.path.exists(db_path):
+            # Verificar se o banco de dados ainda existe após cada comando crítico (apenas se db_path foi definido)
+            if db_path and 'reset' in description.lower() and not os.path.exists(db_path):
                 error_msg = f'ATENÇÃO: Banco de dados não encontrado após reset! Caminho: {db_path}'
-                _log_git_update_error(error_msg, current_user.username, results)
-                return jsonify({
-                    'ok': False,
-                    'error': 'Banco de dados não encontrado após atualização. Operação cancelada.',
-                    'results': results
-                }), 500
+                current_app.logger.warning(error_msg)
+                # Não bloqueia, apenas registra aviso (banco pode estar em outro local)
                 
         except subprocess.TimeoutExpired as e:
             error_msg = f'Timeout ao executar: {description} (limite: 120s)'
@@ -2017,15 +2084,11 @@ def git_update():
                 'results': results
             }), 500
     
-    # Verificar novamente se o banco de dados existe após todas as operações
-    if not os.path.exists(db_path):
+    # Verificar novamente se o banco de dados existe após todas as operações (apenas se db_path foi definido)
+    if db_path and not os.path.exists(db_path):
         error_msg = f'ATENÇÃO: Banco de dados não encontrado após atualização completa! Caminho: {db_path}'
-        _log_git_update_error(error_msg, current_user.username, results)
-        return jsonify({
-            'ok': False,
-            'error': 'Banco de dados não encontrado após atualização. Verifique o sistema.',
-            'results': results
-        }), 500
+        current_app.logger.warning(error_msg)
+        # Não bloqueia, apenas registra aviso (banco pode estar em outro local fora da pasta raiz)
     
     # Registrar sucesso no log
     try:

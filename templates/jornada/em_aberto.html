@@ -1,0 +1,480 @@
+{% extends 'base.html' %}
+{% block title %}Jornada - Em Aberto — MultiMax{% endblock %}
+
+{% block content %}
+<div class="jornada-container">
+    <!-- Hero Header com Navegação -->
+    <div class="jornada-hero">
+        <div class="jornada-hero-content">
+            <div>
+                <h1 class="jornada-title">
+                    <i class="bi bi-clock-history jornada-title-icon"></i>
+                    Sistema de Jornada
+                </h1>
+                <p class="jornada-subtitle">Gestão integrada de horas, folgas e colaboradores</p>
+            </div>
+            <div class="jornada-hero-actions">
+                <!-- Navegação entre subpáginas -->
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('jornada.em_aberto') }}" class="btn-action btn-action-primary">
+                        <i class="bi bi-circle-fill"></i>
+                        <span>Em Aberto</span>
+                    </a>
+                    <a href="{{ url_for('jornada.fechado_revisao') }}" class="btn-action btn-action-secondary">
+                        <i class="bi bi-clock-history"></i>
+                        <span>Fechado para Revisão</span>
+                    </a>
+                    <a href="{{ url_for('jornada.arquivados') }}" class="btn-action btn-action-secondary">
+                        <i class="bi bi-archive-fill"></i>
+                        <span>Arquivados</span>
+                    </a>
+                </div>
+                {% if current_user.nivel in ('admin', 'DEV', 'operador') %}
+                <div class="btn-group">
+                    <button type="button" class="btn-action btn-action-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-download"></i>
+                        <span>Exportar</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('jornada.export', collaborator_id=collaborator_id, inicio=data_inicio, fim=data_fim) }}">
+                                <i class="bi bi-file-earmark-spreadsheet"></i> Exportar CSV
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                {% if can_edit %}
+                <a class="btn-action btn-action-primary" href="{{ url_for('jornada.novo') }}">
+                    <i class="bi bi-plus-circle"></i>
+                    <span>Novo Registro</span>
+                </a>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Status dos Meses em Aberto -->
+    {% if meses_abertos %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        <strong>Meses em Aberto:</strong>
+        {% for mes in meses_abertos %}
+        <span class="badge bg-success ms-2">{{ mes.month_year_str }}</span>
+        {% if current_user.nivel in ('admin', 'DEV') %}
+        <form method="POST" action="{{ url_for('jornada.fechar_mes', year=mes.year, month=mes.month) }}" style="display: inline;" class="ms-2">
+            <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('Fechar {{ mes.month_year_str }} para revisão?');">
+                <i class="bi bi-lock"></i> Fechar Mês
+            </button>
+        </form>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Filtros -->
+    <div class="filtros-card-modern">
+        <div class="filtros-header-modern">
+            <h3 class="filtros-title">
+                <i class="bi bi-funnel"></i>
+                Filtros
+            </h3>
+        </div>
+        <div class="filtros-body-modern">
+            <form method="GET" class="filtros-form-modern" action="{{ url_for('jornada.em_aberto') }}">
+                <div class="filtros-grid-modern">
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-person"></i>
+                            Colaborador/Usuário
+                        </label>
+                        <select name="collaborator_id" class="form-input-modern" onchange="this.form.submit()">
+                            <option value="">— Todos —</option>
+                            {% for colab in colaboradores %}
+                            <option value="{{ colab.id }}" {% if collaborator_id == colab.id %}selected{% endif %}>
+                                {{ colab.user.name if colab.user else colab.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-tag"></i>
+                            Tipo
+                        </label>
+                        <select name="tipo" class="form-input-modern">
+                            <option value="">— Todos —</option>
+                            <option value="horas" {% if record_type == 'horas' %}selected{% endif %}>Horas</option>
+                            <option value="folga_adicional" {% if record_type == 'folga_adicional' %}selected{% endif %}>Folga Adicional</option>
+                            <option value="folga_usada" {% if record_type == 'folga_usada' %}selected{% endif %}>Folga Usada</option>
+                            <option value="conversao" {% if record_type == 'conversao' %}selected{% endif %}>Conversão</option>
+                        </select>
+                    </div>
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-calendar3"></i>
+                            Data Início
+                        </label>
+                        <input type="date" name="inicio" class="form-input-modern" value="{{ data_inicio }}" onchange="this.form.submit()">
+                    </div>
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-calendar-check"></i>
+                            Data Fim
+                        </label>
+                        <input type="date" name="fim" class="form-input-modern" value="{{ data_fim }}" onchange="this.form.submit()">
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Calendário Automático -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">
+                <i class="bi bi-calendar3"></i>
+                Calendário Automático - {{ "now"|date("%B %Y") }}
+            </h4>
+        </div>
+        <div class="card-body">
+            <div id="calendario-jornada" class="calendario-jornada-container">
+                <!-- Calendário será gerado via JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Estatísticas Gerais -->
+    {% if all_stats %}
+    <div class="resumo-card-modern">
+        <div class="resumo-header-modern">
+            <h3 class="resumo-title">
+                <i class="bi bi-graph-up"></i>
+                Resumo Geral - Meses em Aberto
+            </h3>
+        </div>
+        <div class="resumo-body-modern">
+            <div class="resumo-table-wrapper">
+                <table class="resumo-table-modern">
+                    <thead>
+                        <tr>
+                            <th>Colaborador/Usuário</th>
+                            <th class="text-center">Horas Residuais</th>
+                            <th class="text-center">Saldo de Folgas</th>
+                            <th class="text-center">Folgas Usadas</th>
+                            <th class="text-center">Conversões</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in all_stats %}
+                        <tr class="resumo-row-modern">
+                            <td>
+                                <div class="resumo-colab-modern">
+                                    <div class="resumo-avatar-modern">
+                                        {{ item.display_name[:2].upper() if item.display_name else '?' }}
+                                    </div>
+                                    <div>
+                                        <strong>{{ item.display_name }}</strong>
+                                        {% if item.collaborator.role %}
+                                        <div class="resumo-role-modern">{{ item.collaborator.role }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge-horas-modern">{{ "%.2f"|format(item.balance.residual_hours) }}h</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge-success-modern">{{ item.balance.saldo_days }} dias</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge-warning-modern">{{ item.balance.assigned_sum }} dias</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge-info-modern">{{ item.balance.converted_sum }} dias</span>
+                            </td>
+                            <td class="text-center">
+                                <a href="{{ url_for('jornada.em_aberto', collaborator_id=item.collaborator.id) }}" class="btn-action-small btn-view-small" title="Ver detalhes">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Registros -->
+    {% if records %}
+    <div class="registros-card-modern">
+        <div class="registros-header-modern">
+            <h3 class="registros-title">
+                <i class="bi bi-table"></i>
+                Registros - Meses em Aberto
+            </h3>
+        </div>
+        <div class="registros-body-modern">
+            <div class="registros-table-wrapper">
+                <table class="registros-table-modern">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Colaborador</th>
+                            <th>Tipo</th>
+                            <th>Valor</th>
+                            <th>Origem</th>
+                            <th>Observações</th>
+                            <th>Criado por</th>
+                            {% if can_edit %}
+                            <th class="text-center">Ações</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                        <tr class="registro-row-modern">
+                            <td class="registro-date-modern">
+                                <i class="bi bi-calendar3"></i>
+                                {{ record.date.strftime('%d/%m/%Y') }}
+                            </td>
+                            <td>
+                                <strong>{{ record.collaborator.user.name if record.collaborator.user else record.collaborator.name }}</strong>
+                            </td>
+                            <td>
+                                {% if record.record_type == 'horas' %}
+                                <span class="badge-tipo-modern badge-horas">Horas</span>
+                                {% elif record.record_type == 'folga_adicional' %}
+                                <span class="badge-tipo-modern badge-folga-adicional">Folga Adicional</span>
+                                {% elif record.record_type == 'folga_usada' %}
+                                <span class="badge-tipo-modern badge-folga-usada">Folga Usada</span>
+                                {% elif record.record_type == 'conversao' %}
+                                <span class="badge-tipo-modern badge-conversao">Conversão</span>
+                                {% endif %}
+                            </td>
+                            <td class="registro-value-modern">
+                                {% if record.record_type == 'horas' %}
+                                <strong>{{ "%.2f"|format(record.hours or 0) }}h</strong>
+                                {% elif record.record_type in ('folga_adicional', 'folga_usada') %}
+                                <strong>{{ record.days or 0 }} dia(s)</strong>
+                                {% elif record.record_type == 'conversao' %}
+                                <strong>R$ {{ "%.2f"|format(record.amount_paid or 0) }}</strong>
+                                {% endif %}
+                            </td>
+                            <td class="registro-origin-modern">{{ record.origin or '-' }}</td>
+                            <td class="registro-notes-modern">{{ record.notes or '-' }}</td>
+                            <td class="registro-created-by-modern">{{ record.created_by or '-' }}</td>
+                            {% if can_edit %}
+                            <td class="text-center">
+                                <div class="registro-actions-modern">
+                                    <a href="{{ url_for('jornada.editar', id=record.id) }}" class="btn-action-small btn-edit-small" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('jornada.excluir', id=record.id) }}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir este registro?');">
+                                        <button type="submit" class="btn-action-small btn-delete-small" title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-state-modern">
+        <div class="empty-icon-modern">
+            <i class="bi bi-inbox"></i>
+        </div>
+        <h3 class="empty-title-modern">Nenhum registro encontrado</h3>
+        <p class="empty-text-modern">Nenhum registro encontrado nos meses em aberto.</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+/* Reutilizar estilos de jornada/index.html */
+.jornada-container {
+    padding: 2rem;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+.calendario-jornada-container {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.calendario-dia {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 0.75rem;
+    min-height: 100px;
+    background: white;
+    transition: all 0.2s ease;
+}
+
+.calendario-dia:hover {
+    border-color: #667eea;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+}
+
+.calendario-dia-header {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #374151;
+}
+
+.calendario-dia.feriado {
+    background: #fef3c7;
+    border-color: #f59e0b;
+}
+
+.calendario-dia.com-registros {
+    background: #dbeafe;
+    border-color: #3b82f6;
+}
+
+.calendario-dia.hoje {
+    border: 2px solid #10b981;
+    background: #d1fae5;
+}
+
+.calendario-dia-numero {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.calendario-dia-feriado {
+    font-size: 0.75rem;
+    color: #d97706;
+    font-weight: 600;
+    margin-top: 0.25rem;
+}
+
+.calendario-dia-registros {
+    font-size: 0.75rem;
+    color: #2563eb;
+    margin-top: 0.5rem;
+}
+
+.calendario-dia-registros-item {
+    padding: 0.25rem 0.5rem;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 4px;
+    margin-top: 0.25rem;
+    font-size: 0.7rem;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Carregar calendário do mês atual
+    const hoje = new Date();
+    const year = hoje.getFullYear();
+    const month = hoje.getMonth() + 1;
+    
+    loadCalendario(year, month);
+});
+
+function loadCalendario(year, month) {
+    const url = `/jornada/calendario/${year}/${month}`;
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.ok) {
+                renderCalendario(data);
+            } else {
+                console.error('Erro ao carregar calendário:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar calendário:', error);
+        });
+}
+
+function renderCalendario(data) {
+    const container = document.getElementById('calendario-jornada');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    // Cabeçalho dos dias da semana
+    const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    diasSemana.forEach(dia => {
+        const header = document.createElement('div');
+        header.className = 'calendario-dia-header text-center fw-bold';
+        header.textContent = dia;
+        container.appendChild(header);
+    });
+    
+    // Calcular primeiro dia do mês e quantos dias tem o mês
+    const primeiroDia = new Date(data.year, data.month - 1, 1);
+    const ultimoDia = new Date(data.year, data.month, 0);
+    const diasNoMes = ultimoDia.getDate();
+    const diaSemanaInicio = primeiroDia.getDay(); // 0=domingo, 6=sábado
+    
+    // Preencher dias vazios antes do primeiro dia do mês
+    for (let i = 0; i < diaSemanaInicio; i++) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'calendario-dia';
+        emptyDiv.style.visibility = 'hidden';
+        container.appendChild(emptyDiv);
+    }
+    
+    // Dias do mês
+    const hoje = new Date();
+    const hojeStr = hoje.toISOString().split('T')[0];
+    
+    for (let day = 1; day <= diasNoMes; day++) {
+        const dayKey = day;
+        const diaData = data.calendario[dayKey] || {};
+        const diaDiv = document.createElement('div');
+        diaDiv.className = 'calendario-dia';
+        
+        const dateStr = `${data.year}-${String(data.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        
+        if (dateStr === hojeStr) {
+            diaDiv.classList.add('hoje');
+        }
+        if (diaData.feriado) {
+            diaDiv.classList.add('feriado');
+        }
+        if (diaData.records && diaData.records.length > 0) {
+            diaDiv.classList.add('com-registros');
+        }
+        
+        diaDiv.innerHTML = `
+            <div class="calendario-dia-numero">${day}</div>
+            ${diaData.feriado ? `<div class="calendario-dia-feriado">${diaData.feriado.name}</div>` : ''}
+            ${diaData.records && diaData.records.length > 0 ? `
+                <div class="calendario-dia-registros">
+                    ${diaData.records.slice(0, 2).map(r => `
+                        <div class="calendario-dia-registros-item" title="${r.collaborator_name}: ${r.notes || ''}">
+                            ${r.record_type === 'horas' ? `${r.hours}h` : ''}
+                            ${r.record_type === 'folga_adicional' ? `+${r.days}d` : ''}
+                            ${r.record_type === 'folga_usada' ? `-${r.days}d` : ''}
+                            ${r.record_type === 'conversao' ? `R$` : ''}
+                        </div>
+                    `).join('')}
+                    ${diaData.records.length > 2 ? `<div class="calendario-dia-registros-item">+${diaData.records.length - 2} mais</div>` : ''}
+                </div>
+            ` : ''}
+        `;
+        
+        container.appendChild(diaDiv);
+    }
+}
+</script>
+
+{% endblock %}

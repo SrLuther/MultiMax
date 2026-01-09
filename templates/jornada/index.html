@@ -51,6 +51,12 @@
                     <span>Arquivar Dados</span>
                 </a>
                 {% endif %}
+                {% if current_user.nivel in ('operador', 'admin', 'DEV') %}
+                <a class="btn-action btn-action-secondary" href="{{ url_for('jornada.arquivados') }}" style="background: rgba(107, 114, 128, 0.9); border-color: rgba(107, 114, 128, 0.9); color: white;">
+                    <i class="bi bi-archive-fill"></i>
+                    <span>Ver Arquivados</span>
+                </a>
+                {% endif %}
             </div>
         </div>
     </div>

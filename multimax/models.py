@@ -246,6 +246,50 @@ class TimeOffRecord(db.Model):
     
     collaborator = db.relationship('Collaborator', backref='time_off_records', lazy=True)
 
+class MonthStatus(db.Model):
+    """Controle de estado mensal da jornada (EM ABERTO, FECHADO, ARQUIVADO)"""
+    __tablename__ = 'month_status'
+    id = db.Column(db.Integer, primary_key=True)
+    year = db.Column(db.Integer, nullable=False, index=True)  # Ano (ex: 2026)
+    month = db.Column(db.Integer, nullable=False, index=True)  # Mês (1-12)
+    status = db.Column(db.String(20), nullable=False, default='aberto', index=True)  # 'aberto', 'fechado', 'arquivado'
+    closed_at = db.Column(db.DateTime(timezone=True), nullable=True)  # Quando foi fechado
+    closed_by = db.Column(db.String(100), nullable=True)  # Quem fechou
+    archived_at = db.Column(db.DateTime(timezone=True), nullable=True)  # Quando foi arquivado
+    archived_by = db.Column(db.String(100), nullable=True)  # Quem arquivou
+    payment_confirmed = db.Column(db.Boolean, default=False)  # Pagamento confirmado
+    payment_confirmed_at = db.Column(db.DateTime(timezone=True), nullable=True)  # Quando pagamento foi confirmado
+    payment_confirmed_by = db.Column(db.String(100), nullable=True)  # Quem confirmou pagamento
+    notes = db.Column(db.Text, nullable=True)  # Observações sobre o mês
+    
+    # Índice único para ano/mês
+    __table_args__ = (db.UniqueConstraint('year', 'month', name='_year_month_uc'),)
+    
+    def __repr__(self):
+        return f'<MonthStatus {self.year}/{self.month:02d} - {self.status}>'
+    
+    @property
+    def month_year_str(self):
+        """Retorna string formatada do mês/ano"""
+        month_names = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+        return f"{month_names[self.month]}/{self.year}"
+    
+    @property
+    def is_open(self):
+        """Verifica se o mês está em aberto"""
+        return self.status == 'aberto'
+    
+    @property
+    def is_closed(self):
+        """Verifica se o mês está fechado para revisão"""
+        return self.status == 'fechado'
+    
+    @property
+    def is_archived(self):
+        """Verifica se o mês está arquivado"""
+        return self.status == 'arquivado'
+
 class JornadaArchive(db.Model):
     """Tabela para armazenar registros arquivados da jornada"""
     __tablename__ = 'jornada_archive'

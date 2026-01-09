@@ -16,6 +16,18 @@
     <p class="mm-text-muted">Atualize as informações do registro</p>
 </div>
 
+{% if not can_edit %}
+<div class="alert alert-danger">
+    <i class="bi bi-exclamation-triangle"></i>
+    <strong>Edição Bloqueada:</strong> O mês {{ month_status.month_year_str }} está {{ status_display }}. 
+    {% if current_user.nivel == 'admin' %}
+    Apenas DEV pode editar meses arquivados.
+    {% elif current_user.nivel == 'operador' %}
+    Operadores não podem editar registros.
+    {% endif %}
+</div>
+{% endif %}
+
 <div class="mm-card">
     <div class="mm-card-body">
         <form method="POST">
@@ -27,7 +39,7 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Data <span class="text-danger">*</span></label>
-                    <input type="date" name="date" class="form-control" required value="{{ record.date.strftime('%Y-%m-%d') }}">
+                    <input type="date" name="date" class="form-control" required value="{{ record.date.strftime('%Y-%m-%d') }}" {% if not can_edit %}disabled{% endif %}>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Tipo</label>
@@ -40,34 +52,41 @@
                 {% if record.record_type == 'horas' %}
                 <div class="col-md-6">
                     <label class="form-label">Horas</label>
-                    <input type="number" name="hours" class="form-control" step="0.01" value="{{ record.hours or 0 }}">
+                    <input type="number" name="hours" class="form-control" step="0.01" value="{{ record.hours or 0 }}" {% if not can_edit %}disabled{% endif %}>
                 </div>
                 {% elif record.record_type in ('folga_adicional', 'folga_usada') %}
                 <div class="col-md-6">
                     <label class="form-label">Dias</label>
-                    <input type="number" name="days" class="form-control" value="{{ record.days or 1 }}">
+                    <input type="number" name="days" class="form-control" value="{{ record.days or 1 }}" {% if not can_edit %}disabled{% endif %}>
                 </div>
                 {% elif record.record_type == 'conversao' %}
                 <div class="col-md-6">
                     <label class="form-label">Dias</label>
-                    <input type="number" name="days" class="form-control" value="{{ record.days or 0 }}">
+                    <input type="number" name="days" class="form-control" value="{{ record.days or 0 }}" {% if not can_edit %}disabled{% endif %}>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Valor Pago (R$)</label>
-                    <input type="number" name="amount_paid" class="form-control" step="0.01" value="{{ record.amount_paid or 0 }}">
+                    <input type="number" name="amount_paid" class="form-control" step="0.01" value="{{ record.amount_paid or 0 }}" {% if not can_edit %}disabled{% endif %}>
                 </div>
                 {% endif %}
                 <div class="col-12">
                     <label class="form-label">Observações</label>
-                    <textarea name="notes" class="form-control" rows="3">{{ record.notes or '' }}</textarea>
+                    <textarea name="notes" class="form-control" rows="3" {% if not can_edit %}disabled{% endif %}>{{ record.notes or '' }}</textarea>
                 </div>
             </div>
             <div class="mm-flex mm-gap-2 mm-mt-4">
+                {% if can_edit %}
                 <button type="submit" class="mm-btn mm-btn-primary">
                     <i class="bi bi-check-lg"></i>
                     Salvar Alterações
                 </button>
-                <a href="{{ url_for('jornada.index', collaborator_id=record.collaborator_id) }}" class="mm-btn mm-btn-outline">
+                {% else %}
+                <button type="button" class="mm-btn mm-btn-secondary" disabled>
+                    <i class="bi bi-lock"></i>
+                    Edição Bloqueada
+                </button>
+                {% endif %}
+                <a href="{{ url_for('jornada.em_aberto', collaborator_id=record.collaborator_id) }}" class="mm-btn mm-btn-outline">
                     Cancelar
                 </a>
             </div>

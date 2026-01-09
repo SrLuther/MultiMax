@@ -1,3 +1,31 @@
+## [2.3.19] - 2025-01-15
+
+### ✨ Novas Funcionalidades
+
+#### Sistema de Controle de Jornada Mensal
+- **Estados do Mês**: Implementado sistema completo de estados (EM ABERTO, FECHADO PARA REVISÃO, ARQUIVADO)
+- **Controle de Permissões**: Sistema rígido de permissões baseado em perfil (DEV, ADMIN, OPERADOR) e estado do mês
+- **Três Subpáginas**: Separação clara entre meses em aberto, fechados para revisão e arquivados
+- **Calendário Automático**: Calendário gerado automaticamente baseado em dados da jornada com integração de feriados
+- **Transições de Estado**: Rotas para fechar mês, confirmar pagamento e arquivar, reabrir (DEV apenas)
+
+### 🔧 Melhorias
+
+#### Otimizações de Performance
+- **Redução de CPU**: Intervalo de atualização de métricas aumentado de 5s para 10s
+- **Pausa Automática**: Atualizações pausam automaticamente quando a página não está visível
+- **Otimização de Gráficos**: Melhorias na renderização de gráficos Chart.js
+
+#### Banco de Dados
+- **Verificação de Banco**: Removida verificação que bloqueava atualizações quando banco está fora da pasta raiz
+- **Atualizações Git**: Sistema não bloqueia mais atualizações por não encontrar banco no caminho esperado
+
+#### Alertas
+- **Limpar Alertas**: Novo botão para limpar todos os alertas ativos no card "Alertas Ativos"
+- **Rota de Limpeza**: Endpoint `/db/alerts/clear` para limpar alertas programaticamente
+
+---
+
 ## [2.3.18] - 2025-01-06
 
 ### ✨ Novas Funcionalidades

@@ -236,7 +236,13 @@
                 <i class="bi bi-bell-fill"></i>
                 Alertas Ativos
             </h3>
-            <span class="db-badge-modern db-badge-warning">{{ active_alerts|length }} ativo(s)</span>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <span class="db-badge-modern db-badge-warning">{{ active_alerts|length }} ativo(s)</span>
+                <button type="button" class="db-btn-modern db-btn-outline db-btn-danger" onclick="clearAllAlerts()" title="Limpar todos os alertas ativos">
+                    <i class="bi bi-trash"></i>
+                    Limpar Alertas
+                </button>
+            </div>
         </div>
         <div class="db-card-body-modern">
             <div class="db-alerts-list" id="alertsList">
@@ -274,7 +280,7 @@
             </h3>
             <div class="db-card-badges">
                 <span class="db-badge-modern db-badge-info" id="serverClock">Servidor — --:--:--</span>
-                <span class="db-badge-modern db-badge-primary">Atualiza a cada 1s</span>
+                <span class="db-badge-modern db-badge-primary">Atualiza a cada 10s</span>
             </div>
         </div>
         <div class="db-card-body-modern">
@@ -879,7 +885,22 @@ function startResourceCharts(){
     } catch(e){}
   }
   fetchMetrics();
-  setInterval(fetchMetrics, 5000); // Reduzido de 1s para 5s para otimizar CPU
+  var metricsInterval = setInterval(fetchMetrics, 10000); // Otimizado: 10s para reduzir CPU
+  
+  // Pausar atualizações quando a página não está visível
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+      if (metricsInterval) {
+        clearInterval(metricsInterval);
+        metricsInterval = null;
+      }
+    } else {
+      if (!metricsInterval) {
+        fetchMetrics(); // Atualizar imediatamente ao voltar
+        metricsInterval = setInterval(fetchMetrics, 10000);
+      }
+    }
+  });
 }
 function resizeDbFrame() {
   var f = document.getElementById('dbStatusFrame');
@@ -1089,6 +1110,31 @@ async function updateIncidents() {
 }
 
 // Dashboard
+async function clearAllAlerts() {
+  if (!confirm('Tem certeza que deseja limpar todos os alertas ativos? Esta ação não pode ser desfeita.')) {
+    return;
+  }
+  
+  try {
+    var resp = await fetch("{{ url_for('dbadmin.clear_alerts') }}", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    var json = await resp.json();
+    
+    if (json.ok) {
+      alert(json.message || 'Alertas limpos com sucesso!');
+      location.reload(); // Recarregar página para atualizar lista
+    } else {
+      alert('Erro ao limpar alertas: ' + (json.error || 'Erro desconhecido'));
+    }
+  } catch (e) {
+    alert('Erro ao limpar alertas: ' + e.message);
+  }
+}
+
 async function refreshDashboard() {
   try {
     var resp = await fetch("{{ url_for('dbadmin.dashboard') }}");
