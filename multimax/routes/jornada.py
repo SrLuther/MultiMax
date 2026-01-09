@@ -445,7 +445,7 @@ def em_aberto():
 @bp.route('/fechado-revisao', methods=['GET'], strict_slashes=False)
 @login_required
 def fechado_revisao():
-    """Subpágina: FECHADO PARA REVISÃO - exibe apenas meses fechados aguardando pagamento"""
+    """Subpágina: FECHADO PARA REVISÃO - exibe apenas meses fechados aguardando pagamento E registros de 2025"""
     if current_user.nivel not in ['operador', 'admin', 'DEV']:
         flash('Acesso negado.', 'danger')
         return redirect(url_for('home.index'))
@@ -468,6 +468,28 @@ def fechado_revisao():
         ).order_by(TimeOffRecord.date.desc(), TimeOffRecord.id.desc()).all()
         
         records.extend(mes_records)
+    
+    # OBRIGATÓRIO: Incluir TODOS os registros de 2025, independente do status
+    records_2025 = TimeOffRecord.query.filter(
+        func.extract('year', TimeOffRecord.date) == 2025
+    ).order_by(TimeOffRecord.date.desc(), TimeOffRecord.id.desc()).all()
+    
+    # Combinar registros, evitando duplicatas
+    existing_ids = {r.id for r in records}
+    for r in records_2025:
+        if r.id not in existing_ids:
+            records.append(r)
+    
+    # Garantir que meses de 2025 apareçam na lista de meses fechados
+    meses_2025 = MonthStatus.query.filter(
+        MonthStatus.year == 2025
+    ).all()
+    for mes_2025 in meses_2025:
+        if mes_2025 not in meses_fechados:
+            meses_fechados.append(mes_2025)
+    
+    # Ordenar novamente após adicionar meses de 2025
+    meses_fechados.sort(key=lambda m: (m.year, m.month), reverse=True)
     
     # Filtros
     collaborator_id = request.args.get('collaborator_id', type=int)

@@ -2,7 +2,9 @@
    JORNADA MODERN - Layout Extremamente Elegante
    ============================================ */
 
+/* ===== LIGHT MODE TOKENS ===== */
 :root {
+    /* Gradientes */
     --jornada-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     --jornada-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
     --jornada-success: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
@@ -10,15 +12,80 @@
     --jornada-danger: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
     --jornada-info: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
     
-    --jornada-bg: #0a0e27;
-    --jornada-surface: rgba(255, 255, 255, 0.05);
-    --jornada-surface-hover: rgba(255, 255, 255, 0.08);
-    --jornada-border: rgba(255, 255, 255, 0.1);
-    --jornada-text: #ffffff;
-    --jornada-text-muted: rgba(255, 255, 255, 0.7);
-    --jornada-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    --jornada-shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.4);
-    --jornada-glow: 0 0 20px rgba(102, 126, 234, 0.3);
+    /* Cores de Fundo - Light */
+    --jornada-bg: #f8fafc;
+    --jornada-surface: #ffffff;
+    --jornada-surface-hover: #f1f5f9;
+    --jornada-table-bg: #ffffff;
+    --jornada-table-row-even: #f8fafc;
+    --jornada-table-row-hover: #f1f5f9;
+    --jornada-table-header-bg: #e2e8f0;
+    
+    /* Cores de Texto - Light */
+    --jornada-text: #0f172a;
+    --jornada-text-secondary: #475569;
+    --jornada-text-muted: #64748b;
+    --jornada-title: #0f172a;
+    --jornada-title-icon: #667eea;
+    --jornada-table-header-text: #0f172a;
+    --jornada-table-text: #0f172a;
+    
+    /* Bordas - Light */
+    --jornada-border: #e2e8f0;
+    --jornada-border-light: #f1f5f9;
+    --jornada-table-border: #e2e8f0;
+    
+    /* Sombras - Light */
+    --jornada-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+    --jornada-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+    --jornada-glow: 0 0 20px rgba(102, 126, 234, 0.2);
+    
+    /* Hover e Foco - Light */
+    --jornada-hover-bg: #f1f5f9;
+    --jornada-focus-ring: rgba(102, 126, 234, 0.3);
+}
+
+/* ===== DARK MODE TOKENS ===== */
+[data-theme="dark"] {
+    /* Gradientes (mantidos, mas com cores mais vibrantes) */
+    --jornada-primary: linear-gradient(135deg, #818cf8 0%, #a78bfa 100%);
+    --jornada-secondary: linear-gradient(135deg, #f472b6 0%, #fb7185 100%);
+    --jornada-success: linear-gradient(135deg, #60a5fa 0%, #34d399 100%);
+    --jornada-warning: linear-gradient(135deg, #fb923c 0%, #fbbf24 100%);
+    --jornada-danger: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+    --jornada-info: linear-gradient(135deg, #7dd3fc 0%, #a78bfa 100%);
+    
+    /* Cores de Fundo - Dark */
+    --jornada-bg: #0f172a;
+    --jornada-surface: rgba(30, 41, 59, 0.8);
+    --jornada-surface-hover: rgba(51, 65, 85, 0.8);
+    --jornada-table-bg: #1e293b;
+    --jornada-table-row-even: rgba(30, 41, 59, 0.5);
+    --jornada-table-row-hover: rgba(51, 65, 85, 0.8);
+    --jornada-table-header-bg: #334155;
+    
+    /* Cores de Texto - Dark (ALTO CONTRASTE) */
+    --jornada-text: #f8fafc;
+    --jornada-text-secondary: #cbd5e1;
+    --jornada-text-muted: #94a3b8;
+    --jornada-title: #ffffff; /* BRANCO PURO para máximo contraste */
+    --jornada-title-icon: #818cf8; /* Roxo vibrante */
+    --jornada-table-header-text: #ffffff; /* BRANCO para cabeçalho */
+    --jornada-table-text: #f8fafc; /* BRANCO para texto da tabela */
+    
+    /* Bordas - Dark */
+    --jornada-border: rgba(148, 163, 184, 0.2);
+    --jornada-border-light: rgba(148, 163, 184, 0.1);
+    --jornada-table-border: rgba(148, 163, 184, 0.3);
+    
+    /* Sombras - Dark */
+    --jornada-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --jornada-shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
+    --jornada-glow: 0 0 20px rgba(129, 140, 248, 0.4);
+    
+    /* Hover e Foco - Dark */
+    --jornada-hover-bg: rgba(51, 65, 85, 0.8);
+    --jornada-focus-ring: rgba(129, 140, 248, 0.5);
 }
 
 /* Container Principal */
@@ -348,10 +415,10 @@
 .jornada-table-wrapper {
     overflow-x: auto;
     border-radius: 16px;
-    background: var(--jornada-surface);
+    background: var(--jornada-table-bg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--jornada-border);
+    border: 1px solid var(--jornada-table-border);
     box-shadow: var(--jornada-shadow);
 }
 
@@ -359,10 +426,14 @@
     width: 100%;
     border-collapse: collapse;
     margin: 0;
+    background: var(--jornada-table-bg);
 }
 
 .jornada-table thead {
-    background: rgba(102, 126, 234, 0.1);
+    background: var(--jornada-table-header-bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .jornada-table th {
@@ -372,15 +443,22 @@
     font-size: 0.875rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--jornada-text);
-    border-bottom: 2px solid var(--jornada-border);
+    color: var(--jornada-table-header-text);
+    border-bottom: 2px solid var(--jornada-table-border);
+    background: var(--jornada-table-header-bg);
 }
 
 .jornada-table td {
     padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid var(--jornada-border);
-    color: var(--jornada-text);
+    border-bottom: 1px solid var(--jornada-table-border);
+    color: var(--jornada-table-text);
     font-size: 0.95rem;
+    background: var(--jornada-table-bg);
+}
+
+/* Zebra striping - linhas alternadas */
+.jornada-table tbody tr:nth-child(even) {
+    background: var(--jornada-table-row-even);
 }
 
 .jornada-table tbody tr {
@@ -388,10 +466,114 @@
 }
 
 .jornada-table tbody tr:hover {
-    background: rgba(102, 126, 234, 0.05);
+    background: var(--jornada-table-row-hover) !important;
+}
+
+/* Destaque para totais */
+.jornada-table tbody tr.total-row,
+.jornada-table tbody tr[class*="total"] {
+    background: var(--jornada-table-header-bg) !important;
+    font-weight: 700;
+    color: var(--jornada-table-header-text);
+    border-top: 2px solid var(--jornada-table-border);
 }
 
 .jornada-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Tabela Resumo Geral - Meses em Aberto */
+.resumo-card-modern {
+    background: var(--jornada-surface);
+    border: 1px solid var(--jornada-border);
+    border-radius: 16px;
+    box-shadow: var(--jornada-shadow);
+    margin-bottom: 2rem;
+    overflow: hidden;
+}
+
+.resumo-header-modern {
+    padding: 1.5rem 2rem;
+    background: var(--jornada-table-header-bg);
+    border-bottom: 2px solid var(--jornada-table-border);
+}
+
+.resumo-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--jornada-title);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+[data-theme="dark"] .resumo-title {
+    color: var(--jornada-title);
+    text-shadow: 0 2px 4px rgba(129, 140, 248, 0.2);
+}
+
+.resumo-body-modern {
+    padding: 0;
+}
+
+.resumo-table-wrapper {
+    overflow-x: auto;
+    background: var(--jornada-table-bg);
+}
+
+.resumo-table-modern {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+    background: var(--jornada-table-bg);
+}
+
+.resumo-table-modern thead {
+    background: var(--jornada-table-header-bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.resumo-table-modern th {
+    padding: 1.25rem 1.5rem;
+    text-align: left;
+    font-weight: 700;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--jornada-table-header-text);
+    border-bottom: 2px solid var(--jornada-table-border);
+    background: var(--jornada-table-header-bg);
+}
+
+.resumo-table-modern th.text-center {
+    text-align: center;
+}
+
+.resumo-table-modern td {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--jornada-table-border);
+    color: var(--jornada-table-text);
+    font-size: 0.95rem;
+    background: var(--jornada-table-bg);
+}
+
+/* Zebra striping - linhas alternadas */
+.resumo-table-modern tbody tr.resumo-row-modern:nth-child(even) {
+    background: var(--jornada-table-row-even);
+}
+
+.resumo-table-modern tbody tr.resumo-row-modern {
+    transition: all 0.2s;
+}
+
+.resumo-table-modern tbody tr.resumo-row-modern:hover {
+    background: var(--jornada-table-row-hover) !important;
+}
+
+.resumo-table-modern tbody tr.resumo-row-modern:last-child td {
     border-bottom: none;
 }
 
