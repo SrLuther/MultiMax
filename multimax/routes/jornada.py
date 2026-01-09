@@ -1671,6 +1671,163 @@ def reabrir_mes(year, month):
         flash(f'Erro ao reabrir mês: {e}', 'danger')
         return redirect(url_for('jornada.arquivados'))
 
+# ============================================================================
+# Migração de Dados - 2025 para FECHADO_REVISAO
+# ============================================================================
+
+def _migrate_2025_to_closed():
+    """
+    Migração idempotente: Altera status de todos os meses de 2025 para FECHADO_REVISAO.
+    Usa AppSetting para rastrear se a migração já foi executada.
+    """
+    migration_key = 'jornada_migration_2025_completed'
+    
+    # Verificar se migração já foi executada
+    migration_setting = AppSetting.query.filter_by(key=migration_key).first()
+    if migration_setting and migration_setting.value == 'true':
+        return {
+            'success': True,
+            'already_completed': True,
+            'message': 'Migração de 2025 já foi executada anteriormente.'
+        }
+    
+    try:
+        # Buscar todos os meses de 2025 que estão em aberto
+        months_2025 = MonthStatus.query.filter(
+            MonthStatus.year == 2025,
+            MonthStatus.status == 'aberto'
+        ).all()
+        
+        if not months_2025:
+            # Marcar como concluída mesmo sem meses para migrar
+            if not migration_setting:
+                migration_setting = AppSetting(key=migration_key, value='true')
+                db.session.add(migration_setting)
+            else:
+                migration_setting.value = 'true'
+            db.session.commit()
+            return {
+                'success': True,
+                'already_completed': False,
+                'migrated_count': 0,
+                'message': 'Nenhum mês de 2025 em aberto encontrado. Migração concluída.'
+            }
+        
+        # Alterar status para fechado
+        migrated_count = 0
+        now = datetime.now(ZoneInfo('America/Sao_Paulo'))
+        
+        for month_status in months_2025:
+            month_status.status = 'fechado'
+            month_status.closed_at = now
+            month_status.closed_by = 'Sistema - Migração 2025'
+            migrated_count += 1
+        
+        # Marcar migração como concluída
+        if not migration_setting:
+            migration_setting = AppSetting(key=migration_key, value='true')
+            db.session.add(migration_setting)
+        else:
+            migration_setting.value = 'true'
+        
+        db.session.commit()
+        
+        return {
+            'success': True,
+            'already_completed': False,
+            'migrated_count': migrated_count,
+            'message': f'Migração concluída: {migrated_count} mês(es) de 2025 alterado(s) para FECHADO_REVISAO.'
+        }
+        
+    except Exception as e:
+        db.session.rollback()
+        return {
+            'success': False,
+            'error': str(e),
+            'message': f'Erro ao executar migração: {e}'
+        }
+
+@bp.route('/migrate-2025', methods=['POST'], strict_slashes=False)
+@login_required
+def migrate_2025():
+    """Endpoint para executar migração de dados 2025 (apenas DEV)"""
+    if current_user.nivel != 'DEV':
+        flash('Acesso negado. Apenas DEV pode executar migrações.', 'danger')
+        return redirect(url_for('jornada.em_aberto'))
+    
+    result = _migrate_2025_to_closed()
+    
+    if result['success']:
+        if result.get('already_completed'):
+            flash('Migração já foi executada anteriormente.', 'info')
+        else:
+            flash(result['message'], 'success')
+    else:
+        flash(result['message'], 'danger')
+    
+    return redirect(url_for('jornada.em_aberto'))
+
+@bp.route('/situacao-final', methods=['GET'], strict_slashes=False)
+@login_required
+def situacao_final():
+    """
+    Página consolidada mostrando a situação atual e real de cada colaborador.
+    Mostra apenas dados ativos (não arquivados).
+    """
+    # Buscar todos os colaboradores
+    colaboradores = _get_all_collaborators()
+    
+    # Calcular situação consolidada para cada colaborador
+    situacoes = []
+    
+    for colab in colaboradores:
+        # Calcular saldo apenas com registros ativos (não arquivados)
+        # Registros arquivados estão em JornadaArchive, então não aparecem em TimeOffRecord
+        balance = _calculate_collaborator_balance(colab.id)
+        
+        # Buscar registros ativos para estatísticas
+        active_records = TimeOffRecord.query.filter_by(collaborator_id=colab.id).all()
+        
+        # Calcular totais
+        total_horas = sum(float(r.hours or 0.0) for r in active_records if r.record_type == 'horas' and (r.hours or 0.0) > 0)
+        total_folgas_adicionadas = sum(int(r.days or 0) for r in active_records if r.record_type == 'folga_adicional' and (not r.origin or r.origin != 'horas'))
+        total_folgas_usadas = sum(int(r.days or 0) for r in active_records if r.record_type == 'folga_usada')
+        total_conversoes = sum(int(r.days or 0) for r in active_records if r.record_type == 'conversao')
+        
+        situacoes.append({
+            'collaborator': colab,
+            'display_name': _get_collaborator_display_name(colab),
+            'total_horas': total_horas,
+            'horas_residuais': balance.get('residual_hours', 0.0),
+            'dias_das_horas': balance.get('days_from_hours', 0),
+            'folgas_adicionadas': total_folgas_adicionadas,
+            'folgas_usadas': total_folgas_usadas,
+            'conversoes': total_conversoes,
+            'saldo_folgas': balance.get('saldo_days', 0),
+            'total_dias_disponiveis': balance.get('saldo_days', 0) + total_folgas_adicionadas
+        })
+    
+    # Ordenar por nome do colaborador
+    situacoes.sort(key=lambda x: x['display_name'])
+    
+    # Calcular totais gerais
+    total_geral_horas = sum(s['total_horas'] for s in situacoes)
+    total_geral_folgas_adicionadas = sum(s['folgas_adicionadas'] for s in situacoes)
+    total_geral_folgas_usadas = sum(s['folgas_usadas'] for s in situacoes)
+    total_geral_conversoes = sum(s['conversoes'] for s in situacoes)
+    total_geral_saldo = sum(s['saldo_folgas'] for s in situacoes)
+    
+    return render_template(
+        'jornada/situacao_final.html',
+        active_page='jornada',
+        situacoes=situacoes,
+        total_geral_horas=total_geral_horas,
+        total_geral_folgas_adicionadas=total_geral_folgas_adicionadas,
+        total_geral_folgas_usadas=total_geral_folgas_usadas,
+        total_geral_conversoes=total_geral_conversoes,
+        total_geral_saldo=total_geral_saldo
+    )
+
 @bp.route('/calendario/<int:year>/<int:month>', methods=['GET'], strict_slashes=False)
 @login_required
 def calendario_mes(year, month):
