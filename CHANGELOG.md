@@ -1,3 +1,21 @@
+## [2.3.24] - 2025-01-15
+
+### ✨ Novas Funcionalidades
+
+#### Evolução do Módulo Jornada
+- **Migração de Dados 2025**: Implementada migração idempotente para alterar status de meses de 2025 para FECHADO_REVISAO
+  - Usa AppSetting para rastreamento e evita reexecução
+  - Endpoint `/jornada/migrate-2025` (apenas DEV)
+  - Não altera dados (horas, dias, folgas, datas, cálculos)
+- **Página Situação Final**: Nova página consolidada mostrando situação atual de cada colaborador
+  - Endpoint `/jornada/situacao-final`
+  - Consolida apenas dados ativos (não arquivados)
+  - Tabela detalhada por colaborador com totais
+  - Card resumo geral com estatísticas consolidadas
+  - Navegação atualizada em todas as subpáginas
+
+---
+
 ## [2.3.23] - 2025-01-15
 
 ### 🎨 Melhorias de Interface
