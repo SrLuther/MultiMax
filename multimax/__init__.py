@@ -643,7 +643,7 @@ def create_app():
             # Log apenas se não for erro esperado (git não disponível)
             if 'git' not in str(e).lower():
                 app.logger.debug(f"Erro ao obter versão: {e}")
-            return '2.3.21'
+            return '2.3.22'
 
     resolved_version = _get_version()
     app.config['APP_VERSION_RESOLVED'] = resolved_version.lstrip('vV') if isinstance(resolved_version, str) else resolved_version
@@ -751,47 +751,70 @@ def create_app():
             # Importar TODOS os modelos para garantir que estejam no metadata
             # Isso é crítico para que db.create_all() crie todas as tabelas automaticamente
             # Importação explícita garante que SQLAlchemy registre todas as tabelas
-            from .models import (
-                User, Collaborator, Produto, Historico, CleaningTask, CleaningHistory,
-                CleaningChecklistTemplate, CleaningChecklistItem, CleaningHistoryPhoto,
-                NotificationRead, AppSetting, TimeOffRecord, Holiday, SystemLog, 
-                Vacation, MedicalCertificate, JornadaArchive, MonthStatus, Shift, 
-                TemporaryEntry, JobRole, MeatReception, MeatCarrier, MeatPart,
-                NotificacaoDiaria, NotificacaoPersonalizada, EventoDoDia,
-                Recipe, RecipeIngredient, UserLogin, Incident, MetricHistory,
-                Alert, MaintenanceLog, QueryLog, BackupVerification,
-                IngredientCatalog, CustomSchedule, HelpArticle,
-                RegistroJornada, RegistroJornadaChange, ArticleVote,
-                Suggestion, SuggestionVote
-            )
-            # Verificar quais tabelas existem e quais devem existir
-            insp = inspect(db.engine)
-            existing_tables = set(insp.get_table_names())
-            declared_tables = set(db.metadata.tables.keys())
+            try:
+                from .models import (
+                    User, Collaborator, Produto, Historico, CleaningTask, CleaningHistory,
+                    CleaningChecklistTemplate, CleaningChecklistItem, CleaningHistoryPhoto,
+                    NotificationRead, AppSetting, TimeOffRecord, Holiday, SystemLog, 
+                    Vacation, MedicalCertificate, JornadaArchive, MonthStatus, Shift, 
+                    TemporaryEntry, JobRole, MeatReception, MeatCarrier, MeatPart,
+                    NotificacaoDiaria, NotificacaoPersonalizada, EventoDoDia,
+                    Recipe, RecipeIngredient, UserLogin, Incident, MetricHistory,
+                    Alert, MaintenanceLog, QueryLog, BackupVerification,
+                    IngredientCatalog, CustomSchedule, HelpArticle,
+                    RegistroJornada, RegistroJornadaChange, ArticleVote,
+                    Suggestion, SuggestionVote
+                )
+            except ImportError as import_err:
+                current_app.logger.warning(f'Erro ao importar alguns modelos: {import_err}. Continuando...')
+                # Tentar importação alternativa - importar tudo de uma vez
+                try:
+                    from . import models
+                    current_app.logger.info('Modelos importados via importação de módulo completo')
+                except Exception as alt_err:
+                    current_app.logger.error(f'Erro na importação alternativa de modelos: {alt_err}', exc_info=True)
             
-            # Se houver tabelas declaradas que não existem, criar todas automaticamente
-            missing_tables = declared_tables - existing_tables
-            if missing_tables:
-                current_app.logger.info(f'Criando automaticamente {len(missing_tables)} tabela(s) ausente(s): {missing_tables}')
-                db.create_all()
-                db.session.commit()
-                current_app.logger.info('Tabelas criadas automaticamente com sucesso')
-            else:
-                current_app.logger.debug('Todas as tabelas necessárias já existem no banco de dados')
+            # Verificar quais tabelas existem e quais devem existir
+            try:
+                insp = inspect(db.engine)
+                existing_tables = set(insp.get_table_names())
+                declared_tables = set(db.metadata.tables.keys())
+                
+                # Se houver tabelas declaradas que não existem, criar todas automaticamente
+                missing_tables = declared_tables - existing_tables
+                if missing_tables:
+                    current_app.logger.info(f'Criando automaticamente {len(missing_tables)} tabela(s) ausente(s): {missing_tables}')
+                    db.create_all()
+                    db.session.commit()
+                    current_app.logger.info('Tabelas criadas automaticamente com sucesso')
+                else:
+                    current_app.logger.debug('Todas as tabelas necessárias já existem no banco de dados')
+            except Exception as inspect_err:
+                current_app.logger.warning(f'Erro ao verificar tabelas: {inspect_err}. Tentando criar todas...')
+                try:
+                    db.create_all()
+                    db.session.commit()
+                    current_app.logger.info('Tabelas criadas com sucesso (modo fallback)')
+                except Exception as create_err:
+                    current_app.logger.error(f'Erro ao criar tabelas: {create_err}', exc_info=True)
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
         except Exception as e:
-            current_app.logger.error(f'Erro ao verificar/criar tabelas: {e}', exc_info=True)
+            current_app.logger.error(f'Erro geral ao verificar/criar tabelas: {e}', exc_info=True)
             try:
                 db.session.rollback()
             except Exception:
                 pass
-            # Tentar criar todas as tabelas mesmo em caso de erro (fallback)
+            # Tentar criar todas as tabelas mesmo em caso de erro (fallback final)
             try:
-                current_app.logger.warning('Tentando criar todas as tabelas como fallback...')
+                current_app.logger.warning('Tentando criar todas as tabelas como fallback final...')
                 db.create_all()
                 db.session.commit()
-                current_app.logger.info('Tabelas criadas com sucesso (fallback)')
+                current_app.logger.info('Tabelas criadas com sucesso (fallback final)')
             except Exception as create_error:
-                current_app.logger.error(f'Erro ao criar tabelas (fallback): {create_error}', exc_info=True)
+                current_app.logger.error(f'Erro ao criar tabelas (fallback final): {create_error}', exc_info=True)
                 try:
                     db.session.rollback()
                 except Exception:

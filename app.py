@@ -1,4 +1,5 @@
 import os
+import sys
 import threading
 import time
 import urllib.request
@@ -6,8 +7,28 @@ import logging
 from urllib.error import URLError, HTTPError
 from multimax import create_app
 
-app = create_app()
+# Configurar logging antes de criar o app
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
+
+# Criar app com tratamento de erros
+try:
+    logger.info('Iniciando criação da aplicação Flask...')
+    app = create_app()
+    logger.info('Aplicação Flask criada com sucesso')
+except Exception as e:
+    logger.critical(f'ERRO CRÍTICO ao criar aplicação Flask: {e}', exc_info=True)
+    # Tentar criar app novamente com configuração mínima
+    try:
+        logger.warning('Tentando criar app com configuração mínima...')
+        app = create_app()
+        logger.info('App criado com configuração mínima')
+    except Exception as e2:
+        logger.critical(f'Falha total ao criar aplicação: {e2}', exc_info=True)
+        sys.exit(1)
 
 def _start_keepalive():
     enabled = os.getenv('KEEPALIVE_ENABLED', 'false').lower() == 'true'

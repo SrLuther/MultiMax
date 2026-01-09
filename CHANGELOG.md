@@ -1,3 +1,18 @@
+## [2.3.22] - 2025-01-15
+
+### 🔧 Correções Críticas
+
+#### Inicialização do Backend
+- **Tratamento de Erros na Criação do App**: Adicionado logging e tratamento robusto de exceções na inicialização do Flask
+- **Fallback na Importação de Modelos**: Sistema agora tenta importação alternativa se a importação individual falhar
+- **Prevenção de 502 Bad Gateway**: Melhorias para garantir que o backend inicie mesmo com problemas menores
+- **Logs Críticos**: Adicionados logs detalhados para diagnóstico de problemas de inicialização
+
+#### Sistema de Banco de Dados
+- **Múltiplos Níveis de Fallback**: Sistema tenta criar tabelas em múltiplos níveis se houver erros
+- **Tratamento de Erros de Importação**: Erros de importação de modelos não impedem mais o backend de iniciar
+
+---
 ## [2.3.21] - 2025-01-15
 
 ### 🔧 Correções
