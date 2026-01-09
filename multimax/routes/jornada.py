@@ -510,12 +510,38 @@ def fechado_revisao():
                 records.append(r)
         
         # Garantir que meses de 2025 apareçam na lista de meses fechados
+        # Buscar todos os meses de 2025 (independente do status)
         meses_2025 = MonthStatus.query.filter(
             MonthStatus.year == 2025
         ).all()
+        
+        # Criar MonthStatus para meses de 2025 que têm registros mas não têm MonthStatus
+        meses_2025_existentes = {(m.year, m.month) for m in meses_2025}
+        meses_com_registros_2025 = set()
+        for r in records_2025:
+            meses_com_registros_2025.add((r.date.year, r.date.month))
+        
+        # Criar MonthStatus para meses de 2025 que têm registros mas não têm MonthStatus
+        for year, month in meses_com_registros_2025:
+            if (year, month) not in meses_2025_existentes:
+                # Criar MonthStatus para o mês de 2025
+                novo_mes = MonthStatus()
+                novo_mes.year = year
+                novo_mes.month = month
+                novo_mes.status = 'fechado'  # Meses de 2025 devem aparecer como fechados
+                db.session.add(novo_mes)
+                meses_2025.append(novo_mes)
+        
+        # Adicionar meses de 2025 à lista de meses fechados
         for mes_2025 in meses_2025:
             if mes_2025 not in meses_fechados:
                 meses_fechados.append(mes_2025)
+        
+        # Commit para salvar novos MonthStatus criados
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
         
         # Ordenar novamente após adicionar meses de 2025
         meses_fechados.sort(key=lambda m: (m.year, m.month), reverse=True)
