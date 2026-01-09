@@ -1,3 +1,22 @@
+## [2.3.32] - 2025-01-15
+
+### 🧹 Limpeza de Código
+
+#### Remoção de Arquivos Inutilizados
+- **Arquivos Removidos**: 8 arquivos vazios ou não utilizados
+  - `multimax/app_setup.py` (vazio)
+  - `multimax/health_monitor.py` (vazio)
+  - `multimax/logging_config.py` (vazio)
+  - `multimax/rbac_init.py` (vazio)
+  - `multimax/rbac.py` (vazio)
+  - `multimax/audit_helper.py` (vazio)
+  - `tests/test_rbac.py` (vazio)
+  - `templates/cronograma.html.backup` (backup)
+- **Impacto**: Redução de código morto, melhor manutenibilidade
+- **Validação**: Todos os blueprints importam corretamente após limpeza
+
+---
+
 ## [2.3.31] - 2025-01-15
 
 ### 🔧 Correções Críticas
