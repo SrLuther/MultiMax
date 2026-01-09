@@ -1161,6 +1161,46 @@ def create_app():
                 db.session.rollback()
             except Exception:
                 pass
+        
+        # Migração: Adicionar colunas payment_date e payment_amount em month_status
+        try:
+            from sqlalchemy import inspect, text
+            insp = inspect(db.engine)
+            ms_cols = [c['name'] for c in insp.get_columns('month_status')]
+            ms_changed = False
+            if 'payment_date' not in ms_cols:
+                db.session.execute(text('ALTER TABLE month_status ADD COLUMN payment_date DATE'))
+                ms_changed = True
+            if 'payment_amount' not in ms_cols:
+                db.session.execute(text('ALTER TABLE month_status ADD COLUMN payment_amount NUMERIC(10, 2)'))
+                ms_changed = True
+            if ms_changed:
+                db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+        
+        # Migração: Adicionar colunas payment_date e payment_amount em jornada_archive
+        try:
+            from sqlalchemy import inspect, text
+            insp = inspect(db.engine)
+            ja_cols = [c['name'] for c in insp.get_columns('jornada_archive')]
+            ja_changed = False
+            if 'payment_date' not in ja_cols:
+                db.session.execute(text('ALTER TABLE jornada_archive ADD COLUMN payment_date DATE'))
+                ja_changed = True
+            if 'payment_amount' not in ja_cols:
+                db.session.execute(text('ALTER TABLE jornada_archive ADD COLUMN payment_amount NUMERIC(10, 2)'))
+                ja_changed = True
+            if ja_changed:
+                db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
 
         try:
             from sqlalchemy import inspect, text
