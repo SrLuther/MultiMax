@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, session, make_response
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, session, make_response, current_app
 from flask_login import login_required, current_user
 from .. import db
 from ..models import Collaborator, User, TimeOffRecord, Holiday, SystemLog, Vacation, MedicalCertificate, JornadaArchive, AppSetting, MonthStatus
@@ -11,7 +11,7 @@ import csv
 import os
 from openpyxl import Workbook
 try:
-    from weasyprint import HTML, CSS
+    from weasyprint import HTML, CSS  # pyright: ignore[reportMissingImports]
     WEASYPRINT_AVAILABLE = True
 except ImportError:
     WEASYPRINT_AVAILABLE = False
@@ -47,7 +47,10 @@ def _get_month_status(year, month):
     try:
         status = MonthStatus.query.filter_by(year=year, month=month).first()
         if not status:
-            status = MonthStatus(year=year, month=month, status='aberto')
+            status = MonthStatus()
+            status.year = year
+            status.month = month
+            status.status = 'aberto'
             db.session.add(status)
             db.session.commit()
         return status
@@ -59,7 +62,10 @@ def _get_month_status(year, month):
             db.session.commit()
             status = MonthStatus.query.filter_by(year=year, month=month).first()
             if not status:
-                status = MonthStatus(year=year, month=month, status='aberto')
+                status = MonthStatus()
+                status.year = year
+                status.month = month
+                status.status = 'aberto'
                 db.session.add(status)
                 db.session.commit()
             return status
@@ -340,7 +346,10 @@ def em_aberto():
         logging.getLogger(__name__).error(f'Erro ao obter status do mês atual: {e}', exc_info=True)
         # Se houver erro, usar lista vazia e criar mês atual como fallback
         try:
-            mes_atual = MonthStatus(year=hoje.year, month=hoje.month, status='aberto')
+            mes_atual = MonthStatus()
+            mes_atual.year = hoje.year
+            mes_atual.month = hoje.month
+            mes_atual.status = 'aberto'
             db.session.add(mes_atual)
             db.session.commit()
             meses_abertos = [mes_atual]
@@ -1471,27 +1480,26 @@ def arquivar():
             
             # Arquivar apenas os registros que não são pendentes
             for record in records_to_archive:
-                archive_record = JornadaArchive(
-                    archive_period_start=period_start,
-                    archive_period_end=period_end,
-                    archived_at=archived_at,
-                    archived_by=current_user.username or current_user.name,
-                    description=description,
-                    original_record_id=record.id,
-                    collaborator_id=record.collaborator_id,
-                    date=record.date,
-                    record_type=record.record_type,
-                    hours=record.hours,
-                    days=record.days,
-                    amount_paid=record.amount_paid,
-                    rate_per_day=record.rate_per_day,
-                    origin=record.origin,
-                    notes=record.notes,
-                    created_at=record.created_at,
-                    created_by=record.created_by,
-                    payment_date=None,  # Não disponível no arquivamento manual
-                    payment_amount=None  # Não disponível no arquivamento manual
-                )
+                archive_record = JornadaArchive()
+                archive_record.archive_period_start = period_start
+                archive_record.archive_period_end = period_end
+                archive_record.archived_at = archived_at
+                archive_record.archived_by = current_user.username or current_user.name
+                archive_record.description = description
+                archive_record.original_record_id = record.id
+                archive_record.collaborator_id = record.collaborator_id
+                archive_record.date = record.date
+                archive_record.record_type = record.record_type
+                archive_record.hours = record.hours
+                archive_record.days = record.days
+                archive_record.amount_paid = record.amount_paid
+                archive_record.rate_per_day = record.rate_per_day
+                archive_record.origin = record.origin
+                archive_record.notes = record.notes
+                archive_record.created_at = record.created_at
+                archive_record.created_by = record.created_by
+                archive_record.payment_date = None  # Não disponível no arquivamento manual
+                archive_record.payment_amount = None  # Não disponível no arquivamento manual
                 db.session.add(archive_record)
                 archived_count += 1
             
@@ -1726,27 +1734,26 @@ def confirmar_pagamento(year, month):
         archived_at = datetime.now(ZoneInfo('America/Sao_Paulo'))
         
         for record in records_to_archive:
-            archive_record = JornadaArchive(
-                archive_period_start=first_day,
-                archive_period_end=last_day,
-                archived_at=archived_at,
-                archived_by=current_user.username or current_user.name,
-                description=f'Arquivamento automático após confirmação de pagamento - {month_status.month_year_str}',
-                original_record_id=record.id,
-                collaborator_id=record.collaborator_id,
-                date=record.date,
-                record_type=record.record_type,
-                hours=record.hours,
-                days=record.days,
-                amount_paid=record.amount_paid,
-                rate_per_day=record.rate_per_day,
-                origin=record.origin,
-                notes=record.notes,
-                created_at=record.created_at,
-                created_by=record.created_by,
-                payment_date=payment_date,  # Data do pagamento confirmado
-                payment_amount=payment_amount  # Valor total pago no mês
-            )
+            archive_record = JornadaArchive()
+            archive_record.archive_period_start = first_day
+            archive_record.archive_period_end = last_day
+            archive_record.archived_at = archived_at
+            archive_record.archived_by = current_user.username or current_user.name
+            archive_record.description = f'Arquivamento automático após confirmação de pagamento - {month_status.month_year_str}'
+            archive_record.original_record_id = record.id
+            archive_record.collaborator_id = record.collaborator_id
+            archive_record.date = record.date
+            archive_record.record_type = record.record_type
+            archive_record.hours = record.hours
+            archive_record.days = record.days
+            archive_record.amount_paid = record.amount_paid
+            archive_record.rate_per_day = record.rate_per_day
+            archive_record.origin = record.origin
+            archive_record.notes = record.notes
+            archive_record.created_at = record.created_at
+            archive_record.created_by = record.created_by
+            archive_record.payment_date = payment_date  # Data do pagamento confirmado
+            archive_record.payment_amount = payment_amount  # Valor total pago no mês
             db.session.add(archive_record)
             archived_count += 1
         
@@ -1841,7 +1848,9 @@ def _migrate_2025_to_closed():
         if not months_2025:
             # Marcar como concluída mesmo sem meses para migrar
             if not migration_setting:
-                migration_setting = AppSetting(key=migration_key, value='true')
+                migration_setting = AppSetting()
+                migration_setting.key = migration_key
+                migration_setting.value = 'true'
                 db.session.add(migration_setting)
             else:
                 migration_setting.value = 'true'
@@ -1865,7 +1874,9 @@ def _migrate_2025_to_closed():
         
         # Marcar migração como concluída
         if not migration_setting:
-            migration_setting = AppSetting(key=migration_key, value='true')
+            migration_setting = AppSetting()
+            migration_setting.key = migration_key
+            migration_setting.value = 'true'
             db.session.add(migration_setting)
         else:
             migration_setting.value = 'true'
@@ -2062,7 +2073,9 @@ def set_day_value():
         
         setting = AppSetting.query.filter_by(key='jornada_valor_dia').first()
         if not setting:
-            setting = AppSetting(key='jornada_valor_dia', value=str(day_value))
+            setting = AppSetting()
+            setting.key = 'jornada_valor_dia'
+            setting.value = str(day_value)
             db.session.add(setting)
         else:
             setting.value = str(day_value)
