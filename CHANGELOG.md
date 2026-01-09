@@ -1,3 +1,15 @@
+## [2.3.31] - 2025-01-15
+
+### 🔧 Correções Críticas
+
+#### Correção de Variáveis Não Definidas - 502 Bad Gateway
+- **Erro Corrigido**: `NameError` nas linhas 1495-1496 de `multimax/routes/jornada.py`
+- **Causa**: Uso de `payment_date` e `payment_amount` na função `arquivar` onde essas variáveis não existem
+- **Solução**: Definidas como `None` na função `arquivar` (arquivamento manual não possui dados de pagamento)
+- **Impacto**: Restaura funcionamento completo do módulo Jornada
+
+---
+
 ## [2.3.30] - 2025-01-15
 
 ### 🔧 Correções Críticas

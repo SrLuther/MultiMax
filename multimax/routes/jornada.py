@@ -1492,8 +1492,8 @@ def arquivar():
                     notes=record.notes,
                     created_at=record.created_at,
                     created_by=record.created_by,
-                    payment_date=payment_date,  # Data do pagamento confirmado
-                    payment_amount=payment_amount  # Valor total pago no mês
+                    payment_date=None,  # Não disponível no arquivamento manual
+                    payment_amount=None  # Não disponível no arquivamento manual
                 )
                 db.session.add(archive_record)
                 archived_count += 1
