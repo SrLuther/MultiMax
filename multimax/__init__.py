@@ -149,6 +149,10 @@ def create_app():
     from .routes.api import bp as api_bp
     from .routes.jornada import bp as jornada_bp
     try:
+        from .routes.jornada_pdf import bp as jornada_pdf_bp
+    except Exception:
+        jornada_pdf_bp = None
+    try:
         from .routes.temporarios import bp as temporarios_bp
     except Exception:
         temporarios_bp = None
@@ -179,6 +183,8 @@ def create_app():
     app.register_blueprint(relatorios_bp)
     app.register_blueprint(api_bp)
     app.register_blueprint(jornada_bp)
+    if jornada_pdf_bp:
+        app.register_blueprint(jornada_pdf_bp)
     if temporarios_bp:
         app.register_blueprint(temporarios_bp)
     if notificacoes_bp:
@@ -643,7 +649,7 @@ def create_app():
             # Log apenas se não for erro esperado (git não disponível)
             if 'git' not in str(e).lower():
                 app.logger.debug(f"Erro ao obter versão: {e}")
-            return '2.3.28'
+            return '2.3.29'
 
     resolved_version = _get_version()
     app.config['APP_VERSION_RESOLVED'] = resolved_version.lstrip('vV') if isinstance(resolved_version, str) else resolved_version

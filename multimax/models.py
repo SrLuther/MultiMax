@@ -260,6 +260,8 @@ class MonthStatus(db.Model):
     payment_confirmed = db.Column(db.Boolean, default=False)  # Pagamento confirmado
     payment_confirmed_at = db.Column(db.DateTime(timezone=True), nullable=True)  # Quando pagamento foi confirmado
     payment_confirmed_by = db.Column(db.String(100), nullable=True)  # Quem confirmou pagamento
+    payment_date = db.Column(db.Date, nullable=True)  # Data do pagamento
+    payment_amount = db.Column(db.Numeric(10, 2), nullable=True)  # Valor pago
     notes = db.Column(db.Text, nullable=True)  # Observações sobre o mês
     
     # Índice único para ano/mês
@@ -313,6 +315,8 @@ class JornadaArchive(db.Model):
     notes = db.Column(db.String(500), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), nullable=True)  # Data original de criação
     created_by = db.Column(db.String(100), nullable=True)  # Usuário que criou o registro original
+    payment_date = db.Column(db.Date, nullable=True)  # Data do pagamento confirmado
+    payment_amount = db.Column(db.Numeric(10, 2), nullable=True)  # Valor total pago no período
     
     collaborator = db.relationship('Collaborator', backref='jornada_archives', lazy=True)
 

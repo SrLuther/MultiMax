@@ -14,6 +14,36 @@
                 <p class="jornada-subtitle">Meses aguardando confirmação de pagamento e registros de 2025</p>
             </div>
             <div class="jornada-hero-actions">
+                {% if current_user.nivel in ('admin', 'DEV', 'operador') %}
+                <div class="btn-group" style="margin-right: 1rem;">
+                    <button type="button" class="btn-jornada btn-jornada-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-download"></i>
+                        <span>PDF</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('jornada_pdf.fechado_revisao') }}" target="_blank">
+                                <i class="bi bi-eye"></i> Visualizar PDF
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('jornada_pdf.fechado_revisao') }}" download>
+                                <i class="bi bi-download"></i> Download PDF
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('jornada_pdf.fechado_revisao') }}" onclick="window.print(); return false;">
+                                <i class="bi bi-printer"></i> Imprimir
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#" onclick="sharePDF('{{ url_for('jornada_pdf.fechado_revisao') }}'); return false;">
+                                <i class="bi bi-share"></i> Compartilhar
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                {% endif %}
                 <!-- Navegação entre subpáginas -->
                 <div class="jornada-nav">
                     <a href="{{ url_for('jornada.em_aberto') }}" class="jornada-nav-item">
@@ -52,11 +82,9 @@
                     Fechado em {{ mes.closed_at.strftime('%d/%m/%Y %H:%M') if mes.closed_at else '-' }} por {{ mes.closed_by or '-' }}
                 </small>
                 {% if current_user.nivel in ('admin', 'DEV') %}
-                <form method="POST" action="{{ url_for('jornada.confirmar_pagamento', year=mes.year, month=mes.month) }}" style="display: inline;">
-                    <button type="submit" class="btn-jornada btn-jornada-success" style="padding: 0.5rem 1rem; font-size: 0.875rem;" onclick="return confirm('Confirmar pagamento e arquivar {{ mes.month_year_str }}? Esta ação não pode ser desfeita (exceto por DEV).');">
-                        <i class="bi bi-check-circle"></i> Confirmar Pagamento e Arquivar
-                    </button>
-                </form>
+                <button type="button" class="btn-jornada btn-jornada-success" style="padding: 0.5rem 1rem; font-size: 0.875rem;" onclick="openPaymentModal({{ mes.year }}, {{ mes.month }}, '{{ mes.month_year_str }}')">
+                    <i class="bi bi-check-circle"></i> Confirmar Pagamento
+                </button>
                 {% endif %}
             </div>
             {% endfor %}
@@ -69,6 +97,21 @@
             <span style="color: var(--jornada-text);">Nenhum mês fechado para revisão no momento.</span>
         </div>
     </div>
+    {% endif %}
+
+    <!-- Card Resumo Padronizado -->
+    {% if all_stats %}
+    {% set stats = [
+        {'label': 'Total Horas', 'value': "%.2f"|format(total_horas|default(0)) + 'h', 'icon': 'bi-clock', 'color': 'var(--jornada-primary)'},
+        {'label': 'Horas Residuais', 'value': "%.2f"|format(total_horas_residuais|default(0)) + 'h', 'icon': 'bi-hourglass-split', 'color': 'var(--jornada-warning)'},
+        {'label': 'Saldo Folgas', 'value': (total_saldo_folgas|default(0))|string + ' dias', 'icon': 'bi-calendar-check', 'color': 'var(--jornada-success)'},
+        {'label': 'Folgas Usadas', 'value': (total_folgas_usadas|default(0))|string + ' dias', 'icon': 'bi-calendar-x', 'color': 'var(--jornada-danger)'},
+        {'label': 'Conversões', 'value': (total_conversoes|default(0))|string + ' dias', 'icon': 'bi-cash-coin', 'color': 'var(--jornada-info)'}
+    ] %}
+    {% set title = 'Resumo Geral - Fechado para Revisão' %}
+    {% set icon = 'bi-graph-up' %}
+    {% set subtitle = 'Dados consolidados dos meses fechados aguardando pagamento' %}
+    {% include 'jornada/_card_resumo.html' %}
     {% endif %}
 
     <!-- Filtros -->
@@ -208,4 +251,142 @@
     </div>
     {% endif %}
 </div>
+
+<!-- Modal de Confirmação de Pagamento -->
+<div id="paymentModal" class="jornada-modal" style="display: none;">
+    <div class="jornada-modal-content">
+        <div class="jornada-modal-header">
+            <h3 class="jornada-modal-title">
+                <i class="bi bi-cash-coin"></i>
+                Confirmar Pagamento
+            </h3>
+            <button type="button" class="jornada-modal-close" onclick="closePaymentModal()">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <form id="paymentForm" method="POST">
+            <div class="jornada-modal-body">
+                <div class="jornada-form-group">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-calendar3"></i>
+                        Data do Pagamento <span style="color: var(--jornada-danger);">*</span>
+                    </label>
+                    <input type="date" name="payment_date" id="payment_date" class="jornada-form-input" required>
+                </div>
+                <div class="jornada-form-group">
+                    <label class="jornada-form-label">
+                        <i class="bi bi-currency-dollar"></i>
+                        Valor Pago (R$) <span style="color: var(--jornada-danger);">*</span>
+                    </label>
+                    <input type="number" name="payment_amount" id="payment_amount" class="jornada-form-input" step="0.01" min="0" placeholder="0.00" required>
+                </div>
+                <div class="jornada-alert jornada-alert-warning" style="margin-top: 1rem;">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Atenção:</strong> Esta ação irá arquivar o mês <span id="modalMonthName"></span> e não pode ser desfeita (exceto por DEV).
+                </div>
+            </div>
+            <div class="jornada-modal-footer">
+                <button type="button" class="btn-jornada btn-jornada-secondary" onclick="closePaymentModal()">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <button type="submit" class="btn-jornada btn-jornada-success">
+                    <i class="bi bi-check-circle"></i> Confirmar e Arquivar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openPaymentModal(year, month, monthName) {
+    document.getElementById('modalMonthName').textContent = monthName;
+    document.getElementById('paymentForm').action = "{{ url_for('jornada.confirmar_pagamento', year=0, month=0) }}".replace('/0/', '/' + year + '/').replace('/0/', '/' + month + '/');
+    document.getElementById('payment_date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('payment_amount').value = '';
+    document.getElementById('paymentModal').style.display = 'flex';
+}
+
+function closePaymentModal() {
+    document.getElementById('paymentModal').style.display = 'none';
+    document.getElementById('paymentForm').reset();
+}
+
+// Fechar modal ao clicar fora
+document.getElementById('paymentModal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        closePaymentModal();
+    }
+});
+</script>
+
+<style>
+.jornada-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.jornada-modal-content {
+    background: var(--jornada-surface);
+    border: 1px solid var(--jornada-border);
+    border-radius: 16px;
+    box-shadow: var(--jornada-shadow-lg);
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.jornada-modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--jornada-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.jornada-modal-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--jornada-title);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.jornada-modal-close {
+    background: transparent;
+    border: none;
+    color: var(--jornada-text-muted);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    transition: color 0.2s;
+}
+
+.jornada-modal-close:hover {
+    color: var(--jornada-text);
+}
+
+.jornada-modal-body {
+    padding: 1.5rem;
+}
+
+.jornada-modal-footer {
+    padding: 1.5rem;
+    border-top: 1px solid var(--jornada-border);
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+</style>
 {% endblock %}

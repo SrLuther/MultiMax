@@ -7,13 +7,43 @@
     <div class="jornada-hero">
         <div class="jornada-hero-content">
             <div>
-                <h1 class="jornada-title" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                    <i class="bi bi-clipboard-data jornada-title-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></i>
+                <h1 class="jornada-title">
+                    <i class="bi bi-clipboard-data jornada-title-icon"></i>
                     Situação Final
                 </h1>
                 <p class="jornada-subtitle">Situação consolidada atual de cada colaborador (apenas dados ativos)</p>
             </div>
             <div class="jornada-hero-actions">
+                {% if current_user.nivel in ('admin', 'DEV', 'operador') %}
+                <div class="btn-group" style="margin-right: 1rem;">
+                    <button type="button" class="btn-jornada btn-jornada-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-download"></i>
+                        <span>PDF</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('jornada_pdf.situacao_final') }}" target="_blank">
+                                <i class="bi bi-eye"></i> Visualizar PDF
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('jornada_pdf.situacao_final') }}" download>
+                                <i class="bi bi-download"></i> Download PDF
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('jornada_pdf.situacao_final') }}" onclick="window.print(); return false;">
+                                <i class="bi bi-printer"></i> Imprimir
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#" onclick="sharePDF('{{ url_for('jornada_pdf.situacao_final') }}'); return false;">
+                                <i class="bi bi-share"></i> Compartilhar
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                {% endif %}
                 <!-- Navegação entre subpáginas -->
                 <div class="jornada-nav">
                     <a href="{{ url_for('jornada.em_aberto') }}" class="jornada-nav-item">
@@ -157,4 +187,19 @@
         </div>
     </div>
 </div>
+<script>
+function sharePDF(url) {
+    if (navigator.share) {
+        navigator.share({
+            title: 'Jornada - Situação Final',
+            text: 'Relatório de Jornada - Situação Final',
+            url: url
+        }).catch(err => console.log('Erro ao compartilhar:', err));
+    } else {
+        navigator.clipboard.writeText(window.location.origin + url).then(() => {
+            alert('URL copiada para a área de transferência!');
+        });
+    }
+}
+</script>
 {% endblock %}

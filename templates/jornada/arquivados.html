@@ -14,6 +14,36 @@
                 <p class="jornada-subtitle">Histórico completo de registros arquivados da jornada</p>
             </div>
             <div class="jornada-hero-actions">
+                {% if current_user.nivel in ('admin', 'DEV', 'operador') %}
+                <div class="btn-group" style="margin-right: 1rem;">
+                    <button type="button" class="btn-jornada btn-jornada-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-download"></i>
+                        <span>PDF</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('jornada_pdf.arquivados') }}" target="_blank">
+                                <i class="bi bi-eye"></i> Visualizar PDF
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('jornada_pdf.arquivados') }}" download>
+                                <i class="bi bi-download"></i> Download PDF
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('jornada_pdf.arquivados') }}" onclick="window.print(); return false;">
+                                <i class="bi bi-printer"></i> Imprimir
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#" onclick="sharePDF('{{ url_for('jornada_pdf.arquivados') }}'); return false;">
+                                <i class="bi bi-share"></i> Compartilhar
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                {% endif %}
                 <!-- Navegação entre subpáginas -->
                 <div class="jornada-nav">
                     <a href="{{ url_for('jornada.em_aberto') }}" class="jornada-nav-item">
@@ -398,4 +428,19 @@
 
 /* Estilos já definidos em jornada/index.html são reutilizados */
 </style>
+<script>
+function sharePDF(url) {
+    if (navigator.share) {
+        navigator.share({
+            title: 'Jornada - Arquivados',
+            text: 'Relatório de Jornada - Registros Arquivados',
+            url: url
+        }).catch(err => console.log('Erro ao compartilhar:', err));
+    } else {
+        navigator.clipboard.writeText(window.location.origin + url).then(() => {
+            alert('URL copiada para a área de transferência!');
+        });
+    }
+}
+</script>
 {% endblock %}

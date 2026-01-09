@@ -45,6 +45,27 @@
                                 <i class="bi bi-file-earmark-spreadsheet"></i> Exportar CSV
                             </a>
                         </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('jornada_pdf.em_aberto') }}" target="_blank">
+                                <i class="bi bi-eye"></i> Visualizar PDF
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('jornada_pdf.em_aberto') }}" download>
+                                <i class="bi bi-download"></i> Download PDF
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('jornada_pdf.em_aberto') }}" onclick="window.print(); return false;">
+                                <i class="bi bi-printer"></i> Imprimir
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#" onclick="sharePDF('{{ url_for('jornada_pdf.em_aberto') }}'); return false;">
+                                <i class="bi bi-share"></i> Compartilhar
+                            </a>
+                        </li>
                     </ul>
                 </div>
                 {% if can_edit %}
@@ -78,6 +99,18 @@
             {% endfor %}
         </div>
     </div>
+    {% endif %}
+
+    <!-- Card Resumo Padronizado -->
+    {% if all_stats %}
+    {% set stats = [
+        {'label': 'Total Horas', 'value': "%.2f"|format(total_horas|default(0)) + 'h', 'icon': 'bi-clock', 'color': 'var(--jornada-primary)'},
+        {'label': 'Horas Residuais', 'value': "%.2f"|format(total_horas_residuais|default(0)) + 'h', 'icon': 'bi-hourglass-split', 'color': 'var(--jornada-warning)'},
+        {'label': 'Saldo Folgas', 'value': (total_saldo_folgas|default(0))|string + ' dias', 'icon': 'bi-calendar-check', 'color': 'var(--jornada-success)'},
+        {'label': 'Folgas Usadas', 'value': (total_folgas_usadas|default(0))|string + ' dias', 'icon': 'bi-calendar-x', 'color': 'var(--jornada-danger)'},
+        {'label': 'Conversões', 'value': (total_conversoes|default(0))|string + ' dias', 'icon': 'bi-cash-coin', 'color': 'var(--jornada-info)'}
+    ] %}
+    {% include 'jornada/_card_resumo.html' %}
     {% endif %}
 
     <!-- Filtros -->
@@ -479,6 +512,20 @@ function renderCalendario(data) {
         `;
         
         container.appendChild(diaDiv);
+    }
+}
+
+function sharePDF(url) {
+    if (navigator.share) {
+        navigator.share({
+            title: 'Jornada - Em Aberto',
+            text: 'Relatório de Jornada - Meses em Aberto',
+            url: url
+        }).catch(err => console.log('Erro ao compartilhar:', err));
+    } else {
+        navigator.clipboard.writeText(window.location.origin + url).then(() => {
+            alert('URL copiada para a área de transferência!');
+        });
     }
 }
 </script>

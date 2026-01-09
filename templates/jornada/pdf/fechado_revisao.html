@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jornada - Fechado para Revisão</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 10pt;
+            line-height: 1.4;
+            color: #1e293b;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            border-bottom: 3px solid #f472b6;
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .header h1 {
+            margin: 0;
+            color: #f472b6;
+            font-size: 24pt;
+            font-weight: 700;
+        }
+        .header .subtitle {
+            color: #64748b;
+            font-size: 11pt;
+            margin-top: 0.5rem;
+        }
+        .header .meta {
+            color: #94a3b8;
+            font-size: 9pt;
+            margin-top: 0.5rem;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1rem;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: #fef2f2;
+            border-radius: 8px;
+        }
+        .stat-card {
+            text-align: center;
+            padding: 0.75rem;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #fecdd3;
+        }
+        .stat-label {
+            font-size: 8pt;
+            color: #64748b;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        .stat-value {
+            font-size: 16pt;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 9pt;
+        }
+        thead {
+            background: #f472b6;
+            color: white;
+        }
+        th {
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 9pt;
+        }
+        td {
+            padding: 0.6rem 0.75rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        tbody tr:nth-child(even) {
+            background: #f8fafc;
+        }
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 8pt;
+            font-weight: 600;
+        }
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .footer {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 8pt;
+        }
+        .meses-fechados {
+            margin: 1rem 0;
+            padding: 0.75rem;
+            background: #fef2f2;
+            border-left: 4px solid #f472b6;
+            border-radius: 4px;
+        }
+        .meses-fechados strong {
+            color: #be185d;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⏳ Jornada - Fechado para Revisão</h1>
+        <div class="subtitle">Meses aguardando confirmação de pagamento e registros de 2025</div>
+        <div class="meta">Gerado em: {{ generated_at.strftime('%d/%m/%Y %H:%M:%S') }}</div>
+    </div>
+
+    {% if meses_fechados %}
+    <div class="meses-fechados">
+        <strong>Meses Fechados Aguardando Pagamento:</strong>
+        {% for mes in meses_fechados %}
+        <span class="badge badge-warning">{{ mes.month_year_str }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total Horas</div>
+            <div class="stat-value">{{ "%.2f"|format(total_horas|default(0)) }}h</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Horas Residuais</div>
+            <div class="stat-value">{{ "%.2f"|format(total_horas_residuais|default(0)) }}h</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Saldo Folgas</div>
+            <div class="stat-value">{{ total_saldo_folgas|default(0) }} dias</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Folgas Usadas</div>
+            <div class="stat-value">{{ total_folgas_usadas|default(0) }} dias</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Conversões</div>
+            <div class="stat-value">{{ total_conversoes|default(0) }} dias</div>
+        </div>
+    </div>
+
+    {% if all_stats %}
+    <h2 style="color: #f472b6; font-size: 14pt; margin-top: 2rem; margin-bottom: 1rem;">Resumo por Colaborador</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Colaborador</th>
+                <th style="text-align: right;">Horas Residuais</th>
+                <th style="text-align: right;">Saldo Folgas</th>
+                <th style="text-align: right;">Folgas Usadas</th>
+                <th style="text-align: right;">Conversões</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in all_stats %}
+            <tr>
+                <td><strong>{{ item.display_name }}</strong></td>
+                <td style="text-align: right;">{{ "%.2f"|format(item.balance.residual_hours|default(0)) }}h</td>
+                <td style="text-align: right;">
+                    <span class="badge badge-success">{{ item.balance.saldo_days|default(0) }} dias</span>
+                </td>
+                <td style="text-align: right;">
+                    <span class="badge badge-warning">{{ item.balance.assigned_sum|default(0) }} dias</span>
+                </td>
+                <td style="text-align: right;">
+                    <span class="badge badge-info">{{ item.balance.converted_sum|default(0) }} dias</span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if records %}
+    <h2 style="color: #f472b6; font-size: 14pt; margin-top: 2rem; margin-bottom: 1rem;">Registros</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Colaborador</th>
+                <th>Tipo</th>
+                <th style="text-align: right;">Horas</th>
+                <th style="text-align: right;">Dias</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in records[:100] %}
+            <tr>
+                <td>{{ record.date.strftime('%d/%m/%Y') }}</td>
+                <td>
+                    {% if record.collaborator %}
+                        {{ record.collaborator.user.name if record.collaborator.user else record.collaborator.name }}
+                    {% else %}
+                        ID {{ record.collaborator_id }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if record.record_type == 'horas' %}
+                        <span class="badge badge-info">Horas</span>
+                    {% elif record.record_type == 'folga_adicional' %}
+                        <span class="badge badge-success">Folga Adicional</span>
+                    {% elif record.record_type == 'folga_usada' %}
+                        <span class="badge badge-danger">Folga Usada</span>
+                    {% elif record.record_type == 'conversao' %}
+                        <span class="badge badge-warning">Conversão</span>
+                    {% endif %}
+                </td>
+                <td style="text-align: right;">{{ "%.2f"|format(record.hours|default(0)) if record.hours else '-' }}</td>
+                <td style="text-align: right;">{{ record.days|default('-') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <div class="footer">
+        <p>MultiMax - Sistema de Gestão | Relatório gerado automaticamente</p>
+    </div>
+</body>
+</html>

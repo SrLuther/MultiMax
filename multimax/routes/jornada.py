@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, session, make_response
 from flask_login import login_required, current_user
 from .. import db
 from ..models import Collaborator, User, TimeOffRecord, Holiday, SystemLog, Vacation, MedicalCertificate, JornadaArchive, AppSetting, MonthStatus
@@ -10,6 +10,11 @@ import io
 import csv
 import os
 from openpyxl import Workbook
+try:
+    from weasyprint import HTML, CSS
+    WEASYPRINT_AVAILABLE = True
+except ImportError:
+    WEASYPRINT_AVAILABLE = False
 
 ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'}
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
@@ -408,6 +413,13 @@ def em_aberto():
     # Verificar permissões de edição
     can_edit = current_user.nivel in ('admin', 'DEV')
     
+    # Calcular totais para o card de resumo
+    total_horas = sum(float(s['balance'].get('total_bruto_hours', 0.0)) for s in all_stats)
+    total_horas_residuais = sum(float(s['balance'].get('residual_hours', 0.0)) for s in all_stats)
+    total_saldo_folgas = sum(int(s['balance'].get('saldo_days', 0)) for s in all_stats)
+    total_folgas_usadas = sum(int(s['balance'].get('assigned_sum', 0)) for s in all_stats)
+    total_conversoes = sum(int(s['balance'].get('converted_sum', 0)) for s in all_stats)
+    
     # Buscar feriados para o calendário
     hoje = date.today()
     feriados = Holiday.query.filter(
@@ -427,6 +439,11 @@ def em_aberto():
             record_type=record_type,
             can_edit=can_edit,
             feriados=feriados,
+            total_horas=total_horas,
+            total_horas_residuais=total_horas_residuais,
+            total_saldo_folgas=total_saldo_folgas,
+            total_folgas_usadas=total_folgas_usadas,
+            total_conversoes=total_conversoes,
             active_page='jornada'
         )
     except Exception as e:
@@ -502,17 +519,43 @@ def fechado_revisao():
     
     colaboradores = _get_all_collaborators()
     
+    # Calcular estatísticas dos meses fechados
+    all_stats = []
+    for colab in colaboradores:
+        # Filtrar registros do colaborador nos meses fechados
+        colab_records = [r for r in records if r.collaborator_id == colab.id]
+        if colab_records:
+            balance = _calculate_collaborator_balance(colab.id)
+            all_stats.append({
+                'collaborator': colab,
+                'display_name': _get_collaborator_display_name(colab),
+                'balance': balance
+            })
+    
     # Verificar permissões (DEV e ADMIN podem editar meses fechados)
     can_edit = current_user.nivel in ('admin', 'DEV')
+    
+    # Calcular totais para o card de resumo
+    total_horas = sum(float(s['balance'].get('total_bruto_hours', 0.0)) for s in all_stats)
+    total_horas_residuais = sum(float(s['balance'].get('residual_hours', 0.0)) for s in all_stats)
+    total_saldo_folgas = sum(int(s['balance'].get('saldo_days', 0)) for s in all_stats)
+    total_folgas_usadas = sum(int(s['balance'].get('assigned_sum', 0)) for s in all_stats)
+    total_conversoes = sum(int(s['balance'].get('converted_sum', 0)) for s in all_stats)
     
     return render_template(
         'jornada/fechado_revisao.html',
         colaboradores=colaboradores,
         records=records[:100],
+        all_stats=all_stats,
         meses_fechados=meses_fechados,
         collaborator_id=collaborator_id,
         record_type=record_type,
         can_edit=can_edit,
+        total_horas=total_horas,
+        total_horas_residuais=total_horas_residuais,
+        total_saldo_folgas=total_saldo_folgas,
+        total_folgas_usadas=total_folgas_usadas,
+        total_conversoes=total_conversoes,
         active_page='jornada'
     )
 
@@ -1446,11 +1489,13 @@ def arquivar():
                     amount_paid=record.amount_paid,
                     rate_per_day=record.rate_per_day,
                     origin=record.origin,
-                    notes=record.notes,
-                    created_at=record.created_at,
-                    created_by=record.created_by
-                )
-                db.session.add(archive_record)
+                notes=record.notes,
+                created_at=record.created_at,
+                created_by=record.created_by,
+                payment_date=payment_date,  # Data do pagamento confirmado
+                payment_amount=payment_amount  # Valor total pago no mês
+            )
+            db.session.add(archive_record)
                 archived_count += 1
             
             # TRANSACIONAL: Arquivar e atualizar status dos meses em uma única transação
@@ -1629,16 +1674,46 @@ def confirmar_pagamento(year, month):
         return redirect(url_for('jornada.fechado_revisao'))
     
     try:
+        # Obter dados do formulário (data e valor do pagamento)
+        payment_date_str = request.form.get('payment_date', '').strip()
+        payment_amount_str = request.form.get('payment_amount', '').strip()
+        
+        # Validar campos obrigatórios
+        if not payment_date_str:
+            flash('Data do pagamento é obrigatória.', 'danger')
+            return redirect(url_for('jornada.fechado_revisao'))
+        
+        if not payment_amount_str:
+            flash('Valor pago é obrigatório.', 'danger')
+            return redirect(url_for('jornada.fechado_revisao'))
+        
+        # Converter data e valor
+        try:
+            payment_date = datetime.strptime(payment_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash('Data do pagamento inválida. Use o formato YYYY-MM-DD.', 'danger')
+            return redirect(url_for('jornada.fechado_revisao'))
+        
+        try:
+            payment_amount = float(payment_amount_str.replace(',', '.'))
+            if payment_amount < 0:
+                raise ValueError('Valor não pode ser negativo')
+        except (ValueError, AttributeError):
+            flash('Valor pago inválido. Use apenas números.', 'danger')
+            return redirect(url_for('jornada.fechado_revisao'))
+        
         month_status = _get_month_status(year, month)
         
         if month_status.status != 'fechado':
             flash(f'O mês {month_status.month_year_str} não está fechado. Status atual: {month_status.status}.', 'warning')
             return redirect(url_for('jornada.fechado_revisao'))
         
-        # Confirmar pagamento
+        # Confirmar pagamento com data e valor
         month_status.payment_confirmed = True
         month_status.payment_confirmed_at = datetime.now(ZoneInfo('America/Sao_Paulo'))
         month_status.payment_confirmed_by = current_user.username or current_user.name
+        month_status.payment_date = payment_date
+        month_status.payment_amount = payment_amount
         
         # Arquivar registros do mês
         from calendar import monthrange
@@ -1671,7 +1746,9 @@ def confirmar_pagamento(year, month):
                 origin=record.origin,
                 notes=record.notes,
                 created_at=record.created_at,
-                created_by=record.created_by
+                created_by=record.created_by,
+                payment_date=payment_date,  # Data do pagamento confirmado
+                payment_amount=payment_amount  # Valor total pago no mês
             )
             db.session.add(archive_record)
             archived_count += 1

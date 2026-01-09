@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jornada - Situação Final</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 10pt;
+            line-height: 1.4;
+            color: #1e293b;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .header h1 {
+            margin: 0;
+            color: #667eea;
+            font-size: 24pt;
+            font-weight: 700;
+        }
+        .header .subtitle {
+            color: #64748b;
+            font-size: 11pt;
+            margin-top: 0.5rem;
+        }
+        .header .meta {
+            color: #94a3b8;
+            font-size: 9pt;
+            margin-top: 0.5rem;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1rem;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: #f0f9ff;
+            border-radius: 8px;
+        }
+        .stat-card {
+            text-align: center;
+            padding: 0.75rem;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #bae6fd;
+        }
+        .stat-label {
+            font-size: 8pt;
+            color: #64748b;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        .stat-value {
+            font-size: 16pt;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 9pt;
+        }
+        thead {
+            background: #667eea;
+            color: white;
+        }
+        th {
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 9pt;
+        }
+        td {
+            padding: 0.6rem 0.75rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        tbody tr:nth-child(even) {
+            background: #f8fafc;
+        }
+        tfoot {
+            background: #f0f9ff;
+            font-weight: 700;
+        }
+        tfoot td {
+            border-top: 2px solid #667eea;
+        }
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 8pt;
+            font-weight: 600;
+        }
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .footer {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 8pt;
+        }
+        .saldo-destaque {
+            color: #667eea;
+            font-weight: 700;
+            font-size: 11pt;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Jornada - Situação Final</h1>
+        <div class="subtitle">Visão consolidada da situação atual de cada colaborador (apenas dados ativos)</div>
+        <div class="meta">Gerado em: {{ generated_at.strftime('%d/%m/%Y %H:%M:%S') }}</div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total Horas</div>
+            <div class="stat-value">{{ "%.2f"|format(total_geral_horas|default(0)) }}h</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Folgas Adicionadas</div>
+            <div class="stat-value">{{ total_geral_folgas_adicionadas|default(0) }} dias</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Folgas Usadas</div>
+            <div class="stat-value">{{ total_geral_folgas_usadas|default(0) }} dias</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Conversões</div>
+            <div class="stat-value">{{ total_geral_conversoes|default(0) }} dias</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Saldo Total Folgas</div>
+            <div class="stat-value saldo-destaque">{{ total_geral_saldo|default(0) }} dias</div>
+        </div>
+    </div>
+
+    {% if situacoes %}
+    <h2 style="color: #667eea; font-size: 14pt; margin-top: 2rem; margin-bottom: 1rem;">Situação por Colaborador</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Colaborador</th>
+                <th style="text-align: right;">Total Horas</th>
+                <th style="text-align: right;">Horas Residuais</th>
+                <th style="text-align: right;">Dias das Horas</th>
+                <th style="text-align: right;">Folgas Adicionadas</th>
+                <th style="text-align: right;">Folgas Usadas</th>
+                <th style="text-align: right;">Conversões</th>
+                <th style="text-align: right;">Saldo Folgas</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for situacao in situacoes %}
+            <tr>
+                <td><strong>{{ situacao.display_name }}</strong></td>
+                <td style="text-align: right;"><strong>{{ "%.2f"|format(situacao.total_horas|default(0)) }}h</strong></td>
+                <td style="text-align: right;">{{ "%.2f"|format(situacao.horas_residuais|default(0)) }}h</td>
+                <td style="text-align: right;">{{ situacao.dias_das_horas|default(0) }} dias</td>
+                <td style="text-align: right;">
+                    <span class="badge badge-success">{{ situacao.folgas_adicionadas|default(0) }} dias</span>
+                </td>
+                <td style="text-align: right;">
+                    <span class="badge badge-danger">{{ situacao.folgas_usadas|default(0) }} dias</span>
+                </td>
+                <td style="text-align: right;">
+                    <span class="badge badge-info">{{ situacao.conversoes|default(0) }} dias</span>
+                </td>
+                <td style="text-align: right;">
+                    <strong class="saldo-destaque">{{ situacao.saldo_folgas|default(0) }} dias</strong>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td><strong>TOTAL GERAL</strong></td>
+                <td style="text-align: right;"><strong>{{ "%.2f"|format(total_geral_horas|default(0)) }}h</strong></td>
+                <td style="text-align: right;">-</td>
+                <td style="text-align: right;">-</td>
+                <td style="text-align: right;"><strong>{{ total_geral_folgas_adicionadas|default(0) }} dias</strong></td>
+                <td style="text-align: right;"><strong>{{ total_geral_folgas_usadas|default(0) }} dias</strong></td>
+                <td style="text-align: right;"><strong>{{ total_geral_conversoes|default(0) }} dias</strong></td>
+                <td style="text-align: right;"><strong class="saldo-destaque">{{ total_geral_saldo|default(0) }} dias</strong></td>
+            </tr>
+        </tfoot>
+    </table>
+    {% endif %}
+
+    <div class="footer">
+        <p>MultiMax - Sistema de Gestão | Relatório gerado automaticamente</p>
+        <p><em>Dados consolidados apenas de registros ativos (não arquivados)</em></p>
+    </div>
+</body>
+</html>

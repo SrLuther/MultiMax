@@ -1,3 +1,33 @@
+## [2.3.29] - 2025-01-15
+
+### ✨ Novas Funcionalidades
+
+#### Módulo Jornada - Evolução Completa
+- **Botão "Confirmar Pagamento"**: Modal com campos obrigatórios (data e valor) para confirmação de pagamento em meses fechados
+- **Card de Resumo Padronizado**: Componente reutilizável exibindo estatísticas consolidadas em todas as subpáginas
+- **Página "Situação Final"**: Visão consolidada da situação atual de cada colaborador (apenas dados ativos)
+- **Sistema de PDF com WeasyPrint**: Geração de PDFs para todas as subpáginas (Em Aberto, Fechado para Revisão, Arquivados, Situação Final)
+  - Visualizar PDF
+  - Download PDF
+  - Imprimir
+  - Compartilhar
+
+### 🔧 Melhorias
+
+#### Modelos de Dados
+- Adicionados campos `payment_date` e `payment_amount` ao modelo `MonthStatus`
+- Adicionados campos `payment_date` e `payment_amount` ao modelo `JornadaArchive` para histórico completo
+
+#### Interface
+- Botões de PDF adicionados em todas as subpáginas de Jornada
+- Função JavaScript `sharePDF()` para compartilhamento de PDFs
+- Card de resumo padronizado com estatísticas consolidadas
+
+### 📦 Dependências
+- Adicionado `weasyprint>=60.0` ao `requirements.txt`
+
+---
+
 ## [2.3.28] - 2025-01-15
 
 ### 🔧 Correções

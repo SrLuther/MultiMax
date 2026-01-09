@@ -1,15 +1,15 @@
 {# Componente de Card Resumo Padronizado - Reutilizável #}
 {# Parâmetros esperados:
-   - title: Título do card
-   - icon: Ícone Bootstrap
+   - title: Título do card (padrão: "Resumo Geral")
+   - icon: Ícone Bootstrap (padrão: "bi-graph-up")
    - stats: Lista de estatísticas com {label, value, icon, color}
    - subtitle: Subtítulo opcional
 #}
 <div class="jornada-card">
     <div class="jornada-card-header">
         <h3 class="jornada-card-title">
-            <i class="bi {{ icon }}"></i>
-            {{ title }}
+            <i class="bi {{ icon|default('bi-graph-up') }}"></i>
+            {{ title|default('Resumo Geral') }}
         </h3>
         {% if subtitle %}
         <small style="color: var(--jornada-text-muted); margin-top: 0.5rem; display: block;">{{ subtitle }}</small>
