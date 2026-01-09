@@ -125,7 +125,8 @@ def fechado_revisao():
             records.extend(mes_records)
         
         records_2025 = TimeOffRecord.query.filter(
-            func.extract('year', TimeOffRecord.date) == 2025
+            TimeOffRecord.date >= date(2025, 1, 1),
+        TimeOffRecord.date < date(2026, 1, 1)
         ).order_by(TimeOffRecord.date.desc()).all()
         
         existing_ids = {r.id for r in records}

@@ -487,8 +487,10 @@ def fechado_revisao():
         records.extend(mes_records)
     
     # OBRIGATÓRIO: Incluir TODOS os registros de 2025, independente do status
+    # Usar comparação de data para compatibilidade com SQLite e PostgreSQL
     records_2025 = TimeOffRecord.query.filter(
-        func.extract('year', TimeOffRecord.date) == 2025
+        TimeOffRecord.date >= date(2025, 1, 1),
+        TimeOffRecord.date < date(2026, 1, 1)
     ).order_by(TimeOffRecord.date.desc(), TimeOffRecord.id.desc()).all()
     
     # Combinar registros, evitando duplicatas
@@ -703,27 +705,6 @@ def arquivados():
         total_conversoes=total_conversoes,
         total_valor_pago=total_valor_pago,
         can_edit=can_edit
-    )
-    day_value = _get_day_value()
-
-    return render_template(
-        'jornada/index.html',
-        colaboradores=colaboradores,
-        records=records,
-        selected_collaborator=selected_collaborator,
-        stats=stats,
-        all_stats=all_stats,
-        ferias=ferias,
-        atestados=atestados,
-        collaborator_id=collaborator_id,
-        user_id=user_id,
-        data_inicio=data_inicio,
-        data_fim=data_fim,
-        record_type=record_type,
-        collaborator_values=collaborator_values,
-        total_values=total_values,
-        day_value=day_value,
-        active_page='jornada'
     )
 
 @bp.route('/novo', methods=['GET', 'POST'], strict_slashes=False)

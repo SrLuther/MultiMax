@@ -1,3 +1,24 @@
+## [2.3.34] - 2025-01-15
+
+### 🔧 Correções Críticas
+
+#### Erro 500 Internal Server Error - Rotas de Jornada
+- **Problema**: Erro 500 nas páginas `/jornada/fechado-revisao` e `/jornada/arquivados`
+- **Causa 1**: Código duplicado/inacessível após `return` na função `arquivados()` (linhas 707-727)
+- **Causa 2**: Uso de `func.extract('year', ...)` que pode falhar em SQLite
+- **Solução 1**: Removido código duplicado após o return em `arquivados()`
+- **Solução 2**: Substituído `func.extract('year', TimeOffRecord.date) == 2025` por comparação de data compatível com SQLite e PostgreSQL:
+  ```python
+  TimeOffRecord.date >= date(2025, 1, 1),
+  TimeOffRecord.date < date(2026, 1, 1)
+  ```
+- **Arquivos Corrigidos**:
+  - `multimax/routes/jornada.py` - Função `fechado_revisao()` e `arquivados()`
+  - `multimax/routes/jornada_pdf.py` - Mesma correção para compatibilidade
+- **Impacto**: Páginas de jornada agora carregam corretamente sem erro 500
+
+---
+
 ## [2.3.33] - 2025-01-15
 
 ### 🐳 Correções Docker
