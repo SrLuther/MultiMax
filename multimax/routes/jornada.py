@@ -472,9 +472,9 @@ def fechado_revisao():
         meses_fechados = MonthStatus.query.filter_by(status='fechado').order_by(
             MonthStatus.year.desc(), MonthStatus.month.desc()
         ).all()
-    
-    # Buscar registros dos meses fechados
-    records = []
+        
+        # Buscar registros dos meses fechados
+        records = []
     for mes_status in meses_fechados:
         from calendar import monthrange
         first_day = date(mes_status.year, mes_status.month, 1)
