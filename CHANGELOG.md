@@ -1,3 +1,14 @@
+## [2.3.28] - 2025-01-15
+
+### 🔧 Correções
+
+#### Página Arquivados - Cores e Legibilidade
+- **Tokens de Cor Aplicados**: Removidos estilos inline hardcoded, usando tokens CSS para dark/light mode
+- **Ícone Vibrante**: Ícone de arquivo com cor roxa vibrante no dark mode para melhor legibilidade
+- **Consistência Visual**: Alinhamento com outras subpáginas de Jornada
+
+---
+
 ## [2.3.27] - 2025-01-15
 
 ### 🔧 Correções
