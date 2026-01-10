@@ -1,3 +1,70 @@
+## [2.3.35] - 2025-01-15
+
+### ✨ Novas Funcionalidades
+
+#### Sistema de Atualização Automática via Deploy Agent
+- **Deploy Agent**: Serviço Flask separado rodando no HOST (fora do Docker) responsável por executar comandos Git e Docker
+  - Escuta em `127.0.0.1:9000` (apenas localhost, não exposto externamente)
+  - Aceita apenas conexões localhost para segurança
+  - Suporte opcional para token de autenticação via `DEPLOY_AGENT_TOKEN`
+  - Executa sequência fixa e controlada de comandos:
+    1. `git fetch origin`
+    2. `git reset --hard origin/nova-versao-deploy`
+    3. `docker-compose build --no-cache`
+    4. `docker-compose down`
+    5. `docker-compose up -d`
+- **Endpoint Refatorado**: `/git/update` no MultiMax agora faz apenas requisições HTTP ao Deploy Agent
+  - **NÃO executa** comandos Git ou Docker diretamente
+  - **NÃO acessa** o diretório `.git`
+  - Toda execução é delegada ao Deploy Agent no HOST
+  - Tratamento robusto de erros com mensagens claras e acionáveis
+- **Integração Completa**: Card "Monitoramento de Atualizações Git" já integrado
+  - Botão "Aplicar Atualização Completa" habilitado quando há atualização disponível
+  - Botão "Reinstalar Atualização" para forçar atualização mesmo se já estiver atualizado
+  - Feedback visual com spinner, status e logs
+  - Modal de confirmação com contagem regressiva
+  - Notificações claras sobre indisponibilidade temporária
+- **Documentação Completa**:
+  - `DEPLOY_AGENT_INSTALL.md`: Instruções detalhadas de instalação (serviço systemd, configuração, troubleshooting)
+  - `DEPLOY_AGENT_README.md`: Documentação completa do sistema (arquitetura, endpoints, segurança, suporte)
+  - `docker-compose.deploy-agent.yml`: Exemplo de configuração do docker-compose.yml
+  - `deploy_agent.py`: Serviço Flask bem documentado com logging e tratamento de erros
+
+### 🔒 Segurança
+
+#### Medidas de Segurança Implementadas
+- **Apenas localhost**: Deploy Agent aceita apenas conexões de `127.0.0.1`
+- **Token opcional**: Suporte para autenticação via `DEPLOY_AGENT_TOKEN`
+- **Comandos fixos**: Deploy Agent executa apenas sequência pré-definida, não aceita comandos arbitrários
+- **Validação de origem**: Verifica IP de origem de todas as requisições
+- **Sem exposição externa**: Porta 9000 não exposta externamente (firewall recomendado)
+
+### 🏗️ Arquitetura
+
+#### Separação de Responsabilidades
+- **MultiMax (Container)**:
+  - Interface web (`/db`)
+  - Endpoint `/git/update` que faz apenas requisições HTTP
+  - **NÃO executa** comandos Git ou Docker
+  - **NÃO acessa** diretório `.git`
+- **Deploy Agent (HOST)**:
+  - Serviço Flask rodando diretamente no HOST (não em container)
+  - Executa comandos Git e Docker no HOST
+  - Aceita apenas conexões localhost
+  - Logging completo para diagnóstico
+
+### 📚 Arquivos Criados/Modificados
+- **Novos Arquivos**:
+  - `deploy_agent.py`: Serviço Flask do Deploy Agent
+  - `DEPLOY_AGENT_INSTALL.md`: Guia de instalação completo
+  - `DEPLOY_AGENT_README.md`: Documentação do sistema
+  - `docker-compose.deploy-agent.yml`: Exemplo de configuração
+- **Arquivos Modificados**:
+  - `multimax/routes/dbadmin.py`: Endpoint `/git/update` refatorado para fazer apenas requisições HTTP ao Deploy Agent
+  - Removido todo código que executa comandos Git/Docker diretamente do container
+
+---
+
 ## [2.3.34] - 2025-01-15
 
 ### 🔧 Correções Críticas

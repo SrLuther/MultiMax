@@ -1873,20 +1873,31 @@ def git_status():
 @bp.route('/git/update', methods=['POST'], strict_slashes=False)
 @login_required
 def git_update():
-    """Aplica atualização do Git e reinicia containers Docker
+    """
+    Aplica atualização do MultiMax via Deploy Agent
     
-    Executa os comandos na sequência:
-    1. cd /opt/multimax
-    2. git fetch origin
-    3. git reset --hard origin/nova-versao-deploy
+    IMPORTANTE: Este endpoint NÃO executa comandos Git ou Docker diretamente.
+    Ele apenas faz uma requisição HTTP para o Deploy Agent (serviço separado no HOST),
+    que então executa os comandos no HOST, fora do container Docker.
+    
+    ARQUITETURA:
+    - MultiMax (container): Faz POST para http://127.0.0.1:9000/deploy
+    - Deploy Agent (HOST): Executa comandos Git/Docker no HOST
+    
+    O Deploy Agent executa a sequência fixa:
+    1. git fetch origin
+    2. git reset --hard origin/nova-versao-deploy
+    3. docker-compose build --no-cache
     4. docker-compose down
-    5. docker-compose build --no-cache
-    6. docker-compose up -d
+    5. docker-compose up -d
     
     Parâmetros JSON:
         force (bool): Se True, força atualização mesmo se o sistema estiver atualizado
     
-    Garante que o banco de dados em /opt/multimax-data/estoque.db não seja afetado.
+    Segurança:
+    - Deploy Agent aceita apenas conexões localhost (127.0.0.1)
+    - Não expõe porta externamente
+    - Opcionalmente requer token de autenticação via DEPLOY_AGENT_TOKEN
     """
     if not _check_dev_access():
         return jsonify({'ok': False, 'error': 'forbidden'}), 403
@@ -1899,140 +1910,19 @@ def git_update():
     except Exception:
         pass
     
-    # Tentar encontrar o diretório do repositório Git (mesma lógica do git_status)
-    repo_dir = None
+    # Configuração do Deploy Agent
+    deploy_agent_url = os.getenv('DEPLOY_AGENT_URL', 'http://127.0.0.1:9000')
+    deploy_agent_token = os.getenv('DEPLOY_AGENT_TOKEN', '')
     
-    # 1. Variável de ambiente (prioridade)
-    env_repo_dir = os.getenv('GIT_REPO_DIR')
-    if env_repo_dir and os.path.exists(os.path.join(env_repo_dir, '.git')):
-        repo_dir = env_repo_dir
-    
-    # 2. Tentar diretórios padrão de produção
-    if not repo_dir:
-        # Calcular diretório raiz do projeto
-        current_file = os.path.abspath(__file__)
-        project_root = current_file
-        # Subir até encontrar arquivos característicos do projeto
-        for _ in range(5):
-            if os.path.exists(os.path.join(project_root, 'multimax')) or \
-               os.path.exists(os.path.join(project_root, 'app.py')) or \
-               os.path.exists(os.path.join(project_root, 'docker-compose.yml')):
-                break
-            project_root = os.path.dirname(project_root)
-            if project_root == os.path.dirname(project_root):  # Chegou na raiz
-                break
-        
-        production_dirs = [
-            '/opt/multimax',  # VPS produção
-            '/app',  # Dentro do container Docker
-            project_root,  # Raiz calculada do projeto
-        ]
-        for dir_path in production_dirs:
-            if dir_path and os.path.exists(dir_path) and os.path.exists(os.path.join(dir_path, '.git')):
-                repo_dir = dir_path
-                current_app.logger.info(f'Repositório Git encontrado em: {repo_dir}')
-                break
-    
-    # 3. Tentar diretório atual e pais (desenvolvimento)
-    if not repo_dir:
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        search_dirs = [
-            current_dir,
-            os.path.dirname(current_dir),
-            os.path.dirname(os.path.dirname(current_dir)),
-            os.path.dirname(os.path.dirname(os.path.dirname(current_dir))),
-        ]
-        for dir_path in search_dirs:
-            if dir_path and os.path.exists(os.path.join(dir_path, '.git')):
-                repo_dir = dir_path
-                current_app.logger.info(f'Repositório Git encontrado em (dev): {repo_dir}')
-                break
-    
-    # Obter caminho real do banco de dados da configuração da aplicação
-    db_path = None
-    try:
-        # Tentar obter da configuração da aplicação (mais confiável)
-        db_path = current_app.config.get('DB_FILE_PATH')
-        if db_path and os.path.exists(db_path):
-            current_app.logger.info(f'Banco de dados encontrado via config: {db_path}')
-        else:
-            # Tentar extrair do SQLALCHEMY_DATABASE_URI
-            uri = current_app.config.get('SQLALCHEMY_DATABASE_URI', '')
-            if uri and uri.startswith('sqlite:'):
-                try:
-                    p = uri.split('sqlite:///', 1)[1]
-                    if '?' in p:
-                        p = p.split('?', 1)[0]
-                    if os.path.exists(p):
-                        db_path = p
-                        current_app.logger.info(f'Banco de dados encontrado via URI: {db_path}')
-                except Exception:
-                    pass
-            
-            # Fallback para variável de ambiente
-            if not db_path or not os.path.exists(db_path):
-                db_path = os.getenv('DB_FILE_PATH')
-                if db_path and os.path.exists(db_path):
-                    current_app.logger.info(f'Banco de dados encontrado via env: {db_path}')
-            
-            # Último fallback para desenvolvimento
-            if not db_path or not os.path.exists(db_path):
-                dev_path = os.path.join(os.path.dirname(repo_dir), 'data', 'estoque.db') if repo_dir else None
-                if dev_path and os.path.exists(dev_path):
-                    db_path = dev_path
-                    current_app.logger.info(f'Banco de dados encontrado em dev: {db_path}')
-    except Exception as e:
-        current_app.logger.warning(f'Erro ao determinar caminho do banco: {e}')
-    
-    # Verificar se é diretório Git
-    if not repo_dir or not os.path.exists(os.path.join(repo_dir, '.git')):
-        error_msg = f'Repositório Git não encontrado. Procurado em: {repo_dir or "N/A"}'
-        _log_git_update_error(error_msg, current_user.username)
-        return jsonify({'ok': False, 'error': error_msg}), 400
-    
-    # Verificar se o banco de dados existe (apenas aviso, não bloqueia atualização)
-    # O banco pode estar em outro local e isso não deve impedir a atualização
-    if db_path and not os.path.exists(db_path):
-        current_app.logger.warning(f'Banco de dados não encontrado no caminho esperado: {db_path}. Continuando atualização (banco pode estar em outro local).')
-        # Não bloqueia a atualização, apenas registra aviso
-        db_path = None  # Limpar para não verificar novamente depois
-    
-    # Verificar se há atualização disponível (a menos que seja forçado)
-    if not force:
-        try:
-            # Fazer fetch rápido para verificar
-            fetch_check = subprocess.run(
-                ['git', 'fetch', 'origin', 'nova-versao-deploy', '--prune'],
-                cwd=repo_dir,
-                capture_output=True,
-                text=True,
-                timeout=15
-            )
-            # Verificar commits
-            local_commit = subprocess.run(
-                ['git', 'rev-parse', 'HEAD'],
-                cwd=repo_dir,
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            remote_commit = subprocess.run(
-                ['git', 'rev-parse', 'origin/nova-versao-deploy'],
-                cwd=repo_dir,
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            if (local_commit.returncode == 0 and remote_commit.returncode == 0 and 
-                local_commit.stdout.strip() == remote_commit.stdout.strip()):
-                current_app.logger.info('Sistema já está atualizado. Use force=true para reinstalar mesmo assim.')
-                return jsonify({
-                    'ok': False,
-                    'error': 'Sistema já está atualizado. Use "Reinstalar Atualização" para forçar atualização.',
-                    'already_up_to_date': True
-                }), 200
-        except Exception as e:
-            current_app.logger.warning(f'Erro ao verificar atualização disponível: {e}. Prosseguindo com atualização.')
+    # Validar URL do Deploy Agent (deve ser localhost)
+    if not deploy_agent_url.startswith(('http://127.0.0.1:', 'http://localhost:', 'http://::1:')):
+        error_msg = f'URL do Deploy Agent inválida (deve ser localhost): {deploy_agent_url}'
+        current_app.logger.error(error_msg)
+        return jsonify({
+            'ok': False,
+            'error': error_msg,
+            'suggestion': 'Configure DEPLOY_AGENT_URL para http://127.0.0.1:9000'
+        }), 400
     
     # Registrar início da atualização
     try:
@@ -2040,287 +1930,173 @@ def git_update():
         log.origem = 'GitUpdate'
         log.evento = 'update_start'
         update_type = 'forçada' if force else 'normal'
-        log.detalhes = f'Iniciando atualização {update_type} do Git na branch nova-versao-deploy por {current_user.username}'
+        log.detalhes = f'Iniciando atualização {update_type} via Deploy Agent por {current_user.username}'
         log.usuario = current_user.username
         db.session.add(log)
         db.session.commit()
     except Exception as e:
         current_app.logger.error(f'Erro ao registrar início da atualização: {e}')
     
-    # Verificar configuração do Git antes de executar comandos
+    # Fazer requisição HTTP para o Deploy Agent
+    # IMPORTANTE: O MultiMax (container) NÃO executa comandos Git ou Docker diretamente
+    # Toda execução é delegada ao Deploy Agent (HOST)
     try:
-        # Verificar remotes configurados
-        remote_check = subprocess.run(
-            ['git', 'remote', '-v'],
-            cwd=repo_dir,
-            capture_output=True,
-            text=True,
-            timeout=5
-        )
-        if remote_check.returncode == 0:
-            current_app.logger.info(f'Remotos Git configurados: {remote_check.stdout[:300]}')
-        else:
-            current_app.logger.warning(f'Erro ao verificar remotos Git: {remote_check.stderr[:200]}')
+        import requests
+        from requests.exceptions import RequestException, Timeout, ConnectionError as RequestsConnectionError
         
-        # Verificar se o remote origin existe
-        if 'origin' not in (remote_check.stdout or ''):
-            error_msg = 'Remote "origin" não configurado. Configure com: git remote add origin <url>'
-            _log_git_update_error(error_msg, current_user.username)
-            return jsonify({
-                'ok': False,
-                'error': error_msg,
-                'suggestion': 'Configure o remote origin antes de tentar atualizar.'
-            }), 400
-    except Exception as e:
-        current_app.logger.warning(f'Erro ao verificar configuração Git: {e}')
-    
-    # Comandos a serem executados sequencialmente
-    # Inclui rebuild completo do container para garantir que todas as mudanças sejam aplicadas
-    commands = [
-        (['git', 'fetch', '--all', '--prune'], 'Fetch do repositório remoto'),
-        (['git', 'reset', '--hard', 'origin/nova-versao-deploy'], 'Reset para branch remoto'),
-        (['docker-compose', 'down'], 'Parando containers Docker'),
-        (['docker-compose', 'build', '--no-cache'], 'Rebuild completo do container (sem cache)'),
-        (['docker-compose', 'up', '-d'], 'Iniciando containers Docker')
-    ]
-    
-    results = []
-    step_number = 0
-    total_steps = len(commands)
-    for cmd, description in commands:
-        step_number += 1
-        try:
-            current_app.logger.info(f'Executando: {" ".join(cmd)} em {repo_dir}')
-            # Timeout maior para build (pode demorar mais)
-            timeout_value = 300 if 'build' in ' '.join(cmd) else 120
-            
-            # Para git fetch, adicionar tratamento especial de erros
-            if 'fetch' in ' '.join(cmd):
-                # Verificar permissões do diretório .git antes de executar
-                git_dir = os.path.join(repo_dir, '.git')
-                fetch_head = os.path.join(git_dir, 'FETCH_HEAD')
+        # Preparar headers
+        headers = {
+            'Content-Type': 'application/json'
+        }
+        if deploy_agent_token:
+            headers['Authorization'] = f'Bearer {deploy_agent_token}'
+        
+        # Preparar payload
+        payload = {
+            'force': force
+        }
+        
+        # URL do endpoint de deploy
+        deploy_endpoint = f'{deploy_agent_url}/deploy'
+        
+        current_app.logger.info(f'Enviando requisição de deploy para: {deploy_endpoint}')
+        
+        # Fazer requisição POST com timeout adequado (build pode demorar até 10 minutos)
+        response = requests.post(
+            deploy_endpoint,
+            json=payload,
+            headers=headers,
+            timeout=900  # 15 minutos de timeout (build + down + up)
+        )
+        
+        # Verificar resposta
+        if response.status_code == 200:
+            result_data = response.json()
+            if result_data.get('ok'):
+                # Sucesso
+                current_app.logger.info('Deploy concluído com sucesso via Deploy Agent')
                 
-                # Verificar se o diretório .git existe e é acessível
-                if not os.path.exists(git_dir):
-                    error_msg = 'Diretório .git não encontrado'
-                    current_app.logger.error(f'{error_msg} em {repo_dir}')
-                    return jsonify({
-                        'ok': False,
-                        'error': error_msg,
-                        'details': f'O diretório .git não existe em {repo_dir}',
-                        'suggestion': 'Verifique se o diretório é um repositório Git válido.',
-                        'error_type': 'repositório inválido',
-                        'results': results
-                    }), 500
-                
-                # Verificar se podemos escrever no diretório .git
-                # SOLUÇÃO DEFINITIVA: Detecta Docker e permite operações mesmo sem escrita
-                pode_escrever, erro_perm, is_docker = _can_write_to_git(git_dir)
-                
-                if not pode_escrever:
-                    # Em Docker, permitir continuar mesmo sem escrita (algumas operações Git funcionam em modo leitura)
-                    if is_docker:
-                        current_app.logger.warning(
-                            f'Ambiente Docker detectado. .git pode estar somente leitura em {git_dir}. '
-                            'Tentando operações Git mesmo assim (algumas funcionam em modo leitura).'
-                        )
-                        # Continuar com a execução - git fetch pode funcionar mesmo sem escrita
-                        # Se falhar, será tratado no tratamento de erro do subprocess.run
-                    else:
-                        # Ambiente não-Docker sem permissão de escrita - erro crítico
-                        error_msg = 'Sistema de arquivos somente leitura'
-                        error_detail = erro_perm or 'Permissão negada'
-                        current_app.logger.error(f'{error_msg}: Não é possível escrever em {git_dir}: {error_detail}')
-                        
-                        suggestion = (
-                            'O diretório .git está em modo somente leitura. Soluções:\n'
-                            '1) Verifique permissões: chmod -R u+w .git\n'
-                            '2) Verifique proprietário: sudo chown -R $USER:$USER .git\n'
-                            '3) Verifique se o sistema de arquivos está montado como somente leitura: mount | grep ro\n'
-                            '4) Se estiver em um sistema de arquivos remoto (NFS, etc.), verifique permissões no servidor remoto'
-                        )
-                        
-                        return jsonify({
-                            'ok': False,
-                            'error': error_msg,
-                            'details': f'Não é possível escrever no diretório .git em {git_dir}: {error_detail}',
-                            'suggestion': suggestion,
-                            'error_type': 'sistema de arquivos somente leitura',
-                            'is_docker': False,
-                            'git_dir': git_dir,
-                            'results': results
-                        }), 500
-                
-                # Verificar configuração do git remoto antes
+                # Registrar sucesso no log
                 try:
-                    remote_check = subprocess.run(
-                        ['git', 'remote', '-v'],
-                        cwd=repo_dir,
-                        capture_output=True,
-                        text=True,
-                        timeout=5
-                    )
-                    current_app.logger.info(f'Remotos configurados: {remote_check.stdout[:200] if remote_check.stdout else "N/A"}')
+                    log = SystemLog()
+                    log.origem = 'GitUpdate'
+                    log.evento = 'update_success'
+                    log.detalhes = f'Atualização aplicada com sucesso via Deploy Agent por {current_user.username}. Duração: {result_data.get("duration", 0):.2f}s'
+                    log.usuario = current_user.username
+                    db.session.add(log)
+                    db.session.commit()
                 except Exception as e:
-                    current_app.logger.warning(f'Erro ao verificar remotos: {e}')
-            
-            result = subprocess.run(
-                cmd,
-                cwd=repo_dir,
-                capture_output=True,
-                text=True,
-                timeout=timeout_value,
-                env=dict(os.environ, GIT_TERMINAL_PROMPT='0')  # Desabilitar prompts interativos
-            )
-            
-            result_info = {
-                'command': ' '.join(cmd),
-                'description': description,
-                'success': result.returncode == 0,
-                'stdout': result.stdout[:500] if result.stdout else '',  # Limitar tamanho
-                'stderr': result.stderr[:500] if result.stderr else '',
-                'step': step_number,
-                'total_steps': total_steps,
-                'returncode': result.returncode
-            }
-            results.append(result_info)
-            
-            # Log de progresso
-            if result.returncode == 0:
-                current_app.logger.info(f'Etapa {step_number}/{total_steps} concluída: {description}')
-            else:
-                current_app.logger.warning(f'Etapa {step_number}/{total_steps} falhou: {description} (código {result.returncode})')
-            
-            if result.returncode != 0:
-                # Tratamento especial para git fetch (código 255 geralmente é autenticação/conexão)
-                if 'fetch' in ' '.join(cmd):
-                    stderr_full = result.stderr[:1000] if result.stderr else ''
-                    stdout_full = result.stdout[:1000] if result.stdout else ''
-                    
-                    # Diagnosticar o tipo de erro
-                    error_type = 'desconhecido'
-                    suggestion = 'Verifique os logs do sistema para mais detalhes.'
-                    is_docker_env = _is_docker_environment()
-                    
-                    # Verificar se é erro de sistema de arquivos somente leitura
-                    if 'read-only file system' in stderr_full.lower() or 'readonly' in stderr_full.lower() or ('cannot open' in stderr_full.lower() and 'FETCH_HEAD' in stderr_full):
-                        error_type = 'sistema de arquivos somente leitura'
-                        
-                        if is_docker_env:
-                            # SOLUÇÃO DEFINITIVA: Em Docker, fornecer instruções claras e acionáveis
-                            suggestion = (
-                                '⚠️ AMBIENTE DOCKER DETECTADO - .git somente leitura\n\n'
-                                'Este é um comportamento esperado em containers Docker quando o .git está montado como somente leitura.\n\n'
-                                'SOLUÇÕES (escolha uma):\n\n'
-                                'OPÇÃO 1 - Corrigir permissões no HOST (recomendado):\n'
-                                '  1. Saia do container\n'
-                                '  2. No HOST, execute: cd /opt/multimax && chmod -R u+w .git\n'
-                                '  3. Ou: sudo chown -R $USER:$USER /opt/multimax/.git\n\n'
-                                'OPÇÃO 2 - Configurar volume Docker com escrita:\n'
-                                '  1. Edite docker-compose.yml\n'
-                                '  2. Garanta que o volume tenha permissão de escrita (rw)\n'
-                                '  3. Exemplo: - ./:/app:rw (não :ro)\n\n'
-                                'OPÇÃO 3 - Executar Git no HOST:\n'
-                                '  Execute operações Git diretamente no HOST, não dentro do container\n\n'
-                                'OPÇÃO 4 - Desabilitar verificação (temporário):\n'
-                                '  Configure variável de ambiente: GIT_SKIP_WRITE_TEST=true\n'
-                                '  Isso permite que o sistema continue mesmo sem escrita (algumas operações funcionam)'
-                            )
-                        else:
-                            suggestion = (
-                                'O diretório .git está em modo somente leitura. Soluções:\n'
-                                '1) Verifique permissões: chmod -R u+w .git\n'
-                                '2) Verifique proprietário: sudo chown -R $USER:$USER .git\n'
-                                '3) Verifique montagem do sistema de arquivos: mount | grep ro\n'
-                                '4) Se em NFS/remoto: Verifique permissões no servidor remoto\n'
-                                '5) Verifique se algum processo está bloqueando o diretório'
-                            )
-                    elif result.returncode == 255:
-                        error_type = 'autenticação/conexão'
-                        suggestion = 'Verifique: 1) Credenciais Git configuradas (git config --global user.name/email), 2) Acesso ao repositório remoto, 3) Conexão com a internet, 4) Se usa SSH, verifique as chaves SSH.'
-                    elif 'permission denied' in stderr_full.lower() or 'authentication' in stderr_full.lower():
-                        error_type = 'autenticação negada'
-                        suggestion = 'Credenciais Git inválidas ou expiradas. Configure novamente ou use token de acesso pessoal.'
-                    elif 'could not resolve host' in stderr_full.lower() or 'connection' in stderr_full.lower():
-                        error_type = 'problema de conexão'
-                        suggestion = 'Problema de conectividade com o servidor Git. Verifique a conexão com a internet.'
-                    elif 'not found' in stderr_full.lower():
-                        error_type = 'repositório não encontrado'
-                        suggestion = 'O repositório remoto não foi encontrado. Verifique a URL do remote (git remote -v).'
-                    
-                    error_msg = f'Erro ao fazer fetch do repositório remoto ({error_type}). Código: {result.returncode}'
-                    error_details = f'STDERR: {stderr_full}\nSTDOUT: {stdout_full}'
-                    
-                    current_app.logger.error(f'Git fetch falhou ({error_type}): {error_details}')
-                    _log_git_update_error(f'{error_msg}. {error_details}', current_user.username, results)
-                    
-                    return jsonify({
-                        'ok': False,
-                        'error': error_msg,
-                        'details': error_details,
-                        'suggestion': suggestion,
-                        'error_type': error_type,
-                        'returncode': result.returncode,
-                        'is_docker': is_docker_env,
-                        'results': results
-                    }), 500
-                else:
-                    error_msg = f'Erro ao executar: {description}. Código: {result.returncode}'
-                    error_details = f'STDERR: {result.stderr[:500] if result.stderr else result.stdout[:500] if result.stdout else "Sem detalhes"}'
-                    _log_git_update_error(f'{error_msg}. {error_details}', current_user.username, results)
-                    return jsonify({
-                        'ok': False,
-                        'error': error_msg,
-                        'details': error_details,
-                        'results': results
-                    }), 500
-            
-            # Verificar se o banco de dados ainda existe após cada comando crítico (apenas se db_path foi definido)
-            if db_path and 'reset' in description.lower() and not os.path.exists(db_path):
-                error_msg = f'ATENÇÃO: Banco de dados não encontrado após reset! Caminho: {db_path}'
-                current_app.logger.warning(error_msg)
-                # Não bloqueia, apenas registra aviso (banco pode estar em outro local)
+                    current_app.logger.error(f'Erro ao registrar sucesso da atualização: {e}')
                 
-        except subprocess.TimeoutExpired as e:
-            error_msg = f'Timeout ao executar: {description} (limite: 120s)'
-            _log_git_update_error(error_msg, current_user.username, results)
+                return jsonify({
+                    'ok': True,
+                    'message': 'Atualização aplicada com sucesso. Sistema será reiniciado.',
+                    'duration': result_data.get('duration', 0),
+                    'results': result_data.get('results', [])
+                })
+            else:
+                # Erro retornado pelo Deploy Agent
+                error_msg = result_data.get('error', 'Erro desconhecido no Deploy Agent')
+                error_details = result_data.get('details', '')
+                failed_step = result_data.get('failed_step', '')
+                
+                current_app.logger.error(f'Erro no Deploy Agent: {error_msg}')
+                if error_details:
+                    current_app.logger.error(f'Detalhes: {error_details[:500]}')
+                
+                # Registrar erro no log
+                _log_git_update_error(f'{error_msg}. {error_details[:200]}', current_user.username)
+                
+                return jsonify({
+                    'ok': False,
+                    'error': error_msg,
+                    'details': error_details[:1000],  # Limitar tamanho
+                    'failed_step': failed_step,
+                    'results': result_data.get('results', []),
+                    'duration': result_data.get('duration', 0)
+                }), 500
+        
+        elif response.status_code == 401:
+            error_msg = 'Token de autenticação inválido ou ausente'
+            current_app.logger.error(error_msg)
             return jsonify({
                 'ok': False,
                 'error': error_msg,
-                'results': results
-            }), 500
-        except Exception as e:
-            error_msg = f'Erro ao executar {description}: {str(e)}'
-            _log_git_update_error(error_msg, current_user.username, results)
+                'suggestion': 'Configure DEPLOY_AGENT_TOKEN ou verifique se o token está correto'
+            }), 401
+        
+        elif response.status_code == 403:
+            error_msg = 'Acesso negado - requisição deve vir de localhost'
+            current_app.logger.error(error_msg)
             return jsonify({
                 'ok': False,
                 'error': error_msg,
-                'results': results
-            }), 500
+                'suggestion': 'O Deploy Agent aceita apenas conexões localhost. Verifique a configuração.'
+            }), 403
+        
+        else:
+            # Outro código de erro HTTP
+            try:
+                error_data = response.json()
+                error_msg = error_data.get('error', f'Erro HTTP {response.status_code}')
+            except Exception:
+                error_msg = f'Erro HTTP {response.status_code}'
+            
+            current_app.logger.error(f'Erro HTTP do Deploy Agent: {response.status_code} - {error_msg}')
+            _log_git_update_error(f'Erro HTTP {response.status_code}: {error_msg}', current_user.username)
+            
+            return jsonify({
+                'ok': False,
+                'error': error_msg,
+                'http_status': response.status_code
+            }), response.status_code
     
-    # Verificar novamente se o banco de dados existe após todas as operações (apenas se db_path foi definido)
-    if db_path and not os.path.exists(db_path):
-        error_msg = f'ATENÇÃO: Banco de dados não encontrado após atualização completa! Caminho: {db_path}'
-        current_app.logger.warning(error_msg)
-        # Não bloqueia, apenas registra aviso (banco pode estar em outro local fora da pasta raiz)
+    except Timeout:
+        error_msg = 'Timeout ao aguardar resposta do Deploy Agent (limite: 15 minutos)'
+        current_app.logger.error(error_msg)
+        _log_git_update_error(error_msg, current_user.username)
+        return jsonify({
+            'ok': False,
+            'error': error_msg,
+            'suggestion': 'O processo de deploy pode estar demorando mais do que o esperado. Verifique os logs do Deploy Agent.'
+        }), 504
     
-    # Registrar sucesso no log
-    try:
-        log = SystemLog()
-        log.origem = 'GitUpdate'
-        log.evento = 'update_success'
-        log.detalhes = f'Atualização aplicada com sucesso por {current_user.username}. Todos os comandos executados com sucesso.'
-        log.usuario = current_user.username
-        db.session.add(log)
-        db.session.commit()
+    except RequestsConnectionError as e:
+        error_msg = f'Não foi possível conectar ao Deploy Agent: {str(e)}'
+        current_app.logger.error(error_msg)
+        _log_git_update_error(error_msg, current_user.username)
+        return jsonify({
+            'ok': False,
+            'error': error_msg,
+            'suggestion': (
+                'O Deploy Agent não está respondendo. Verifique:\n'
+                '1) O Deploy Agent está rodando? (sudo systemctl status deploy-agent)\n'
+                '2) O Deploy Agent está escutando na porta 9000? (netstat -tlnp | grep 9000)\n'
+                '3) A URL está correta? (DEPLOY_AGENT_URL=http://127.0.0.1:9000)\n'
+                '4) Verifique os logs do Deploy Agent: sudo journalctl -u deploy-agent -f'
+            ),
+            'deploy_agent_url': deploy_agent_url
+        }), 503
+    
+    except RequestException as e:
+        error_msg = f'Erro na requisição ao Deploy Agent: {str(e)}'
+        current_app.logger.error(error_msg, exc_info=True)
+        _log_git_update_error(error_msg, current_user.username)
+        return jsonify({
+            'ok': False,
+            'error': error_msg,
+            'suggestion': 'Verifique os logs do sistema para mais detalhes.'
+        }), 500
+    
     except Exception as e:
-        current_app.logger.error(f'Erro ao registrar sucesso da atualização: {e}')
-    
-    return jsonify({
-        'ok': True,
-        'message': 'Atualização aplicada com sucesso. Sistema será reiniciado.',
-        'results': results
-    })
+        error_msg = f'Erro inesperado ao comunicar com Deploy Agent: {str(e)}'
+        current_app.logger.error(error_msg, exc_info=True)
+        _log_git_update_error(error_msg, current_user.username)
+        return jsonify({
+            'ok': False,
+            'error': error_msg,
+            'suggestion': 'Verifique os logs do sistema para mais detalhes.'
+        }), 500
 
 def _log_git_update_error(error_msg, username, results=None):
     """Registra erro de atualização Git no log do sistema"""
