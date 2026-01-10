@@ -1,3 +1,22 @@
+## [2.3.40] - 2025-01-15
+
+### 🔄 Reversão: Restauração do Módulo Jornada
+
+#### Restauração ao Estado do Commit 4e1e697
+- **Objetivo**: Restaurar completamente o módulo Jornada ao estado que existia no commit `4e1e697` (versão 2.3.18)
+- **Arquivos Restaurados**:
+  - `multimax/routes/jornada.py`: Versão original com todas as rotas e funções antigas
+  - `templates/jornada/index.html`: Template original com layout antigo
+  - `templates/jornada/novo.html`: Template original de criação
+  - `templates/jornada/editar.html`: Template original de edição
+  - `templates/jornada/arquivar.html`: Template original de arquivamento
+- **Ajustes de Compatibilidade**:
+  - `multimax/routes/exportacao.py`: Removido wrapper de compatibilidade, usando função original `_calculate_collaborator_balance()`
+  - `multimax/routes/jornada_pdf.py`: Corrigidas importações para usar `_calculate_collaborator_balance()` original
+- **Impacto**: Sistema de Jornada agora está exatamente como era no commit 4e1e697, antes das refatorações recentes
+
+---
+
 ## [2.3.39] - 2025-01-15
 
 ### 🐛 Correções Críticas
