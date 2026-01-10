@@ -143,7 +143,24 @@ def _get_collaborator_by_user_or_id(user_id=None, collaborator_id=None):
     return None
 
 def _calculate_collaborator_balance(collaborator_id, date_start=None, date_end=None):
-    """Calcula o saldo completo de um colaborador"""
+    """
+    Calcula o saldo completo de um colaborador
+    
+    IMPORTANTE: Esta função calcula o saldo LÍQUIDO, considerando:
+    - Horas líquidas (soma TODAS as horas, positivas e negativas)
+    - Folgas adicionais manuais (excluindo as geradas automaticamente de horas)
+    - Folgas usadas
+    - Conversões em dinheiro (folgas convertidas em dinheiro)
+    
+    Lógica corrigida:
+    - total_bruto_hours: Soma TODAS as horas (positivas E negativas), não apenas positivas
+    - days_from_hours: Calcula dias convertidos das horas líquidas (não brutas)
+    - residual_hours: Resto das horas líquidas após conversão para dias
+    - credits_sum: Folgas adicionais MANUAIS (excluindo origin='horas')
+    - assigned_sum: Folgas usadas
+    - converted_sum: Conversões em dinheiro (folgas convertidas em dinheiro)
+    - saldo_days: Folgas manuais + dias das horas - folgas usadas - conversões em dinheiro
+    """
     filters = [TimeOffRecord.collaborator_id == collaborator_id]
     
     if date_start:
@@ -151,19 +168,22 @@ def _calculate_collaborator_balance(collaborator_id, date_start=None, date_end=N
     if date_end:
         filters.append(TimeOffRecord.date <= date_end)
     
-    # Total bruto de horas (apenas positivas)
+    # Total LÍQUIDO de horas (soma TODAS as horas, positivas E negativas)
+    # CORREÇÃO: Anteriormente somava apenas positivas, ignorando ajustes negativos (-8h) de conversão automática
     hq = TimeOffRecord.query.filter(
         *filters,
         TimeOffRecord.record_type == 'horas'
     )
-    total_bruto_hours = sum(float(r.hours or 0.0) for r in hq.all() if (r.hours or 0.0) > 0)
+    total_liquido_hours = sum(float(r.hours or 0.0) for r in hq.all())
     
-    # Dias convertidos das horas (8h = 1 dia)
-    days_from_hours = int(total_bruto_hours // 8.0) if total_bruto_hours >= 0.0 else 0
-    residual_hours = (total_bruto_hours % 8.0) if total_bruto_hours >= 0.0 else 0.0
+    # Dias convertidos das horas líquidas (8h = 1 dia)
+    # CORREÇÃO: Calcula sobre horas líquidas, não brutas
+    days_from_hours = int(total_liquido_hours // 8.0) if total_liquido_hours >= 0.0 else 0
+    residual_hours = (total_liquido_hours % 8.0) if total_liquido_hours >= 0.0 else 0.0
     
     # Folgas adicionais MANUAIS (excluindo as geradas automaticamente de horas)
-    # As folgas com origin='horas' já são contadas via days_from_hours, então não devem ser contadas aqui
+    # As folgas com origin='horas' são geradas automaticamente e já são contadas via days_from_hours
+    # IMPORTANTE: Não devemos contar essas folgas automaticas aqui para evitar duplicação
     cq = TimeOffRecord.query.filter(
         *filters,
         TimeOffRecord.record_type == 'folga_adicional',
@@ -178,18 +198,19 @@ def _calculate_collaborator_balance(collaborator_id, date_start=None, date_end=N
     )
     assigned_sum = int(aq.with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
     
-    # Conversões em dinheiro
+    # Conversões em dinheiro (folgas convertidas em dinheiro, NÃO conversões automáticas de horas)
+    # IMPORTANTE: 'conversao' é diferente de 'origin=horas'. Conversão é quando folgas são vendidas/trocadas por dinheiro
     vq = TimeOffRecord.query.filter(
         *filters,
         TimeOffRecord.record_type == 'conversao'
     )
     converted_sum = int(vq.with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
     
-    # Saldo final = folgas adicionais + dias convertidos - folgas usadas - conversões
+    # Saldo final = folgas manuais + dias convertidos das horas líquidas - folgas usadas - conversões em dinheiro
     saldo_days = credits_sum + days_from_hours - assigned_sum - converted_sum
     
     return {
-        'total_bruto_hours': total_bruto_hours,
+        'total_bruto_hours': total_liquido_hours,  # Mantém nome para compatibilidade, mas agora é líquido
         'days_from_hours': days_from_hours,
         'residual_hours': residual_hours,
         'credits_sum': credits_sum,
