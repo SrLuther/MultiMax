@@ -2076,6 +2076,7 @@ def git_update():
                     }), 500
                 
                 # Verificar se podemos escrever no diretório .git
+                # NOTA: Este é um problema comum em ambientes Docker onde o .git pode estar montado como somente leitura
                 try:
                     test_file = os.path.join(git_dir, '.write_test')
                     try:
@@ -2084,17 +2085,43 @@ def git_update():
                         os.remove(test_file)
                     except (IOError, OSError, PermissionError) as perm_error:
                         error_msg = 'Sistema de arquivos somente leitura'
-                        current_app.logger.error(f'{error_msg}: Não é possível escrever em {git_dir}: {perm_error}')
+                        error_detail = str(perm_error)
+                        current_app.logger.error(f'{error_msg}: Não é possível escrever em {git_dir}: {error_detail}')
+                        
+                        # Verificar se estamos em Docker (comum ter .git somente leitura)
+                        is_docker = os.path.exists('/.dockerenv') or os.path.exists('/proc/self/cgroup')
+                        
+                        if is_docker:
+                            suggestion = (
+                                'O diretório .git está em modo somente leitura. '
+                                'Isso é comum em ambientes Docker. Soluções:\n'
+                                '1) No host (fora do container): Verifique as permissões do diretório .git\n'
+                                '2) No host: Execute: chmod -R u+w .git\n'
+                                '3) Se o .git está em um volume Docker, verifique a montagem do volume\n'
+                                '4) Se necessário, copie o .git para dentro do container com permissões corretas\n'
+                                '5) Ou execute operações Git diretamente no host, não no container'
+                            )
+                        else:
+                            suggestion = (
+                                'O diretório .git está em modo somente leitura. Soluções:\n'
+                                '1) Verifique permissões: chmod -R u+w .git\n'
+                                '2) Verifique proprietário: sudo chown -R $USER:$USER .git\n'
+                                '3) Verifique se o sistema de arquivos está montado como somente leitura: mount | grep ro\n'
+                                '4) Se estiver em um sistema de arquivos remoto (NFS, etc.), verifique permissões no servidor remoto'
+                            )
+                        
                         return jsonify({
                             'ok': False,
                             'error': error_msg,
-                            'details': f'Não é possível escrever no diretório .git: {str(perm_error)}',
-                            'suggestion': 'Soluções: 1) Verifique permissões (chmod -R u+w .git), 2) Se em Docker, verifique montagem do volume, 3) Execute: sudo chown -R $USER:$USER .git',
+                            'details': f'Não é possível escrever no diretório .git em {git_dir}: {error_detail}',
+                            'suggestion': suggestion,
                             'error_type': 'sistema de arquivos somente leitura',
+                            'is_docker': is_docker,
+                            'git_dir': git_dir,
                             'results': results
                         }), 500
                 except Exception as perm_check_error:
-                    current_app.logger.warning(f'Erro ao verificar permissões: {perm_check_error}')
+                    current_app.logger.warning(f'Erro ao verificar permissões do .git: {perm_check_error}')
                 
                 # Verificar configuração do git remoto antes
                 try:
