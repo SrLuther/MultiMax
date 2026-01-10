@@ -1,3 +1,33 @@
+## [2.3.43] - 2025-01-15
+
+### 🧹 Limpeza: Remoção de Arquivos Obsoletos Vazios
+
+#### Arquivos Removidos
+- **docker-start.bat** e **docker-start.sh**: Scripts obsoletos e vazios, não mais utilizados (Docker Compose é gerenciado diretamente)
+- **documentacao/DOCKER.md**: Arquivo vazio, documentação Docker disponível em outros locais
+- **documentacao/DOCKER-IMPLEMENTATION.md**: Arquivo vazio, não preenchido
+- **documentacao/QUICKSTART-DOCKER.md**: Arquivo vazio, não preenchido
+
+#### Documentação Adicionada
+- **ARQUIVOS_VAZIOS_EXPLICACAO.md**: Documento explicando todos os arquivos e pastas vazios no projeto, seus motivos e necessidades
+  - Explica por que `instance/` deve ser mantida vazia (padrão Flask)
+  - Explica o propósito de `tests/requirements.txt` (estrutura para testes futuros)
+  - Documenta arquivos removidos e suas justificativas
+
+#### Estruturas Mantidas
+- **instance/** - Mantida vazia (padrão Flask, não deve ser removida)
+  - Usada pelo Flask para arquivos de instância específicos (configurações locais, banco de desenvolvimento)
+  - Listada no `.gitignore`, portanto arquivos dentro não são versionados
+- **tests/** - Mantida (estrutura preparada para testes futuros)
+  - Contém `requirements.txt` vazio, útil para organização futura
+
+#### Impacto
+- Redução de arquivos obsoletos no repositório
+- Documentação clara sobre estruturas vazias necessárias
+- Menos confusão sobre propósito de pastas e arquivos
+
+---
+
 ## [2.3.42] - 2025-01-15
 
 ### 📚 Organização: Estruturação da Documentação

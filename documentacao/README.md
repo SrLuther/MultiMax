@@ -13,10 +13,8 @@ Esta pasta contém toda a documentação técnica e de referência do projeto Mu
 - **VERSION_SYNC.md** - Documentação sobre sincronização de versão entre arquivos
 - **PROCESSO_ATUALIZACAO_VERSAO.md** - Processo completo de atualização de versão
 
-### Docker
-- **DOCKER.md** - Documentação sobre Docker (se disponível)
-- **DOCKER-IMPLEMENTATION.md** - Detalhes de implementação Docker (se disponível)
-- **QUICKSTART-DOCKER.md** - Guia rápido de Docker (se disponível)
+### Manutenção e Organização
+- **ARQUIVOS_VAZIOS_EXPLICACAO.md** - Explicação detalhada sobre arquivos e pastas vazios no projeto, seus motivos e necessidades
 
 ## 📄 Documentação na Raiz
 
