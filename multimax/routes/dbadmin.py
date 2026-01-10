@@ -288,6 +288,91 @@ def _check_port_health(port=5000):
             'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
         }
 
+def _check_deploy_agent_health():
+    """Verifica saúde do Deploy Agent (porta 9000 e endpoint /health)"""
+    try:
+        deploy_agent_url = os.getenv('DEPLOY_AGENT_URL', 'http://127.0.0.1:9000')
+        
+        # Verificar porta 9000
+        port_9000_ok = False
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(2)
+            result = sock.connect_ex(('127.0.0.1', 9000))
+            sock.close()
+            port_9000_ok = (result == 0)
+        except Exception:
+            port_9000_ok = False
+        
+        # Verificar endpoint /health
+        health_response_time = None
+        health_status = None
+        health_message = None
+        
+        if port_9000_ok:
+            try:
+                start = time.time()
+                health_url = f'{deploy_agent_url}/health'
+                req = urllib.request.Request(health_url, method='GET')
+                req.add_header('User-Agent', 'MultiMax-HealthCheck/1.0')
+                
+                with urllib.request.urlopen(req, timeout=3) as response:
+                    health_response_time = (time.time() - start) * 1000  # ms
+                    if response.status == 200:
+                        try:
+                            import json
+                            data = json.loads(response.read().decode('utf-8'))
+                            health_status = 'ok'
+                            health_message = data.get('message', f'Deploy Agent saudável ({health_response_time:.2f}ms)')
+                        except Exception:
+                            health_status = 'ok'
+                            health_message = f'Deploy Agent respondendo na porta 9000 ({health_response_time:.2f}ms)'
+                    else:
+                        health_status = 'warning'
+                        health_message = f'Deploy Agent retornou código HTTP {response.status}'
+            except urllib.error.HTTPError as e:
+                if e.code == 200:
+                    health_status = 'ok'
+                    health_message = 'Deploy Agent respondendo'
+                else:
+                    health_status = 'warning'
+                    health_message = f'Deploy Agent retornou código HTTP {e.code}'
+            except (urllib.error.URLError, socket.timeout, Exception) as e:
+                health_status = 'error'
+                health_message = f'Erro ao verificar endpoint /health: {str(e)[:100]}'
+        else:
+            health_status = 'error'
+            health_message = 'Porta 9000 não está respondendo - Deploy Agent não está rodando'
+        
+        # Status geral baseado na porta e endpoint
+        if health_status == 'ok' and port_9000_ok:
+            status = 'ok'
+            message = health_message
+        elif health_status == 'warning' or (port_9000_ok and health_status != 'ok'):
+            status = 'warning'
+            message = health_message or 'Porta 9000 aberta mas endpoint /health com problemas'
+        else:
+            status = 'error'
+            message = health_message or 'Deploy Agent não está respondendo'
+            _register_incident('deploy_agent', 'service_down', message)
+        
+        return {
+            'status': status,
+            'port_9000_open': port_9000_ok,
+            'response_time_ms': health_response_time,
+            'message': message,
+            'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+        }
+    except Exception as e:
+        _register_incident('deploy_agent', 'check_error', str(e))
+        return {
+            'status': 'error',
+            'port_9000_open': False,
+            'response_time_ms': None,
+            'message': f'Erro ao verificar Deploy Agent: {str(e)}',
+            'checked_at': datetime.now(ZoneInfo('America/Sao_Paulo')).isoformat()
+        }
+
 def _check_cpu_health():
     """Verifica uso de CPU"""
     try:
@@ -409,6 +494,7 @@ def _get_all_health_checks():
         'backend': _check_backend_health(),
         'nginx': _check_nginx_health(),
         'port': _check_port_health(5000),
+        'deploy_agent': _check_deploy_agent_health(),
         'cpu': _check_cpu_health(),
         'memory': _check_memory_health(),
         'disk': _check_disk_health(),
@@ -1075,27 +1161,11 @@ def index():
         logins_pag = None
         logins = []
     
-    # Health checks iniciais
+    # Health checks iniciais (necessários para o card de Monitoramento de Serviços)
     health_checks = _get_all_health_checks()
-    health_score = _get_system_health_score(health_checks)
     
-    # Incidentes recentes
-    try:
-        incidents = Incident.query.order_by(Incident.created_at.desc()).limit(20).all()
-    except Exception:
-        incidents = []
-    
-    # Alertas ativos
-    try:
-        active_alerts = Alert.query.filter(Alert.status == 'active').order_by(Alert.created_at.desc()).limit(10).all()
-    except Exception:
-        active_alerts = []
-    
-    # Estatísticas do banco
+    # Estatísticas do banco (pode ser útil para outros cards)
     db_stats = _get_database_stats()
-    
-    # Previsão de disco
-    disk_prediction = _predict_disk_full_date()
     
     return render_template(
         'db.html',
@@ -1108,11 +1178,7 @@ def index():
         logins=logins,
         logins_pag=logins_pag,
         health_checks=health_checks,
-        health_score=health_score,
-        incidents=incidents,
-        active_alerts=active_alerts,
-        db_stats=db_stats,
-        disk_prediction=disk_prediction
+        db_stats=db_stats
     )
 
 @bp.route('/health', methods=['GET'], strict_slashes=False)

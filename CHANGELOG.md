@@ -1,3 +1,47 @@
+## [2.3.41] - 2025-01-15
+
+### 🔧 Refatoração: Limpeza e Otimização do Painel de Banco de Dados
+
+#### Remoção de Cards Desnecessários
+- **Dashboard Consolidado**: Removido - misturava informações pouco confiáveis e não agregava valor
+- **Alertas Ativos**: Removido - exibia apenas alertas de CPU que não são úteis
+- **Uso de Recursos da Máquina**: Removido - não trazia insights relevantes
+- **Histórico de Incidentes**: Removido - sobrecarregado com alertas de CPU e dificultava visualização de problemas reais
+
+#### Manutenção de Cards Úteis
+- **CPU e Memória**: Mantido e simplificado - card focado apenas nos gráficos visuais de CPU e Memória (alinhado com o que o host reporta)
+- **Monitoramento de Serviços**: Mantido e expandido - agora inclui monitoramento do Deploy Agent
+
+#### Adição de Monitoramento do Deploy Agent
+- **Backend (`multimax/routes/dbadmin.py`)**:
+  - Nova função `_check_deploy_agent_health()` que verifica:
+    - Porta 9000 (se está aberta e respondendo)
+    - Endpoint `/health` (integridade do serviço)
+    - Tempo de resposta do agente
+  - Integrada em `_get_all_health_checks()` para ser incluída automaticamente
+- **Frontend (`templates/db.html`)**:
+  - Card "Monitoramento de Serviços" agora exibe status do Deploy Agent
+  - JavaScript atualizado para incluir `deploy_agent` na lista de serviços monitorados
+  - Exibe informações específicas: porta 9000 (aberta/fechada), tempo de resposta, status de saúde
+- **JavaScript**:
+  - Função `getServiceName()` atualizada para incluir "Deploy Agent (Porta 9000)"
+  - Função `refreshHealthChecks()` atualizada para exibir informações do deploy agent
+  - Removidas funções desnecessárias: `updateIncidents()`, `clearAllAlerts()`, `refreshDashboard()`
+  - Removidas inicializações de funções relacionadas aos cards removidos
+
+#### Otimizações
+- **Backend**: Removida busca de dados não utilizados (`incidents`, `active_alerts`, `health_score`, `disk_prediction`) na rota `index()`
+- **Template**: Removidas referências a variáveis não mais utilizadas
+- **Performance**: Redução de chamadas desnecessárias ao banco de dados e melhorias na inicialização da página
+
+#### Impacto
+- Interface mais limpa e focada
+- Monitoramento mais eficiente dos serviços essenciais
+- Inclusão do Deploy Agent no monitoramento automático
+- Redução de complexidade e melhor manutenibilidade
+
+---
+
 ## [2.3.40] - 2025-01-15
 
 ### 🔄 Reversão: Restauração do Módulo Jornada

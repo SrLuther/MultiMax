@@ -139,144 +139,12 @@
         </div>
     </div>
 
-    <!-- Dashboard Consolidado -->
-    <div class="db-card-modern db-card-highlight">
-        <div class="db-card-header-modern">
-            <h3 class="db-card-title">
-                <i class="bi bi-speedometer2"></i>
-                Dashboard Consolidado
-            </h3>
-            <button type="button" class="db-btn-modern db-btn-outline" onclick="refreshDashboard()">
-                <i class="bi bi-arrow-repeat"></i>
-                Atualizar
-            </button>
-        </div>
-        <div class="db-card-body-modern">
-            <div class="db-dashboard-grid">
-                <div class="db-dashboard-score-card">
-                    <div class="db-dashboard-score-value" id="healthScoreValue">{{ health_score or 0 }}</div>
-                    <div class="db-dashboard-score-label">Score de Saúde</div>
-                    <div class="db-dashboard-score-bar">
-                        <div class="db-dashboard-score-fill" id="healthScoreBar" style="width: {{ health_score or 0 }}%"></div>
-                    </div>
-                </div>
-                <div class="db-dashboard-stats-grid">
-                    <div class="db-dashboard-stat">
-                        <div class="db-dashboard-stat-icon db-dashboard-stat-alerts">
-                            <i class="bi bi-bell"></i>
-                        </div>
-                        <div class="db-dashboard-stat-content">
-                            <div class="db-dashboard-stat-value" id="activeAlertsCount">{{ active_alerts|length if active_alerts else 0 }}</div>
-                            <div class="db-dashboard-stat-label">Alertas Ativos</div>
-                        </div>
-                    </div>
-                    <div class="db-dashboard-stat">
-                        <div class="db-dashboard-stat-icon db-dashboard-stat-incidents">
-                            <i class="bi bi-exclamation-triangle"></i>
-                        </div>
-                        <div class="db-dashboard-stat-content">
-                            <div class="db-dashboard-stat-value" id="openIncidentsCount">{{ incidents|selectattr('status', 'equalto', 'open')|list|length }}</div>
-                            <div class="db-dashboard-stat-label">Incidentes Abertos</div>
-                        </div>
-                    </div>
-                    {% if db_stats %}
-                    <div class="db-dashboard-stat">
-                        <div class="db-dashboard-stat-icon db-dashboard-stat-db">
-                            <i class="bi bi-database"></i>
-                        </div>
-                        <div class="db-dashboard-stat-content">
-                            <div class="db-dashboard-stat-value">{{ '%.1f'|format(db_stats.size_mb) if db_stats.size_mb else '-' }} MB</div>
-                            <div class="db-dashboard-stat-label">Tamanho do Banco</div>
-                        </div>
-                    </div>
-                    {% endif %}
-                    {% if disk_prediction and disk_prediction.days_remaining %}
-                    <div class="db-dashboard-stat">
-                        <div class="db-dashboard-stat-icon db-dashboard-stat-disk">
-                            <i class="bi bi-hdd"></i>
-                        </div>
-                        <div class="db-dashboard-stat-content">
-                            <div class="db-dashboard-stat-value">{{ disk_prediction.days_remaining }} dias</div>
-                            <div class="db-dashboard-stat-label">Previsão Disco Cheio</div>
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="db-card-footer-modern" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--mm-border);">
-                <div class="db-info-box-modern" style="background: rgba(102, 126, 234, 0.05); border-left: 3px solid #667eea;">
-                    <i class="bi bi-info-circle" style="color: #667eea;"></i>
-                    <div>
-                        <strong style="color: #667eea;">Sobre o Score de Saúde</strong>
-                        <p style="margin: 0.5rem 0 0 0; color: var(--mm-text-secondary); font-size: 0.9rem; line-height: 1.6;">
-                            O Score de Saúde é calculado como uma média ponderada dos seguintes componentes do sistema:
-                        </p>
-                        <ul style="margin: 0.75rem 0 0 1.5rem; color: var(--mm-text-secondary); font-size: 0.9rem; line-height: 1.8;">
-                            <li><strong>Banco de Dados:</strong> 100 pontos (operacional), 50 pontos (lento), 0 pontos (erro)</li>
-                            <li><strong>Backend:</strong> 100 pontos (operacional), 50 pontos (lento), 0 pontos (erro)</li>
-                            <li><strong>CPU:</strong> 100 - percentual de uso (ex: 30% de uso = 70 pontos)</li>
-                            <li><strong>Memória:</strong> 100 - percentual de uso (ex: 50% de uso = 50 pontos)</li>
-                            <li><strong>Disco:</strong> 100 - percentual de uso (ex: 80% de uso = 20 pontos)</li>
-                        </ul>
-                        <p style="margin: 0.75rem 0 0 0; color: var(--mm-text-secondary); font-size: 0.9rem; line-height: 1.6;">
-                            <strong>Interpretação:</strong> Um score próximo de 100 indica que todos os componentes estão operando de forma ideal. 
-                            Scores abaixo de 70 podem indicar problemas que requerem atenção. O score é atualizado automaticamente a cada verificação.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Alertas Proativos -->
-    {% if active_alerts %}
-    <div class="db-card-modern">
-        <div class="db-card-header-modern">
-            <h3 class="db-card-title">
-                <i class="bi bi-bell-fill"></i>
-                Alertas Ativos
-            </h3>
-            <div style="display: flex; gap: 0.5rem; align-items: center;">
-                <span class="db-badge-modern db-badge-warning">{{ active_alerts|length }} ativo(s)</span>
-                <button type="button" class="db-btn-modern db-btn-outline db-btn-danger" onclick="clearAllAlerts()" title="Limpar todos os alertas ativos">
-                    <i class="bi bi-trash"></i>
-                    Limpar Alertas
-                </button>
-            </div>
-        </div>
-        <div class="db-card-body-modern">
-            <div class="db-alerts-list" id="alertsList">
-                {% for alert in active_alerts %}
-                <div class="db-alert-item db-alert-{{ alert.severity }}">
-                    <div class="db-alert-icon">
-                        {% if alert.severity == 'critical' %}
-                        <i class="bi bi-x-circle-fill"></i>
-                        {% elif alert.severity == 'warning' %}
-                        <i class="bi bi-exclamation-triangle-fill"></i>
-                        {% else %}
-                        <i class="bi bi-info-circle-fill"></i>
-                        {% endif %}
-                    </div>
-                    <div class="db-alert-content">
-                        <div class="db-alert-title">{{ alert.message }}</div>
-                        <div class="db-alert-details">
-                            {{ alert.metric_type }}: {{ alert.current_value }} (limite: {{ alert.threshold_value }})
-                            <span class="db-alert-time">{{ alert.created_at.strftime('%d/%m/%Y %H:%M') if alert.created_at else '-' }}</span>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Uso de Recursos -->
+    <!-- Monitoramento de CPU e Memória -->
     <div class="db-card-modern">
         <div class="db-card-header-modern">
             <h3 class="db-card-title">
                 <i class="bi bi-cpu"></i>
-                Uso de Recursos da Máquina
+                CPU e Memória
             </h3>
             <div class="db-card-badges">
                 <span class="db-badge-modern db-badge-info" id="serverClock">Servidor — --:--:--</span>
@@ -370,71 +238,6 @@
         <div class="db-card-body-modern">
             <div class="db-logs-container" id="logsContainer">
                 <div class="db-logs-loading">Carregando logs...</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Histórico de Incidentes -->
-    <div class="db-card-modern">
-        <div class="db-card-header-modern">
-            <h3 class="db-card-title">
-                <i class="bi bi-exclamation-triangle"></i>
-                Histórico de Incidentes
-            </h3>
-            <div class="db-incidents-controls">
-                <select id="incidentServiceFilter" class="db-select-modern" onchange="updateIncidents()">
-                    <option value="all">Todos os serviços</option>
-                    <option value="database">Banco de Dados</option>
-                    <option value="backend">Backend</option>
-                    <option value="nginx">Nginx</option>
-                    <option value="cpu">CPU</option>
-                    <option value="memory">Memória</option>
-                    <option value="disk">Disco</option>
-                </select>
-                <select id="incidentStatusFilter" class="db-select-modern" onchange="updateIncidents()">
-                    <option value="all">Todos os status</option>
-                    <option value="open">Abertos</option>
-                    <option value="resolved">Resolvidos</option>
-                </select>
-            </div>
-        </div>
-        <div class="db-card-body-modern">
-            <div class="db-table-wrapper">
-                <table class="db-table-modern">
-                    <thead>
-                        <tr>
-                            <th>Data/Hora</th>
-                            <th>Serviço</th>
-                            <th>Tipo</th>
-                            <th>Mensagem</th>
-                            <th>Severidade</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="incidentsTableBody">
-                        {% for incident in incidents %}
-                        <tr class="db-table-row">
-                            <td class="db-table-date">
-                                <i class="bi bi-calendar3"></i>
-                                {{ incident.created_at.strftime('%d/%m/%Y %H:%M:%S') if incident.created_at else '-' }}
-                            </td>
-                            <td><span class="db-badge-modern db-badge-info">{{ incident.service }}</span></td>
-                            <td><code class="db-code-modern">{{ incident.error_type }}</code></td>
-                            <td class="db-incident-message">{{ incident.message[:100] }}{% if incident.message|length > 100 %}...{% endif %}</td>
-                            <td>
-                                <span class="db-badge-modern {% if incident.severity == 'error' %}db-badge-danger{% elif incident.severity == 'warning' %}db-badge-warning{% else %}db-badge-info{% endif %}">
-                                    {{ incident.severity }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="db-badge-modern {% if incident.status == 'open' %}db-badge-danger{% elif incident.status == 'resolved' %}db-badge-success{% else %}db-badge-info{% endif %}">
-                                    {{ incident.status }}
-                                </span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
             </div>
         </div>
     </div>
@@ -928,7 +731,6 @@ function reloadDiag() {
 var healthCheckInterval = null;
 var logsPaused = false;
 var logsInterval = null;
-var incidentsInterval = null;
 
 function getStatusIcon(status) {
   if (status === 'ok') return '<i class="bi bi-check-circle-fill" style="color: #10b981;"></i>';
@@ -953,7 +755,8 @@ function getServiceName(service) {
     'database': 'Banco de Dados',
     'backend': 'Backend',
     'nginx': 'Nginx',
-    'port': 'Porta 5000',
+    'port': 'Porta 5000 (Backend)',
+    'deploy_agent': 'Deploy Agent (Porta 9000)',
     'cpu': 'CPU',
     'memory': 'Memória',
     'disk': 'Disco'
@@ -971,7 +774,7 @@ async function refreshHealthChecks() {
     if (!grid) return;
     
     var html = '';
-    var services = ['database', 'backend', 'nginx', 'port', 'cpu', 'memory', 'disk'];
+    var services = ['database', 'backend', 'nginx', 'port', 'deploy_agent', 'cpu', 'memory', 'disk'];
     
     services.forEach(function(service) {
       var health = json.health[service];
@@ -985,7 +788,10 @@ async function refreshHealthChecks() {
       html += '</div>';
       html += '<div class="db-health-message">' + (health.message || '-') + '</div>';
       if (health.response_time_ms !== undefined && health.response_time_ms !== null) {
-        html += '<div class="db-health-detail">Tempo de resposta: ' + health.response_time_ms + 'ms</div>';
+        html += '<div class="db-health-detail">Tempo de resposta: ' + health.response_time_ms.toFixed(2) + 'ms</div>';
+      }
+      if (service === 'deploy_agent' && health.port_9000_open !== undefined) {
+        html += '<div class="db-health-detail">Porta 9000: ' + (health.port_9000_open ? 'Aberta' : 'Fechada') + '</div>';
       }
       if (health.usage_percent !== undefined && health.usage_percent !== null) {
         html += '<div class="db-health-detail">Uso: ' + health.usage_percent + '%</div>';
@@ -1069,97 +875,7 @@ function clearLogs() {
   }
 }
 
-// Incidentes
-async function updateIncidents() {
-  try {
-    var service = document.getElementById('incidentServiceFilter').value;
-    var status = document.getElementById('incidentStatusFilter').value;
-    var url = "{{ url_for('dbadmin.incidents') }}?service=" + service + "&status=" + status + "&limit=50";
-    
-    var resp = await fetch(url);
-    var json = await resp.json();
-    if (!json || !json.ok || !json.incidents) return;
-    
-    var tbody = document.getElementById('incidentsTableBody');
-    if (!tbody) return;
-    
-    var html = '';
-    json.incidents.forEach(function(inc) {
-      var severityClass = 'db-badge-info';
-      if (inc.severity === 'error') severityClass = 'db-badge-danger';
-      else if (inc.severity === 'warning') severityClass = 'db-badge-warning';
-      
-      var statusClass = 'db-badge-info';
-      if (inc.status === 'open') statusClass = 'db-badge-danger';
-      else if (inc.status === 'resolved') statusClass = 'db-badge-success';
-      
-      html += '<tr class="db-table-row">';
-      html += '<td class="db-table-date"><i class="bi bi-calendar3"></i> ' + formatTimestamp(inc.created_at) + '</td>';
-      html += '<td><span class="db-badge-modern db-badge-info">' + inc.service + '</span></td>';
-      html += '<td><code class="db-code-modern">' + inc.error_type + '</code></td>';
-      html += '<td class="db-incident-message">' + (inc.message.length > 100 ? inc.message.substring(0, 100) + '...' : inc.message) + '</td>';
-      html += '<td><span class="db-badge-modern ' + severityClass + '">' + inc.severity + '</span></td>';
-      html += '<td><span class="db-badge-modern ' + statusClass + '">' + inc.status + '</span></td>';
-      html += '</tr>';
-    });
-    
-    tbody.innerHTML = html;
-  } catch(e) {
-    console.error('Erro ao atualizar incidentes:', e);
-  }
-}
-
-// Dashboard
-async function clearAllAlerts() {
-  if (!confirm('Tem certeza que deseja limpar todos os alertas ativos? Esta ação não pode ser desfeita.')) {
-    return;
-  }
-  
-  try {
-    var resp = await fetch("{{ url_for('dbadmin.clear_alerts') }}", {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    var json = await resp.json();
-    
-    if (json.ok) {
-      alert(json.message || 'Alertas limpos com sucesso!');
-      location.reload(); // Recarregar página para atualizar lista
-    } else {
-      alert('Erro ao limpar alertas: ' + (json.error || 'Erro desconhecido'));
-    }
-  } catch (e) {
-    alert('Erro ao limpar alertas: ' + e.message);
-  }
-}
-
-async function refreshDashboard() {
-  try {
-    var resp = await fetch("{{ url_for('dbadmin.dashboard') }}");
-    var json = await resp.json();
-    if (!json || !json.ok) return;
-    
-    // Atualizar score
-    var scoreEl = document.getElementById('healthScoreValue');
-    var scoreBar = document.getElementById('healthScoreBar');
-    if (scoreEl && scoreBar && json.health_score !== undefined) {
-      scoreEl.textContent = json.health_score.toFixed(1);
-      scoreBar.style.width = json.health_score + '%';
-    }
-    
-    // Atualizar contadores
-    if (document.getElementById('activeAlertsCount') && json.active_alerts !== undefined) {
-      document.getElementById('activeAlertsCount').textContent = json.active_alerts;
-    }
-    if (document.getElementById('openIncidentsCount') && json.open_incidents !== undefined) {
-      document.getElementById('openIncidentsCount').textContent = json.open_incidents;
-    }
-  } catch(e) {
-    console.error('Erro ao atualizar dashboard:', e);
-  }
-}
+// Funções removidas: updateIncidents, clearAllAlerts, refreshDashboard - cards correspondentes foram removidos
 
 // Tendências
 var trendsChart = null;
@@ -1315,19 +1031,11 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Inicializar health checks
   refreshHealthChecks();
-  healthCheckInterval = setInterval(refreshHealthChecks, 30000); // Otimizado: de 10s para 30s
+  healthCheckInterval = setInterval(refreshHealthChecks, 30000); // A cada 30 segundos
   
   // Inicializar logs
   updateLogs();
-  logsInterval = setInterval(updateLogs, 10000); // Otimizado: de 3s para 10s
-  
-  // Inicializar incidentes
-  updateIncidents();
-  incidentsInterval = setInterval(updateIncidents, 30000); // A cada 30 segundos
-  
-  // Inicializar dashboard
-  refreshDashboard();
-  setInterval(refreshDashboard, 120000); // Otimizado: de 1min para 2min
+  logsInterval = setInterval(updateLogs, 10000); // A cada 10 segundos
   
   // Inicializar tendências
   updateTrends();
