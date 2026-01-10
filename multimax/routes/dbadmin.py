@@ -2200,21 +2200,31 @@ def git_update():
                     # Diagnosticar o tipo de erro
                     error_type = 'desconhecido'
                     suggestion = 'Verifique os logs do sistema para mais detalhes.'
-                    is_docker_env = os.path.exists('/.dockerenv') or os.path.exists('/proc/self/cgroup')
+                    is_docker_env = _is_docker_environment()
                     
                     # Verificar se é erro de sistema de arquivos somente leitura
                     if 'read-only file system' in stderr_full.lower() or 'readonly' in stderr_full.lower() or ('cannot open' in stderr_full.lower() and 'FETCH_HEAD' in stderr_full):
                         error_type = 'sistema de arquivos somente leitura'
                         
                         if is_docker_env:
+                            # SOLUÇÃO DEFINITIVA: Em Docker, fornecer instruções claras e acionáveis
                             suggestion = (
-                                'O diretório .git está em modo somente leitura no container Docker. '
-                                'Isso é um problema comum. Soluções:\n'
-                                '1) No HOST (fora do container): Verifique as permissões do diretório .git\n'
-                                '2) No HOST: Execute: chmod -R u+w .git (no diretório do projeto)\n'
-                                '3) Se o .git está em um volume Docker, verifique a montagem no docker-compose.yml\n'
-                                '4) Alternativa: Execute operações Git diretamente no HOST, não dentro do container\n'
-                                '5) Ou configure o volume Docker com permissões de escrita (rw no docker-compose.yml)'
+                                '⚠️ AMBIENTE DOCKER DETECTADO - .git somente leitura\n\n'
+                                'Este é um comportamento esperado em containers Docker quando o .git está montado como somente leitura.\n\n'
+                                'SOLUÇÕES (escolha uma):\n\n'
+                                'OPÇÃO 1 - Corrigir permissões no HOST (recomendado):\n'
+                                '  1. Saia do container\n'
+                                '  2. No HOST, execute: cd /opt/multimax && chmod -R u+w .git\n'
+                                '  3. Ou: sudo chown -R $USER:$USER /opt/multimax/.git\n\n'
+                                'OPÇÃO 2 - Configurar volume Docker com escrita:\n'
+                                '  1. Edite docker-compose.yml\n'
+                                '  2. Garanta que o volume tenha permissão de escrita (rw)\n'
+                                '  3. Exemplo: - ./:/app:rw (não :ro)\n\n'
+                                'OPÇÃO 3 - Executar Git no HOST:\n'
+                                '  Execute operações Git diretamente no HOST, não dentro do container\n\n'
+                                'OPÇÃO 4 - Desabilitar verificação (temporário):\n'
+                                '  Configure variável de ambiente: GIT_SKIP_WRITE_TEST=true\n'
+                                '  Isso permite que o sistema continue mesmo sem escrita (algumas operações funcionam)'
                             )
                         else:
                             suggestion = (
