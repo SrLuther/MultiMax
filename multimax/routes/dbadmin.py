@@ -1691,37 +1691,7 @@ def git_status():
                 'hint': 'Configure a variável de ambiente GIT_REPO_DIR ou verifique se o diretório contém .git'
             })
         
-        # Obter versão atual do sistema
-        current_version = None
-        try:
-            # Tentar obter versão do Git
-            result = subprocess.run(
-                ['git', 'describe', '--tags', '--abbrev=0'],
-                cwd=repo_dir,
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            if result.returncode == 0 and result.stdout.strip():
-                current_version = result.stdout.strip()
-                current_app.logger.info(f'Versão obtida do Git: {current_version}')
-            else:
-                # Fallback: versão do __init__.py
-                init_path = os.path.join(repo_dir, 'multimax', '__init__.py')
-                if os.path.exists(init_path):
-                    with open(init_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                        import re
-                        match = re.search(r"return '([\d.]+)'", content)
-                        if match:
-                            current_version = match.group(1)
-                            current_app.logger.info(f'Versão obtida do __init__.py: {current_version}')
-                else:
-                    current_app.logger.warning(f'Arquivo __init__.py não encontrado em: {init_path}')
-        except Exception as e:
-            current_app.logger.error(f'Erro ao obter versão: {e}', exc_info=True)
-        
-        # Obter commit atual
+        # Obter commit atual (necessário para comparar com remoto)
         current_commit = None
         try:
             result = subprocess.run(
@@ -1755,14 +1725,16 @@ def git_status():
             if remote_check.returncode == 0:
                 current_app.logger.info(f'Remotes configurados: {remote_check.stdout[:200]}')
             
-            # Fetch do branch remoto (sempre fazer fetch para obter commits mais recentes)
+            # Fetch do branch remoto e tags (sempre fazer fetch para obter commits e tags mais recentes)
             # Se force=True, usar --all para buscar todos os remotes e --prune para limpar referências obsoletas
+            # IMPORTANTE: Incluir --tags para buscar todas as tags do remoto
             fetch_cmd = ['git', 'fetch']
             if force:
-                fetch_cmd.extend(['--all', '--prune', '--force'])
-                current_app.logger.info('Forçando fetch completo (--all --prune --force)')
+                fetch_cmd.extend(['--all', '--tags', '--prune', '--force'])
+                current_app.logger.info('Forçando fetch completo com tags (--all --tags --prune --force)')
             else:
-                fetch_cmd.extend(['origin', 'nova-versao-deploy', '--prune'])
+                fetch_cmd.extend(['origin', 'nova-versao-deploy', '--tags', '--prune'])
+                current_app.logger.info('Fazendo fetch de branch e tags do origin')
             
             fetch_result = subprocess.run(
                 fetch_cmd,
@@ -1774,7 +1746,21 @@ def git_status():
             if fetch_result.returncode != 0:
                 current_app.logger.warning(f'Erro ao fazer fetch. Return code: {fetch_result.returncode}, stderr: {fetch_result.stderr[:300]}, stdout: {fetch_result.stdout[:300]}')
             else:
-                current_app.logger.info(f'Fetch realizado com sucesso. Output: {fetch_result.stdout[:200] if fetch_result.stdout else "sem output"}')
+                current_app.logger.info(f'Fetch realizado com sucesso (branch e tags). Output: {fetch_result.stdout[:200] if fetch_result.stdout else "sem output"}')
+            
+            # Buscar tags remotas explicitamente para garantir que todas as tags foram baixadas
+            # Isso garante que a versão mais recente seja encontrada
+            tags_fetch_result = subprocess.run(
+                ['git', 'fetch', 'origin', '--tags', '--force'],
+                cwd=repo_dir,
+                capture_output=True,
+                text=True,
+                timeout=15
+            )
+            if tags_fetch_result.returncode == 0:
+                current_app.logger.info(f'Tags atualizadas com sucesso. Output: {tags_fetch_result.stdout[:200] if tags_fetch_result.stdout else "sem output"}')
+            else:
+                current_app.logger.warning(f'Aviso ao buscar tags: {tags_fetch_result.stderr[:200] if tags_fetch_result.stderr else "sem erro"}')
             
             # Verificar se a referência remota existe após o fetch
             ref_check = subprocess.run(
@@ -1832,6 +1818,76 @@ def git_status():
                     commit_date = result.stdout.strip()
         except Exception as e:
             current_app.logger.error(f'Erro ao obter commit remoto: {e}', exc_info=True)
+        
+        # ATUALIZAR versão APÓS o fetch das tags (para garantir que a versão mais recente seja encontrada)
+        # Tentar obter versão baseada no commit atual (tag exata)
+        if current_commit:
+            try:
+                # Primeiro, tentar obter tag exata do commit atual
+                result = subprocess.run(
+                    ['git', 'describe', '--tags', '--exact-match', 'HEAD'],
+                    cwd=repo_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if result.returncode == 0 and result.stdout.strip():
+                    current_version = result.stdout.strip().lstrip('vV')  # Remover 'v' ou 'V' se houver
+                    current_app.logger.info(f'Versão atualizada (tag exata do commit): {current_version}')
+                else:
+                    # Se não há tag exata, usar a tag mais próxima do commit atual
+                    result2 = subprocess.run(
+                        ['git', 'describe', '--tags', '--abbrev=0', 'HEAD'],
+                        cwd=repo_dir,
+                        capture_output=True,
+                        text=True,
+                        timeout=5
+                    )
+                    if result2.returncode == 0 and result2.stdout.strip():
+                        current_version = result2.stdout.strip().lstrip('vV')
+                        current_app.logger.info(f'Versão atualizada (tag mais próxima): {current_version}')
+                    else:
+                        # Fallback: usar a tag mais recente disponível (todas as tags)
+                        result3 = subprocess.run(
+                            ['git', 'tag', '--sort=-version:refname', '--list', 'v*'],
+                            cwd=repo_dir,
+                            capture_output=True,
+                            text=True,
+                            timeout=5
+                        )
+                        if result3.returncode == 0 and result3.stdout.strip():
+                            # Pegar a primeira tag (mais recente)
+                            all_tags = [tag.strip().lstrip('vV') for tag in result3.stdout.strip().split('\n') if tag.strip()]
+                            if all_tags:
+                                # Ordenar numericamente para garantir ordem correta
+                                try:
+                                    import re
+                                    def version_key(tag):
+                                        parts = re.findall(r'\d+', tag)
+                                        return tuple(int(p) for p in parts) if parts else (0,)
+                                    all_tags_sorted = sorted(all_tags, key=version_key, reverse=True)
+                                    current_version = all_tags_sorted[0]
+                                    current_app.logger.info(f'Versão atualizada (tag mais recente disponível): {current_version}')
+                                except Exception:
+                                    current_version = all_tags[0]
+                                    current_app.logger.info(f'Versão atualizada (primeira tag): {current_version}')
+            except Exception as e:
+                current_app.logger.warning(f'Erro ao atualizar versão após fetch: {e}')
+        
+        # Se ainda não temos versão, tentar fallback do __init__.py
+        if not current_version:
+            try:
+                init_path = os.path.join(repo_dir, 'multimax', '__init__.py')
+                if os.path.exists(init_path):
+                    with open(init_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        import re
+                        match = re.search(r"return '([\d.]+)'", content)
+                        if match:
+                            current_version = match.group(1)
+                            current_app.logger.info(f'Versão obtida do __init__.py (fallback): {current_version}')
+            except Exception as e:
+                current_app.logger.warning(f'Erro ao obter versão do __init__.py: {e}')
         
         # Verificar se há atualização disponível
         update_available = False
