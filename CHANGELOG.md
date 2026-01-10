@@ -1,3 +1,22 @@
+## [2.3.36] - 2025-01-15
+
+### 🔧 Correções Críticas
+
+#### Correção da Lógica de Conversões na Situação Final
+- **Problema**: Conversões (38 dias) excediam folgas disponíveis (3 dias), mas ainda reduziam o saldo incorretamente
+- **Causa**: A lógica de conversões só era aplicada quando havia `date_start` e `date_end`. Na "Situação Final" (sem período específico), todas as conversões eram consideradas, mesmo excedendo folgas disponíveis
+- **Solução**: Aplicar a mesma lógica SEMPRE (com ou sem período específico): se `converted_sum_raw > folgas_disponiveis`, então `converted_sum = 0`
+- **Exemplo corrigido**:
+  - Folgas disponíveis: 3 dias (3 manuais + 0 de horas, porque horas líquidas < 0)
+  - Conversões pagas: 38 dias
+  - **Antes**: converted_sum = 38, saldo = 3 - 3 - 38 = -38 dias ❌
+  - **Depois**: converted_sum = 0 (porque 38 > 3), saldo = 3 - 3 - 0 = 0 dias ✅
+- **Arquivo Corrigido**:
+  - `multimax/routes/jornada.py` - Função `_calculate_collaborator_balance()`: Lógica de conversões aplicada sempre, não apenas para períodos específicos
+- **Impacto**: Saldo na "Situação Final" agora reflete corretamente a situação real, não ficando negativo incorretamente quando conversões excedem folgas disponíveis
+
+---
+
 ## [2.3.35] - 2025-01-15
 
 ### ✨ Novas Funcionalidades
