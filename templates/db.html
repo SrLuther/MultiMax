@@ -1686,19 +1686,82 @@ function applyUpdate(force = false) {
                 }, 10000);
             }, 3000);
         } else {
-            // Mostrar erro com sugestões
+            // Mostrar erro com sugestões e botão de download
             const modalBody = document.querySelector('.db-git-modal-body');
             if (modalBody) {
                 const processingMsg = document.getElementById('processingMsg');
                 if (processingMsg) {
-                    let errorHtml = `<i class="bi bi-x-circle-fill"></i> <div style="flex: 1;"><strong>Erro: ${data.error || 'Erro desconhecido'}</strong>`;
+                    // Preparar conteúdo completo para download
+                    let errorText = `ERRO: ${data.error || 'Erro desconhecido'}\n`;
+                    errorText += `Data/Hora: ${new Date().toLocaleString('pt-BR')}\n\n`;
+                    
                     if (data.suggestion) {
-                        errorHtml += `<div style="margin-top: 0.5rem; padding: 0.75rem; background: rgba(245, 158, 11, 0.1); border-left: 3px solid #f59e0b; border-radius: 4px;"><strong>💡 Sugestão:</strong> ${data.suggestion}</div>`;
+                        errorText += `💡 SUGESTÃO:\n${data.suggestion}\n\n`;
                     }
                     if (data.details) {
-                        errorHtml += `<div style="margin-top: 0.5rem; padding: 0.75rem; background: rgba(0, 0, 0, 0.05); border-radius: 4px; font-family: monospace; font-size: 0.85rem; max-height: 150px; overflow-y: auto;"><strong>Detalhes:</strong><br>${data.details.substring(0, 500)}</div>`;
+                        errorText += `DETALHES:\n${data.details}\n\n`;
                     }
-                    errorHtml += '</div>';
+                    if (data.quickstart_guide) {
+                        errorText += `GUIA RÁPIDO: ${data.quickstart_guide}\n`;
+                    }
+                    if (data.full_guide) {
+                        errorText += `GUIA COMPLETO: ${data.full_guide}\n`;
+                    }
+                    if (data.deploy_agent_url) {
+                        errorText += `URL DO DEPLOY AGENT: ${data.deploy_agent_url}\n`;
+                    }
+                    
+                    // Criar blob para download
+                    const errorBlob = new Blob([errorText], { type: 'text/plain;charset=utf-8' });
+                    const errorUrl = URL.createObjectURL(errorBlob);
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+                    const filename = `erro-deploy-agent-${timestamp}.txt`;
+                    
+                    let errorHtml = `
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                            <div style="display: flex; align-items: flex-start; gap: 0.75rem; color: #dc2626;">
+                                <i class="bi bi-x-circle-fill" style="font-size: 1.5rem; flex-shrink: 0; margin-top: 0.25rem;"></i>
+                                <div style="flex: 1;">
+                                    <strong style="font-size: 1.1rem;">Erro: ${data.error || 'Erro desconhecido'}</strong>
+                                </div>
+                            </div>
+                            
+                            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: -0.5rem;">
+                                <button type="button" onclick="downloadErrorText('${errorUrl}', '${filename}')" class="db-btn-modern db-btn-outline" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; font-size: 0.875rem;">
+                                    <i class="bi bi-download"></i>
+                                    <span>Download da Mensagem Completa (.txt)</span>
+                                </button>
+                            </div>
+                            
+                            <div style="max-height: 400px; overflow-y: auto; border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 6px; padding: 1rem; background: rgba(0, 0, 0, 0.02);">
+                                ${data.suggestion ? `
+                                    <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(245, 158, 11, 0.1); border-left: 4px solid #f59e0b; border-radius: 4px;">
+                                        <strong style="display: block; margin-bottom: 0.5rem; color: #92400e;">💡 Sugestão:</strong>
+                                        <div style="white-space: pre-wrap; line-height: 1.6; color: #78350f; font-size: 0.9rem;">${escapeHtml(data.suggestion)}</div>
+                                    </div>
+                                ` : ''}
+                                ${data.details ? `
+                                    <div style="margin-top: ${data.suggestion ? '1rem' : '0'}; padding: 1rem; background: rgba(0, 0, 0, 0.03); border-radius: 4px;">
+                                        <strong style="display: block; margin-bottom: 0.5rem;">Detalhes:</strong>
+                                        <div style="font-family: 'Courier New', monospace; font-size: 0.85rem; white-space: pre-wrap; word-wrap: break-word; color: #374151;">${escapeHtml(data.details)}</div>
+                                    </div>
+                                ` : ''}
+                                ${data.quickstart_guide || data.full_guide ? `
+                                    <div style="margin-top: 1rem; padding: 1rem; background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; border-radius: 4px;">
+                                        <strong style="display: block; margin-bottom: 0.5rem; color: #1e40af;">📚 Documentação:</strong>
+                                        ${data.quickstart_guide ? `<div style="margin-bottom: 0.5rem; color: #1e3a8a;">• ${escapeHtml(data.quickstart_guide)}</div>` : ''}
+                                        ${data.full_guide ? `<div style="color: #1e3a8a;">• ${escapeHtml(data.full_guide)}</div>` : ''}
+                                    </div>
+                                ` : ''}
+                                ${data.deploy_agent_url ? `
+                                    <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(107, 114, 128, 0.1); border-radius: 4px; font-size: 0.85rem; color: #4b5563;">
+                                        <strong>URL do Deploy Agent:</strong> <code>${escapeHtml(data.deploy_agent_url)}</code>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                    
                     processingMsg.className = 'db-git-error-msg';
                     processingMsg.innerHTML = errorHtml;
                 }
@@ -1717,23 +1780,86 @@ function applyUpdate(force = false) {
             const processingMsg = document.getElementById('processingMsg');
             if (processingMsg) {
                 const isAlreadyUpdated = error.message && error.message.includes('já está atualizado');
-                let errorHtml = `<div style="display: flex; align-items: center; gap: 0.75rem; color: ${isAlreadyUpdated ? '#f59e0b' : '#dc2626'};">
-                        <i class="bi bi-${isAlreadyUpdated ? 'exclamation-triangle-fill' : 'x-circle-fill'}"></i>
-                        <div style="flex: 1;">
-                            <span><strong>${isAlreadyUpdated ? 'Aviso:' : 'Erro:'}</strong> ${error.message || 'Erro de conexão. Verifique se o sistema está acessível.'}</span>
-                            ${isAlreadyUpdated ? '<p style="margin-top: 0.5rem; color: #6b7280; font-size: 0.875rem;">Use o botão "Reinstalar Atualização" para forçar a atualização mesmo assim.</p>' : ''}
-                        </div>
-                    </div>`;
                 
-                // Se houver dados de erro do servidor, mostrar sugestões
+                // Preparar conteúdo completo para download
+                let errorText = `${isAlreadyUpdated ? 'AVISO' : 'ERRO'}: ${error.message || 'Erro de conexão. Verifique se o sistema está acessível.'}\n`;
+                errorText += `Data/Hora: ${new Date().toLocaleString('pt-BR')}\n\n`;
+                
                 if (error.errorData) {
+                    if (error.errorData.error) {
+                        errorText += `ERRO: ${error.errorData.error}\n\n`;
+                    }
                     if (error.errorData.suggestion) {
-                        errorHtml += `<div style="margin-top: 0.75rem; padding: 0.75rem; background: rgba(245, 158, 11, 0.1); border-left: 3px solid #f59e0b; border-radius: 4px;"><strong>💡 Sugestão:</strong> ${error.errorData.suggestion}</div>`;
+                        errorText += `💡 SUGESTÃO:\n${error.errorData.suggestion}\n\n`;
                     }
                     if (error.errorData.details) {
-                        errorHtml += `<div style="margin-top: 0.5rem; padding: 0.75rem; background: rgba(0, 0, 0, 0.05); border-radius: 4px; font-family: monospace; font-size: 0.85rem; max-height: 150px; overflow-y: auto;"><strong>Detalhes:</strong><br>${error.errorData.details.substring(0, 500)}</div>`;
+                        errorText += `DETALHES:\n${error.errorData.details}\n\n`;
+                    }
+                    if (error.errorData.quickstart_guide) {
+                        errorText += `GUIA RÁPIDO: ${error.errorData.quickstart_guide}\n`;
+                    }
+                    if (error.errorData.full_guide) {
+                        errorText += `GUIA COMPLETO: ${error.errorData.full_guide}\n`;
+                    }
+                    if (error.errorData.deploy_agent_url) {
+                        errorText += `URL DO DEPLOY AGENT: ${error.errorData.deploy_agent_url}\n`;
                     }
                 }
+                
+                // Criar blob para download
+                const errorBlob = new Blob([errorText], { type: 'text/plain;charset=utf-8' });
+                const errorUrl = URL.createObjectURL(errorBlob);
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+                const filename = `erro-deploy-${timestamp}.txt`;
+                
+                let errorHtml = `
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div style="display: flex; align-items: flex-start; gap: 0.75rem; color: ${isAlreadyUpdated ? '#f59e0b' : '#dc2626'};">
+                            <i class="bi bi-${isAlreadyUpdated ? 'exclamation-triangle-fill' : 'x-circle-fill'}" style="font-size: 1.5rem; flex-shrink: 0; margin-top: 0.25rem;"></i>
+                            <div style="flex: 1;">
+                                <strong style="font-size: 1.1rem;">${isAlreadyUpdated ? 'Aviso:' : 'Erro:'}</strong>
+                                <div style="margin-top: 0.25rem;">${escapeHtml(error.message || 'Erro de conexão. Verifique se o sistema está acessível.')}</div>
+                                ${isAlreadyUpdated ? '<p style="margin-top: 0.5rem; color: #6b7280; font-size: 0.875rem;">Use o botão "Reinstalar Atualização" para forçar a atualização mesmo assim.</p>' : ''}
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: -0.5rem;">
+                            <button type="button" onclick="downloadErrorText('${errorUrl}', '${filename}')" class="db-btn-modern db-btn-outline" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; font-size: 0.875rem;">
+                                <i class="bi bi-download"></i>
+                                <span>Download da Mensagem Completa (.txt)</span>
+                            </button>
+                        </div>
+                        
+                        ${error.errorData ? `
+                            <div style="max-height: 400px; overflow-y: auto; border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 6px; padding: 1rem; background: rgba(0, 0, 0, 0.02);">
+                                ${error.errorData.suggestion ? `
+                                    <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(245, 158, 11, 0.1); border-left: 4px solid #f59e0b; border-radius: 4px;">
+                                        <strong style="display: block; margin-bottom: 0.5rem; color: #92400e;">💡 Sugestão:</strong>
+                                        <div style="white-space: pre-wrap; line-height: 1.6; color: #78350f; font-size: 0.9rem;">${escapeHtml(error.errorData.suggestion)}</div>
+                                    </div>
+                                ` : ''}
+                                ${error.errorData.details ? `
+                                    <div style="margin-top: ${error.errorData.suggestion ? '1rem' : '0'}; padding: 1rem; background: rgba(0, 0, 0, 0.03); border-radius: 4px;">
+                                        <strong style="display: block; margin-bottom: 0.5rem;">Detalhes:</strong>
+                                        <div style="font-family: 'Courier New', monospace; font-size: 0.85rem; white-space: pre-wrap; word-wrap: break-word; color: #374151;">${escapeHtml(error.errorData.details)}</div>
+                                    </div>
+                                ` : ''}
+                                ${error.errorData.quickstart_guide || error.errorData.full_guide ? `
+                                    <div style="margin-top: 1rem; padding: 1rem; background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; border-radius: 4px;">
+                                        <strong style="display: block; margin-bottom: 0.5rem; color: #1e40af;">📚 Documentação:</strong>
+                                        ${error.errorData.quickstart_guide ? `<div style="margin-bottom: 0.5rem; color: #1e3a8a;">• ${escapeHtml(error.errorData.quickstart_guide)}</div>` : ''}
+                                        ${error.errorData.full_guide ? `<div style="color: #1e3a8a;">• ${escapeHtml(error.errorData.full_guide)}</div>` : ''}
+                                    </div>
+                                ` : ''}
+                                ${error.errorData.deploy_agent_url ? `
+                                    <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(107, 114, 128, 0.1); border-radius: 4px; font-size: 0.85rem; color: #4b5563;">
+                                        <strong>URL do Deploy Agent:</strong> <code>${escapeHtml(error.errorData.deploy_agent_url)}</code>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
                 
                 processingMsg.className = 'db-git-error-msg';
                 processingMsg.innerHTML = errorHtml;
@@ -1745,6 +1871,41 @@ function applyUpdate(force = false) {
             confirmBtn.innerHTML = '<i class="bi bi-cloud-arrow-down"></i> ' + (force ? 'Reinstalar Atualização' : 'Aplicar Atualização');
         }
     });
+}
+
+// Função auxiliar para escapar HTML (prevenir XSS)
+function escapeHtml(text) {
+    if (!text) return '';
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return String(text).replace(/[&<>"']/g, m => map[m]);
+}
+
+// Função para fazer download do texto de erro em arquivo .txt
+function downloadErrorText(blobUrl, filename) {
+    try {
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        
+        // Remover link após download iniciar
+        setTimeout(() => {
+            document.body.removeChild(link);
+            // Limpar o objeto URL após um tempo (libera memória)
+            URL.revokeObjectURL(blobUrl);
+        }, 100);
+    } catch (err) {
+        console.error('Erro ao fazer download do arquivo:', err);
+        alert('Erro ao fazer download do arquivo. Por favor, copie a mensagem manualmente.');
+    }
 }
 
 // Limpar intervalo ao sair da página
@@ -3283,8 +3444,11 @@ window.addEventListener('beforeunload', function() {
     background: white;
     border-radius: 12px;
     padding: 2rem;
-    max-width: 500px;
+    max-width: 800px;
     width: 100%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
@@ -3309,6 +3473,10 @@ window.addEventListener('beforeunload', function() {
 
 .db-git-modal-body {
     margin-bottom: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    max-height: calc(90vh - 200px);
 }
 
 .db-git-modal-body p {
@@ -3358,12 +3526,14 @@ window.addEventListener('beforeunload', function() {
 .db-git-success-msg,
 .db-git-error-msg {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.75rem;
-    padding: 1rem;
+    padding: 1.25rem;
     border-radius: 8px;
     margin-top: 1rem;
     font-size: 0.95rem;
+    min-height: 60px;
+    word-wrap: break-word;
 }
 
 .db-git-processing-msg {
@@ -3382,6 +3552,30 @@ window.addEventListener('beforeunload', function() {
     background: rgba(239, 68, 68, 0.1);
     color: #dc2626;
     border: 1px solid rgba(239, 68, 68, 0.3);
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+}
+
+.db-git-error-msg pre,
+.db-git-error-msg div {
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+/* Responsive: Modal em telas menores */
+@media (max-width: 768px) {
+    .db-git-modal {
+        max-width: 95vw;
+        max-height: 95vh;
+        padding: 1.5rem;
+    }
+    
+    .db-git-modal-body {
+        max-height: calc(95vh - 180px);
+    }
 }
 
 .db-git-notification {
