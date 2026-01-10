@@ -2174,9 +2174,30 @@ def git_update():
                     suggestion = 'Verifique os logs do sistema para mais detalhes.'
                     
                     # Verificar se é erro de sistema de arquivos somente leitura
-                    if 'read-only file system' in stderr_full.lower() or 'readonly' in stderr_full.lower() or 'cannot open' in stderr_full.lower() and 'FETCH_HEAD' in stderr_full:
+                    if 'read-only file system' in stderr_full.lower() or 'readonly' in stderr_full.lower() or ('cannot open' in stderr_full.lower() and 'FETCH_HEAD' in stderr_full):
                         error_type = 'sistema de arquivos somente leitura'
-                        suggestion = 'O diretório .git está em modo somente leitura. Soluções: 1) Verifique permissões do diretório (chmod -R u+w .git), 2) Se estiver em Docker, verifique se o volume está montado corretamente, 3) Verifique se o sistema de arquivos não está montado como somente leitura (mount | grep ro), 4) Execute: sudo chown -R $USER:$USER .git'
+                        # Verificar se estamos em Docker
+                        is_docker = os.path.exists('/.dockerenv') or os.path.exists('/proc/self/cgroup')
+                        
+                        if is_docker:
+                            suggestion = (
+                                'O diretório .git está em modo somente leitura no container Docker. '
+                                'Isso é um problema comum. Soluções:\n'
+                                '1) No HOST (fora do container): Verifique as permissões do diretório .git\n'
+                                '2) No HOST: Execute: chmod -R u+w .git (no diretório do projeto)\n'
+                                '3) Se o .git está em um volume Docker, verifique a montagem no docker-compose.yml\n'
+                                '4) Alternativa: Execute operações Git diretamente no HOST, não dentro do container\n'
+                                '5) Ou configure o volume Docker com permissões de escrita (rw no docker-compose.yml)'
+                            )
+                        else:
+                            suggestion = (
+                                'O diretório .git está em modo somente leitura. Soluções:\n'
+                                '1) Verifique permissões: chmod -R u+w .git\n'
+                                '2) Verifique proprietário: sudo chown -R $USER:$USER .git\n'
+                                '3) Verifique montagem do sistema de arquivos: mount | grep ro\n'
+                                '4) Se em NFS/remoto: Verifique permissões no servidor remoto\n'
+                                '5) Verifique se algum processo está bloqueando o diretório'
+                            )
                     elif result.returncode == 255:
                         error_type = 'autenticação/conexão'
                         suggestion = 'Verifique: 1) Credenciais Git configuradas (git config --global user.name/email), 2) Acesso ao repositório remoto, 3) Conexão com a internet, 4) Se usa SSH, verifique as chaves SSH.'
