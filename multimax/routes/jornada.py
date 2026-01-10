@@ -169,6 +169,8 @@ def _calculate_collaborator_balance(collaborator_id, date_start=None, date_end=N
         filters.append(TimeOffRecord.date <= date_end)
     
     # Total LÍQUIDO de horas (soma TODAS as horas, positivas E negativas)
+    # IMPORTANTE: Horas negativas (-8h) são ajustes de compensação quando horas são convertidas automaticamente em folgas.
+    # Elas devem ser somadas para calcular o total líquido correto.
     # CORREÇÃO: Anteriormente somava apenas positivas, ignorando ajustes negativos (-8h) de conversão automática
     hq = TimeOffRecord.query.filter(
         *filters,
@@ -178,8 +180,14 @@ def _calculate_collaborator_balance(collaborator_id, date_start=None, date_end=N
     
     # Dias convertidos das horas líquidas (8h = 1 dia)
     # CORREÇÃO: Calcula sobre horas líquidas, não brutas
+    # Se horas líquidas forem negativas, não há dias convertidos (apenas ajustes de compensação)
     days_from_hours = int(total_liquido_hours // 8.0) if total_liquido_hours >= 0.0 else 0
     residual_hours = (total_liquido_hours % 8.0) if total_liquido_hours >= 0.0 else 0.0
+    
+    # CORREÇÃO CRÍTICA: Se horas líquidas são negativas, isso significa que há mais ajustes negativos do que horas positivas.
+    # Neste caso, não há dias convertidos (days_from_hours = 0), e as horas negativas são apenas ajustes de compensação.
+    # O total de horas exibido pode ser negativo, mas isso não afeta o cálculo de folgas disponíveis,
+    # pois folgas disponíveis = credits_sum (manuais) + days_from_hours (que será 0 se horas < 0).
     
     # Folgas adicionais MANUAIS (excluindo as geradas automaticamente de horas)
     # As folgas com origin='horas' são geradas automaticamente e já são contadas via days_from_hours
@@ -221,33 +229,40 @@ def _calculate_collaborator_balance(collaborator_id, date_start=None, date_end=N
     )
     converted_sum_raw = int(vq.with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
     
-    # Calcular folgas disponíveis no período (créditos + dias das horas)
-    folgas_disponiveis_periodo = credits_sum + days_from_hours
+    # Calcular folgas disponíveis (créditos manuais + dias convertidos das horas)
+    # IMPORTANTE: Se total_liquido_hours for negativo, days_from_hours será 0,
+    # então folgas_disponiveis = credits_sum + 0 = credits_sum (apenas folgas manuais)
+    folgas_disponiveis = credits_sum + days_from_hours
     
-    # Aplicar regra: Conversões só reduzem saldo se houver folgas suficientes no período para pagar
-    if date_start and date_end:
-        # Estamos calculando um período específico (ex: mês em aberto)
-        # REGRA CRÍTICA: Se conversões > folgas do período, então são pagamentos de períodos anteriores
-        # Elas NÃO devem reduzir o saldo do período atual (análogo a fatura de cartão)
-        # 
-        # Exemplo:
-        # - Período atual: 1 folga nova
-        # - Conversões no período: 6 (pagando folgas do mês anterior)
-        # - converted_sum deve ser 0 (são pagamentos de períodos anteriores, não impactam período atual)
-        #
-        # Se conversões <= folgas do período, então são pagamentos de folgas do período atual
-        # e devem ser consideradas normalmente
-        
-        if converted_sum_raw > folgas_disponiveis_periodo:
-            # Conversões excedem folgas do período = são pagamentos de períodos anteriores
-            # NÃO devem impactar o saldo do período atual
-            converted_sum = 0
-        else:
-            # Conversões estão dentro do limite de folgas do período = são pagamentos do período atual
-            converted_sum = converted_sum_raw
+    # REGRA CRÍTICA - Conversões por Período (Aplicada SEMPRE, com ou sem período específico):
+    # Conversões pagas são pagamentos de folgas acumuladas anteriormente.
+    # Analogia: Pagamento de fatura de cartão do mês anterior aparece na fatura atual, mas não torna o mês atual negativo.
+    # 
+    # REGRA: Conversões só devem reduzir saldo se houver folgas suficientes DISPONÍVEIS para pagar.
+    # Se conversões > folgas disponíveis, então são pagamentos que excederam o disponível.
+    # Elas NÃO devem reduzir o saldo atual (análogo a fatura de cartão).
+    # 
+    # Exemplo na Situação Final (sem período específico):
+    # - Total de horas líquidas: -166h (negativo devido a ajustes -8h)
+    # - days_from_hours: 0 (porque -166 < 0)
+    # - Folgas manuais (credits_sum): 3 dias
+    # - folgas_disponiveis: 3 + 0 = 3 dias
+    # - Conversões pagas (converted_sum_raw): 38 dias
+    # - converted_sum deve ser 0 (38 > 3: são pagamentos que excederam o disponível, não impactam saldo atual)
+    # - Saldo correto: 3 folgas disponíveis - 0 conversões (porque excederam) - 3 folgas usadas = 0 folgas ✅
+    # - Saldo incorreto: 3 folgas - 38 conversões - 3 folgas usadas = -38 folgas ❌
+    #
+    # Se conversões <= folgas disponíveis, então são pagamentos válidos e devem ser consideradas normalmente
+    
+    # Aplicar lógica SEMPRE (independente de ter período específico ou não)
+    # Isso garante que conversões que excedem folgas disponíveis nunca reduzam o saldo
+    if converted_sum_raw > folgas_disponiveis:
+        # Conversões excedem folgas disponíveis = são pagamentos que excederam o disponível
+        # NÃO devem impactar o saldo atual (independente de ser período específico ou total)
+        # Isso garante que o saldo nunca fique incorretamente negativo
+        converted_sum = 0
     else:
-        # Cálculo total (sem período específico, ex: situação final)
-        # Considerar todas as conversões, pois não há restrição de período
+        # Conversões estão dentro do limite de folgas disponíveis = são pagamentos válidos
         converted_sum = converted_sum_raw
     
     # Saldo final = folgas manuais + dias convertidos das horas líquidas - folgas usadas - conversões em dinheiro
