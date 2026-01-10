@@ -1,3 +1,50 @@
+## [2.3.42] - 2025-01-15
+
+### 📚 Organização: Estruturação da Documentação
+
+#### Criação de Pasta Dedicada
+- **Nova pasta `documentacao/`**: Criada para centralizar toda a documentação técnica do projeto
+- **README.md na pasta documentacao**: Adicionado índice e estrutura da documentação
+
+#### Arquivos Movidos para `documentacao/`
+- **Deploy Agent**:
+  - `DEPLOY_AGENT_README.md` - Documentação completa
+  - `DEPLOY_AGENT_INSTALL.md` - Guia de instalação detalhado
+  - `DEPLOY_AGENT_QUICKSTART.md` - Guia rápido (5 minutos)
+- **Versionamento**:
+  - `VERSION_SYNC.md` - Sincronização de versão
+  - `PROCESSO_ATUALIZACAO_VERSAO.md` - Processo de atualização
+- **Docker**:
+  - `DOCKER.md`
+  - `DOCKER-IMPLEMENTATION.md`
+  - `QUICKSTART-DOCKER.md`
+
+#### Arquivos Removidos (Obsoletos/Vazios)
+- **Documentação de problemas resolvidos**:
+  - `DIAGNOSTICO_502.md` - Problema já resolvido
+  - `INSTRUCOES_RECONSTRUCAO_DOCKER.md` - Problema já resolvido
+- **Documentação antiga do módulo Jornada**:
+  - `JORNADA-EVOLUCAO-PROGRESSO.md` - Progresso antigo
+  - `IMPLEMENTACAO-JORNADA-ESTADOS.md` - Implementação antiga
+  - `JORNADA-SISTEMA-ESTADOS.md` - Especificação antiga
+- **Arquivos vazios**:
+  - `REFACTORING-SUMMARY.md` - Vazio
+  - `RBAC-FINAL.md` - Vazio
+  - `RBAC-IMPLEMENTATION.md` - Vazio
+  - `RBAC-GUIDE.md` - Vazio
+
+#### Arquivos Mantidos na Raiz (Padrão)
+- **README.md** - Documentação principal do projeto
+- **CHANGELOG.md** - Histórico de mudanças e versões
+
+#### Impacto
+- Estrutura mais organizada e fácil de navegar
+- Documentação centralizada em um único local
+- Remoção de arquivos obsoletos reduz confusão
+- Facilita manutenção e atualização da documentação
+
+---
+
 ## [2.3.41] - 2025-01-15
 
 ### 🔧 Refatoração: Limpeza e Otimização do Painel de Banco de Dados
