@@ -6,16 +6,10 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import func
 from .. import db
 from ..models import MonthStatus, TimeOffRecord, JornadaArchive, Collaborator
-try:
-    from .jornada import (
-        _get_all_collaborators, _calculate_simple_balance,
-        _get_collaborator_display_name
-    )
-except ImportError:
-    # Se importação falhar, definir funções stub para evitar erro 502
-    _get_all_collaborators = None
-    _calculate_simple_balance = None
-    _get_collaborator_display_name = None
+from .jornada import (
+    _get_all_collaborators, _calculate_collaborator_balance,
+    _get_collaborator_display_name
+)
 
 try:
     from weasyprint import HTML
@@ -37,10 +31,6 @@ def em_aberto():
         flash('Acesso negado.', 'danger')
         return redirect(url_for('home.index'))
     
-    if _get_all_collaborators is None or _calculate_simple_balance is None or _get_collaborator_display_name is None:
-        flash('Funções de jornada não disponíveis. Sistema simplificado.', 'warning')
-        return redirect(url_for('jornada.index'))
-    
     try:
         # Buscar todos os registros (não arquivados)
         records = TimeOffRecord.query.order_by(TimeOffRecord.date.desc(), TimeOffRecord.id.desc()).limit(500).all()
@@ -48,18 +38,18 @@ def em_aberto():
         colaboradores = _get_all_collaborators()
         all_stats = []
         for colab in colaboradores:
-            balance = _calculate_simple_balance(colab.id)
+            balance = _calculate_collaborator_balance(colab.id)
             all_stats.append({
                 'collaborator': colab,
                 'display_name': _get_collaborator_display_name(colab),
                 'balance': balance
             })
         
-        total_horas = sum(float(s['balance'].get('total_horas', 0.0)) for s in all_stats)
-        total_horas_residuais = sum(float(s['balance'].get('horas_residuais', 0.0)) for s in all_stats)
-        total_saldo_folgas = sum(int(s['balance'].get('saldo', 0)) for s in all_stats)
-        total_folgas_usadas = sum(int(s['balance'].get('folgas_usadas', 0)) for s in all_stats)
-        total_conversoes = sum(int(s['balance'].get('conversoes', 0)) for s in all_stats)
+        total_horas = sum(float(s['balance'].get('total_bruto_hours', 0.0)) for s in all_stats)
+        total_horas_residuais = sum(float(s['balance'].get('residual_hours', 0.0)) for s in all_stats)
+        total_saldo_folgas = sum(int(s['balance'].get('saldo_days', 0)) for s in all_stats)
+        total_folgas_usadas = sum(int(s['balance'].get('assigned_sum', 0)) for s in all_stats)
+        total_conversoes = sum(int(s['balance'].get('converted_sum', 0)) for s in all_stats)
         
         html = render_template(
             'jornada/pdf/em_aberto.html',

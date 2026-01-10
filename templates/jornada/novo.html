@@ -8,32 +8,21 @@
 {% endblock %}
 
 {% block content %}
-<div class="jornada-container">
-    <div class="jornada-hero">
-        <div class="jornada-hero-content">
-            <div>
-                <h1 class="jornada-title">
-                    <i class="bi bi-plus-circle jornada-title-icon"></i>
-                    Novo Registro de Jornada
-                </h1>
-                <p class="jornada-subtitle">Adicione um novo registro de horas, folgas ou conversões</p>
-            </div>
-            <a href="{{ url_for('jornada.index') }}" class="btn-jornada btn-jornada-secondary">
-                <i class="bi bi-arrow-left"></i>
-                <span>Voltar</span>
-            </a>
-        </div>
-    </div>
+<div class="mm-page-header mm-mb-6">
+    <h1 class="mm-page-title">
+        <i class="bi bi-plus-circle mm-text-primary"></i>
+        Novo Registro de Jornada
+    </h1>
+    <p class="mm-text-muted">Adicione um novo registro de horas, folgas ou conversões</p>
+</div>
 
-    <div class="jornada-card">
+<div class="mm-card">
+    <div class="mm-card-body">
         <form method="POST">
-            <div class="jornada-filter-grid">
-                <div class="jornada-form-group">
-                    <label class="jornada-form-label">
-                        <i class="bi bi-person"></i>
-                        Colaborador/Usuário <span style="color: #ef4444;">*</span>
-                    </label>
-                    <select name="collaborator_id" class="jornada-form-select" required>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Colaborador/Usuário <span class="text-danger">*</span></label>
+                    <select name="collaborator_id" class="form-select" required>
                         <option value="">— Selecione —</option>
                         {% if colaboradores_com_usuarios %}
                         {% for item in colaboradores_com_usuarios %}
@@ -50,19 +39,13 @@
                         {% endif %}
                     </select>
                 </div>
-                <div class="jornada-form-group">
-                    <label class="jornada-form-label">
-                        <i class="bi bi-calendar3"></i>
-                        Data <span style="color: #ef4444;">*</span>
-                    </label>
-                    <input type="date" name="date" class="jornada-form-input" required value="{{ hoje }}">
+                <div class="col-md-6">
+                    <label class="form-label">Data <span class="text-danger">*</span></label>
+                    <input type="date" name="date" class="form-control" required value="{{ hoje }}">
                 </div>
-                <div class="jornada-form-group">
-                    <label class="jornada-form-label">
-                        <i class="bi bi-tag"></i>
-                        Tipo de Registro <span style="color: #ef4444;">*</span>
-                    </label>
-                    <select name="record_type" class="jornada-form-select" required id="recordType" onchange="updateFormFields()">
+                <div class="col-md-6">
+                    <label class="form-label">Tipo de Registro <span class="text-danger">*</span></label>
+                    <select name="record_type" class="form-select" required id="recordType" onchange="updateFormFields()">
                         <option value="">— Selecione —</option>
                         <option value="horas">Horas Extras</option>
                         <option value="folga_adicional">Folga Adicional</option>
@@ -70,63 +53,44 @@
                         <option value="conversao">Conversão em Dinheiro</option>
                     </select>
                 </div>
-                <div class="jornada-form-group">
-                    <label class="jornada-form-label">
-                        <i class="bi bi-gear"></i>
-                        Origem
-                    </label>
-                    <select name="origin" class="jornada-form-select">
+                <div class="col-md-6">
+                    <label class="form-label">Origem</label>
+                    <select name="origin" class="form-select">
                         <option value="manual">Manual</option>
                         <option value="sistema">Sistema</option>
                         <option value="excel">Excel</option>
                     </select>
                 </div>
-                <div class="jornada-form-group" id="hoursField" style="display: none;">
-                    <label class="jornada-form-label">
-                        <i class="bi bi-clock"></i>
-                        Horas <span style="color: #ef4444;">*</span>
-                    </label>
-                    <input type="number" name="hours" class="jornada-form-input" step="0.01" min="-24" max="24">
-                    <small style="color: var(--jornada-text-muted); font-size: 0.75rem; margin-top: 0.25rem; display: block;">Valor positivo para adicionar, negativo para remover</small>
+                <div class="col-md-6" id="hoursField" style="display: none;">
+                    <label class="form-label">Horas <span class="text-danger">*</span></label>
+                    <input type="number" name="hours" class="form-control" step="0.01" min="-24" max="24">
+                    <small class="form-text text-muted">Valor positivo para adicionar, negativo para remover</small>
                 </div>
-                <div class="jornada-form-group" id="daysField" style="display: none;">
-                    <label class="jornada-form-label">
-                        <i class="bi bi-calendar-check"></i>
-                        Dias <span style="color: #ef4444;">*</span>
-                    </label>
-                    <input type="number" name="days" class="jornada-form-input" min="1" value="1">
+                <div class="col-md-6" id="daysField" style="display: none;">
+                    <label class="form-label">Dias <span class="text-danger">*</span></label>
+                    <input type="number" name="days" class="form-control" min="1" value="1">
                 </div>
-                <div class="jornada-form-group" id="amountField" style="display: none;">
-                    <label class="jornada-form-label">
-                        <i class="bi bi-cash-coin"></i>
-                        Valor Pago (R$) <span style="color: #ef4444;">*</span>
-                    </label>
-                    <input type="number" name="amount" class="jornada-form-input" step="0.01" min="0">
+                <div class="col-md-6" id="amountField" style="display: none;">
+                    <label class="form-label">Valor Pago (R$) <span class="text-danger">*</span></label>
+                    <input type="number" name="amount_paid" class="form-control" step="0.01" min="0">
                 </div>
-                <div class="jornada-form-group" id="rateField" style="display: none;">
-                    <label class="jornada-form-label">
-                        <i class="bi bi-currency-dollar"></i>
-                        Taxa por Dia (R$)
-                    </label>
-                    <input type="number" name="rate_per_day" class="jornada-form-input" step="0.01" min="0" value="65.00">
+                <div class="col-md-6" id="rateField" style="display: none;">
+                    <label class="form-label">Taxa por Dia (R$)</label>
+                    <input type="number" name="rate_per_day" class="form-control" step="0.01" min="0" value="65.00">
                 </div>
-                <div class="jornada-form-group" style="grid-column: 1 / -1;">
-                    <label class="jornada-form-label">
-                        <i class="bi bi-card-text"></i>
-                        Observações
-                    </label>
-                    <textarea name="notes" class="jornada-form-input" rows="3" style="resize: vertical;"></textarea>
+                <div class="col-12">
+                    <label class="form-label">Observações</label>
+                    <textarea name="notes" class="form-control" rows="3"></textarea>
                 </div>
             </div>
-            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--jornada-border);">
-                <a href="{{ url_for('jornada.index') }}" class="btn-jornada btn-jornada-secondary">
-                    <i class="bi bi-x-circle"></i>
-                    Cancelar
-                </a>
-                <button type="submit" class="btn-jornada btn-jornada-primary">
+            <div class="mm-flex mm-gap-2 mm-mt-4">
+                <button type="submit" class="mm-btn mm-btn-primary">
                     <i class="bi bi-check-lg"></i>
                     Salvar
                 </button>
+                <a href="{{ url_for('jornada.index') }}" class="mm-btn mm-btn-outline">
+                    Cancelar
+                </a>
             </div>
         </form>
     </div>
