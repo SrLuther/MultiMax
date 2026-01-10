@@ -2172,14 +2172,13 @@ def git_update():
                     # Diagnosticar o tipo de erro
                     error_type = 'desconhecido'
                     suggestion = 'Verifique os logs do sistema para mais detalhes.'
+                    is_docker_env = os.path.exists('/.dockerenv') or os.path.exists('/proc/self/cgroup')
                     
                     # Verificar se é erro de sistema de arquivos somente leitura
                     if 'read-only file system' in stderr_full.lower() or 'readonly' in stderr_full.lower() or ('cannot open' in stderr_full.lower() and 'FETCH_HEAD' in stderr_full):
                         error_type = 'sistema de arquivos somente leitura'
-                        # Verificar se estamos em Docker
-                        is_docker = os.path.exists('/.dockerenv') or os.path.exists('/proc/self/cgroup')
                         
-                        if is_docker:
+                        if is_docker_env:
                             suggestion = (
                                 'O diretório .git está em modo somente leitura no container Docker. '
                                 'Isso é um problema comum. Soluções:\n'
