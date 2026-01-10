@@ -1177,11 +1177,12 @@ def exportar_jornada_pdf():
                 cq = _range_filter(TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == c.id, TimeOffRecord.record_type == 'folga_adicional', or_(TimeOffRecord.origin != 'horas', TimeOffRecord.origin.is_(None))), TimeOffRecord.date)
                 aq = _range_filter(TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == c.id, TimeOffRecord.record_type == 'folga_usada'), TimeOffRecord.date)
                 vq = _range_filter(TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == c.id, TimeOffRecord.record_type == 'conversao'), TimeOffRecord.date)
-                # Calcular total bruto de horas (somando apenas horas positivas)
-                total_bruto_hours = sum(float(e.hours or 0.0) for e in hq.all() if (e.hours or 0.0) > 0)
-                # Calcular dias convertidos das horas brutas (8h = 1 dia)
+                # CORREÇÃO: Calcular total líquido de horas (somando TODAS as horas, positivas E negativas)
+                # Isso garante que ajustes negativos (-8h) de conversões automáticas sejam considerados
+                total_bruto_hours = sum(float(e.hours or 0.0) for e in hq.all())
+                # Calcular dias convertidos das horas líquidas (8h = 1 dia)
                 days_from_hours = int(total_bruto_hours // 8.0) if total_bruto_hours >= 0.0 else 0
-                # Horas restantes após conversão
+                # Horas restantes após conversão (horas líquidas)
                 residual_hours = (total_bruto_hours % 8.0) if total_bruto_hours >= 0.0 else 0.0
                 credits_sum = int(cq.with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
                 assigned_sum = int(aq.with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)

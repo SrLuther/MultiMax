@@ -763,7 +763,8 @@ def arquivados():
             stats_query = stats_query.filter(JornadaArchive.record_type == record_type)
         
         all_archived = stats_query.all()
-        total_hours = sum(float(r.hours or 0.0) for r in all_archived if r.record_type == 'horas' and (r.hours or 0.0) > 0)
+        # CORREÇÃO: Soma TODAS as horas (positivas E negativas) para considerar ajustes de conversão automática
+        total_hours = sum(float(r.hours or 0.0) for r in all_archived if r.record_type == 'horas')
         total_folgas_creditos = sum(int(r.days or 0) for r in all_archived if r.record_type == 'folga_adicional' and (not getattr(r, 'origin', None) or getattr(r, 'origin', None) != 'horas'))
         total_folgas_usadas = sum(int(r.days or 0) for r in all_archived if r.record_type == 'folga_usada')
         total_conversoes = sum(int(r.days or 0) for r in all_archived if r.record_type == 'conversao')
@@ -879,6 +880,8 @@ def novo():
             # Aplicar conversão automática se for horas
             if record_type == 'horas' and record.hours and record.hours > 0:
                 try:
+                    # CORREÇÃO: Soma TODAS as horas (positivas E negativas) para calcular corretamente as folgas
+                    # Isso garante que ajustes negativos (-8h) de conversões anteriores sejam considerados
                     total_hours = db.session.query(func.coalesce(func.sum(TimeOffRecord.hours), 0.0)).filter(
                         TimeOffRecord.collaborator_id == collaborator_id,
                         TimeOffRecord.record_type == 'horas'
@@ -892,7 +895,8 @@ def novo():
                     ).scalar() or 0
                     auto_credits = int(auto_credits)
                     
-                    desired_credits = int(total_hours // 8.0)
+                    # Calcular quantos dias deveriam existir baseado nas horas líquidas (já considerando ajustes negativos)
+                    desired_credits = int(total_hours // 8.0) if total_hours >= 0.0 else 0
                     missing = max(0, desired_credits - auto_credits)
                     
                     if missing > 0:
@@ -1690,7 +1694,8 @@ def historico_colaborador(collaborator_id):
     
     all_records.sort(key=lambda x: x['date'], reverse=True)
     
-    total_hours = sum(r['hours'] or 0.0 for r in all_records if r['hours'] and r['hours'] > 0)
+    # CORREÇÃO: Soma TODAS as horas (positivas E negativas) para considerar ajustes de conversão automática
+    total_hours = sum(r['hours'] or 0.0 for r in all_records if r.get('hours') is not None)
     total_folgas_creditos = sum(r['days'] or 0 for r in all_records if r['record_type'] == 'folga_adicional' and (not r.get('origin') or r.get('origin') != 'horas'))
     total_folgas_usadas = sum(r['days'] or 0 for r in all_records if r['record_type'] == 'folga_usada')
     total_conversoes = sum(r['days'] or 0 for r in all_records if r['record_type'] == 'conversao')
