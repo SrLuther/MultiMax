@@ -2223,6 +2223,7 @@ def git_update():
                         'suggestion': suggestion,
                         'error_type': error_type,
                         'returncode': result.returncode,
+                        'is_docker': is_docker_env,
                         'results': results
                     }), 500
                 else:
