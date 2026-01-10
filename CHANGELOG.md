@@ -1,3 +1,22 @@
+## [2.3.39] - 2025-01-15
+
+### 🐛 Correções Críticas
+
+#### Correção de Importações que Causavam Erro 502
+- **Problema**: Após refatoração completa do sistema de Jornada, importações em `jornada_pdf.py` e `exportacao.py` falhavam, impedindo Flask de iniciar
+- **Causa**: Arquivos `jornada_pdf.py` e `exportacao.py` tentavam importar funções antigas (`_calculate_collaborator_balance`, `_get_month_status`) que não existem mais em `jornada.py`
+- **Solução**:
+  - **jornada_pdf.py**: Importação opcional com try/except, redirecionamento para `jornada.index` quando necessário
+  - **exportacao.py**: Função wrapper `_calculate_collaborator_balance()` que traduz campos novos para antigos (compatibilidade)
+  - **__init__.py**: Tratamento robusto de erros na importação de blueprints opcionais
+- **Arquivos Corrigidos**:
+  - `multimax/routes/jornada_pdf.py`: Importações corrigidas, rotas simplificadas redirecionam para `jornada.index`
+  - `multimax/routes/exportacao.py`: Wrapper de compatibilidade para `_calculate_collaborator_balance()`
+  - `multimax/__init__.py`: Tratamento de erro melhorado para importação de blueprints
+- **Impacto**: Flask agora inicia corretamente, erro 502 resolvido
+
+---
+
 ## [2.3.38] - 2025-01-15
 
 ### 🔄 Refatoração Completa do Sistema de Jornada

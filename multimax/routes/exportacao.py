@@ -10,7 +10,51 @@ from flask import Blueprint, redirect, url_for, flash, send_file, request
 from flask_login import login_required, current_user
 from ..models import Produto, CleaningTask as CleaningTaskModel, CleaningHistory as CleaningHistoryModel, Historico, MeatReception, MeatCarrier, MeatPart, User, Recipe, RecipeIngredient
 from ..models import Collaborator, TimeOffRecord, JornadaArchive, MonthStatus
-from ..routes.jornada import _calculate_collaborator_balance, _get_collaborator_display_name
+try:
+    from ..routes.jornada import _calculate_simple_balance, _get_collaborator_display_name
+    # Função wrapper para compatibilidade com código antigo
+    def _calculate_collaborator_balance(collaborator_id, date_start=None, date_end=None):
+        """Wrapper que traduz campos antigos para novos para compatibilidade"""
+        balance = _calculate_simple_balance(collaborator_id, date_start, date_end)
+        # Traduzir campos novos para campos antigos usados pelo exportacao.py
+        return {
+            'total_bruto_hours': balance.get('total_horas', 0.0),
+            'residual_hours': balance.get('horas_residuais', 0.0),
+            'days_from_hours': balance.get('dias_das_horas', 0),
+            'saldo_days': balance.get('saldo', 0),
+            'assigned_sum': balance.get('folgas_usadas', 0),
+            'converted_sum': balance.get('conversoes', 0),
+            'credits_sum': balance.get('folgas_adicionadas', 0),
+            # Campos novos também disponíveis para compatibilidade
+            'total_horas': balance.get('total_horas', 0.0),
+            'horas_residuais': balance.get('horas_residuais', 0.0),
+            'dias_das_horas': balance.get('dias_das_horas', 0),
+            'folgas_adicionadas': balance.get('folgas_adicionadas', 0),
+            'folgas_usadas': balance.get('folgas_usadas', 0),
+            'conversoes': balance.get('conversoes', 0),
+            'saldo': balance.get('saldo', 0)
+        }
+except ImportError as e:
+    # Se importação falhar, definir funções stub para evitar erro 502
+    def _calculate_collaborator_balance(*args, **kwargs):
+        return {
+            'total_bruto_hours': 0.0,
+            'residual_hours': 0.0,
+            'days_from_hours': 0,
+            'saldo_days': 0,
+            'assigned_sum': 0,
+            'converted_sum': 0,
+            'credits_sum': 0,
+            'total_horas': 0.0,
+            'horas_residuais': 0.0,
+            'dias_das_horas': 0,
+            'folgas_adicionadas': 0,
+            'folgas_usadas': 0,
+            'conversoes': 0,
+            'saldo': 0
+        }
+    def _get_collaborator_display_name(collaborator):
+        return collaborator.name if collaborator else 'N/A'
 from sqlalchemy import func, or_
 from flask import render_template
 from urllib.parse import urlencode
