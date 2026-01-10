@@ -200,13 +200,44 @@ def _calculate_collaborator_balance(collaborator_id, date_start=None, date_end=N
     
     # Conversões em dinheiro (folgas convertidas em dinheiro, NÃO conversões automáticas de horas)
     # IMPORTANTE: 'conversao' é diferente de 'origin=horas'. Conversão é quando folgas são vendidas/trocadas por dinheiro
+    # 
+    # CORREÇÃO CRÍTICA - Lógica de Conversões por Período:
+    # Conversões pagas em um período são pagamentos de folgas acumuladas anteriormente.
+    # Analogia: Pagamento de fatura de cartão do mês anterior aparece na fatura atual, mas não torna o mês atual negativo.
+    # 
+    # REGRA: Conversões só devem reduzir saldo de um período se houver folgas suficientes NO PERÍODO para pagar.
+    # Se conversões > folgas do período, então são pagamentos de períodos anteriores e não devem impactar o período atual.
+    # 
+    # Exemplo:
+    # - Mês anterior: 6 folgas acumuladas
+    # - Mês atual: 2 folgas novas (1 por domingo, 1 por 8h extra)
+    # - Conversão: 6 folgas pagas no dia 7 do mês atual
+    # - Cálculo correto do mês atual: 2 folgas (novas) - 0 folgas usadas - 0 conversões (pagou folgas do mês anterior) = 2 folgas
+    # - Cálculo incorreto: 2 folgas - 0 folgas usadas - 6 conversões = -4 folgas ❌
+    
     vq = TimeOffRecord.query.filter(
         *filters,
         TimeOffRecord.record_type == 'conversao'
     )
-    converted_sum = int(vq.with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
+    converted_sum_raw = int(vq.with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
+    
+    # Calcular folgas disponíveis no período (créditos + dias das horas)
+    folgas_disponiveis_periodo = credits_sum + days_from_hours
+    
+    # Aplicar regra: Conversões só reduzem saldo se houver folgas suficientes no período para pagar
+    if date_start and date_end:
+        # Estamos calculando um período específico (ex: mês em aberto)
+        # Conversões que excedem folgas do período são pagamentos de períodos anteriores
+        # Elas não devem reduzir o saldo do período atual (análogo a fatura de cartão)
+        # Limitar conversões às folgas disponíveis no período
+        converted_sum = min(converted_sum_raw, max(0, folgas_disponiveis_periodo))
+    else:
+        # Cálculo total (sem período específico, ex: situação final)
+        # Considerar todas as conversões, pois não há restrição de período
+        converted_sum = converted_sum_raw
     
     # Saldo final = folgas manuais + dias convertidos das horas líquidas - folgas usadas - conversões em dinheiro
+    # IMPORTANTE: converted_sum já foi limitado às folgas disponíveis no período (se período específico)
     saldo_days = credits_sum + days_from_hours - assigned_sum - converted_sum
     
     return {
