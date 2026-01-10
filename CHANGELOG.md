@@ -1,3 +1,39 @@
+## [2.3.37] - 2025-01-15
+
+### ✨ Melhorias na Interface
+
+#### Melhorias na Exibição de Erros do Deploy Agent
+- **Modal Maior**: Aumento do tamanho do modal de `500px` para `800px` (max-width) para melhor legibilidade
+- **Área de Scroll Melhorada**: Área de exibição de erros com `max-height: 400px` e scroll automático
+- **Texto Completo**: Removido truncamento de texto (`substring`), agora exibe mensagem completa
+- **Botão de Download**: Adicionado botão "Download da Mensagem Completa (.txt)" em todos os erros
+  - Arquivo `.txt` contém: mensagem completa, data/hora, sugestões, detalhes técnicos, referências aos guias
+  - Nome do arquivo: `erro-deploy-agent-YYYY-MM-DDTHH-MM-SS.txt`
+- **Formatação Aprimorada**: 
+  - Seções destacadas com cores e bordas para melhor identificação visual
+  - Sugestões com borda amarela e fundo claro
+  - Detalhes técnicos em fonte monoespaçada
+  - Documentação com borda azul
+- **Segurança**: Função `escapeHtml()` adicionada para prevenir XSS
+- **Responsividade**: Modal adaptável para telas menores com layout flexível
+- **Arquivos Modificados**:
+  - `templates/db.html`: Melhorias no modal e adição de funções auxiliares `escapeHtml()` e `downloadErrorText()`
+  - CSS do modal atualizado para melhor legibilidade
+
+#### Guia Rápido de Instalação do Deploy Agent
+- **Novo Arquivo**: `DEPLOY_AGENT_QUICKSTART.md` criado com guia de instalação rápida (5 minutos)
+- **Mensagens de Erro Aprimoradas**: Referências diretas aos guias QUICKSTART e INSTALL nas mensagens de erro
+- **Campos Adicionais na Resposta JSON**: `quickstart_guide` e `full_guide` adicionados para facilitar acesso à documentação
+
+### 🔧 Correções
+
+#### Melhorias nas Mensagens de Erro do Deploy Agent
+- **Verificação de Health Check**: Adicionada verificação de saúde do Deploy Agent antes de tentar fazer deploy
+- **Mensagens Mais Claras**: Instruções passo a passo mais detalhadas e acionáveis
+- **Comandos de Diagnóstico**: Adicionados comandos úteis para diagnóstico nas mensagens de erro
+
+---
+
 ## [2.3.36] - 2025-01-15
 
 ### 🔧 Correções Críticas
