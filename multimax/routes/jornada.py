@@ -227,10 +227,24 @@ def _calculate_collaborator_balance(collaborator_id, date_start=None, date_end=N
     # Aplicar regra: Conversões só reduzem saldo se houver folgas suficientes no período para pagar
     if date_start and date_end:
         # Estamos calculando um período específico (ex: mês em aberto)
-        # Conversões que excedem folgas do período são pagamentos de períodos anteriores
-        # Elas não devem reduzir o saldo do período atual (análogo a fatura de cartão)
-        # Limitar conversões às folgas disponíveis no período
-        converted_sum = min(converted_sum_raw, max(0, folgas_disponiveis_periodo))
+        # REGRA CRÍTICA: Se conversões > folgas do período, então são pagamentos de períodos anteriores
+        # Elas NÃO devem reduzir o saldo do período atual (análogo a fatura de cartão)
+        # 
+        # Exemplo:
+        # - Período atual: 1 folga nova
+        # - Conversões no período: 6 (pagando folgas do mês anterior)
+        # - converted_sum deve ser 0 (são pagamentos de períodos anteriores, não impactam período atual)
+        #
+        # Se conversões <= folgas do período, então são pagamentos de folgas do período atual
+        # e devem ser consideradas normalmente
+        
+        if converted_sum_raw > folgas_disponiveis_periodo:
+            # Conversões excedem folgas do período = são pagamentos de períodos anteriores
+            # NÃO devem impactar o saldo do período atual
+            converted_sum = 0
+        else:
+            # Conversões estão dentro do limite de folgas do período = são pagamentos do período atual
+            converted_sum = converted_sum_raw
     else:
         # Cálculo total (sem período específico, ex: situação final)
         # Considerar todas as conversões, pois não há restrição de período
