@@ -1944,6 +1944,48 @@ def git_update():
         import requests
         from requests.exceptions import RequestException, Timeout, ConnectionError as RequestsConnectionError
         
+        # Verificar saúde do Deploy Agent ANTES de tentar fazer deploy
+        # Isso evita erros desnecessários e fornece feedback mais claro
+        try:
+            health_url = f'{deploy_agent_url}/health'
+            health_response = requests.get(health_url, timeout=5)
+            if health_response.status_code == 200:
+                health_data = health_response.json()
+                current_app.logger.info(f'Deploy Agent está saudável: {health_data.get("service", "unknown")}')
+            else:
+                current_app.logger.warning(f'Deploy Agent health check retornou status {health_response.status_code}')
+        except RequestsConnectionError:
+            # Se não conseguir conectar ao health check, o serviço não está rodando
+            # Não faz sentido tentar o deploy, então retorna erro imediatamente
+            error_msg = 'Deploy Agent não está respondendo. O serviço não está rodando ou não está acessível.'
+            current_app.logger.error(error_msg)
+            _log_git_update_error(error_msg, current_user.username)
+            return jsonify({
+                'ok': False,
+                'error': error_msg,
+                'suggestion': (
+                    '⚠️ O Deploy Agent precisa ser instalado e iniciado no servidor (HOST) antes de usar esta funcionalidade.\n\n'
+                    '📋 PASSOS PARA INSTALAR O DEPLOY AGENT:\n\n'
+                    '1. Acesse o servidor via SSH\n'
+                    '2. Copie o arquivo deploy_agent.py para /opt/multimax/\n'
+                    '3. Instale dependências: pip3 install flask\n'
+                    '4. Crie o serviço systemd em /etc/systemd/system/deploy-agent.service\n'
+                    '5. Execute: sudo systemctl daemon-reload\n'
+                    '6. Execute: sudo systemctl enable deploy-agent\n'
+                    '7. Execute: sudo systemctl start deploy-agent\n\n'
+                    '📚 Para instruções detalhadas, consulte: DEPLOY_AGENT_INSTALL.md\n\n'
+                    '🔍 COMANDOS ÚTEIS PARA DIAGNÓSTICO:\n'
+                    '  - Verificar status: sudo systemctl status deploy-agent\n'
+                    '  - Verificar porta: netstat -tlnp | grep 9000\n'
+                    '  - Ver logs: sudo journalctl -u deploy-agent -f\n'
+                    '  - Testar health: curl http://127.0.0.1:9000/health'
+                ),
+                'deploy_agent_url': deploy_agent_url,
+                'install_guide': 'Consulte DEPLOY_AGENT_INSTALL.md para instruções completas de instalação'
+            }), 503
+        except Exception as health_error:
+            current_app.logger.warning(f'Erro ao verificar saúde do Deploy Agent: {health_error}. Prosseguindo com deploy...')
+        
         # Preparar headers
         headers = {
             'Content-Type': 'application/json'
@@ -2065,17 +2107,31 @@ def git_update():
         error_msg = f'Não foi possível conectar ao Deploy Agent: {str(e)}'
         current_app.logger.error(error_msg)
         _log_git_update_error(error_msg, current_user.username)
+        
+        suggestion_text = (
+            '⚠️ O Deploy Agent não está respondendo. O serviço não está rodando ou não está acessível.\n\n'
+            '📋 INSTALAÇÃO RÁPIDA (se ainda não instalado):\n\n'
+            '1. Acesse o servidor via SSH\n'
+            '2. Copie deploy_agent.py para /opt/multimax/\n'
+            '3. Instale Flask: pip3 install flask\n'
+            '4. Crie serviço systemd: /etc/systemd/system/deploy-agent.service\n'
+            '5. Execute: sudo systemctl daemon-reload && sudo systemctl enable deploy-agent && sudo systemctl start deploy-agent\n\n'
+            '📚 Guia completo: DEPLOY_AGENT_QUICKSTART.md ou DEPLOY_AGENT_INSTALL.md\n\n'
+            '🔍 COMANDOS DE DIAGNÓSTICO:\n'
+            '  • Status: sudo systemctl status deploy-agent\n'
+            '  • Porta: netstat -tlnp | grep 9000\n'
+            '  • Logs: sudo journalctl -u deploy-agent -f\n'
+            '  • Health: curl http://127.0.0.1:9000/health\n\n'
+            '💡 IMPORTANTE: O Deploy Agent roda no HOST (fora do Docker), não dentro do container.'
+        )
+        
         return jsonify({
             'ok': False,
             'error': error_msg,
-            'suggestion': (
-                'O Deploy Agent não está respondendo. Verifique:\n'
-                '1) O Deploy Agent está rodando? (sudo systemctl status deploy-agent)\n'
-                '2) O Deploy Agent está escutando na porta 9000? (netstat -tlnp | grep 9000)\n'
-                '3) A URL está correta? (DEPLOY_AGENT_URL=http://127.0.0.1:9000)\n'
-                '4) Verifique os logs do Deploy Agent: sudo journalctl -u deploy-agent -f'
-            ),
-            'deploy_agent_url': deploy_agent_url
+            'suggestion': suggestion_text,
+            'deploy_agent_url': deploy_agent_url,
+            'quickstart_guide': 'Consulte DEPLOY_AGENT_QUICKSTART.md para instalação rápida (5 minutos)',
+            'full_guide': 'Consulte DEPLOY_AGENT_INSTALL.md para instruções detalhadas'
         }), 503
     
     except RequestException as e:
