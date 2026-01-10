@@ -1823,58 +1823,45 @@ def git_status():
         # IMPORTANTE: Usar git describe para obter a tag mais próxima do commit atual
         # Isso garante que mesmo se a tag não foi baixada antes, ela será encontrada agora
         try:
-            # Primeiro, tentar obter tag exata do commit atual (melhor cenário)
-            result = subprocess.run(
-                ['git', 'describe', '--tags', '--exact-match', 'HEAD', '2>/dev/null'],
-                cwd=repo_dir,
-                capture_output=True,
-                text=True,
-                timeout=5,
-                shell=False  # Não usar shell para evitar problemas de segurança
-            )
-            if result.returncode == 0 and result.stdout.strip():
-                current_version = result.stdout.strip().lstrip('vV')  # Remover 'v' ou 'V' se houver
-                current_app.logger.info(f'Versão atualizada (tag exata do commit): {current_version}')
-            else:
-                # Se não há tag exata, usar git describe para obter a tag mais próxima ANTES ou NO commit atual
-                # git describe retorna a tag mais recente que existe ANTES ou NO commit atual
-                result2 = subprocess.run(
-                    ['git', 'describe', '--tags', '--abbrev=0', 'HEAD'],
+            if current_commit:
+                # Estratégia 1: Tentar obter tag exata do commit atual (melhor cenário)
+                result = subprocess.run(
+                    ['git', 'describe', '--tags', '--exact-match', 'HEAD'],
                     cwd=repo_dir,
                     capture_output=True,
                     text=True,
                     timeout=5
                 )
-                if result2.returncode == 0 and result2.stdout.strip():
-                    current_version = result2.stdout.strip().lstrip('vV')
-                    current_app.logger.info(f'Versão atualizada (tag mais próxima via describe): {current_version}')
+                if result.returncode == 0 and result.stdout.strip():
+                    current_version = result.stdout.strip().lstrip('vV')  # Remover 'v' ou 'V' se houver
+                    current_app.logger.info(f'Versão atualizada (tag exata do commit): {current_version}')
                 else:
-                    # Se git describe falhou, pode ser que não haja tags ou o commit está antes de todas as tags
-                    # Nesse caso, listar todas as tags e pegar a mais recente que não seja posterior ao commit atual
-                    result3 = subprocess.run(
-                        ['git', 'tag', '--sort=-version:refname', '--list', 'v*'],
+                    # Estratégia 2: Verificar todas as tags e encontrar qual corresponde ao commit atual
+                    # Listar todas as tags e verificar qual tem o mesmo commit que o atual
+                    result_tags = subprocess.run(
+                        ['git', 'tag', '--list', 'v*'],
                         cwd=repo_dir,
                         capture_output=True,
                         text=True,
                         timeout=5
                     )
-                    if result3.returncode == 0 and result3.stdout.strip():
-                        all_tags = [tag.strip() for tag in result3.stdout.strip().split('\n') if tag.strip()]
-                        if all_tags and current_commit:
-                            # Verificar qual tag corresponde ao commit atual ou está mais próxima
-                            # Ordenar tags numericamente
+                    if result_tags.returncode == 0 and result_tags.stdout.strip():
+                        all_tags = [tag.strip() for tag in result_tags.stdout.strip().split('\n') if tag.strip()]
+                        if all_tags:
                             import re
                             def version_key(tag):
                                 # Extrair números da tag (ex: v2.3.37 -> (2, 3, 37))
                                 parts = re.findall(r'\d+', tag.lstrip('vV'))
                                 return tuple(int(p) for p in parts) if parts else (0,)
                             
-                            # Ordenar tags por versão (mais recente primeiro)
+                            # Ordenar tags por versão (mais recente primeiro) para verificar da mais nova para a mais antiga
                             all_tags_sorted = sorted(all_tags, key=version_key, reverse=True)
                             
-                            # Tentar encontrar a tag que corresponde ao commit atual
+                            # Verificar se alguma tag corresponde ao commit atual
+                            tag_found = False
                             for tag in all_tags_sorted:
                                 try:
+                                    # Verificar o commit da tag (usar rev-parse diretamente na tag)
                                     tag_commit_result = subprocess.run(
                                         ['git', 'rev-parse', tag],
                                         cwd=repo_dir,
@@ -1887,26 +1874,51 @@ def git_status():
                                         # Se o commit da tag é igual ao commit atual, usar essa tag
                                         if tag_commit == current_commit:
                                             current_version = tag.lstrip('vV')
-                                            current_app.logger.info(f'Versão atualizada (tag do commit atual): {current_version}')
+                                            current_app.logger.info(f'Versão atualizada (tag exata encontrada pelo commit): {current_version} (tag: {tag}, commit: {current_commit[:7]})')
+                                            tag_found = True
                                             break
-                                except Exception:
+                                except Exception as tag_err:
+                                    current_app.logger.debug(f'Erro ao verificar commit da tag {tag}: {tag_err}')
                                     continue
                             
-                            # Se não encontrou tag exata, usar a tag mais recente disponível
-                            if not current_version and all_tags_sorted:
-                                current_version = all_tags_sorted[0].lstrip('vV')
-                                current_app.logger.info(f'Versão atualizada (tag mais recente disponível): {current_version}')
-                        elif all_tags:
-                            # Se não temos commit atual, usar a tag mais recente
-                            import re
-                            def version_key(tag):
-                                parts = re.findall(r'\d+', tag.lstrip('vV'))
-                                return tuple(int(p) for p in parts) if parts else (0,)
-                            all_tags_sorted = sorted(all_tags, key=version_key, reverse=True)
-                            current_version = all_tags_sorted[0].lstrip('vV')
-                            current_app.logger.info(f'Versão atualizada (tag mais recente - sem commit atual): {current_version}')
-            except Exception as e:
-                current_app.logger.warning(f'Erro ao atualizar versão após fetch: {e}', exc_info=True)
+                            # Se não encontrou tag exata, usar git describe para pegar a tag mais próxima ANTES do commit atual
+                            if not tag_found:
+                                result_describe = subprocess.run(
+                                    ['git', 'describe', '--tags', '--abbrev=0', 'HEAD'],
+                                    cwd=repo_dir,
+                                    capture_output=True,
+                                    text=True,
+                                    timeout=5
+                                )
+                                if result_describe.returncode == 0 and result_describe.stdout.strip():
+                                    describe_output = result_describe.stdout.strip()
+                                    current_version = describe_output.lstrip('vV')
+                                    current_app.logger.info(f'Versão atualizada (tag mais próxima via describe): {current_version}')
+                                else:
+                                    # Último fallback: usar a tag mais recente disponível (mas avisar que pode não ser exata)
+                                    current_version = all_tags_sorted[0].lstrip('vV')
+                                    current_app.logger.warning(f'Versão atualizada (tag mais recente - fallback, pode não ser exata): {current_version}')
+            else:
+                # Se não temos commit atual, usar a tag mais recente disponível
+                result_tags = subprocess.run(
+                    ['git', 'tag', '--sort=-version:refname', '--list', 'v*'],
+                    cwd=repo_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if result_tags.returncode == 0 and result_tags.stdout.strip():
+                    all_tags = [tag.strip() for tag in result_tags.stdout.strip().split('\n') if tag.strip()]
+                    if all_tags:
+                        import re
+                        def version_key(tag):
+                            parts = re.findall(r'\d+', tag.lstrip('vV'))
+                            return tuple(int(p) for p in parts) if parts else (0,)
+                        all_tags_sorted = sorted(all_tags, key=version_key, reverse=True)
+                        current_version = all_tags_sorted[0].lstrip('vV')
+                        current_app.logger.info(f'Versão obtida (tag mais recente - sem commit atual): {current_version}')
+        except Exception as e:
+            current_app.logger.warning(f'Erro ao atualizar versão após fetch: {e}', exc_info=True)
         
         # Se ainda não temos versão, tentar fallback do __init__.py
         if not current_version:
