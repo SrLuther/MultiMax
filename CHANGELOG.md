@@ -1,3 +1,55 @@
+## [2.3.38] - 2025-01-15
+
+### 🔄 Refatoração Completa do Sistema de Jornada
+
+#### Simplificação Radical do Módulo Jornada
+- **Redução de Complexidade**: Arquivo `multimax/routes/jornada.py` reduzido de ~2241 linhas para ~433 linhas (80% de redução)
+- **Página Única Consolidada**: Todas as funcionalidades agora em uma única página `/jornada/` em vez de múltiplas subpáginas confusas
+- **Lógica Simplificada**: Função `_calculate_simple_balance()` com lógica direta e fácil de entender
+  - Soma todas as horas (positivas e negativas)
+  - Converte horas >= 8h em dias (8h = 1 dia)
+  - Folgas adicionadas = folgas manuais (excluindo as que vêm de horas)
+  - Folgas disponíveis = folgas manuais + dias convertidos das horas
+  - Conversões só reduzem saldo se não excederem folgas disponíveis
+  - Saldo = folgas disponíveis - folgas usadas - conversões
+
+#### Rotas Simplificadas
+- **Mantidas Apenas Rotas Essenciais** (6 rotas no total):
+  - `/` - Página principal (index) que consolida tudo
+  - `/novo` - Adicionar novo registro
+  - `/editar/<id>` - Editar registro existente
+  - `/excluir/<id>` - Excluir registro
+  - `/converter_horas` - Converter horas residuais em dias de folga
+  - `/export` - Exportar registros para CSV
+- **Rotas Complexas Removidas**: `em_aberto`, `fechado_revisao`, `arquivados`, `situacao_final`, `unificado` - todas consolidadas na página principal
+
+#### Template Único Simplificado
+- **Nova Interface**: Template `templates/jornada/index.html` completamente redesenhado
+  - Filtros básicos (colaborador, tipo, datas)
+  - Tabela de resumo geral com todos os colaboradores
+  - Detalhes do colaborador selecionado (se houver)
+  - Tabela de registros simples e clara
+  - Botões para ações (adicionar, editar, excluir, converter horas, exportar)
+- **Removido**: Cards de valores complexos, seções de férias/atestados, arquivamento, etc.
+
+#### Templates Corrigidos
+- **novo.html**: Corrigidas referências para `jornada.index` em vez de rotas antigas
+- **editar.html**: Simplificado e corrigido, removidas dependências de variáveis complexas que não existem mais
+
+#### Impacto
+- **Sistema Mais Utilizável**: Interface única e clara em vez de múltiplas páginas confusas
+- **Lógica Mais Direta**: Cálculos simples e transparentes, sem complexidade desnecessária
+- **Manutenibilidade**: Código 80% menor, muito mais fácil de entender e manter
+- **Performance**: Menos consultas ao banco, menos processamento, carregamento mais rápido
+
+#### Arquivos Modificados
+- `multimax/routes/jornada.py`: Refatoração completa (2241 → 433 linhas)
+- `templates/jornada/index.html`: Template único simplificado
+- `templates/jornada/novo.html`: Corrigidas referências
+- `templates/jornada/editar.html`: Simplificado e corrigido
+
+---
+
 ## [2.3.37] - 2025-01-15
 
 ### ✨ Melhorias na Interface

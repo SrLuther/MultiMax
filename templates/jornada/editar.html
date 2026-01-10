@@ -18,28 +18,13 @@
                 </h1>
                 <p class="jornada-subtitle">Atualize as informações do registro</p>
             </div>
-            <a href="{{ url_for('jornada.em_aberto', collaborator_id=record.collaborator_id) }}" class="btn-jornada btn-jornada-secondary">
+            <a href="{{ url_for('jornada.index', collaborator_id=record.collaborator_id) }}" class="btn-jornada btn-jornada-secondary">
                 <i class="bi bi-arrow-left"></i>
                 <span>Voltar</span>
             </a>
         </div>
     </div>
 
-    {% if not can_edit %}
-    <div class="jornada-card" style="background: rgba(255, 107, 107, 0.1); border-color: rgba(255, 107, 107, 0.3);">
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <i class="bi bi-exclamation-triangle" style="font-size: 1.5rem; color: #fca5a5;"></i>
-            <div>
-                <strong style="color: var(--jornada-text);">Edição Bloqueada:</strong> O mês {{ month_status.month_year_str }} está {{ status_display }}. 
-                {% if current_user.nivel == 'admin' %}
-                Apenas DEV pode editar meses arquivados.
-                {% elif current_user.nivel == 'operador' %}
-                Operadores não podem editar registros.
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    {% endif %}
 
     <div class="jornada-card">
         <form method="POST">
@@ -57,78 +42,96 @@
                         <i class="bi bi-calendar3"></i>
                         Data <span style="color: #ef4444;">*</span>
                     </label>
-                    <input type="date" name="date" class="jornada-form-input" required value="{{ record.date.strftime('%Y-%m-%d') }}" {% if not can_edit %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
+                    <input type="date" name="date" class="jornada-form-input" required value="{{ record.date.strftime('%Y-%m-%d') }}">
                 </div>
                 <div class="jornada-form-group">
                     <label class="jornada-form-label">
                         <i class="bi bi-tag"></i>
-                        Tipo
+                        Tipo <span style="color: #ef4444;">*</span>
                     </label>
-                    <input type="text" class="jornada-form-input" value="{{ record.record_type }}" disabled style="opacity: 0.6; cursor: not-allowed;">
+                    <select name="record_type" class="jornada-form-select" required>
+                        <option value="horas" {% if record.record_type == 'horas' %}selected{% endif %}>Horas</option>
+                        <option value="folga_adicional" {% if record.record_type == 'folga_adicional' %}selected{% endif %}>Folga Adicional</option>
+                        <option value="folga_usada" {% if record.record_type == 'folga_usada' %}selected{% endif %}>Folga Usada</option>
+                        <option value="conversao" {% if record.record_type == 'conversao' %}selected{% endif %}>Conversão</option>
+                    </select>
                 </div>
                 <div class="jornada-form-group">
                     <label class="jornada-form-label">
                         <i class="bi bi-gear"></i>
                         Origem
                     </label>
-                    <input type="text" class="jornada-form-input" value="{{ record.origin or '-' }}" disabled style="opacity: 0.6; cursor: not-allowed;">
+                    <select name="origin" class="jornada-form-select">
+                        <option value="manual" {% if record.origin == 'manual' %}selected{% endif %}>Manual</option>
+                        <option value="sistema" {% if record.origin == 'sistema' %}selected{% endif %}>Sistema</option>
+                        <option value="excel" {% if record.origin == 'excel' %}selected{% endif %}>Excel</option>
+                    </select>
                 </div>
-                {% if record.record_type == 'horas' %}
-                <div class="jornada-form-group">
+                <div class="jornada-form-group" id="hoursField" style="display: {% if record.record_type == 'horas' %}block{% else %}none{% endif %};">
                     <label class="jornada-form-label">
                         <i class="bi bi-clock"></i>
-                        Horas
+                        Horas <span style="color: #ef4444;">*</span>
                     </label>
-                    <input type="number" name="hours" class="jornada-form-input" step="0.01" value="{{ record.hours or 0 }}" {% if not can_edit %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
+                    <input type="number" name="hours" class="jornada-form-input" step="0.01" value="{{ record.hours or 0 }}">
                 </div>
-                {% elif record.record_type in ('folga_adicional', 'folga_usada') %}
-                <div class="jornada-form-group">
+                <div class="jornada-form-group" id="daysField" style="display: {% if record.record_type in ('folga_adicional', 'folga_usada', 'conversao') %}block{% else %}none{% endif %};">
                     <label class="jornada-form-label">
                         <i class="bi bi-calendar-check"></i>
-                        Dias
+                        Dias <span style="color: #ef4444;">*</span>
                     </label>
-                    <input type="number" name="days" class="jornada-form-input" value="{{ record.days or 1 }}" {% if not can_edit %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
+                    <input type="number" name="days" class="jornada-form-input" min="1" value="{{ record.days or 1 }}">
                 </div>
-                {% elif record.record_type == 'conversao' %}
-                <div class="jornada-form-group">
-                    <label class="jornada-form-label">
-                        <i class="bi bi-calendar-check"></i>
-                        Dias
-                    </label>
-                    <input type="number" name="days" class="jornada-form-input" value="{{ record.days or 0 }}" {% if not can_edit %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
-                </div>
-                <div class="jornada-form-group">
+                <div class="jornada-form-group" id="amountField" style="display: {% if record.record_type == 'conversao' %}block{% else %}none{% endif %};">
                     <label class="jornada-form-label">
                         <i class="bi bi-cash-coin"></i>
-                        Valor Pago (R$)
+                        Valor Pago (R$) <span style="color: #ef4444;">*</span>
                     </label>
-                    <input type="number" name="amount_paid" class="jornada-form-input" step="0.01" value="{{ record.amount_paid or 0 }}" {% if not can_edit %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
+                    <input type="number" name="amount" class="jornada-form-input" step="0.01" min="0" value="{{ record.amount_paid or 0 }}">
                 </div>
-                {% endif %}
                 <div class="jornada-form-group" style="grid-column: 1 / -1;">
                     <label class="jornada-form-label">
                         <i class="bi bi-card-text"></i>
                         Observações
                     </label>
-                    <textarea name="notes" class="jornada-form-input" rows="3" style="resize: vertical;" {% if not can_edit %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>{{ record.notes or '' }}</textarea>
+                    <textarea name="notes" class="jornada-form-input" rows="3" style="resize: vertical;">{{ record.notes or '' }}</textarea>
                 </div>
+                <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const tipoSelect = document.querySelector('select[name="record_type"]');
+                    if (tipoSelect) {
+                        tipoSelect.addEventListener('change', updateFormFields);
+                    }
+                });
+                function updateFormFields() {
+                    const tipo = document.querySelector('select[name="record_type"]').value;
+                    const hoursField = document.getElementById('hoursField');
+                    const daysField = document.getElementById('daysField');
+                    const amountField = document.getElementById('amountField');
+                    
+                    hoursField.style.display = 'none';
+                    daysField.style.display = 'none';
+                    amountField.style.display = 'none';
+                    
+                    if (tipo === 'horas') {
+                        hoursField.style.display = 'block';
+                    } else if (tipo === 'folga_adicional' || tipo === 'folga_usada') {
+                        daysField.style.display = 'block';
+                    } else if (tipo === 'conversao') {
+                        daysField.style.display = 'block';
+                        amountField.style.display = 'block';
+                    }
+                }
+                </script>
             </div>
             <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--jornada-border);">
-                <a href="{{ url_for('jornada.em_aberto', collaborator_id=record.collaborator_id) }}" class="btn-jornada btn-jornada-secondary">
+                <a href="{{ url_for('jornada.index', collaborator_id=record.collaborator_id) }}" class="btn-jornada btn-jornada-secondary">
                     <i class="bi bi-x-circle"></i>
                     Cancelar
                 </a>
-                {% if can_edit %}
                 <button type="submit" class="btn-jornada btn-jornada-primary">
                     <i class="bi bi-check-lg"></i>
                     Salvar Alterações
                 </button>
-                {% else %}
-                <button type="button" class="btn-jornada btn-jornada-secondary" disabled style="opacity: 0.5; cursor: not-allowed;">
-                    <i class="bi bi-lock"></i>
-                    Edição Bloqueada
-                </button>
-                {% endif %}
             </div>
         </form>
     </div>
