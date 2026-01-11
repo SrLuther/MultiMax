@@ -153,6 +153,7 @@ def create_app():
     except Exception as e:
         app.logger.warning(f'Blueprint jornada_pdf não pode ser importado (será desabilitado): {e}')
         jornada_pdf_bp = None
+    from .routes.ciclos import bp as ciclos_bp
     try:
         from .routes.temporarios import bp as temporarios_bp
     except Exception:
@@ -186,6 +187,7 @@ def create_app():
     app.register_blueprint(jornada_bp)
     if jornada_pdf_bp:
         app.register_blueprint(jornada_pdf_bp)
+    app.register_blueprint(ciclos_bp)
     if temporarios_bp:
         app.register_blueprint(temporarios_bp)
     if notificacoes_bp:
