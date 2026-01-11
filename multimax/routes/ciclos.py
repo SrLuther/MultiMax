@@ -961,11 +961,8 @@ def pdf_geral():
         for colab in colaboradores:
             balance = _calculate_collaborator_balance(colab.id)
             
-            # Buscar registros ativos
-            registros = Ciclo.query.filter(
-                Ciclo.collaborator_id == colab.id,
-                Ciclo.status_ciclo == 'ativo'
-            ).all()
+            # Buscar registros ativos usando helper
+            registros = _get_active_ciclos_query(colab.id).all()
             
             if len(registros) > 0:  # Só incluir se tiver registros
                 colaboradores_resumo.append({
