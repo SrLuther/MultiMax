@@ -365,9 +365,8 @@ if __name__ == '__main__':
         logger.warning('O serviço iniciará, mas operações Git falharão')
     
     # Iniciar servidor Flask
-    # IMPORTANTE: Apenas localhost, nunca expor externamente
     app.run(
-        host='127.0.0.1',  # Apenas localhost
+        host='0.0.0.0',  # Aceitar conexões externas
         port=DEPLOY_AGENT_PORT,
         debug=False,  # Nunca em produção
         threaded=True
