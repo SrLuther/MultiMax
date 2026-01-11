@@ -1,3 +1,11 @@
+## [2.5.0] - 2025-01-04
+
+### 🔧 Atualização
+
+- Versão 2.5.0
+
+---
+
 ## [2.4.0] - 2026-01-10
 
 ### 🎉 Nova Funcionalidade: Sistema de Ciclos
