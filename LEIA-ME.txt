@@ -1,6 +1,6 @@
 ==============================================
 MULTIMAX - Sistema de Gestão Integrada
-Versão 2.5.2 - Janeiro 2025
+Versão 2.5.3 - Janeiro 2025
 ==============================================
 
 DESCRIÇÃO:
