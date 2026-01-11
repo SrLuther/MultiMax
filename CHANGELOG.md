@@ -1,3 +1,19 @@
+## [2.5.2] - 2025-01-11
+
+### 🎨 Melhorias nos PDFs de Ciclos
+
+- Adicionada logo no cabeçalho dos PDFs
+- Resumo movido para antes do histórico de lançamentos
+- Adicionada informação "Ciclo X | Mês" no cabeçalho
+- Nome da empresa atualizado para "MultiMax Gestão"
+- Removida logo do Thedo do rodapé
+
+### 🧹 Limpeza
+
+- Removido script `create_deploy_zip.py` (não utilizado)
+
+---
+
 ## [2.5.1] - 2025-01-04
 
 ### 🔧 Atualização

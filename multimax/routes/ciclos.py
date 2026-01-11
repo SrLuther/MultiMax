@@ -90,7 +90,7 @@ def _get_nome_empresa():
             return setting.value
     except Exception:
         pass
-    return 'Thedo Max Supermercado'  # Valor padrão
+    return 'MultiMax Gestão'  # Valor padrão
 
 def _validate_hours_format(value_str, allow_negative=False):
     """
@@ -204,7 +204,7 @@ def index():
             'ciclos/index.html',
             active_page='ciclos',
             colaboradores_stats=[],
-            nome_empresa='Thedo Max Supermercado',
+            nome_empresa='MultiMax Gestão',
             valor_dia=65.0,
             total_horas_geral=0.0,
             total_dias_geral=0,
@@ -904,6 +904,9 @@ def pdf_individual(collaborator_id):
         return redirect(url_for('ciclos.index'))
     
     try:
+        import sys
+        base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        
         collaborator = Collaborator.query.get_or_404(collaborator_id)
         
         # Buscar todos os registros ativos do colaborador
@@ -918,6 +921,38 @@ def pdf_individual(collaborator_id):
         nome_empresa = _get_nome_empresa()
         valor_dia = _get_valor_dia()
         
+        # Buscar primeiro ciclo_id disponível (próximo ciclo ou 1 se não houver fechamentos)
+        ultimo_fechamento = CicloFechamento.query.order_by(CicloFechamento.ciclo_id.desc()).first()
+        ciclo_id = (ultimo_fechamento.ciclo_id + 1) if ultimo_fechamento else 1
+        
+        # Buscar primeira data de lançamento dos registros ativos para determinar mês de início
+        if registros:
+            primeira_data = min(reg.data_lancamento for reg in registros)
+            mes_inicio = primeira_data.strftime('%B')
+            # Converter para português
+            meses_pt = {
+                'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março',
+                'April': 'Abril', 'May': 'Maio', 'June': 'Junho',
+                'July': 'Julho', 'August': 'Agosto', 'September': 'Setembro',
+                'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'
+            }
+            mes_inicio = meses_pt.get(mes_inicio, mes_inicio)
+        else:
+            mes_inicio = datetime.now(ZoneInfo('America/Sao_Paulo')).strftime('%B')
+            meses_pt = {
+                'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março',
+                'April': 'Abril', 'May': 'Maio', 'June': 'Junho',
+                'July': 'Julho', 'August': 'Agosto', 'September': 'Setembro',
+                'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'
+            }
+            mes_inicio = meses_pt.get(mes_inicio, mes_inicio)
+        
+        # Caminhos absolutos das logos
+        logo_header_path = os.path.join(base_dir, 'static', 'icons', 'logo black.png')
+        # Converter para caminho absoluto e formato de arquivo para WeasyPrint
+        logo_header = os.path.abspath(logo_header_path) if os.path.exists(logo_header_path) else None
+        logo_footer = None  # Removido por questões judiciais
+        
         html = render_template(
             'ciclos/pdf_individual.html',
             collaborator=collaborator,
@@ -925,6 +960,10 @@ def pdf_individual(collaborator_id):
             balance=balance,
             nome_empresa=nome_empresa,
             valor_dia=valor_dia,
+            ciclo_id=ciclo_id,
+            mes_inicio=mes_inicio,
+            logo_header=logo_header,
+            logo_footer=logo_footer,
             data_geracao=datetime.now(ZoneInfo('America/Sao_Paulo'))
         )
         
@@ -953,6 +992,9 @@ def pdf_geral():
         return redirect(url_for('ciclos.index'))
     
     try:
+        import sys
+        base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        
         colaboradores = _get_all_collaborators()
         colaboradores_resumo = []
         
@@ -1009,6 +1051,12 @@ def pdf_geral():
         # Configurações
         nome_empresa = _get_nome_empresa()
         
+        # Caminhos absolutos das logos
+        logo_header_path = os.path.join(base_dir, 'static', 'icons', 'logo black.png')
+        # Converter para caminho absoluto e formato de arquivo para WeasyPrint
+        logo_header = os.path.abspath(logo_header_path) if os.path.exists(logo_header_path) else None
+        logo_footer = None  # Removido por questões judiciais
+        
         html = render_template(
             'ciclos/pdf_geral.html',
             colaboradores_resumo=colaboradores_resumo,
@@ -1020,6 +1068,8 @@ def pdf_geral():
             valor_dia=valor_dia,
             ciclo_id=ciclo_id,
             mes_inicio=mes_inicio,
+            logo_header=logo_header,
+            logo_footer=logo_footer,
             data_geracao=datetime.now(ZoneInfo('America/Sao_Paulo'))
         )
         

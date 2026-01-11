@@ -26,6 +26,10 @@
             border-bottom: 2px solid #333;
             padding-bottom: 1rem;
         }
+        .header-logo {
+            max-height: 60px;
+            margin-bottom: 0.5rem;
+        }
         .header h1 {
             margin: 0;
             font-size: 24px;
@@ -34,6 +38,13 @@
             margin: 0.5rem 0 0 0;
             font-size: 18px;
             color: #666;
+        }
+        .ciclo-info {
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 1rem 0;
+            color: #1a73e8;
         }
         .info-section {
             margin-bottom: 1.5rem;
@@ -80,6 +91,10 @@
             border-top: 1px solid #ccc;
             padding-top: 1rem;
         }
+        .footer-logo {
+            max-height: 40px;
+            margin-top: 0.5rem;
+        }
         .footer-url {
             font-weight: bold;
             color: #1a73e8;
@@ -88,14 +103,39 @@
 </head>
 <body>
     <div class="header">
+        {% if logo_header %}
+        <img src="{{ logo_header }}" alt="Logo" class="header-logo">
+        {% endif %}
         <h1>{{ nome_empresa }}</h1>
         <h2>Ciclo Individual - {{ collaborator.name }}</h2>
+        {% if ciclo_id and mes_inicio %}
+        <div class="ciclo-info">Ciclo {{ ciclo_id }} | {{ mes_inicio }}</div>
+        {% endif %}
     </div>
 
     <div class="info-section">
         <h3>Informações do Colaborador</h3>
         <p><strong>Nome:</strong> {{ collaborator.name }}</p>
         <p><strong>Data de Geração:</strong> {{ data_geracao.strftime('%d/%m/%Y %H:%M') }}</p>
+    </div>
+
+    <div class="resumo">
+        <h3>Resumo</h3>
+        <div class="resumo-item">
+            <span class="resumo-label">Horas Totais:</span> {{ "%.1f"|format(balance.total_horas) }}h
+        </div>
+        <div class="resumo-item">
+            <span class="resumo-label">Dias Completos:</span> {{ balance.dias_completos }} dias
+        </div>
+        <div class="resumo-item">
+            <span class="resumo-label">Horas Restantes:</span> {{ "%.1f"|format(balance.horas_restantes) }}h
+        </div>
+        <div class="resumo-item">
+            <span class="resumo-label">Valor Aproximado:</span> R$ {{ "%.2f"|format(balance.valor_aproximado) }}
+        </div>
+        <div class="resumo-item">
+            <span class="resumo-label">Valor por Dia:</span> R$ {{ "%.2f"|format(valor_dia) }}
+        </div>
     </div>
 
     <div class="info-section">
@@ -128,25 +168,6 @@
         {% else %}
         <p>Nenhum registro encontrado.</p>
         {% endif %}
-    </div>
-
-    <div class="resumo">
-        <h3>Resumo</h3>
-        <div class="resumo-item">
-            <span class="resumo-label">Horas Totais:</span> {{ "%.1f"|format(balance.total_horas) }}h
-        </div>
-        <div class="resumo-item">
-            <span class="resumo-label">Dias Completos:</span> {{ balance.dias_completos }} dias
-        </div>
-        <div class="resumo-item">
-            <span class="resumo-label">Horas Restantes:</span> {{ "%.1f"|format(balance.horas_restantes) }}h
-        </div>
-        <div class="resumo-item">
-            <span class="resumo-label">Valor Aproximado:</span> R$ {{ "%.2f"|format(balance.valor_aproximado) }}
-        </div>
-        <div class="resumo-item">
-            <span class="resumo-label">Valor por Dia:</span> R$ {{ "%.2f"|format(valor_dia) }}
-        </div>
     </div>
 
     <div class="footer">
