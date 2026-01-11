@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}Configurações de Ciclos — MultiMax{% endblock %}
+
+{% block content %}
+<div class="config-container">
+    <div class="config-header">
+        <h1 class="config-title">
+            <i class="bi bi-gear"></i>
+            Configurações de Ciclos
+        </h1>
+        <a href="{{ url_for('ciclos.index') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i>
+            Voltar
+        </a>
+    </div>
+
+    <div class="config-card">
+        <form method="POST" action="{{ url_for('ciclos.config') }}">
+            <div class="mb-4">
+                <label class="form-label">
+                    <strong>Nome da Empresa</strong>
+                </label>
+                <input type="text" class="form-control" name="nome_empresa" value="{{ nome_empresa }}" required>
+                <small class="form-text text-muted">Nome que aparecerá nos PDFs gerados</small>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">
+                    <strong>Valor de 1 Dia (8h) em R$</strong>
+                </label>
+                <input type="number" class="form-control" name="valor_dia" value="{{ valor_dia }}" step="0.01" min="0.01" required>
+                <small class="form-text text-muted">Valor usado para calcular conversão de dias completos em R$</small>
+            </div>
+
+            <div class="config-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i>
+                    Salvar Configurações
+                </button>
+                <a href="{{ url_for('ciclos.index') }}" class="btn btn-secondary">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.config-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.config-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.config-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.config-card {
+    background: var(--mm-bg-card);
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.config-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+@media (max-width: 768px) {
+    .config-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .config-actions {
+        flex-direction: column;
+    }
+    
+    .config-actions .btn {
+        width: 100%;
+    }
+}
+</style>
+{% endblock %}

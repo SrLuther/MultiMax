@@ -1,3 +1,31 @@
+## [2.4.0] - 2026-01-10
+
+### 🎉 Nova Funcionalidade: Sistema de Ciclos
+
+#### Sistema de Ciclos Completo
+- **Nova página "Ciclos"**: Substitui visualmente o antigo sistema "Jornada"
+- **Cards de colaboradores**: Exibem total de horas, dias completos, horas restantes e valor aproximado
+- **Lançamento de horas**: Modal para lançar horas com validação de formato (múltiplos de 0.5)
+- **Histórico paginado**: Modal com histórico completo do colaborador (5 linhas por página)
+- **Registro de pagamento**: Modal para fechar ciclo, arquivar e mover horas restantes para próximo ciclo
+- **Geração de PDFs**: PDF individual e PDF geral do ciclo
+- **Integração**: Férias e Atestados Médicos movidos para a página de Ciclos
+
+#### Modelos de Dados
+- **Ciclo**: Novo modelo para armazenar lançamentos de horas
+- **CicloFechamento**: Novo modelo para armazenar fechamentos de ciclos
+- **Campos calculados**: Dias fechados, horas restantes e valor aproximado
+
+#### Permissões
+- **Lançamento de horas**: Apenas para admin ou DEV
+- **Registro de pagamento**: Apenas para admin ou DEV
+
+#### Correções de Lint
+- Correção de tipo para `flash()` com mensagens de erro
+- Correção de importação do WeasyPrint com `type: ignore`
+
+---
+
 ## [2.3.43] - 2025-01-15
 
 ### 🧹 Limpeza: Remoção de Arquivos Obsoletos Vazios

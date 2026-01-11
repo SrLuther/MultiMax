@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Ciclo Geral - {{ nome_empresa }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            line-height: 1.5;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #333;
+            padding-bottom: 1rem;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .header h2 {
+            margin: 0.5rem 0 0 0;
+            font-size: 18px;
+            color: #666;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .total-row {
+            background-color: #e8f4f8;
+            font-weight: bold;
+        }
+        .resumo {
+            background-color: #f9f9f9;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+        .resumo-item {
+            display: inline-block;
+            margin-right: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        .resumo-label {
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+            border-top: 1px solid #ccc;
+            padding-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ nome_empresa }}</h1>
+        <h2>Resumo Geral do Ciclo</h2>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Colaborador</th>
+                <th>Horas Totais</th>
+                <th>Dias Completos</th>
+                <th>Horas Restantes</th>
+                <th>Valor Aproximado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for resumo in colaboradores_resumo %}
+            <tr>
+                <td>{{ resumo.collaborator.name }}</td>
+                <td>{{ "%.1f"|format(resumo.balance.total_horas) }}h</td>
+                <td>{{ resumo.balance.dias_completos }} dias</td>
+                <td>{{ "%.1f"|format(resumo.balance.horas_restantes) }}h</td>
+                <td>R$ {{ "%.2f"|format(resumo.balance.valor_aproximado) }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="total-row">
+                <td><strong>TOTAL</strong></td>
+                <td><strong>{{ "%.1f"|format(total_horas_geral) }}h</strong></td>
+                <td><strong>{{ total_dias_geral }} dias</strong></td>
+                <td><strong>{{ "%.1f"|format(total_horas_restantes_geral) }}h</strong></td>
+                <td><strong>R$ {{ "%.2f"|format(total_valor_geral) }}</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="resumo">
+        <h3>Informações Gerais</h3>
+        <div class="resumo-item">
+            <span class="resumo-label">Total de Colaboradores:</span> {{ colaboradores_resumo|length }}
+        </div>
+        <div class="resumo-item">
+            <span class="resumo-label">Valor por Dia (8h):</span> R$ {{ "%.2f"|format(valor_dia) }}
+        </div>
+        <div class="resumo-item">
+            <span class="resumo-label">Total de Horas:</span> {{ "%.1f"|format(total_horas_geral) }}h
+        </div>
+        <div class="resumo-item">
+            <span class="resumo-label">Total de Dias:</span> {{ total_dias_geral }} dias
+        </div>
+        <div class="resumo-item">
+            <span class="resumo-label">Valor Total:</span> R$ {{ "%.2f"|format(total_valor_geral) }}
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Documento gerado automaticamente pelo sistema MultiMax em {{ data_geracao.strftime('%d/%m/%Y às %H:%M') }}</p>
+    </div>
+</body>
+</html>

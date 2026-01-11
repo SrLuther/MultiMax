@@ -10,11 +10,10 @@ import math
 import os
 
 try:
-    from weasyprint import HTML  # type: ignore
+    from weasyprint import HTML
     WEASYPRINT_AVAILABLE = True
 except ImportError:
     WEASYPRINT_AVAILABLE = False
-    HTML = None  # type: ignore
 
 bp = Blueprint('ciclos', __name__, url_prefix='/ciclos')
 
@@ -27,24 +26,34 @@ def _get_all_collaborators():
     return Collaborator.query.filter_by(active=True).order_by(Collaborator.name.asc()).all()
 
 def _calculate_collaborator_balance(collaborator_id):
-    """Calcula saldo do colaborador (horas totais, dias completos, horas restantes, valor aproximado)"""
+    """
+    FUNÇÃO CENTRAL: Calcula saldo do colaborador a partir dos registros ativos
+    NÃO confia em valores armazenados - sempre recalcula a partir das horas
+    """
     # Buscar apenas registros ativos do ciclo atual
     ciclos_ativos = Ciclo.query.filter(
         Ciclo.collaborator_id == collaborator_id,
         Ciclo.status_ciclo == 'ativo'
     ).all()
     
+    # Somar todas as horas (pode ser negativo para folgas utilizadas)
     total_horas = Decimal('0.0')
     for ciclo in ciclos_ativos:
         total_horas += Decimal(str(ciclo.valor_horas))
     
     # Calcular dias completos (floor de total_horas / 8)
-    dias_completos = int(math.floor(float(total_horas) / 8.0))
-    
-    # Horas restantes (< 8h não entram na conversão)
-    horas_restantes = float(total_horas) % 8.0
+    # Apenas dias completos entram na conversão para R$
+    # Se horas totais são negativas (folgas utilizadas), dias = 0
+    total_horas_float = float(total_horas)
+    if total_horas_float < 0:
+        dias_completos = 0
+        horas_restantes = 0.0  # Horas negativas não geram horas restantes
+    else:
+        dias_completos = int(math.floor(total_horas_float / 8.0))
+        horas_restantes = total_horas_float % 8.0
     
     # Valor aproximado (dias_completos * valor_dia)
+    # Apenas dias completos têm valor em R$
     valor_dia = Decimal(str(_get_valor_dia()))
     valor_aproximado = Decimal(str(dias_completos)) * valor_dia
     
@@ -75,45 +84,40 @@ def _get_nome_empresa():
         pass
     return 'Thedo Max Supermercado'  # Valor padrão
 
-def _validate_hours_format(value_str):
+def _validate_hours_format(value_str, allow_negative=False):
     """
     Valida formato de horas: somente múltiplos de 0.5, ponto como separador
+    NÃO aceita vírgula (bloqueia completamente)
     Retorna (valido, valor_decimal, erro)
     """
     if not value_str or not value_str.strip():
         return (False, None, 'Campo obrigatório')
     
-    value_str = value_str.strip().replace(',', '.')  # Aceitar vírgula mas converter para ponto
+    value_str = value_str.strip()
     
-    # Bloquear formatos inválidos: dois pontos, vírgula, decimais não múltiplos de 0.5
-    if ':' in value_str:
+    # Bloquear vírgula completamente (NÃO converter)
+    if ',' in value_str:
         return (False, None, 'Formato inválido. Use apenas números inteiros ou decimais com ponto (ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos.')
     
-    if ',' in value_str and '.' in value_str:
+    # Bloquear dois pontos (formato 2:30)
+    if ':' in value_str:
         return (False, None, 'Formato inválido. Use apenas números inteiros ou decimais com ponto (ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos.')
     
     try:
         valor = Decimal(value_str)
         
-        # Verificar se é múltiplo de 0.5
-        if valor < 0:
+        # Verificar se é negativo (exceto se permitido)
+        if valor < 0 and not allow_negative:
             return (False, None, 'Valor não pode ser negativo')
         
         # Verificar se é múltiplo de 0.5
-        resto = float(valor) % 0.5
-        if resto != 0.0:
+        resto = abs(float(valor)) % 0.5
+        if resto > 0.001 and resto < 0.499:  # Tolerância para erros de ponto flutuante
             return (False, None, 'Formato inválido. Use apenas números inteiros ou decimais com ponto (ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos.')
         
         return (True, valor, None)
     except (ValueError, TypeError):
         return (False, None, 'Formato inválido. Use apenas números inteiros ou decimais com ponto (ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos.')
-
-def _calculate_days_and_remaining(hours_decimal):
-    """Calcula dias fechados e horas restantes a partir de horas"""
-    hours_float = float(hours_decimal)
-    dias_fechados = int(math.floor(hours_float / 8.0))
-    horas_restantes = hours_float % 8.0
-    return dias_fechados, round(horas_restantes, 1)
 
 # ============================================================================
 # Rotas principais
@@ -127,44 +131,67 @@ def index():
         flash('Acesso negado.', 'danger')
         return redirect(url_for('home.index'))
     
-    # Buscar todos os colaboradores ativos
-    colaboradores = _get_all_collaborators()
-    
-    # Calcular saldos para cada colaborador
-    colaboradores_stats = []
-    for colab in colaboradores:
-        balance = _calculate_collaborator_balance(colab.id)
-        colaboradores_stats.append({
-            'collaborator': colab,
-            'balance': balance
-        })
-    
-    # Buscar configurações
-    nome_empresa = _get_nome_empresa()
-    valor_dia = _get_valor_dia()
-    
-    # Totais gerais
-    total_horas_geral = sum(s['balance']['total_horas'] for s in colaboradores_stats)
-    total_dias_geral = sum(s['balance']['dias_completos'] for s in colaboradores_stats)
-    total_horas_restantes_geral = sum(s['balance']['horas_restantes'] for s in colaboradores_stats)
-    total_valor_geral = sum(s['balance']['valor_aproximado'] for s in colaboradores_stats)
-    
-    # Verificar se há registros ativos para mostrar botão de fechamento
-    tem_registros_ativos = any(s['balance']['total_horas'] > 0 for s in colaboradores_stats)
-    
-    return render_template(
-        'ciclos/index.html',
-        active_page='ciclos',
-        colaboradores_stats=colaboradores_stats,
-        nome_empresa=nome_empresa,
-        valor_dia=valor_dia,
-        total_horas_geral=total_horas_geral,
-        total_dias_geral=total_dias_geral,
-        total_horas_restantes_geral=total_horas_restantes_geral,
-        total_valor_geral=total_valor_geral,
-        tem_registros_ativos=tem_registros_ativos,
-        can_edit=current_user.nivel in ['admin', 'DEV']
-    )
+    try:
+        # Buscar todos os colaboradores ativos
+        colaboradores = _get_all_collaborators()
+        
+        # Calcular saldos para cada colaborador
+        colaboradores_stats = []
+        for colab in colaboradores:
+            balance = _calculate_collaborator_balance(colab.id)
+            colaboradores_stats.append({
+                'collaborator': colab,
+                'balance': balance
+            })
+        
+        # Buscar configurações
+        nome_empresa = _get_nome_empresa()
+        valor_dia = _get_valor_dia()
+        
+        # Totais gerais
+        total_horas_geral = sum(s['balance']['total_horas'] for s in colaboradores_stats)
+        total_dias_geral = sum(s['balance']['dias_completos'] for s in colaboradores_stats)
+        total_horas_restantes_geral = sum(s['balance']['horas_restantes'] for s in colaboradores_stats)
+        total_valor_geral = sum(s['balance']['valor_aproximado'] for s in colaboradores_stats)
+        
+        # Verificar se há registros ativos para mostrar botão de fechamento
+        tem_registros_ativos = any(s['balance']['total_horas'] > 0 for s in colaboradores_stats)
+        
+        return render_template(
+            'ciclos/index.html',
+            active_page='ciclos',
+            colaboradores_stats=colaboradores_stats,
+            nome_empresa=nome_empresa,
+            valor_dia=valor_dia,
+            total_horas_geral=total_horas_geral,
+            total_dias_geral=total_dias_geral,
+            total_horas_restantes_geral=total_horas_restantes_geral,
+            total_valor_geral=total_valor_geral,
+            tem_registros_ativos=tem_registros_ativos,
+            can_edit=current_user.nivel in ['admin', 'DEV']
+        )
+    except Exception as e:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        flash(f'Erro ao carregar Ciclos: {str(e)}', 'danger')
+        import traceback
+        traceback.print_exc()
+        # Retornar página vazia em caso de erro para evitar erro 500
+        return render_template(
+            'ciclos/index.html',
+            active_page='ciclos',
+            colaboradores_stats=[],
+            nome_empresa='Thedo Max Supermercado',
+            valor_dia=65.0,
+            total_horas_geral=0.0,
+            total_dias_geral=0,
+            total_horas_restantes_geral=0.0,
+            total_valor_geral=0.0,
+            tem_registros_ativos=False,
+            can_edit=current_user.nivel in ['admin', 'DEV']
+        )
 
 @bp.route('/lançar', methods=['POST'], strict_slashes=False)
 @login_required
@@ -193,7 +220,7 @@ def lancar_horas():
             return redirect(url_for('ciclos.index'))
         
         # Validar origem
-        origens_validas = ['Domingo', 'Feriado', 'Horas adicionais', 'Outro']
+        origens_validas = ['Domingo', 'Feriado', 'Horas adicionais', 'Outro', 'Folga utilizada']
         if origem not in origens_validas:
             flash('Origem inválida.', 'warning')
             return redirect(url_for('ciclos.index'))
@@ -203,11 +230,18 @@ def lancar_horas():
             flash('Descrição é obrigatória para origem "Horas adicionais" ou "Outro".', 'warning')
             return redirect(url_for('ciclos.index'))
         
-        # Validar formato de horas
-        valido, valor_horas_decimal, erro = _validate_hours_format(valor_horas_str)
+        # Validar formato de horas (permitir negativo apenas para Folga utilizada)
+        allow_negative = (origem == 'Folga utilizada')
+        valido, valor_horas_decimal, erro = _validate_hours_format(valor_horas_str, allow_negative=allow_negative)
         if not valido:
             flash(erro or 'Formato inválido.', 'warning')
             return redirect(url_for('ciclos.index'))
+        
+        # Validar Folga utilizada: deve ser exatamente -8h
+        if origem == 'Folga utilizada':
+            if valor_horas_decimal != Decimal('-8.0'):
+                flash('Folga utilizada deve ser exatamente -8 horas.', 'warning')
+                return redirect(url_for('ciclos.index'))
         
         # Validar e converter data
         try:
@@ -216,12 +250,8 @@ def lancar_horas():
             flash('Data inválida.', 'warning')
             return redirect(url_for('ciclos.index'))
         
-        # Calcular dias fechados e horas restantes
-        dias_fechados, horas_restantes = _calculate_days_and_remaining(valor_horas_decimal)
-        
-        # Calcular valor aproximado
-        valor_dia = Decimal(str(_get_valor_dia()))
-        valor_aproximado = Decimal(str(dias_fechados)) * valor_dia
+        # NÃO calcular dias no lançamento - sempre 0
+        # Conversão de horas em dias acontece APENAS no fechamento
         
         # Criar registro
         ciclo = Ciclo()
@@ -231,11 +261,11 @@ def lancar_horas():
         ciclo.origem = origem
         ciclo.descricao = descricao if descricao else None
         ciclo.valor_horas = valor_horas_decimal
-        ciclo.dias_fechados = dias_fechados
-        ciclo.horas_restantes = Decimal(str(horas_restantes))
+        ciclo.dias_fechados = 0  # Sempre 0 no lançamento
+        ciclo.horas_restantes = Decimal('0.0')  # Sempre 0 no lançamento
         ciclo.ciclo_id = None  # Será preenchido no fechamento
         ciclo.status_ciclo = 'ativo'
-        ciclo.valor_aproximado = valor_aproximado
+        ciclo.valor_aproximado = Decimal('0.0')  # Sempre 0 no lançamento
         ciclo.created_by = current_user.name or current_user.username
         
         db.session.add(ciclo)
@@ -329,24 +359,21 @@ def ajustar(ciclo_id):
         valor_horas_str = request.form.get('valor_horas', '').strip()
         descricao = request.form.get('descricao', '').strip()
         
-        # Validar formato de horas
-        valido, valor_horas_decimal, erro = _validate_hours_format(valor_horas_str)
+        # Validar formato de horas (permitir negativo para ajustes de folgas)
+        allow_negative = (ciclo.origem == 'Folga utilizada')
+        valido, valor_horas_decimal, erro = _validate_hours_format(valor_horas_str, allow_negative=allow_negative)
         if not valido:
             flash(erro or 'Formato inválido.', 'warning')
             return redirect(url_for('ciclos.index'))
         
-        # Calcular dias fechados e horas restantes
-        dias_fechados, horas_restantes = _calculate_days_and_remaining(valor_horas_decimal)
-        
-        # Calcular valor aproximado
-        valor_dia = Decimal(str(_get_valor_dia()))
-        valor_aproximado = Decimal(str(dias_fechados)) * valor_dia
+        # NÃO calcular dias no ajuste - sempre 0
+        # Conversão de horas em dias acontece APENAS no fechamento
         
         # Atualizar registro
         ciclo.valor_horas = valor_horas_decimal
-        ciclo.dias_fechados = dias_fechados
-        ciclo.horas_restantes = Decimal(str(horas_restantes))
-        ciclo.valor_aproximado = valor_aproximado
+        ciclo.dias_fechados = 0  # Sempre 0
+        ciclo.horas_restantes = Decimal('0.0')  # Sempre 0
+        ciclo.valor_aproximado = Decimal('0.0')  # Sempre 0
         if descricao:
             ciclo.descricao = descricao
         ciclo.updated_at = datetime.now(ZoneInfo('America/Sao_Paulo'))
@@ -455,54 +482,61 @@ def confirmar_fechamento():
             flash('Nenhum registro ativo encontrado para fechamento.', 'warning')
             return redirect(url_for('ciclos.index'))
         
-        # Agrupar por colaborador para calcular totais
+        # Agrupar por colaborador e calcular usando função central
         colaboradores_totais = {}
-        for reg in registros_ativos:
-            cid = reg.collaborator_id
-            if cid not in colaboradores_totais:
-                colaboradores_totais[cid] = {
-                    'nome': reg.nome_colaborador,
-                    'total_horas': Decimal('0.0'),
-                    'total_dias': 0,
-                    'total_valor': Decimal('0.0'),
-                    'horas_restantes': Decimal('0.0'),
-                    'registros': []
-                }
+        colaboradores_list = list(set(reg.collaborator_id for reg in registros_ativos))
+        
+        total_horas_geral = Decimal('0.0')
+        total_dias_geral = 0
+        total_valor_geral = Decimal('0.0')
+        
+        # Calcular totais usando função central (NÃO usar valores armazenados)
+        for cid in colaboradores_list:
+            balance = _calculate_collaborator_balance(cid)
             
-            colaboradores_totais[cid]['total_horas'] += Decimal(str(reg.valor_horas))
-            colaboradores_totais[cid]['total_dias'] += (reg.dias_fechados or 0)
-            colaboradores_totais[cid]['total_valor'] += Decimal(str(reg.valor_aproximado)) if reg.valor_aproximado else Decimal('0.0')
-            colaboradores_totais[cid]['registros'].append(reg)
+            # Buscar registros do colaborador
+            registros_colab = [r for r in registros_ativos if r.collaborator_id == cid]
+            
+            # Usar valores calculados (não armazenados)
+            total_horas_colab = Decimal(str(balance['total_horas']))
+            dias_completos_colab = balance['dias_completos']
+            valor_total_colab = Decimal(str(balance['valor_aproximado']))
+            horas_restantes_colab = balance['horas_restantes']
+            
+            colaboradores_totais[cid] = {
+                'nome': registros_colab[0].nome_colaborador,
+                'total_horas': total_horas_colab,
+                'total_dias': dias_completos_colab,
+                'total_valor': valor_total_colab,
+                'horas_restantes': horas_restantes_colab,
+                'registros': registros_colab
+            }
+            
+            total_horas_geral += total_horas_colab
+            total_dias_geral += dias_completos_colab
+            total_valor_geral += valor_total_colab
         
-        # Calcular totais gerais
-        total_horas_geral = sum(float(c['total_horas']) for c in colaboradores_totais.values())
-        total_dias_geral = sum(c['total_dias'] for c in colaboradores_totais.values())
-        total_valor_geral = sum(float(c['total_valor']) for c in colaboradores_totais.values())
-        
-        # Processar cada colaborador: fechar registros e manter horas restantes
-        horas_restantes_processadas = []
-        
+        # Processar cada colaborador: fechar registros e criar carryover
         for cid, dados in colaboradores_totais.items():
-            horas_restantes_colab = float(dados['total_horas']) % 8.0
+            horas_restantes_colab = dados['horas_restantes']
             
-            if horas_restantes_colab > 0:
-                # Criar novo registro com horas restantes para próximo ciclo
-                ultimo_reg = dados['registros'][0]  # Pegar um registro como referência
-                novo_ciclo_restante = Ciclo()
-                novo_ciclo_restante.collaborator_id = cid
-                novo_ciclo_restante.nome_colaborador = dados['nome']
-                novo_ciclo_restante.data_lancamento = date.today()
-                novo_ciclo_restante.origem = 'Horas restantes do ciclo anterior'
-                novo_ciclo_restante.descricao = f'Horas restantes do ciclo {proximo_ciclo_id - 1}'
-                novo_ciclo_restante.valor_horas = Decimal(str(round(horas_restantes_colab, 1)))
-                novo_ciclo_restante.dias_fechados = 0  # < 8h não entram na conversão
-                novo_ciclo_restante.horas_restantes = Decimal(str(round(horas_restantes_colab, 1)))
-                novo_ciclo_restante.ciclo_id = None  # Será preenchido no próximo fechamento
-                novo_ciclo_restante.status_ciclo = 'ativo'
-                novo_ciclo_restante.valor_aproximado = Decimal('0.0')  # < 8h não tem valor
-                novo_ciclo_restante.created_by = current_user.name or current_user.username
-                horas_restantes_processadas.append(novo_ciclo_restante)
-                db.session.add(novo_ciclo_restante)
+            # Criar carryover apenas se houver horas restantes (> 0 e < 8h)
+            if horas_restantes_colab > 0 and horas_restantes_colab < 8.0:
+                # CARRYOVER: Horas restantes do ciclo anterior
+                novo_ciclo_carryover = Ciclo()
+                novo_ciclo_carryover.collaborator_id = cid
+                novo_ciclo_carryover.nome_colaborador = dados['nome']
+                novo_ciclo_carryover.data_lancamento = date.today()
+                novo_ciclo_carryover.origem = 'Carryover'  # Tipo específico para carryover
+                novo_ciclo_carryover.descricao = f'Horas restantes do ciclo {proximo_ciclo_id - 1} transportadas'
+                novo_ciclo_carryover.valor_horas = Decimal(str(round(horas_restantes_colab, 1)))
+                novo_ciclo_carryover.dias_fechados = 0  # Sempre 0
+                novo_ciclo_carryover.horas_restantes = Decimal('0.0')  # Sempre 0
+                novo_ciclo_carryover.ciclo_id = None  # Será preenchido no próximo fechamento
+                novo_ciclo_carryover.status_ciclo = 'ativo'
+                novo_ciclo_carryover.valor_aproximado = Decimal('0.0')  # Sempre 0
+                novo_ciclo_carryover.created_by = current_user.name or current_user.username
+                db.session.add(novo_ciclo_carryover)
             
             # Marcar registros como fechados
             for reg in dados['registros']:
@@ -515,8 +549,8 @@ def confirmar_fechamento():
         fechamento = CicloFechamento()
         fechamento.ciclo_id = proximo_ciclo_id
         fechamento.fechado_por = current_user.name or current_user.username
-        fechamento.valor_total = Decimal(str(total_valor_geral))
-        fechamento.total_horas = Decimal(str(round(total_horas_geral, 1)))
+        fechamento.valor_total = total_valor_geral
+        fechamento.total_horas = Decimal(str(round(float(total_horas_geral), 1)))
         fechamento.total_dias = total_dias_geral
         fechamento.colaboradores_envolvidos = len(colaboradores_totais)
         observacoes = request.form.get('observacoes', '').strip()
@@ -812,3 +846,124 @@ def atestado_listar(collaborator_id):
         return jsonify({'ok': True, 'atestados': atestados_data})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)}), 500
+
+# ============================================================================
+# Rotas de PDF
+# ============================================================================
+
+@bp.route('/pdf/individual/<int:collaborator_id>', methods=['GET'], strict_slashes=False)
+@login_required
+def pdf_individual(collaborator_id):
+    """Gera PDF individual do histórico completo do colaborador"""
+    if not WEASYPRINT_AVAILABLE:
+        flash('WeasyPrint não está disponível.', 'danger')
+        return redirect(url_for('ciclos.index'))
+    
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('ciclos.index'))
+    
+    try:
+        collaborator = Collaborator.query.get_or_404(collaborator_id)
+        
+        # Buscar todos os registros ativos do colaborador
+        registros = Ciclo.query.filter(
+            Ciclo.collaborator_id == collaborator_id,
+            Ciclo.status_ciclo == 'ativo'
+        ).order_by(Ciclo.data_lancamento.desc(), Ciclo.id.desc()).all()
+        
+        # Calcular saldo
+        balance = _calculate_collaborator_balance(collaborator_id)
+        
+        # Configurações
+        nome_empresa = _get_nome_empresa()
+        valor_dia = _get_valor_dia()
+        
+        html = render_template(
+            'ciclos/pdf_individual.html',
+            collaborator=collaborator,
+            registros=registros,
+            balance=balance,
+            nome_empresa=nome_empresa,
+            valor_dia=valor_dia,
+            data_geracao=datetime.now(ZoneInfo('America/Sao_Paulo'))
+        )
+        
+        pdf = HTML(string=html).write_pdf()
+        
+        response = make_response(pdf)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'inline; filename=ciclo_individual_{collaborator.name.replace(" ", "_")}.pdf'
+        
+        return response
+        
+    except Exception as e:
+        flash(f'Erro ao gerar PDF: {str(e)}', 'danger')
+        return redirect(url_for('ciclos.index'))
+
+@bp.route('/pdf/geral', methods=['GET'], strict_slashes=False)
+@login_required
+def pdf_geral():
+    """Gera PDF geral com resumo de todos os colaboradores do ciclo"""
+    if not WEASYPRINT_AVAILABLE:
+        flash('WeasyPrint não está disponível.', 'danger')
+        return redirect(url_for('ciclos.index'))
+    
+    if current_user.nivel not in ['operador', 'admin', 'DEV']:
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('ciclos.index'))
+    
+    try:
+        colaboradores = _get_all_collaborators()
+        colaboradores_resumo = []
+        
+        valor_dia = _get_valor_dia()
+        
+        for colab in colaboradores:
+            balance = _calculate_collaborator_balance(colab.id)
+            
+            # Buscar registros ativos
+            registros = Ciclo.query.filter(
+                Ciclo.collaborator_id == colab.id,
+                Ciclo.status_ciclo == 'ativo'
+            ).all()
+            
+            if len(registros) > 0:  # Só incluir se tiver registros
+                colaboradores_resumo.append({
+                    'collaborator': colab,
+                    'balance': balance,
+                    'registros_count': len(registros)
+                })
+        
+        # Totais gerais
+        total_horas_geral = sum(r['balance']['total_horas'] for r in colaboradores_resumo)
+        total_dias_geral = sum(r['balance']['dias_completos'] for r in colaboradores_resumo)
+        total_horas_restantes_geral = sum(r['balance']['horas_restantes'] for r in colaboradores_resumo)
+        total_valor_geral = sum(r['balance']['valor_aproximado'] for r in colaboradores_resumo)
+        
+        # Configurações
+        nome_empresa = _get_nome_empresa()
+        
+        html = render_template(
+            'ciclos/pdf_geral.html',
+            colaboradores_resumo=colaboradores_resumo,
+            total_horas_geral=total_horas_geral,
+            total_dias_geral=total_dias_geral,
+            total_horas_restantes_geral=total_horas_restantes_geral,
+            total_valor_geral=total_valor_geral,
+            nome_empresa=nome_empresa,
+            valor_dia=valor_dia,
+            data_geracao=datetime.now(ZoneInfo('America/Sao_Paulo'))
+        )
+        
+        pdf = HTML(string=html).write_pdf()
+        
+        response = make_response(pdf)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = 'inline; filename=ciclo_geral.pdf'
+        
+        return response
+        
+    except Exception as e:
+        flash(f'Erro ao gerar PDF: {str(e)}', 'danger')
+        return redirect(url_for('ciclos.index'))

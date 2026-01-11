@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Ciclo Individual - {{ collaborator.name }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #333;
+            padding-bottom: 1rem;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .header h2 {
+            margin: 0.5rem 0 0 0;
+            font-size: 18px;
+            color: #666;
+        }
+        .info-section {
+            margin-bottom: 1.5rem;
+        }
+        .info-section h3 {
+            font-size: 16px;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 0.25rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .resumo {
+            background-color: #f9f9f9;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+        .resumo-item {
+            display: inline-block;
+            margin-right: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        .resumo-label {
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+            border-top: 1px solid #ccc;
+            padding-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ nome_empresa }}</h1>
+        <h2>Ciclo Individual - {{ collaborator.name }}</h2>
+    </div>
+
+    <div class="info-section">
+        <h3>Informações do Colaborador</h3>
+        <p><strong>Nome:</strong> {{ collaborator.name }}</p>
+        <p><strong>Data de Geração:</strong> {{ data_geracao.strftime('%d/%m/%Y %H:%M') }}</p>
+    </div>
+
+    <div class="info-section">
+        <h3>Histórico de Lançamentos</h3>
+        {% if registros %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Origem</th>
+                    <th>Descrição</th>
+                    <th>Horas</th>
+                    <th>Dias Fechados</th>
+                    <th>Horas Restantes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reg in registros %}
+                <tr>
+                    <td>{{ reg.data_lancamento.strftime('%d/%m/%Y') }}</td>
+                    <td>{{ reg.origem }}</td>
+                    <td>{{ reg.descricao or '-' }}</td>
+                    <td>{{ "%.1f"|format(reg.valor_horas) }}h</td>
+                    <td>{{ reg.dias_fechados or 0 }}</td>
+                    <td>{{ "%.1f"|format(reg.horas_restantes) if reg.horas_restantes else '0.0' }}h</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>Nenhum registro encontrado.</p>
+        {% endif %}
+    </div>
+
+    <div class="resumo">
+        <h3>Resumo</h3>
+        <div class="resumo-item">
+            <span class="resumo-label">Horas Totais:</span> {{ "%.1f"|format(balance.total_horas) }}h
+        </div>
+        <div class="resumo-item">
+            <span class="resumo-label">Dias Completos:</span> {{ balance.dias_completos }} dias
+        </div>
+        <div class="resumo-item">
+            <span class="resumo-label">Horas Restantes:</span> {{ "%.1f"|format(balance.horas_restantes) }}h
+        </div>
+        <div class="resumo-item">
+            <span class="resumo-label">Valor Aproximado:</span> R$ {{ "%.2f"|format(balance.valor_aproximado) }}
+        </div>
+        <div class="resumo-item">
+            <span class="resumo-label">Valor por Dia:</span> R$ {{ "%.2f"|format(valor_dia) }}
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Documento gerado automaticamente pelo sistema MultiMax em {{ data_geracao.strftime('%d/%m/%Y às %H:%M') }}</p>
+    </div>
+</body>
+</html>
