@@ -1,4 +1,10 @@
-## [2.5.3] - 2025-01-11
+## [2.5.4] - 2025-01-11
+
+### 🔧 Correção de Caminhos de Imagens nos PDFs
+
+- Correção: logos dos PDFs agora funcionam na VPS (Linux)
+- Alterado de caminhos absolutos para caminhos relativos
+- WeasyPrint agora usa base_url corretamente para resolver imagens
 
 ### 🔧 Correções e Melhorias
 

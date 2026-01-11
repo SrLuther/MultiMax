@@ -950,10 +950,14 @@ def pdf_individual(collaborator_id):
             }
             mes_inicio = meses_pt.get(mes_inicio, mes_inicio)
         
-        # Caminhos absolutos das logos
+        # Caminhos das logos - usar caminhos relativos ao base_dir
         logo_header_path = os.path.join(base_dir, 'static', 'icons', 'logo black.png')
-        # Converter para caminho absoluto e formato de arquivo para WeasyPrint
-        logo_header = os.path.abspath(logo_header_path) if os.path.exists(logo_header_path) else None
+        # Usar caminho relativo ao base_dir para o WeasyPrint
+        if os.path.exists(logo_header_path):
+            # Caminho relativo ao base_dir (ex: static/icons/logo black.png)
+            logo_header = os.path.relpath(logo_header_path, base_dir).replace('\\', '/')
+        else:
+            logo_header = None
         logo_footer = None  # Removido por questões judiciais
         
         html = render_template(
@@ -970,7 +974,8 @@ def pdf_individual(collaborator_id):
             data_geracao=datetime.now(ZoneInfo('America/Sao_Paulo'))
         )
         
-        pdf = HTML(string=html).write_pdf()
+        # Passar base_url para o WeasyPrint resolver caminhos relativos corretamente
+        pdf = HTML(string=html, base_url=str(base_dir)).write_pdf()
         
         response = make_response(pdf)
         response.headers['Content-Type'] = 'application/pdf'
@@ -1054,10 +1059,14 @@ def pdf_geral():
         # Configurações
         nome_empresa = _get_nome_empresa()
         
-        # Caminhos absolutos das logos
+        # Caminhos das logos - usar caminhos relativos ao base_dir
         logo_header_path = os.path.join(base_dir, 'static', 'icons', 'logo black.png')
-        # Converter para caminho absoluto e formato de arquivo para WeasyPrint
-        logo_header = os.path.abspath(logo_header_path) if os.path.exists(logo_header_path) else None
+        # Usar caminho relativo ao base_dir para o WeasyPrint
+        if os.path.exists(logo_header_path):
+            # Caminho relativo ao base_dir (ex: static/icons/logo black.png)
+            logo_header = os.path.relpath(logo_header_path, base_dir).replace('\\', '/')
+        else:
+            logo_header = None
         logo_footer = None  # Removido por questões judiciais
         
         html = render_template(
@@ -1076,7 +1085,8 @@ def pdf_geral():
             data_geracao=datetime.now(ZoneInfo('America/Sao_Paulo'))
         )
         
-        pdf = HTML(string=html).write_pdf()
+        # Passar base_url para o WeasyPrint resolver caminhos relativos corretamente
+        pdf = HTML(string=html, base_url=str(base_dir)).write_pdf()
         
         response = make_response(pdf)
         response.headers['Content-Type'] = 'application/pdf'
