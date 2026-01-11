@@ -86,13 +86,6 @@ def require_token(f):
         return f(*args, **kwargs)
     return decorated_function
 
-def validate_localhost():
-    """Valida que a requisição veio de localhost"""
-    if request.remote_addr not in ('127.0.0.1', '::1', 'localhost'):
-        logger.warning(f'Tentativa de acesso não-localhost de {request.remote_addr}')
-        return jsonify({'ok': False, 'error': 'Only localhost connections allowed'}), 403
-    return None
-
 def execute_command(command, description, cwd=None, timeout=300):
     """
     Executa um comando e retorna o resultado
@@ -197,11 +190,6 @@ def deploy():
     Parâmetros JSON (opcional):
         force (bool): Se True, força atualização mesmo se já estiver atualizado
     """
-    # Validar localhost
-    localhost_error = validate_localhost()
-    if localhost_error:
-        return localhost_error
-    
     # Validar diretório do repositório
     if not os.path.exists(REPO_DIR):
         error_msg = f'Diretório do repositório não encontrado: {REPO_DIR}'
@@ -318,10 +306,6 @@ def deploy():
 @require_token
 def status():
     """Retorna status atual do Deploy Agent e do repositório"""
-    localhost_error = validate_localhost()
-    if localhost_error:
-        return localhost_error
-    
     status_info = {
         'ok': True,
         'service': 'deploy-agent',
