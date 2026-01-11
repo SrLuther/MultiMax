@@ -1,11 +1,25 @@
-## [2.5.2] - 2025-01-11
+## [2.5.3] - 2025-01-04
+
+### 🔧 Atualização
+
+- Versão 2.5.3
+
+---
+
+## [2.5.3] - 2025-01-11
+
+### 🔧 Correções e Melhorias
+
+- Correção: tratamento de exceção do WeasyPrint no Windows (OSError além de ImportError)
+- Renomeação completa do sistema: "MultiMax – Gestão Amora" → "MultiMax | Controle inteligente"
+- Atualizado nome em templates, manifest.json, PDFs e código Python
 
 ### 🎨 Melhorias nos PDFs de Ciclos
 
 - Adicionada logo no cabeçalho dos PDFs
 - Resumo movido para antes do histórico de lançamentos
 - Adicionada informação "Ciclo X | Mês" no cabeçalho
-- Nome da empresa atualizado para "MultiMax Gestão"
+- Nome da empresa atualizado para "MultiMax | Controle inteligente"
 - Removida logo do Thedo do rodapé
 
 ### 🧹 Limpeza

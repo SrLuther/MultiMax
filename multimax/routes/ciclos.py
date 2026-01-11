@@ -12,8 +12,11 @@ import os
 try:
     from weasyprint import HTML
     WEASYPRINT_AVAILABLE = True
-except ImportError:
+except Exception:
+    # Captura ImportError, OSError e outros erros de inicialização do WeasyPrint
+    # (especialmente no Windows onde DLLs podem não estar disponíveis)
     WEASYPRINT_AVAILABLE = False
+    HTML = None  # type: ignore
 
 bp = Blueprint('ciclos', __name__, url_prefix='/ciclos')
 
@@ -90,7 +93,7 @@ def _get_nome_empresa():
             return setting.value
     except Exception:
         pass
-    return 'MultiMax Gestão'  # Valor padrão
+    return 'MultiMax | Controle inteligente'  # Valor padrão
 
 def _validate_hours_format(value_str, allow_negative=False):
     """
@@ -204,7 +207,7 @@ def index():
             'ciclos/index.html',
             active_page='ciclos',
             colaboradores_stats=[],
-            nome_empresa='MultiMax Gestão',
+            nome_empresa='MultiMax | Controle inteligente',
             valor_dia=65.0,
             total_horas_geral=0.0,
             total_dias_geral=0,

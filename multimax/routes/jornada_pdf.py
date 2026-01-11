@@ -14,8 +14,11 @@ from .jornada import (
 try:
     from weasyprint import HTML
     WEASYPRINT_AVAILABLE = True
-except ImportError:
+except Exception:
+    # Captura ImportError, OSError e outros erros de inicialização do WeasyPrint
+    # (especialmente no Windows onde DLLs podem não estar disponíveis)
     WEASYPRINT_AVAILABLE = False
+    HTML = None  # type: ignore
 
 bp = Blueprint('jornada_pdf', __name__, url_prefix='/jornada/pdf')
 
