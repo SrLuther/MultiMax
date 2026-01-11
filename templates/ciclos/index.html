@@ -93,12 +93,222 @@
                     <i class="bi bi-plus-circle"></i>
                     + Lançar Horas
                 </button>
+                <a href="/ciclos/?collaborator_id={{ stat.collaborator.id }}" class="btn-card btn-card-secondary" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-calendar-check"></i>
+                    Férias / Atestados
+                </a>
                 {% endif %}
             </div>
         </div>
         {% endfor %}
     </div>
 </div>
+
+<!-- Férias e Atestados -->
+{% if selected_collaborator and can_edit %}
+<div class="ferias-atestados-grid-modern">
+    <!-- Férias -->
+    <div class="ferias-card-modern">
+        <div class="ferias-header-modern">
+            <h3 class="ferias-title">
+                <i class="bi bi-airplane"></i>
+                Férias
+            </h3>
+        </div>
+        <div class="ferias-body-modern">
+            <form method="POST" action="{{ url_for('ciclos.ferias_adicionar') }}" class="ferias-form-modern">
+                <input type="hidden" name="collaborator_id" value="{{ selected_collaborator.id }}">
+                <div class="form-row-modern">
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-calendar3"></i>
+                            Data Início <span class="required">*</span>
+                        </label>
+                        <input type="date" name="data_inicio" class="form-input-modern" required>
+                    </div>
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-calendar-check"></i>
+                            Data Fim <span class="required">*</span>
+                        </label>
+                        <input type="date" name="data_fim" class="form-input-modern" required>
+                    </div>
+                </div>
+                <div class="form-group-modern">
+                    <label class="form-label-modern">
+                        <i class="bi bi-chat-left-text"></i>
+                        Observação
+                    </label>
+                    <textarea name="observacao" class="form-textarea-modern" rows="2"></textarea>
+                </div>
+                <div class="form-actions-modern">
+                    <button type="submit" class="btn-save-modern">
+                        <i class="bi bi-plus-circle"></i>
+                        Adicionar Férias
+                    </button>
+                </div>
+            </form>
+            
+            {% if ferias %}
+            <div class="ferias-table-wrapper">
+                <table class="ferias-table-modern">
+                    <thead>
+                        <tr>
+                            <th>Início</th>
+                            <th>Fim</th>
+                            <th class="text-center">Dias</th>
+                            <th>Observação</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for f in ferias %}
+                        <tr>
+                            <td>{{ f.data_inicio.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ f.data_fim.strftime('%d/%m/%Y') }}</td>
+                            <td class="text-center">
+                                <span class="badge-dias-modern">{{ (f.data_fim - f.data_inicio).days + 1 }}</span>
+                            </td>
+                            <td>{{ f.observacao or '-' }}</td>
+                            <td class="text-center">
+                                <form method="POST" action="{{ url_for('ciclos.ferias_excluir', id=f.id) }}" style="display: inline;" onsubmit="return confirm('Excluir férias?');">
+                                    <button type="submit" class="btn-action-small btn-delete-small" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state-small-modern">
+                <i class="bi bi-calendar-x"></i>
+                <p>Nenhuma férias registrada</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Atestados Médicos -->
+    <div class="atestados-card-modern">
+        <div class="atestados-header-modern">
+            <h3 class="atestados-title">
+                <i class="bi bi-file-medical"></i>
+                Atestados Médicos
+            </h3>
+        </div>
+        <div class="atestados-body-modern">
+            <form method="POST" action="{{ url_for('ciclos.atestado_adicionar') }}" enctype="multipart/form-data" class="atestados-form-modern">
+                <input type="hidden" name="collaborator_id" value="{{ selected_collaborator.id }}">
+                <div class="form-row-modern">
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-calendar3"></i>
+                            Data Início <span class="required">*</span>
+                        </label>
+                        <input type="date" name="data_inicio" class="form-input-modern" required>
+                    </div>
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-calendar-check"></i>
+                            Data Fim <span class="required">*</span>
+                        </label>
+                        <input type="date" name="data_fim" class="form-input-modern" required>
+                    </div>
+                </div>
+                <div class="form-row-modern">
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-file-text"></i>
+                            CID
+                        </label>
+                        <input type="text" name="cid" class="form-input-modern" placeholder="Código CID">
+                    </div>
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-person-badge"></i>
+                            Médico
+                        </label>
+                        <input type="text" name="medico" class="form-input-modern" placeholder="Nome do médico">
+                    </div>
+                </div>
+                <div class="form-group-modern">
+                    <label class="form-label-modern">
+                        <i class="bi bi-chat-left-text"></i>
+                        Motivo
+                    </label>
+                    <textarea name="motivo" class="form-textarea-modern" rows="2"></textarea>
+                </div>
+                <div class="form-group-modern">
+                    <label class="form-label-modern">
+                        <i class="bi bi-image"></i>
+                        Foto do Atestado
+                    </label>
+                    <input type="file" name="foto_atestado" class="form-input-modern" accept="image/*">
+                    <small class="form-hint-modern">PNG, JPG, JPEG, GIF (máx. 10MB)</small>
+                </div>
+                <div class="form-actions-modern">
+                    <button type="submit" class="btn-save-modern">
+                        <i class="bi bi-plus-circle"></i>
+                        Adicionar Atestado
+                    </button>
+                </div>
+            </form>
+            
+            {% if atestados %}
+            <div class="atestados-table-wrapper">
+                <table class="atestados-table-modern">
+                    <thead>
+                        <tr>
+                            <th>Início</th>
+                            <th>Fim</th>
+                            <th class="text-center">Dias</th>
+                            <th>CID</th>
+                            <th>Médico</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in atestados %}
+                        <tr>
+                            <td>{{ a.data_inicio.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ a.data_fim.strftime('%d/%m/%Y') }}</td>
+                            <td class="text-center">
+                                <span class="badge-dias-modern">{{ a.dias or ((a.data_fim - a.data_inicio).days + 1) }}</span>
+                            </td>
+                            <td>{{ a.cid or '-' }}</td>
+                            <td>{{ a.medico or '-' }}</td>
+                            <td class="text-center">
+                                <div class="atestado-actions-modern">
+                                    {% if a.foto_atestado %}
+                                    <a href="{{ url_for('static', filename='uploads/atestados/' + a.foto_atestado) }}" target="_blank" class="btn-action-small btn-view-small" title="Ver foto">
+                                        <i class="bi bi-image"></i>
+                                    </a>
+                                    {% endif %}
+                                    <form method="POST" action="{{ url_for('ciclos.atestado_excluir', id=a.id) }}" style="display: inline;" onsubmit="return confirm('Excluir atestado?');">
+                                        <button type="submit" class="btn-action-small btn-delete-small" title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state-small-modern">
+                <i class="bi bi-file-medical"></i>
+                <p>Nenhum atestado registrado</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- Modal Lançamento de Horas -->
 {% if can_edit %}
@@ -599,6 +809,245 @@
     .btn-card {
         width: 100%;
     }
+    
+    .ferias-atestados-grid-modern {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Férias e Atestados */
+.ferias-atestados-grid-modern {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+    margin-top: 2rem;
+}
+
+.ferias-card-modern,
+.atestados-card-modern {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.ferias-card-modern {
+    border-left: 4px solid #f59e0b;
+}
+
+.atestados-card-modern {
+    border-left: 4px solid #ef4444;
+}
+
+.ferias-header-modern,
+.atestados-header-modern {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.ferias-title,
+.atestados-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.ferias-title i {
+    color: #f59e0b;
+}
+
+.atestados-title i {
+    color: #ef4444;
+}
+
+.ferias-form-modern,
+.atestados-form-modern {
+    margin-bottom: 1.5rem;
+}
+
+.form-group-modern {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.form-label-modern {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-label-modern i {
+    color: #667eea;
+}
+
+.required {
+    color: #ef4444;
+}
+
+.form-input-modern,
+.form-textarea-modern {
+    padding: 0.75rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: white;
+    font-family: inherit;
+}
+
+.form-textarea-modern {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-input-modern:focus,
+.form-textarea-modern:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-hint-modern {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.form-actions-modern {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
+.btn-save-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+}
+
+.btn-save-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.ferias-table-wrapper,
+.atestados-table-wrapper {
+    overflow-x: auto;
+}
+
+.ferias-table-modern,
+.atestados-table-modern {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ferias-table-modern th,
+.atestados-table-modern th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+.ferias-table-modern td,
+.atestados-table-modern td {
+    padding: 1rem;
+    color: #1f2937;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.badge-dias-modern {
+    display: inline-flex;
+    padding: 0.375rem 0.75rem;
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.atestado-actions-modern {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.empty-state-small-modern {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #6b7280;
+}
+
+.empty-state-small-modern i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state-small-modern p {
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+.btn-action-small {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f3f4f6;
+    color: #374151;
+    border: none;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.btn-action-small:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.btn-view-small:hover {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-delete-small:hover {
+    background: #ef4444;
+    color: white;
+}
+
+.text-center {
+    text-align: center;
 }
 </style>
 

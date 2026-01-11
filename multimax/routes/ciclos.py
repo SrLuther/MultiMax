@@ -157,6 +157,18 @@ def index():
         # Verificar se há registros ativos para mostrar botão de fechamento
         tem_registros_ativos = any(s['balance']['total_horas'] > 0 for s in colaboradores_stats)
         
+        # Buscar colaborador selecionado (se houver) para exibir férias e atestados
+        selected_collaborator_id = request.args.get('collaborator_id', type=int)
+        selected_collaborator = None
+        ferias = []
+        atestados = []
+        
+        if selected_collaborator_id and current_user.nivel in ('admin', 'DEV'):
+            selected_collaborator = Collaborator.query.get(selected_collaborator_id)
+            if selected_collaborator:
+                ferias = Vacation.query.filter_by(collaborator_id=selected_collaborator.id).order_by(Vacation.data_inicio.desc()).all()
+                atestados = MedicalCertificate.query.filter_by(collaborator_id=selected_collaborator.id).order_by(MedicalCertificate.data_inicio.desc()).all()
+        
         return render_template(
             'ciclos/index.html',
             active_page='ciclos',
@@ -168,7 +180,10 @@ def index():
             total_horas_restantes_geral=total_horas_restantes_geral,
             total_valor_geral=total_valor_geral,
             tem_registros_ativos=tem_registros_ativos,
-            can_edit=current_user.nivel in ['admin', 'DEV']
+            can_edit=current_user.nivel in ['admin', 'DEV'],
+            selected_collaborator=selected_collaborator,
+            ferias=ferias,
+            atestados=atestados
         )
     except Exception as e:
         try:
@@ -190,7 +205,10 @@ def index():
             total_horas_restantes_geral=0.0,
             total_valor_geral=0.0,
             tem_registros_ativos=False,
-            can_edit=current_user.nivel in ['admin', 'DEV']
+            can_edit=current_user.nivel in ['admin', 'DEV'],
+            selected_collaborator=None,
+            ferias=[],
+            atestados=[]
         )
 
 @bp.route('/lançar', methods=['POST'], strict_slashes=False)
@@ -663,7 +681,7 @@ def ferias_adicionar():
         df_str = (request.form.get('data_fim') or '').strip()
         if not cid_str or not di_str or not df_str:
             flash('Dados obrigatórios ausentes.', 'warning')
-            return redirect(url_for('ciclos.index'))
+            return redirect(url_for('ciclos.index', collaborator_id=cid_str if cid_str else None))
         cid = int(cid_str)
         data_inicio = datetime.strptime(di_str, '%Y-%m-%d').date()
         data_fim = datetime.strptime(df_str, '%Y-%m-%d').date()
@@ -671,7 +689,7 @@ def ferias_adicionar():
         
         if data_fim < data_inicio:
             flash('Data final deve ser maior ou igual à data inicial.', 'warning')
-            return redirect(url_for('ciclos.index'))
+            return redirect(url_for('ciclos.index', collaborator_id=cid))
         
         v = Vacation()
         v.collaborator_id = cid
@@ -685,7 +703,15 @@ def ferias_adicionar():
     except Exception as e:
         db.session.rollback()
         flash(f'Erro ao registrar férias: {e}', 'danger')
-    return redirect(url_for('ciclos.index'))
+        # Em caso de erro, tentar manter collaborator_id se disponível
+        try:
+            cid = int(request.form.get('collaborator_id', 0))
+            if cid:
+                return redirect(url_for('ciclos.index', collaborator_id=cid))
+        except:
+            pass
+    # Manter collaborator_id na URL para exibir os cards
+    return redirect(url_for('ciclos.index', collaborator_id=cid))
 
 @bp.route('/ferias/<int:id>/excluir', methods=['POST'], strict_slashes=False)
 @login_required
@@ -695,6 +721,7 @@ def ferias_excluir(id: int):
         flash('Acesso negado.', 'danger')
         return redirect(url_for('ciclos.index'))
     v = Vacation.query.get_or_404(id)
+    collaborator_id = v.collaborator_id
     try:
         db.session.delete(v)
         db.session.commit()
@@ -702,7 +729,8 @@ def ferias_excluir(id: int):
     except Exception as e:
         db.session.rollback()
         flash(f'Erro ao excluir: {e}', 'danger')
-    return redirect(url_for('ciclos.index'))
+    # Manter collaborator_id na URL para exibir os cards
+    return redirect(url_for('ciclos.index', collaborator_id=collaborator_id))
 
 @bp.route('/atestado/adicionar', methods=['POST'], strict_slashes=False)
 @login_required
@@ -719,7 +747,7 @@ def atestado_adicionar():
         df_str = (request.form.get('data_fim') or '').strip()
         if not cid_str or not di_str or not df_str:
             flash('Dados obrigatórios ausentes.', 'warning')
-            return redirect(url_for('ciclos.index'))
+            return redirect(url_for('ciclos.index', collaborator_id=cid_str if cid_str else None))
         cid = int(cid_str)
         data_inicio = datetime.strptime(di_str, '%Y-%m-%d').date()
         data_fim = datetime.strptime(df_str, '%Y-%m-%d').date()
@@ -729,7 +757,7 @@ def atestado_adicionar():
         
         if data_fim < data_inicio:
             flash('Data final deve ser maior ou igual à data inicial.', 'warning')
-            return redirect(url_for('ciclos.index'))
+            return redirect(url_for('ciclos.index', collaborator_id=cid))
         
         dias = (data_fim - data_inicio).days + 1
         
@@ -742,14 +770,14 @@ def atestado_adicionar():
                 
                 if '.' not in foto.filename or foto.filename.rsplit('.', 1)[1].lower() not in ALLOWED_IMAGE_EXTENSIONS:
                     flash('Tipo de arquivo não permitido. Use imagens (PNG, JPG, JPEG, GIF).', 'warning')
-                    return redirect(url_for('ciclos.index'))
+                    return redirect(url_for('ciclos.index', collaborator_id=cid))
                 
                 foto.seek(0, 2)
                 size = foto.tell()
                 foto.seek(0)
                 if size > MAX_UPLOAD_SIZE:
                     flash('Arquivo muito grande. Máximo 10MB.', 'warning')
-                    return redirect(url_for('ciclos.index'))
+                    return redirect(url_for('ciclos.index', collaborator_id=cid))
                 
                 upload_dir = os.path.join('static', 'uploads', 'atestados')
                 os.makedirs(upload_dir, exist_ok=True)
@@ -774,7 +802,15 @@ def atestado_adicionar():
     except Exception as e:
         db.session.rollback()
         flash(f'Erro ao registrar atestado: {e}', 'danger')
-    return redirect(url_for('ciclos.index'))
+        # Em caso de erro, tentar manter collaborator_id se disponível
+        try:
+            cid = int(request.form.get('collaborator_id', 0))
+            if cid:
+                return redirect(url_for('ciclos.index', collaborator_id=cid))
+        except:
+            pass
+    # Manter collaborator_id na URL para exibir os cards
+    return redirect(url_for('ciclos.index', collaborator_id=cid))
 
 @bp.route('/atestado/<int:id>/excluir', methods=['POST'], strict_slashes=False)
 @login_required
@@ -784,6 +820,7 @@ def atestado_excluir(id: int):
         flash('Acesso negado.', 'danger')
         return redirect(url_for('ciclos.index'))
     m = MedicalCertificate.query.get_or_404(id)
+    collaborator_id = m.collaborator_id
     try:
         if m.foto_atestado:
             path = os.path.join('static', 'uploads', 'atestados', m.foto_atestado)
@@ -795,7 +832,8 @@ def atestado_excluir(id: int):
     except Exception as e:
         db.session.rollback()
         flash(f'Erro ao excluir: {e}', 'danger')
-    return redirect(url_for('ciclos.index'))
+    # Manter collaborator_id na URL para exibir os cards
+    return redirect(url_for('ciclos.index', collaborator_id=collaborator_id))
 
 @bp.route('/ferias/listar/<int:collaborator_id>', methods=['GET'], strict_slashes=False)
 @login_required

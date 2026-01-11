@@ -168,56 +168,58 @@
     </div>
 </div>
 
-<!-- Banco de Horas e Folgas (se tiver colaborador vinculado) -->
+<!-- Banco de Horas - Sistema de Ciclos (se tiver colaborador vinculado) -->
 {% if collab and balance_data %}
 <div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
     <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon {% if balance_data.residual_hours >= 0 %}mm-kpi-icon-pos mm-text-success{% else %}mm-kpi-icon-neg mm-text-danger{% endif %}">
+        <div class="mm-kpi-icon {% if balance_data.horas_restantes >= 0 %}mm-kpi-icon-pos mm-text-success{% else %}mm-kpi-icon-neg mm-text-danger{% endif %}">
             <i class="bi bi-clock-history"></i>
         </div>
-        <div class="mm-kpi-label">Horas Residuais</div>
-        <div class="mm-kpi-value {% if balance_data.residual_hours >= 0 %}mm-text-success{% else %}mm-text-danger{% endif %}">
-            {{ '%.2f'|format(balance_data.residual_hours) }}h
+        <div class="mm-kpi-label">Total de Horas</div>
+        <div class="mm-kpi-value {% if balance_data.total_horas >= 0 %}mm-text-success{% else %}mm-text-danger{% endif %}">
+            {{ '%.1f'|format(balance_data.total_horas) }}h
         </div>
-        <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Após conversões</small>
+        <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Horas acumuladas</small>
     </div>
     
     <div class="mm-card mm-kpi-card">
         <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-success);">
             <i class="bi bi-calendar-check"></i>
         </div>
-        <div class="mm-kpi-label">Saldo de Folgas</div>
-        <div class="mm-kpi-value mm-text-success">{{ balance_data.saldo_days }} dias</div>
+        <div class="mm-kpi-label">Dias Completos</div>
+        <div class="mm-kpi-value mm-text-success">{{ balance_data.dias_completos }} dias</div>
         {% if collab %}
         <div class="mm-kpi-action mt-2">
-            <a href="{{ url_for('jornada.historico_colaborador', collaborator_id=collab.id) }}" 
+            <a href="/ciclos/" 
                class="btn btn-sm btn-outline-primary" 
                target="_blank"
                title="Visualizar histórico completo (abre em nova aba)">
                 <i class="bi bi-clock-history"></i>
-                Ver Histórico Completo
+                Ver Ciclos
             </a>
         </div>
         {% endif %}
-        <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Disponíveis</small>
+        <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Conversíveis em R$</small>
     </div>
     
     <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning);">
-            <i class="bi bi-calendar-minus"></i>
+        <div class="mm-kpi-icon {% if balance_data.horas_restantes >= 0 %}mm-kpi-icon-pos mm-text-warning{% else %}mm-kpi-icon-neg mm-text-danger{% endif %}">
+            <i class="bi bi-hourglass-split"></i>
         </div>
-        <div class="mm-kpi-label">Folgas Usadas</div>
-        <div class="mm-kpi-value mm-text-warning">{{ balance_data.assigned_sum }} dias</div>
-        <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Total utilizado</small>
+        <div class="mm-kpi-label">Horas Restantes</div>
+        <div class="mm-kpi-value {% if balance_data.horas_restantes >= 0 %}mm-text-warning{% else %}mm-text-danger{% endif %}">
+            {{ '%.1f'|format(balance_data.horas_restantes) }}h
+        </div>
+        <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Aguardando próximo ciclo</small>
     </div>
     
     <div class="mm-card mm-kpi-card">
         <div class="mm-kpi-icon" style="background: rgba(139, 92, 246, 0.15); color: #8B5CF6;">
             <i class="bi bi-cash-coin"></i>
         </div>
-        <div class="mm-kpi-label">Conversões</div>
-        <div class="mm-kpi-value" style="color: #8B5CF6;">{{ balance_data.converted_sum }} dias</div>
-        <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Em dinheiro</small>
+        <div class="mm-kpi-label">Valor Aproximado</div>
+        <div class="mm-kpi-value" style="color: #8B5CF6;">R$ {{ '%.2f'|format(balance_data.valor_aproximado) }}</div>
+        <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Dias completos convertidos</small>
     </div>
 </div>
 
@@ -229,9 +231,9 @@
             <i class="bi bi-cash-coin mm-text-success"></i>
             Valores a Receber
         </h3>
-        <a href="{{ url_for('jornada.index', collaborator_id=collab.id) }}" class="mm-btn mm-btn-outline mm-btn-sm">
+        <a href="/ciclos/" class="mm-btn mm-btn-outline mm-btn-sm">
             <i class="bi bi-arrow-right"></i>
-            Ver Detalhes na Jornada
+            Ver Detalhes nos Ciclos
         </a>
     </div>
     <div class="mm-card-body">
@@ -303,62 +305,65 @@
         {% else %}
         <div class="mm-info-box" style="background: rgba(59, 130, 246, 0.1); border-left: 3px solid var(--mm-primary);">
             <i class="bi bi-info-circle mm-text-primary"></i>
-            <span>Os valores serão calculados automaticamente quando houver dados de jornada disponíveis.</span>
+            <span>Os valores serão calculados automaticamente quando houver dados de ciclos disponíveis.</span>
         </div>
         {% endif %}
     </div>
 </div>
 {% endif %}
 
-<!-- Detalhamento de Horas e Folgas -->
-<div class="mm-grid mm-grid-cols-2 mm-gap-6 mm-mb-6">
-    <!-- Banco de Horas -->
-    <div class="mm-card">
-        <div class="mm-card-header">
-            <h3 class="mm-card-title">
-                <i class="bi bi-clock-history mm-text-primary"></i>
-                Banco de Horas
-            </h3>
-            <span class="mm-badge {% if balance_data.residual_hours > 0 %}mm-badge-success{% elif balance_data.residual_hours < 0 %}mm-badge-danger{% endif %}">
-                {{ '%.2f'|format(balance_data.residual_hours) }}h residual
+<!-- Detalhamento de Lançamentos - Sistema de Ciclos -->
+{% if collab and balance_data %}
+<div class="mm-card mm-mb-6">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <i class="bi bi-clock-history mm-text-primary"></i>
+            Lançamentos de Horas
+        </h3>
+            <span class="mm-badge {% if balance_data.horas_restantes > 0 %}mm-badge-success{% elif balance_data.horas_restantes < 0 %}mm-badge-danger{% endif %}">
+                {{ '%.1f'|format(balance_data.horas_restantes) }}h restantes
             </span>
         </div>
         <div class="mm-card-body">
             <div class="mm-info-box mm-mb-4">
                 <i class="bi bi-info-circle"></i>
-                <span>Total bruto: {{ '%.2f'|format(balance_data.total_bruto_hours) }}h | Convertido: {{ balance_data.days_from_hours }} dias</span>
+                <span>Total: {{ '%.1f'|format(balance_data.total_horas) }}h | Dias completos: {{ balance_data.dias_completos }} dias</span>
             </div>
             <div class="mm-info-box mm-mb-4" style="background: rgba(59, 130, 246, 0.1);">
                 <i class="bi bi-lightbulb"></i>
-                <span>Regra: a cada 8h acumuladas vira +1 dia de folga e as horas são reiniciadas.</span>
+                <span>Regra: a cada 8h acumuladas vira 1 dia completo. Horas restantes aguardam o próximo ciclo.</span>
             </div>
             <div class="mm-table-wrapper">
                 <table class="mm-table">
                     <thead>
                         <tr>
                             <th>Data</th>
+                            <th>Origem</th>
                             <th style="text-align: right;">Horas</th>
-                            <th>Observações</th>
+                            <th>Descrição</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for e in entries %}
                         <tr>
-                            <td>{{ e.date.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ e.data_lancamento.strftime('%d/%m/%Y') }}</td>
+                            <td>
+                                <span class="mm-badge mm-badge-info">{{ e.origem }}</span>
+                            </td>
                             <td style="text-align: right;">
-                                {% if e.hours > 0 %}
-                                <span class="mm-badge mm-badge-success">+{{ '%.2f'|format(e.hours) }}h</span>
-                                {% elif e.hours < 0 %}
-                                <span class="mm-badge mm-badge-danger">{{ '%.2f'|format(e.hours) }}h</span>
+                                {% if e.valor_horas > 0 %}
+                                <span class="mm-badge mm-badge-success">+{{ '%.1f'|format(e.valor_horas) }}h</span>
+                                {% elif e.valor_horas < 0 %}
+                                <span class="mm-badge mm-badge-danger">{{ '%.1f'|format(e.valor_horas) }}h</span>
                                 {% else %}
-                                <span class="mm-badge">{{ '%.2f'|format(e.hours) }}h</span>
+                                <span class="mm-badge">{{ '%.1f'|format(e.valor_horas) }}h</span>
                                 {% endif %}
                             </td>
-                            <td>{{ e.notes or '-' }}</td>
+                            <td>{{ e.descricao or '-' }}</td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="3" class="mm-empty-cell">
+                            <td colspan="4" class="mm-empty-cell">
                                 <div class="mm-empty-inline">
                                     <i class="bi bi-clock-history"></i>
                                     <span>Sem lançamentos</span>
@@ -370,142 +375,13 @@
                 </table>
             </div>
         </div>
-    </div>
-    
-    <!-- Folgas -->
-    <div class="mm-card">
-        <div class="mm-card-header">
-            <h3 class="mm-card-title">
-                <i class="bi bi-calendar-check mm-text-success"></i>
-                Folgas
-            </h3>
-            <span class="mm-badge mm-badge-primary">
-                Saldo: {{ balance_data.saldo_days }} dia(s)
-            </span>
-        </div>
-        <div class="mm-card-body">
-            <div class="mm-grid mm-grid-cols-2 mm-gap-4 mm-mb-4">
-                <div>
-                    <h5 class="mm-section-title mm-mb-3">
-                        <i class="bi bi-plus-circle mm-text-success"></i>
-                        Créditos
-                    </h5>
-                    <div class="mm-table-wrapper">
-                        <table class="mm-table">
-                            <thead>
-                                <tr>
-                                    <th>Data</th>
-                                    <th style="text-align: center;">Dias</th>
-                                    <th>Origem</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for c in folga_credits[:10] %}
-                                <tr>
-                                    <td>{{ c.date.strftime('%d/%m/%Y') }}</td>
-                                    <td style="text-align: center;">
-                                        <span class="mm-badge mm-badge-success">+{{ c.days or 0 }}</span>
-                                    </td>
-                                    <td>
-                                        {% if c.origin == 'horas' %}
-                                        <span class="mm-badge mm-badge-info">Banco de Horas</span>
-                                        {% else %}
-                                        <span class="mm-badge">{{ c.origin or 'manual' }}</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td colspan="3" class="mm-empty-cell">
-                                        <div class="mm-empty-inline">
-                                            <i class="bi bi-calendar-plus"></i>
-                                            <span>Sem créditos</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                
-                <div>
-                    <h5 class="mm-section-title mm-mb-3">
-                        <i class="bi bi-calendar-minus mm-text-danger"></i>
-                        Usadas
-                    </h5>
-                    <div class="mm-table-wrapper">
-                        <table class="mm-table">
-                            <thead>
-                                <tr>
-                                    <th>Data</th>
-                                    <th style="text-align: center;">Dias</th>
-                                    <th>Obs</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for a in folga_assigned[:10] %}
-                                <tr>
-                                    <td>{{ a.date.strftime('%d/%m/%Y') }}</td>
-                                    <td style="text-align: center;">
-                                        <span class="mm-badge mm-badge-danger">-{{ a.days or 0 }}</span>
-                                    </td>
-                                    <td>{{ a.notes or '-' }}</td>
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td colspan="3" class="mm-empty-cell">
-                                        <div class="mm-empty-inline">
-                                            <i class="bi bi-calendar-x"></i>
-                                            <span>Sem folgas usadas</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            
-            {% if folga_conversions %}
-            <hr class="mm-divider">
-            <h5 class="mm-section-title mm-mb-3">
-                <i class="bi bi-cash-coin mm-text-warning"></i>
-                Conversões em Dinheiro
-            </h5>
-            <div class="mm-table-wrapper">
-                <table class="mm-table">
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th style="text-align: center;">Dias</th>
-                            <th style="text-align: right;">R$/dia</th>
-                            <th style="text-align: right;">Valor Pago</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for v in folga_conversions[:10] %}
-                        <tr>
-                            <td>{{ v.date.strftime('%d/%m/%Y') }}</td>
-                            <td style="text-align: center;">
-                                <span class="mm-badge mm-badge-warning">{{ v.days or 0 }}</span>
-                            </td>
-                            <td style="text-align: right;">R$ {{ '%.2f'|format(v.rate_per_day or 0) }}</td>
-                            <td style="text-align: right;"><strong>R$ {{ '%.2f'|format(v.amount_paid or 0) }}</strong></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% endif %}
-        </div>
         <div class="mm-card-footer">
             <i class="bi bi-info-circle"></i>
-            Para ver todos os registros, acesse <a href="{{ url_for('jornada.index', collaborator_id=collab.id) }}" class="mm-link">Jornada</a>.
+            Para ver todos os registros, acesse <a href="/ciclos/" class="mm-link">Ciclos</a>.
         </div>
     </div>
 </div>
+{% endif %}
 {% elif not collab %}
 <div class="mm-card mm-mb-6">
     <div class="mm-card-body">

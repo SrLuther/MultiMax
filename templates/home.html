@@ -150,19 +150,6 @@
                 <div class="shortcut-label">Jornada</div>
             </a>
 
-            <a href="{{ url_for('temporarios.index') }}" class="shortcut-card shortcut-teal">
-                <div class="shortcut-icon">
-                    <i class="bi bi-hourglass-split"></i>
-                </div>
-                <div class="shortcut-label">Temporários</div>
-            </a>
-
-            <a href="{{ url_for('relatorios.index') }}" class="shortcut-card shortcut-indigo">
-                <div class="shortcut-icon">
-                    <i class="bi bi-file-earmark-bar-graph"></i>
-                </div>
-                <div class="shortcut-label">Relatórios</div>
-            </a>
 
             {% if current_user.is_authenticated and current_user.nivel in ['admin', 'DEV'] %}
             <a href="{{ url_for('usuarios.gestao') }}" class="shortcut-card shortcut-dark">

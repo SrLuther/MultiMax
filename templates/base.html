@@ -73,13 +73,6 @@
                 </a>
             </div>
             
-            <div class="mm-nav-section">
-                <div class="mm-nav-section-title">Gestão</div>
-                <a href="{{ url_for('relatorios.index') }}" class="mm-nav-item {% if 'relatorios' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-file-earmark-bar-graph mm-nav-icon"></i>
-                    <span class="mm-nav-text">Relatórios</span>
-                </a>
-            </div>
             {% endif %}
             
             
@@ -96,10 +89,6 @@
                     <span class="mm-nav-text">Banco de Dados</span>
                 </a>
                 {% endif %}
-                <a href="{{ url_for('temporarios.index') }}" class="mm-nav-item {% if 'temporarios' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-hourglass-split mm-nav-icon"></i>
-                    <span class="mm-nav-text">Dados Temporários</span>
-                </a>
             </div>
             {% endif %}
         </nav>

@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from ..password_hash import generate_password_hash, check_password_hash
 from ..filename_utils import secure_filename
 from .. import db
-from ..models import User, Produto, Historico, CleaningHistory, SystemLog, NotificationRead, Collaborator, JobRole, Shift, CleaningTask, Vacation, MedicalCertificate, Holiday, TimeOffRecord, AppSetting
+from ..models import User, Produto, Historico, CleaningHistory, SystemLog, NotificationRead, Collaborator, JobRole, Shift, CleaningTask, Vacation, MedicalCertificate, Holiday, TimeOffRecord, AppSetting, Ciclo
 from datetime import datetime
 from typing import cast, Sequence
 import os
@@ -457,95 +457,59 @@ def perfil():
     collab = None
     balance_data = None
     entries = []
-    folga_credits = []
-    folga_assigned = []
-    folga_conversions = []
     
     try:
         collab = Collaborator.query.filter_by(user_id=current_user.id).first()
         if collab:
-            # Usar função corrigida de cálculo de saldo (mesma do jornada.py)
-            from sqlalchemy import func, or_
-            from datetime import date as _date
+            # Usar função do sistema de Ciclos
+            from ..routes.ciclos import _calculate_collaborator_balance
             
-            # Calcular saldo usando a mesma lógica CORRIGIDA do sistema de jornada
-            filters = [TimeOffRecord.collaborator_id == collab.id]
-            hq = TimeOffRecord.query.filter(*filters, TimeOffRecord.record_type == 'horas')
-            total_bruto_hours = sum(float(r.hours or 0.0) for r in hq.all() if (r.hours or 0.0) > 0)
-            days_from_hours = int(total_bruto_hours // 8.0) if total_bruto_hours >= 0.0 else 0
-            residual_hours = (total_bruto_hours % 8.0) if total_bruto_hours >= 0.0 else 0.0
-            
-            # CORREÇÃO: Excluir folgas com origin='horas' (já estão em days_from_hours)
-            credits_sum = int(TimeOffRecord.query.filter(*filters, TimeOffRecord.record_type == 'folga_adicional', or_(TimeOffRecord.origin != 'horas', TimeOffRecord.origin.is_(None))).with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
-            assigned_sum = int(TimeOffRecord.query.filter(*filters, TimeOffRecord.record_type == 'folga_usada').with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
-            converted_sum = int(TimeOffRecord.query.filter(*filters, TimeOffRecord.record_type == 'conversao').with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
-            folga_balance = credits_sum + days_from_hours - assigned_sum - converted_sum
+            # Calcular saldo usando o sistema de Ciclos
+            balance = _calculate_collaborator_balance(collab.id)
             
             balance_data = {
-                'total_bruto_hours': total_bruto_hours,
-                'days_from_hours': days_from_hours,
-                'residual_hours': residual_hours,
-                'credits_sum': credits_sum,
-                'assigned_sum': assigned_sum,
-                'converted_sum': converted_sum,
-                'saldo_days': folga_balance
+                'total_horas': balance['total_horas'],
+                'dias_completos': balance['dias_completos'],
+                'horas_restantes': balance['horas_restantes'],
+                'valor_aproximado': balance['valor_aproximado']
             }
             
-            # Buscar registros para exibição
-            entries = TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == collab.id, TimeOffRecord.record_type == 'horas').order_by(TimeOffRecord.date.desc()).limit(50).all()
-            folga_credits = TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == collab.id, TimeOffRecord.record_type == 'folga_adicional').order_by(TimeOffRecord.date.desc()).limit(50).all()
-            folga_assigned = TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == collab.id, TimeOffRecord.record_type == 'folga_usada').order_by(TimeOffRecord.date.desc()).limit(50).all()
-            folga_conversions = TimeOffRecord.query.filter(TimeOffRecord.collaborator_id == collab.id, TimeOffRecord.record_type == 'conversao').order_by(TimeOffRecord.date.desc()).limit(50).all()
+            # Buscar registros ativos para exibição
+            entries = Ciclo.query.filter(
+                Ciclo.collaborator_id == collab.id,
+                Ciclo.status_ciclo == 'ativo'
+            ).order_by(Ciclo.data_lancamento.desc(), Ciclo.id.desc()).limit(50).all()
     except Exception:
         collab = None
         balance_data = None
     
     # Variáveis de saldo para compatibilidade
-    residual_hours = balance_data['residual_hours'] if balance_data else 0.0
-    folga_balance = balance_data['saldo_days'] if balance_data else 0
+    residual_hours = balance_data['horas_restantes'] if balance_data else 0.0
+    dias_completos = balance_data['dias_completos'] if balance_data else 0
     
     # Calcular valores monetários a receber
     collaborator_values = None
     day_value = 0.0
-    if collab:
+    if collab and balance_data:
         try:
-            # Obter valor por dia
+            # Obter valor por dia (sistema de Ciclos)
             try:
-                setting = AppSetting.query.filter_by(key='jornada_valor_dia').first()
+                setting = AppSetting.query.filter_by(key='ciclo_valor_dia').first()
                 if setting and setting.value:
                     day_value = float(setting.value)
+                else:
+                    day_value = 65.0  # Valor padrão
             except Exception:
-                day_value = 0.0
+                day_value = 65.0  # Valor padrão
             
-            # Calcular valores usando a mesma lógica da jornada
-            from sqlalchemy import func, or_
-            from datetime import date as _date
-            
-            # Calcular saldo (mesma lógica do perfil)
-            filters = [TimeOffRecord.collaborator_id == collab.id]
-            hq = TimeOffRecord.query.filter(*filters, TimeOffRecord.record_type == 'horas')
-            total_bruto_hours = sum(float(r.hours or 0.0) for r in hq.all() if (r.hours or 0.0) > 0)
-            days_from_hours = int(total_bruto_hours // 8.0) if total_bruto_hours >= 0.0 else 0
-            residual_hours = (total_bruto_hours % 8.0) if total_bruto_hours >= 0.0 else 0.0
-            
-            credits_sum = int(TimeOffRecord.query.filter(*filters, TimeOffRecord.record_type == 'folga_adicional', or_(TimeOffRecord.origin != 'horas', TimeOffRecord.origin.is_(None))).with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
-            assigned_sum = int(TimeOffRecord.query.filter(*filters, TimeOffRecord.record_type == 'folga_usada').with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
-            converted_sum = int(TimeOffRecord.query.filter(*filters, TimeOffRecord.record_type == 'conversao').with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
-            saldo_days = credits_sum + days_from_hours - assigned_sum - converted_sum
-            
-            # Calcular valores monetários
-            full_days = max(0, saldo_days)
-            value_full_days = full_days * day_value
-            value_residual_hours = (residual_hours / 8.0) * day_value if residual_hours > 0 else 0.0
-            value_total_individual = value_full_days + value_residual_hours
-            
+            # Usar valores já calculados pelo sistema de Ciclos
             collaborator_values = {
-                'full_days': full_days,
-                'residual_hours': residual_hours,
+                'full_days': balance_data['dias_completos'],
+                'residual_hours': balance_data['horas_restantes'],
                 'day_value': day_value,
-                'value_full_days': value_full_days,
-                'value_residual_hours': value_residual_hours,
-                'value_total_individual': value_total_individual
+                'value_full_days': balance_data['valor_aproximado'],
+                'value_residual_hours': 0.0,  # Horas restantes não entram na conversão
+                'value_total_individual': balance_data['valor_aproximado']
             }
         except Exception as e:
             current_app.logger.error(f'Erro ao calcular valores do colaborador: {e}')
@@ -601,23 +565,8 @@ def perfil():
                         next_shift_hour = '05:00'
         except Exception:
             pass
-        if not is_on_break:
-            try:
-                la_list = TimeOffRecord.query.filter(
-                    TimeOffRecord.collaborator_id == collab.id,
-                    TimeOffRecord.record_type == 'folga_usada',
-                    TimeOffRecord.date <= today
-                ).order_by(TimeOffRecord.date.desc()).limit(5).all()
-                for la in (la_list or []):
-                    days = max(1, int(la.days or 1))
-                    end_date = la.date + _td(days=days - 1)
-                    if end_date >= today:
-                        is_on_break = True
-                        end_dt = _dt.combine(end_date, _dt.min.time().replace(hour=23, minute=59, second=59))
-                        break_end_timestamp = int(end_dt.timestamp())
-                        break
-            except Exception:
-                pass
+        # Folgas utilizadas agora são registradas no sistema de Ciclos com origem 'Folga utilizada'
+        # Não precisamos mais verificar TimeOffRecord para folgas
         
         try:
             vacation = Vacation.query.filter(
@@ -690,10 +639,7 @@ def perfil():
                          balance_data=balance_data,
                          entries=entries, 
                          residual_hours=residual_hours, 
-                         folga_balance=folga_balance, 
-                         folga_credits=folga_credits, 
-                         folga_assigned=folga_assigned, 
-                         folga_conversions=folga_conversions, 
+                         dias_completos=dias_completos,
                          is_on_break=is_on_break, 
                          is_on_vacation=is_on_vacation, 
                          vacation_end_date=vacation_end_date, 

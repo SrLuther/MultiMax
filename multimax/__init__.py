@@ -145,7 +145,6 @@ def create_app():
     from .routes.carnes import bp as carnes_bp
     from .routes.colaboradores import bp as colaboradores_bp
     from .routes.receitas import bp as receitas_bp
-    from .routes.relatorios import bp as relatorios_bp
     from .routes.api import bp as api_bp
     from .routes.jornada import bp as jornada_bp
     try:
@@ -154,10 +153,6 @@ def create_app():
         app.logger.warning(f'Blueprint jornada_pdf não pode ser importado (será desabilitado): {e}')
         jornada_pdf_bp = None
     from .routes.ciclos import bp as ciclos_bp
-    try:
-        from .routes.temporarios import bp as temporarios_bp
-    except Exception:
-        temporarios_bp = None
     notif_enabled = (os.getenv('NOTIFICACOES_ENABLED', 'false') or 'false').lower() == 'true'
     notificacoes_bp = None
     if notif_enabled:
@@ -182,14 +177,11 @@ def create_app():
     app.register_blueprint(carnes_bp)
     app.register_blueprint(colaboradores_bp)
     app.register_blueprint(receitas_bp)
-    app.register_blueprint(relatorios_bp)
     app.register_blueprint(api_bp)
     app.register_blueprint(jornada_bp)
     if jornada_pdf_bp:
         app.register_blueprint(jornada_pdf_bp)
     app.register_blueprint(ciclos_bp)
-    if temporarios_bp:
-        app.register_blueprint(temporarios_bp)
     if notificacoes_bp:
         app.register_blueprint(notificacoes_bp)
     if dbadmin_bp:
