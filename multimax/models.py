@@ -374,11 +374,53 @@ class RecipeIngredient(db.Model):
     __tablename__ = 'recipe_ingredient'
     id = db.Column(db.Integer, primary_key=True)
     recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'))
-    nome = db.Column(db.String(100), nullable=False)
-    quantidade = db.Column(db.String(50))
-    produto_id = db.Column(db.Integer, db.ForeignKey('produto.id'), nullable=True)
-    quantidade_kg = db.Column(db.Float, default=0.0)
-    custo_unitario = db.Column(db.Float, default=0.0)
+
+# ============================================================================
+# Sistema de Ciclos - Nova Implementação
+# ============================================================================
+
+class Ciclo(db.Model):
+    """Tabela para armazenar lançamentos de horas do sistema de Ciclos"""
+    __tablename__ = 'ciclo'
+    id = db.Column(db.Integer, primary_key=True)
+    collaborator_id = db.Column(db.Integer, db.ForeignKey('collaborator.id'), nullable=False, index=True)
+    nome_colaborador = db.Column(db.String(100), nullable=False)  # Cópia do nome para histórico
+    data_lancamento = db.Column(db.Date, nullable=False, index=True)
+    origem = db.Column(db.String(50), nullable=False)  # 'Domingo', 'Feriado', 'Horas adicionais', 'Outro'
+    descricao = db.Column(db.String(500), nullable=True)  # Obrigatório se origem = 'Horas adicionais' ou 'Outro'
+    valor_horas = db.Column(db.Numeric(5, 1), nullable=False)  # Decimal, múltiplos de 0.5, ponto como separador
+    dias_fechados = db.Column(db.Integer, nullable=True, default=0)  # Calculado: floor(valor_horas / 8)
+    horas_restantes = db.Column(db.Numeric(5, 1), nullable=True, default=0.0)  # Calculado: valor_horas % 8
+    ciclo_id = db.Column(db.Integer, nullable=True, index=True)  # ID do ciclo (para agrupar por período de fechamento)
+    status_ciclo = db.Column(db.String(20), nullable=False, default='ativo', index=True)  # 'ativo', 'fechado'
+    valor_aproximado = db.Column(db.Numeric(10, 2), nullable=True)  # Valor em R$ aproximado (dias_fechados * valor_dia)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')))
+    created_by = db.Column(db.String(100), nullable=True)
+    updated_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    updated_by = db.Column(db.String(100), nullable=True)
+    
+    collaborator = db.relationship('Collaborator', backref='ciclos', lazy=True)
+    
+    def __repr__(self):
+        return f'<Ciclo {self.collaborator_id} - {self.data_lancamento} - {self.valor_horas}h>'
+
+class CicloFechamento(db.Model):
+    """Tabela para armazenar fechamentos de ciclos"""
+    __tablename__ = 'ciclo_fechamento'
+    id = db.Column(db.Integer, primary_key=True)
+    ciclo_id = db.Column(db.Integer, nullable=False, unique=True, index=True)  # ID do ciclo fechado
+    data_fechamento = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo('America/Sao_Paulo')), nullable=False)
+    fechado_por = db.Column(db.String(100), nullable=False)
+    valor_total = db.Column(db.Numeric(10, 2), nullable=False)  # Valor total pago no ciclo
+    total_horas = db.Column(db.Numeric(8, 1), nullable=False)  # Total de horas do ciclo
+    total_dias = db.Column(db.Integer, nullable=False)  # Total de dias completos do ciclo
+    colaboradores_envolvidos = db.Column(db.Integer, nullable=False)  # Quantidade de colaboradores
+    observacoes = db.Column(db.Text, nullable=True)
+    payment_date = db.Column(db.Date, nullable=True)  # Data do pagamento
+    payment_amount = db.Column(db.Numeric(10, 2), nullable=True)  # Valor pago confirmado
+    
+    def __repr__(self):
+        return f'<CicloFechamento {self.ciclo_id} - {self.data_fechamento}>'
 
 class UserLogin(db.Model):
     __tablename__ = 'user_login'
