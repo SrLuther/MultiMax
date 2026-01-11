@@ -6,7 +6,13 @@
     <style>
         @page {
             size: A4;
-            margin: 2cm;
+            margin: 2cm 2cm 3cm 2cm;
+            @bottom-center {
+                content: "www.multimax.tec.br";
+                font-size: 9px;
+                color: #666;
+                font-family: Arial, sans-serif;
+            }
         }
         body {
             font-family: Arial, sans-serif;
@@ -29,10 +35,18 @@
             font-size: 18px;
             color: #666;
         }
+        .ciclo-info {
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 1rem 0;
+            color: #1a73e8;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            page-break-inside: avoid;
         }
         th, td {
             border: 1px solid #ddd;
@@ -52,6 +66,7 @@
             padding: 1rem;
             border-radius: 4px;
             margin-top: 1rem;
+            margin-bottom: 1.5rem;
         }
         .resumo-item {
             display: inline-block;
@@ -61,6 +76,24 @@
         .resumo-label {
             font-weight: bold;
         }
+        .colaborador-section {
+            margin-top: 2rem;
+            page-break-inside: avoid;
+        }
+        .colaborador-section h3 {
+            font-size: 14px;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 0.25rem;
+            color: #1a73e8;
+        }
+        .historico-table {
+            font-size: 10px;
+        }
+        .historico-table th {
+            background-color: #e8f4f8;
+            font-size: 10px;
+        }
         .footer {
             margin-top: 2rem;
             text-align: center;
@@ -69,12 +102,17 @@
             border-top: 1px solid #ccc;
             padding-top: 1rem;
         }
+        .footer-url {
+            font-weight: bold;
+            color: #1a73e8;
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>{{ nome_empresa }}</h1>
         <h2>Resumo Geral do Ciclo</h2>
+        <div class="ciclo-info">Ciclo - {{ ciclo_id }} | {{ mes_inicio }}</div>
     </div>
 
     <table>
@@ -126,8 +164,50 @@
         </div>
     </div>
 
+    <!-- Detalhamento Histórico por Colaborador -->
+    {% for resumo in colaboradores_resumo %}
+    <div class="colaborador-section">
+        <h3>{{ resumo.collaborator.name }} - Histórico Detalhado</h3>
+        {% if resumo.registros %}
+        <table class="historico-table">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Origem</th>
+                    <th>Descrição</th>
+                    <th>Horas</th>
+                    <th>Dias Fechados</th>
+                    <th>Horas Restantes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reg in resumo.registros %}
+                <tr>
+                    <td>{{ reg.data_lancamento.strftime('%d/%m/%Y') }}</td>
+                    <td>{{ reg.origem }}</td>
+                    <td>{{ reg.descricao or '-' }}</td>
+                    <td>{{ "%.1f"|format(reg.valor_horas) }}h</td>
+                    <td>{{ reg.dias_fechados or 0 }}</td>
+                    <td>{{ "%.1f"|format(reg.horas_restantes) if reg.horas_restantes else '0.0' }}h</td>
+                </tr>
+                {% endfor %}
+                <tr class="total-row">
+                    <td colspan="3"><strong>Subtotal</strong></td>
+                    <td><strong>{{ "%.1f"|format(resumo.balance.total_horas) }}h</strong></td>
+                    <td><strong>{{ resumo.balance.dias_completos }} dias</strong></td>
+                    <td><strong>{{ "%.1f"|format(resumo.balance.horas_restantes) }}h</strong></td>
+                </tr>
+            </tbody>
+        </table>
+        {% else %}
+        <p>Nenhum registro encontrado.</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+
     <div class="footer">
         <p>Documento gerado automaticamente pelo sistema MultiMax em {{ data_geracao.strftime('%d/%m/%Y às %H:%M') }}</p>
+        <p class="footer-url">www.multimax.tec.br</p>
     </div>
 </body>
 </html>

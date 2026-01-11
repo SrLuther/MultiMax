@@ -958,16 +958,45 @@ def pdf_geral():
         
         valor_dia = _get_valor_dia()
         
+        # Buscar primeiro ciclo_id disponível (próximo ciclo ou 1 se não houver fechamentos)
+        ultimo_fechamento = CicloFechamento.query.order_by(CicloFechamento.ciclo_id.desc()).first()
+        ciclo_id = (ultimo_fechamento.ciclo_id + 1) if ultimo_fechamento else 1
+        
+        # Buscar primeira data de lançamento dos registros ativos para determinar mês de início
+        primeira_data = Ciclo.query.filter(Ciclo.status_ciclo == 'ativo').order_by(Ciclo.data_lancamento.asc()).first()
+        if primeira_data:
+            mes_inicio = primeira_data.data_lancamento.strftime('%B')
+            # Converter para português
+            meses_pt = {
+                'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março',
+                'April': 'Abril', 'May': 'Maio', 'June': 'Junho',
+                'July': 'Julho', 'August': 'Agosto', 'September': 'Setembro',
+                'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'
+            }
+            mes_inicio = meses_pt.get(mes_inicio, mes_inicio)
+        else:
+            mes_inicio = datetime.now(ZoneInfo('America/Sao_Paulo')).strftime('%B')
+            meses_pt = {
+                'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março',
+                'April': 'Abril', 'May': 'Maio', 'June': 'Junho',
+                'July': 'Julho', 'August': 'Agosto', 'September': 'Setembro',
+                'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'
+            }
+            mes_inicio = meses_pt.get(mes_inicio, mes_inicio)
+        
         for colab in colaboradores:
             balance = _calculate_collaborator_balance(colab.id)
             
-            # Buscar registros ativos usando helper
-            registros = _get_active_ciclos_query(colab.id).all()
+            # Buscar registros ativos usando helper (ordenados por data)
+            registros = _get_active_ciclos_query(colab.id).order_by(
+                Ciclo.data_lancamento.asc(), Ciclo.id.asc()
+            ).all()
             
             if len(registros) > 0:  # Só incluir se tiver registros
                 colaboradores_resumo.append({
                     'collaborator': colab,
                     'balance': balance,
+                    'registros': registros,  # Incluir registros detalhados
                     'registros_count': len(registros)
                 })
         
@@ -989,6 +1018,8 @@ def pdf_geral():
             total_valor_geral=total_valor_geral,
             nome_empresa=nome_empresa,
             valor_dia=valor_dia,
+            ciclo_id=ciclo_id,
+            mes_inicio=mes_inicio,
             data_geracao=datetime.now(ZoneInfo('America/Sao_Paulo'))
         )
         

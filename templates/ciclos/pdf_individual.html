@@ -6,7 +6,13 @@
     <style>
         @page {
             size: A4;
-            margin: 2cm;
+            margin: 2cm 2cm 3cm 2cm;
+            @bottom-center {
+                content: "www.multimax.tec.br";
+                font-size: 9px;
+                color: #666;
+                font-family: Arial, sans-serif;
+            }
         }
         body {
             font-family: Arial, sans-serif;
@@ -73,6 +79,10 @@
             color: #666;
             border-top: 1px solid #ccc;
             padding-top: 1rem;
+        }
+        .footer-url {
+            font-weight: bold;
+            color: #1a73e8;
         }
     </style>
 </head>
@@ -141,6 +151,7 @@
 
     <div class="footer">
         <p>Documento gerado automaticamente pelo sistema MultiMax em {{ data_geracao.strftime('%d/%m/%Y às %H:%M') }}</p>
+        <p class="footer-url" style="font-weight: bold; color: #1a73e8;">www.multimax.tec.br</p>
     </div>
 </body>
 </html>
