@@ -10,9 +10,9 @@ O MultiMax (container) faz requisições HTTP para este serviço, que então
 executa os comandos no HOST.
 
 ARQUITETURA:
-- MultiMax (container): Faz POST para http://127.0.0.1:9000/deploy
+- MultiMax (site): Faz POST para http://<host>:9000/deploy
 - Deploy Agent (HOST): Executa comandos Git/Docker no HOST
-- Segurança: Aceita apenas conexões localhost, não expõe porta externamente
+- Segurança: Protegido por token via header Authorization: Bearer
 
 REQUISITOS:
 - Python 3.8+
