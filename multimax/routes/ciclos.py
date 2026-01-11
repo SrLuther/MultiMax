@@ -2,10 +2,10 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from .. import db
 from ..models import Collaborator, Ciclo, CicloFechamento, Vacation, MedicalCertificate, AppSetting, SystemLog, Holiday
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 from zoneinfo import ZoneInfo
-from sqlalchemy import func, or_, and_
-from decimal import Decimal, ROUND_HALF_UP
+from sqlalchemy import func
+from decimal import Decimal
 import math
 import os
 
@@ -25,21 +25,29 @@ def _get_all_collaborators():
     """Retorna todos os colaboradores ativos"""
     return Collaborator.query.filter_by(active=True).order_by(Collaborator.name.asc()).all()
 
+def _get_active_ciclos_query(collaborator_id):
+    """Helper para buscar registros ativos de um colaborador"""
+    return Ciclo.query.filter(
+        Ciclo.collaborator_id == collaborator_id,
+        Ciclo.status_ciclo == 'ativo'
+    )
+
 def _calculate_collaborator_balance(collaborator_id):
     """
     FUNÇÃO CENTRAL: Calcula saldo do colaborador a partir dos registros ativos
     NÃO confia em valores armazenados - sempre recalcula a partir das horas
+    Otimizado: usa sum() do SQLAlchemy para melhor performance
     """
-    # Buscar apenas registros ativos do ciclo atual
-    ciclos_ativos = Ciclo.query.filter(
-        Ciclo.collaborator_id == collaborator_id,
-        Ciclo.status_ciclo == 'ativo'
-    ).all()
+    # Buscar soma de todas as horas usando sum() do SQLAlchemy (mais eficiente)
+    total_horas_decimal = _get_active_ciclos_query(collaborator_id).with_entities(
+        func.coalesce(func.sum(Ciclo.valor_horas), 0)
+    ).scalar() or Decimal('0.0')
     
-    # Somar todas as horas (pode ser negativo para folgas utilizadas)
-    total_horas = Decimal('0.0')
-    for ciclo in ciclos_ativos:
-        total_horas += Decimal(str(ciclo.valor_horas))
+    # Converter para Decimal se necessário
+    if not isinstance(total_horas_decimal, Decimal):
+        total_horas = Decimal(str(total_horas_decimal))
+    else:
+        total_horas = total_horas_decimal
     
     # Calcular dias completos (floor de total_horas / 8)
     # Apenas dias completos entram na conversão para R$
@@ -191,8 +199,6 @@ def index():
         except Exception:
             pass
         flash(f'Erro ao carregar Ciclos: {str(e)}', 'danger')
-        import traceback
-        traceback.print_exc()
         # Retornar página vazia em caso de erro para evitar erro 500
         return render_template(
             'ciclos/index.html',
@@ -322,10 +328,9 @@ def historico(collaborator_id):
         collaborator = Collaborator.query.get_or_404(collaborator_id)
         
         # Buscar registros ativos do colaborador
-        query = Ciclo.query.filter(
-            Ciclo.collaborator_id == collaborator_id,
-            Ciclo.status_ciclo == 'ativo'
-        ).order_by(Ciclo.data_lancamento.desc(), Ciclo.id.desc())
+        query = _get_active_ciclos_query(collaborator_id).order_by(
+            Ciclo.data_lancamento.desc(), Ciclo.id.desc()
+        )
         
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         registros = pagination.items
@@ -431,13 +436,10 @@ def resumo_fechamento():
             balance = _calculate_collaborator_balance(colab.id)
             
             # Buscar registros ativos
-            registros = Ciclo.query.filter(
-                Ciclo.collaborator_id == colab.id,
-                Ciclo.status_ciclo == 'ativo'
-            ).all()
+            registros = _get_active_ciclos_query(colab.id).all()
             
-            # Calcular totais
-            total_horas = sum(float(r.valor_horas) for r in registros)
+            # Calcular totais usando balance (já calculado acima, mais eficiente)
+            total_horas = balance['total_horas']
             dias_completos = balance['dias_completos']
             horas_restantes = balance['horas_restantes']
             valor_total = balance['valor_aproximado']
@@ -905,10 +907,9 @@ def pdf_individual(collaborator_id):
         collaborator = Collaborator.query.get_or_404(collaborator_id)
         
         # Buscar todos os registros ativos do colaborador
-        registros = Ciclo.query.filter(
-            Ciclo.collaborator_id == collaborator_id,
-            Ciclo.status_ciclo == 'ativo'
-        ).order_by(Ciclo.data_lancamento.desc(), Ciclo.id.desc()).all()
+        registros = _get_active_ciclos_query(collaborator_id).order_by(
+            Ciclo.data_lancamento.desc(), Ciclo.id.desc()
+        ).all()
         
         # Calcular saldo
         balance = _calculate_collaborator_balance(collaborator_id)
