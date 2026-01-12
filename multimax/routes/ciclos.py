@@ -95,6 +95,33 @@ def _get_nome_empresa():
         pass
     return 'MultiMax | Controle inteligente'  # Valor padrão
 
+def _get_ciclo_atual():
+    """Calcula o ciclo atual (ciclo_id e mês de início)"""
+    # Buscar primeiro ciclo_id disponível (próximo ciclo ou 1 se não houver fechamentos)
+    ultimo_fechamento = CicloFechamento.query.order_by(CicloFechamento.ciclo_id.desc()).first()
+    ciclo_id = (ultimo_fechamento.ciclo_id + 1) if ultimo_fechamento else 1
+    
+    # Buscar primeira data de lançamento dos registros ativos para determinar mês de início
+    primeiro_registro = Ciclo.query.filter(Ciclo.status_ciclo == 'ativo').order_by(Ciclo.data_lancamento.asc()).first()
+    if primeiro_registro:
+        mes_inicio = primeiro_registro.data_lancamento.strftime('%B')
+    else:
+        mes_inicio = datetime.now(ZoneInfo('America/Sao_Paulo')).strftime('%B')
+    
+    # Converter para português
+    meses_pt = {
+        'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março',
+        'April': 'Abril', 'May': 'Maio', 'June': 'Junho',
+        'July': 'Julho', 'August': 'Agosto', 'September': 'Setembro',
+        'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'
+    }
+    mes_inicio = meses_pt.get(mes_inicio, mes_inicio)
+    
+    return {
+        'ciclo_id': ciclo_id,
+        'mes_inicio': mes_inicio
+    }
+
 def _validate_hours_format(value_str, allow_negative=False):
     """
     Valida formato de horas: somente múltiplos de 0.5, ponto como separador
@@ -159,6 +186,9 @@ def index():
         nome_empresa = _get_nome_empresa()
         valor_dia = _get_valor_dia()
         
+        # Calcular ciclo atual
+        ciclo_atual = _get_ciclo_atual()
+        
         # Totais gerais
         total_horas_geral = sum(s['balance']['total_horas'] for s in colaboradores_stats)
         total_dias_geral = sum(s['balance']['dias_completos'] for s in colaboradores_stats)
@@ -186,6 +216,7 @@ def index():
             colaboradores_stats=colaboradores_stats,
             nome_empresa=nome_empresa,
             valor_dia=valor_dia,
+            ciclo_atual=ciclo_atual,
             total_horas_geral=total_horas_geral,
             total_dias_geral=total_dias_geral,
             total_horas_restantes_geral=total_horas_restantes_geral,
@@ -203,12 +234,21 @@ def index():
             pass
         flash(f'Erro ao carregar Ciclos: {str(e)}', 'danger')
         # Retornar página vazia em caso de erro para evitar erro 500
+        ciclo_atual_default = {'ciclo_id': 1, 'mes_inicio': datetime.now(ZoneInfo('America/Sao_Paulo')).strftime('%B')}
+        meses_pt = {
+            'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março',
+            'April': 'Abril', 'May': 'Maio', 'June': 'Junho',
+            'July': 'Julho', 'August': 'Agosto', 'September': 'Setembro',
+            'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'
+        }
+        ciclo_atual_default['mes_inicio'] = meses_pt.get(ciclo_atual_default['mes_inicio'], ciclo_atual_default['mes_inicio'])
         return render_template(
             'ciclos/index.html',
             active_page='ciclos',
             colaboradores_stats=[],
             nome_empresa='MultiMax | Controle inteligente',
             valor_dia=65.0,
+            ciclo_atual=ciclo_atual_default,
             total_horas_geral=0.0,
             total_dias_geral=0,
             total_horas_restantes_geral=0.0,

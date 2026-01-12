@@ -12,6 +12,12 @@
                     Sistema de Ciclos
                 </h1>
                 <p class="ciclos-subtitle">Gestão de horas, dias e pagamentos por colaborador</p>
+                {% if ciclo_atual %}
+                <div class="ciclo-atual-badge">
+                    <i class="bi bi-calendar-check"></i>
+                    Ciclo {{ ciclo_atual.ciclo_id }} | {{ ciclo_atual.mes_inicio }}
+                </div>
+                {% endif %}
             </div>
             <div class="ciclos-hero-actions">
                 {% if can_edit and tem_registros_ativos %}
@@ -602,6 +608,24 @@
 .ciclos-subtitle {
     margin: 0.5rem 0 0 0;
     opacity: 0.9;
+}
+
+.ciclo-atual-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    backdrop-filter: blur(10px);
+}
+
+.ciclo-atual-badge i {
+    font-size: 1.1rem;
 }
 
 .btn-action {
