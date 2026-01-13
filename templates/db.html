@@ -971,14 +971,162 @@ async function updateSlowQueries() {
   }
 }
 
-// Manutenção
+// Manutenção - Funções Melhoradas
+var maintenanceStats = null;
+var maintenanceRecommendations = [];
+
+async function loadMaintenanceStats() {
+  try {
+    var resp = await fetch("{{ url_for('dbadmin.maintenance_stats') }}");
+    var json = await resp.json();
+    if (json && json.ok) {
+      maintenanceStats = json;
+      updateMaintenanceDisplay();
+    }
+  } catch(e) {
+    console.error('Erro ao carregar estatísticas:', e);
+  }
+}
+
+async function loadMaintenanceRecommendations() {
+  try {
+    var resp = await fetch("{{ url_for('dbadmin.maintenance_recommendations') }}");
+    var json = await resp.json();
+    if (json && json.ok) {
+      maintenanceRecommendations = json.recommendations || [];
+      updateRecommendationsDisplay();
+    }
+  } catch(e) {
+    console.error('Erro ao carregar recomendações:', e);
+  }
+}
+
+function updateMaintenanceDisplay() {
+  if (!maintenanceStats) return;
+  
+  // Atualizar estatísticas rápidas no card (se existir)
+  var statsEl = document.getElementById('maintenanceQuickStats');
+  if (statsEl && maintenanceStats.database) {
+    var db = maintenanceStats.database;
+    var logs = maintenanceStats.logs;
+    var backups = maintenanceStats.backups;
+    
+    statsEl.innerHTML = `
+      <div class="db-maintenance-quick-stats">
+        <div class="db-quick-stat-item">
+          <span class="db-quick-stat-label">Banco:</span>
+          <span class="db-quick-stat-value">${(db.size_mb || 0).toFixed(2)} MB</span>
+        </div>
+        <div class="db-quick-stat-item">
+          <span class="db-quick-stat-label">Logs:</span>
+          <span class="db-quick-stat-value">${(logs.total_estimated_size_mb || 0).toFixed(2)} MB</span>
+        </div>
+        <div class="db-quick-stat-item">
+          <span class="db-quick-stat-label">Backups:</span>
+          <span class="db-quick-stat-value">${backups.count || 0}</span>
+        </div>
+      </div>
+    `;
+  }
+}
+
+function updateRecommendationsDisplay() {
+  var recEl = document.getElementById('maintenanceRecommendations');
+  if (!recEl) return;
+  
+  if (maintenanceRecommendations.length === 0) {
+    recEl.innerHTML = '<div class="db-no-recommendations">Nenhuma recomendação no momento.</div>';
+    return;
+  }
+  
+  var html = '<div class="db-recommendations-list">';
+  maintenanceRecommendations.forEach(function(rec) {
+    var priorityClass = 'db-rec-' + rec.priority;
+    var priorityIcon = rec.priority === 'high' ? 'bi-exclamation-triangle-fill' : 
+                       rec.priority === 'medium' ? 'bi-info-circle-fill' : 'bi-lightbulb-fill';
+    html += `
+      <div class="db-recommendation-item ${priorityClass}">
+        <i class="bi ${priorityIcon}"></i>
+        <span>${rec.message}</span>
+      </div>
+    `;
+  });
+  html += '</div>';
+  recEl.innerHTML = html;
+}
+
+async function loadMaintenanceHistory() {
+  try {
+    var type = document.getElementById('maintenanceHistoryType')?.value || 'all';
+    var status = document.getElementById('maintenanceHistoryStatus')?.value || 'all';
+    var url = "{{ url_for('dbadmin.maintenance_history') }}?type=" + type + "&status=" + status + "&limit=20";
+    
+    var resp = await fetch(url);
+    var json = await resp.json();
+    if (!json || !json.ok || !json.history) return;
+    
+    var tbody = document.getElementById('maintenanceHistoryBody');
+    if (!tbody) return;
+    
+    var html = '';
+    if (json.history.length === 0) {
+      html = '<tr><td colspan="6" class="text-center">Nenhuma manutenção encontrada</td></tr>';
+    } else {
+      json.history.forEach(function(m) {
+        var date = m.created_at ? new Date(m.created_at).toLocaleString('pt-BR') : '-';
+        var duration = m.duration_seconds ? m.duration_seconds.toFixed(2) + 's' : '-';
+        var items = m.items_processed !== null ? m.items_processed : '-';
+        var statusBadge = m.status === 'completed' ? 'db-badge-success' : 
+                         m.status === 'failed' ? 'db-badge-danger' : 'db-badge-warning';
+        var typeLabel = m.maintenance_type === 'cleanup_logs' ? 'Limpeza' :
+                       m.maintenance_type === 'optimize_database' ? 'Otimização' :
+                       m.maintenance_type === 'cleanup_backups' ? 'Limpeza Backups' :
+                       m.maintenance_type === 'verify_backups' ? 'Verificação' : m.maintenance_type;
+        
+        html += '<tr class="db-table-row">';
+        html += '<td class="db-table-date">' + date + '</td>';
+        html += '<td>' + typeLabel + '</td>';
+        html += '<td><span class="db-badge-modern ' + statusBadge + '">' + m.status + '</span></td>';
+        html += '<td>' + duration + '</td>';
+        html += '<td>' + items + '</td>';
+        html += '<td>' + (m.executed_by || '-') + '</td>';
+        html += '</tr>';
+      });
+    }
+    
+    tbody.innerHTML = html;
+  } catch(e) {
+    console.error('Erro ao carregar histórico:', e);
+    var tbody = document.getElementById('maintenanceHistoryBody');
+    if (tbody) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center">Erro ao carregar histórico</td></tr>';
+    }
+  }
+}
+
 async function runMaintenanceCleanup() {
   if (!confirm('Executar limpeza de logs antigos?')) return;
   try {
-    var resp = await fetch("{{ url_for('dbadmin.maintenance_cleanup') }}", { method: 'POST' });
+    var resp = await fetch("{{ url_for('dbadmin.maintenance_cleanup') }}", { 
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'}
+    });
     var json = await resp.json();
     if (json && json.ok) {
-      alert('Limpeza concluída: ' + json.result.deleted + ' itens removidos');
+      var result = json.result;
+      var msg = 'Limpeza concluída!\n';
+      msg += 'Itens removidos: ' + result.deleted + '\n';
+      msg += 'Duração: ' + result.duration.toFixed(2) + 's\n';
+      if (result.space_freed_mb !== undefined) {
+        msg += 'Espaço liberado: ' + result.space_freed_mb + ' MB\n';
+        if (result.size_before_mb !== undefined && result.size_after_mb !== undefined) {
+          msg += 'Antes: ' + result.size_before_mb.toFixed(2) + ' MB\n';
+          msg += 'Depois: ' + result.size_after_mb.toFixed(2) + ' MB';
+        }
+      }
+      alert(msg);
+      loadMaintenanceStats();
+      loadMaintenanceHistory();
       updateSlowQueries();
     } else {
       alert('Erro: ' + (json.error || 'Erro desconhecido'));
@@ -994,7 +1142,19 @@ async function runMaintenanceOptimize() {
     var resp = await fetch("{{ url_for('dbadmin.maintenance_optimize') }}", { method: 'POST' });
     var json = await resp.json();
     if (json && json.ok) {
-      alert('Otimização concluída em ' + json.result.duration.toFixed(2) + ' segundos');
+      var result = json.result;
+      var msg = 'Otimização concluída!\n';
+      msg += 'Duração: ' + result.duration.toFixed(2) + 's\n';
+      if (result.space_freed_mb !== undefined) {
+        msg += 'Espaço liberado: ' + result.space_freed_mb + ' MB\n';
+        if (result.size_before_mb !== undefined && result.size_after_mb !== undefined) {
+          msg += 'Antes: ' + result.size_before_mb.toFixed(2) + ' MB\n';
+          msg += 'Depois: ' + result.size_after_mb.toFixed(2) + ' MB';
+        }
+      }
+      alert(msg);
+      loadMaintenanceStats();
+      loadMaintenanceHistory();
     } else {
       alert('Erro: ' + (json.error || 'Erro desconhecido'));
     }
@@ -1014,12 +1174,50 @@ async function verifyAllBackups() {
         msg += r.filename + ': ' + r.status + '\n';
       });
       alert(msg);
+      loadMaintenanceStats();
+      loadMaintenanceRecommendations();
     } else {
       alert('Erro: ' + (json.error || 'Erro desconhecido'));
     }
   } catch(e) {
     alert('Erro ao verificar backups: ' + e.message);
   }
+}
+
+async function runMaintenanceAll() {
+  if (!confirm('Executar todas as manutenções? Isso pode levar alguns minutos.')) return;
+  try {
+    var resp = await fetch("{{ url_for('dbadmin.maintenance_run_all') }}", {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({cleanup: true, optimize: true, verify: true})
+    });
+    var json = await resp.json();
+    if (json && json.ok) {
+      var msg = 'Manutenções executadas com sucesso!\n\n';
+      if (json.results.cleanup) {
+        msg += 'Limpeza: ' + json.results.cleanup.deleted + ' itens removidos\n';
+      }
+      if (json.results.optimize) {
+        msg += 'Otimização: concluída\n';
+      }
+      if (json.results.verify) {
+        msg += 'Verificação: concluída\n';
+      }
+      alert(msg);
+      loadMaintenanceStats();
+      loadMaintenanceRecommendations();
+      loadMaintenanceHistory();
+    } else {
+      alert('Erro: ' + (json.error || 'Erro desconhecido'));
+    }
+  } catch(e) {
+    alert('Erro ao executar manutenções: ' + e.message);
+  }
+}
+
+function exportMaintenanceReport() {
+  window.location.href = "{{ url_for('dbadmin.maintenance_export_report') }}";
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -1173,6 +1371,31 @@ function showUpdateConfirmation(force = false) {
             <div class="db-git-modal-message">
                 <p style="font-size: 1.1rem; margin-bottom: 1rem;"><strong>${force ? 'O sistema aplicará a atualização forçada (reinstalação).' : 'O sistema aplicará a atualização completa.'}</strong></p>
                 ${force ? '<p style="margin-bottom: 0.75rem; color: #f59e0b; font-weight: 600;">⚠️ Esta é uma reinstalação forçada. O sistema será atualizado mesmo se já estiver na versão mais recente.</p>' : ''}
+                
+                <!-- Informações de Versão -->
+                <div id="versionInfoContainer" style="margin-bottom: 1rem; padding: 1rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e5e7eb;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <i class="bi bi-info-circle" style="color: #3b82f6; font-size: 1.25rem;"></i>
+                        <strong style="color: #1f2937; font-size: 1rem;">Informações de Versão</strong>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <div style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.25rem;">Versão Instalada:</div>
+                            <div id="currentVersionInfo" style="font-size: 1.125rem; font-weight: 600; color: #1f2937;">
+                                <i class="bi bi-hourglass-split" style="animation: spin 1s linear infinite;"></i>
+                                Verificando...
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.25rem;">Versão Mais Recente (GitHub):</div>
+                            <div id="latestVersionInfo" style="font-size: 1.125rem; font-weight: 600; color: #1f2937;">
+                                <i class="bi bi-hourglass-split" style="animation: spin 1s linear infinite;"></i>
+                                Verificando...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <p style="margin-bottom: 0.75rem;">Esta operação inclui:</p>
                 <ul style="margin-left: 1.5rem; margin-bottom: 1rem; color: #4b5563;">
                     <li>Atualização do código do GitHub${force ? ' (forçado)' : ''}</li>
@@ -1201,6 +1424,9 @@ function showUpdateConfirmation(force = false) {
     
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
+    
+    // Buscar informações de versão
+    fetchVersionInfo();
     
     // Iniciar contagem regressiva
     updateCountdown = 10;
@@ -1233,6 +1459,44 @@ function showUpdateConfirmation(force = false) {
             }, 10000);
         }
     }, 1000);
+}
+
+function fetchVersionInfo() {
+    // Buscar informações de versão do endpoint
+    fetch("{{ url_for('dbadmin.git_status') }}?force=false")
+        .then(response => response.json())
+        .then(data => {
+            const currentVersionEl = document.getElementById('currentVersionInfo');
+            const latestVersionEl = document.getElementById('latestVersionInfo');
+            
+            if (data.ok) {
+                if (currentVersionEl) {
+                    currentVersionEl.innerHTML = `<span style="color: #059669;">${data.current_version || 'N/A'}</span>`;
+                }
+                if (latestVersionEl) {
+                    const latestVersion = data.latest_version || 'N/A';
+                    latestVersionEl.innerHTML = `<span style="color: #3b82f6;">${latestVersion}</span>`;
+                }
+            } else {
+                if (currentVersionEl) {
+                    currentVersionEl.innerHTML = '<span style="color: #dc2626;">Erro ao verificar</span>';
+                }
+                if (latestVersionEl) {
+                    latestVersionEl.innerHTML = '<span style="color: #dc2626;">Erro ao verificar</span>';
+                }
+            }
+        })
+        .catch(error => {
+            const currentVersionEl = document.getElementById('currentVersionInfo');
+            const latestVersionEl = document.getElementById('latestVersionInfo');
+            
+            if (currentVersionEl) {
+                currentVersionEl.innerHTML = '<span style="color: #dc2626;">Erro de conexão</span>';
+            }
+            if (latestVersionEl) {
+                latestVersionEl.innerHTML = '<span style="color: #dc2626;">Erro de conexão</span>';
+            }
+        });
 }
 
 function closeUpdateModal() {
@@ -3253,6 +3517,128 @@ window.addEventListener('beforeunload', function() {
 .db-git-success-msg {
     background: rgba(16, 185, 129, 0.1);
     color: #059669;
+}
+
+/* Manutenção Melhorada - Estilos Adicionais */
+.db-maintenance-quick-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.db-quick-stat-item {
+    display: flex;
+    flex-direction: column;
+    padding: 0.75rem;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.db-quick-stat-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+
+.db-quick-stat-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.db-recommendations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.db-recommendation-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid #6b7280;
+    background: #f9fafb;
+}
+
+.db-recommendation-item.db-rec-high {
+    border-left-color: #ef4444;
+    background: #fef2f2;
+}
+
+.db-recommendation-item.db-rec-medium {
+    border-left-color: #f59e0b;
+    background: #fffbeb;
+}
+
+.db-recommendation-item.db-rec-low {
+    border-left-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.db-recommendation-item i {
+    font-size: 1.25rem;
+    margin-top: 0.125rem;
+}
+
+.db-recommendation-item.db-rec-high i {
+    color: #ef4444;
+}
+
+.db-recommendation-item.db-rec-medium i {
+    color: #f59e0b;
+}
+
+.db-recommendation-item.db-rec-low i {
+    color: #3b82f6;
+}
+
+.db-recommendation-item span {
+    flex: 1;
+    color: #1f2937;
+    line-height: 1.5;
+}
+
+.db-no-recommendations {
+    padding: 1.5rem;
+    text-align: center;
+    color: #6b7280;
+    font-style: italic;
+}
+
+[data-theme="dark"] .db-quick-stat-item {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+[data-theme="dark"] .db-quick-stat-value {
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .db-recommendation-item {
+    background: #1f2937;
+}
+
+[data-theme="dark"] .db-recommendation-item.db-rec-high {
+    background: #7f1d1d;
+}
+
+[data-theme="dark"] .db-recommendation-item.db-rec-medium {
+    background: #78350f;
+}
+
+[data-theme="dark"] .db-recommendation-item.db-rec-low {
+    background: #1e3a8a;
+}
+
+[data-theme="dark"] .db-recommendation-item span {
+    color: #f9fafb;
+}
     border: 1px solid rgba(16, 185, 129, 0.3);
 }
 

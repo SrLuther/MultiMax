@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, send_file, current_app, request, jsonify
+from flask import Blueprint, render_template, redirect, url_for, flash, send_file, current_app, request, jsonify, make_response
 from flask_login import login_required, current_user
 import os
 import shutil
@@ -11,7 +11,7 @@ import urllib.error
 from datetime import datetime, date, timedelta
 from zoneinfo import ZoneInfo
 from .. import db
-from ..models import UserLogin, SystemLog, Incident, MetricHistory, Alert, MaintenanceLog, QueryLog, BackupVerification
+from ..models import UserLogin, SystemLog, Incident, MetricHistory, Alert, MaintenanceLog, QueryLog, BackupVerification, AppSetting
 from sqlalchemy import text
 import json
 
@@ -897,30 +897,282 @@ def _verify_all_backups():
         return []
 
 # ============================================================================
+# Estatísticas e Métricas para Manutenção
+# ============================================================================
+
+def _get_logs_statistics():
+    """Obtém estatísticas sobre logs para manutenção"""
+    try:
+        now = datetime.now(ZoneInfo('America/Sao_Paulo'))
+        cutoff_30d = now - timedelta(days=30)
+        
+        # Contagem de SystemLog
+        total_system_logs = SystemLog.query.count()
+        old_system_logs = SystemLog.query.filter(SystemLog.data < cutoff_30d).count()
+        
+        # Contagem de QueryLog
+        total_query_logs = QueryLog.query.count()
+        
+        # Contagem de MetricHistory
+        total_metrics = MetricHistory.query.count()
+        old_metrics = MetricHistory.query.filter(MetricHistory.timestamp < cutoff_30d).count()
+        
+        # Estimar espaço ocupado (aproximação: ~200 bytes por registro)
+        estimated_size_mb = ((total_system_logs + total_query_logs + total_metrics) * 200) / (1024 * 1024)
+        estimated_old_size_mb = ((old_system_logs + old_metrics) * 200) / (1024 * 1024)
+        
+        return {
+            'system_logs': {
+                'total': total_system_logs,
+                'old_30d': old_system_logs,
+                'estimated_size_mb': round((total_system_logs * 200) / (1024 * 1024), 2)
+            },
+            'query_logs': {
+                'total': total_query_logs,
+                'over_1000': max(0, total_query_logs - 1000),
+                'estimated_size_mb': round((total_query_logs * 200) / (1024 * 1024), 2)
+            },
+            'metrics': {
+                'total': total_metrics,
+                'old_30d': old_metrics,
+                'estimated_size_mb': round((total_metrics * 200) / (1024 * 1024), 2)
+            },
+            'total_estimated_size_mb': round(estimated_size_mb, 2),
+            'old_estimated_size_mb': round(estimated_old_size_mb, 2)
+        }
+    except Exception as e:
+        current_app.logger.error(f'Erro ao obter estatísticas de logs: {e}')
+        return {
+            'system_logs': {'total': 0, 'old_30d': 0, 'estimated_size_mb': 0},
+            'query_logs': {'total': 0, 'over_1000': 0, 'estimated_size_mb': 0},
+            'metrics': {'total': 0, 'old_30d': 0, 'estimated_size_mb': 0},
+            'total_estimated_size_mb': 0,
+            'old_estimated_size_mb': 0
+        }
+
+def _get_backups_statistics():
+    """Obtém estatísticas sobre backups"""
+    try:
+        bdir = str(current_app.config.get('BACKUP_DIR') or '').strip()
+        if not bdir or not os.path.exists(bdir):
+            return {
+                'count': 0,
+                'total_size_mb': 0,
+                'verified': 0,
+                'corrupted': 0,
+                'last_verification': None
+            }
+        
+        backups = []
+        total_size = 0
+        for name in os.listdir(bdir):
+            path = os.path.join(bdir, name)
+            if os.path.isfile(path) and name.endswith('.sqlite'):
+                try:
+                    size = os.path.getsize(path)
+                    total_size += size
+                    backups.append({'name': name, 'size': size})
+                except Exception:
+                    pass
+        
+        # Última verificação
+        last_verification = BackupVerification.query.order_by(BackupVerification.created_at.desc()).first()
+        last_verification_date = last_verification.created_at if last_verification else None
+        
+        # Contar verificações
+        verified_count = BackupVerification.query.filter(BackupVerification.verification_status == 'verified').distinct(BackupVerification.backup_filename).count()
+        corrupted_count = BackupVerification.query.filter(BackupVerification.verification_status == 'corrupted').distinct(BackupVerification.backup_filename).count()
+        
+        return {
+            'count': len(backups),
+            'total_size_mb': round(total_size / (1024 * 1024), 2),
+            'verified': verified_count,
+            'corrupted': corrupted_count,
+            'last_verification': last_verification_date.isoformat() if last_verification_date else None
+        }
+    except Exception as e:
+        current_app.logger.error(f'Erro ao obter estatísticas de backups: {e}')
+        return {
+            'count': 0,
+            'total_size_mb': 0,
+            'verified': 0,
+            'corrupted': 0,
+            'last_verification': None
+        }
+
+def _get_maintenance_recommendations():
+    """Gera recomendações automáticas baseadas em métricas"""
+    recommendations = []
+    
+    try:
+        # Estatísticas de logs
+        logs_stats = _get_logs_statistics()
+        
+        # Recomendação: Limpeza de logs se houver muitos logs antigos
+        if logs_stats['old_estimated_size_mb'] > 10:  # Mais de 10MB de logs antigos
+            recommendations.append({
+                'type': 'cleanup_logs',
+                'priority': 'high' if logs_stats['old_estimated_size_mb'] > 50 else 'medium',
+                'message': f'Recomenda-se limpeza de logs: {logs_stats["old_estimated_size_mb"]:.1f} MB de logs antigos (>30 dias)',
+                'estimated_size_mb': logs_stats['old_estimated_size_mb']
+            })
+        elif logs_stats['old_estimated_size_mb'] > 5:
+            recommendations.append({
+                'type': 'cleanup_logs',
+                'priority': 'low',
+                'message': f'Considere limpar logs antigos: {logs_stats["old_estimated_size_mb"]:.1f} MB disponíveis',
+                'estimated_size_mb': logs_stats['old_estimated_size_mb']
+            })
+        
+        # Recomendação: Otimização do banco
+        last_optimize = MaintenanceLog.query.filter(
+            MaintenanceLog.maintenance_type == 'optimize_database',
+            MaintenanceLog.status == 'completed'
+        ).order_by(MaintenanceLog.created_at.desc()).first()
+        
+        if last_optimize:
+            days_since_optimize = (datetime.now(ZoneInfo('America/Sao_Paulo')) - last_optimize.created_at).days
+            if days_since_optimize > 30:
+                recommendations.append({
+                    'type': 'optimize_database',
+                    'priority': 'high' if days_since_optimize > 60 else 'medium',
+                    'message': f'Recomenda-se otimização do banco: última otimização há {days_since_optimize} dias',
+                    'days_since': days_since_optimize
+                })
+        else:
+            recommendations.append({
+                'type': 'optimize_database',
+                'priority': 'medium',
+                'message': 'Recomenda-se otimização do banco: nunca foi executada',
+                'days_since': None
+            })
+        
+        # Recomendação: Verificação de backups
+        backups_stats = _get_backups_statistics()
+        if backups_stats['last_verification']:
+            last_verify_date = datetime.fromisoformat(backups_stats['last_verification'].replace('Z', '+00:00'))
+            if last_verify_date.tzinfo is None:
+                last_verify_date = last_verify_date.replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+            days_since_verify = (datetime.now(ZoneInfo('America/Sao_Paulo')) - last_verify_date).days
+            if days_since_verify > 7:
+                recommendations.append({
+                    'type': 'verify_backups',
+                    'priority': 'medium' if days_since_verify > 14 else 'low',
+                    'message': f'Recomenda-se verificação de backups: última verificação há {days_since_verify} dias',
+                    'days_since': days_since_verify
+                })
+        else:
+            recommendations.append({
+                'type': 'verify_backups',
+                'priority': 'medium',
+                'message': 'Recomenda-se verificação de backups: nunca foi executada',
+                'days_since': None
+            })
+        
+        # Recomendação: Backups corrompidos
+        if backups_stats['corrupted'] > 0:
+            recommendations.append({
+                'type': 'verify_backups',
+                'priority': 'high',
+                'message': f'ATENÇÃO: {backups_stats["corrupted"]} backup(s) corrompido(s) detectado(s)',
+                'corrupted_count': backups_stats['corrupted']
+            })
+        
+    except Exception as e:
+        current_app.logger.error(f'Erro ao gerar recomendações: {e}')
+    
+    return recommendations
+
+def _get_maintenance_config():
+    """Obtém configurações de manutenção (usando AppSetting)"""
+    try:
+        cleanup_days = AppSetting.query.filter_by(key='maintenance_cleanup_days').first()
+        cleanup_days_value = int(cleanup_days.value) if cleanup_days and cleanup_days.value else 30
+        
+        query_logs_keep = AppSetting.query.filter_by(key='maintenance_query_logs_keep').first()
+        query_logs_keep_value = int(query_logs_keep.value) if query_logs_keep and query_logs_keep.value else 1000
+        
+        metrics_days = AppSetting.query.filter_by(key='maintenance_metrics_days').first()
+        metrics_days_value = int(metrics_days.value) if metrics_days and metrics_days.value else 30
+        
+        return {
+            'cleanup_days': cleanup_days_value,
+            'query_logs_keep': query_logs_keep_value,
+            'metrics_days': metrics_days_value
+        }
+    except Exception:
+        return {
+            'cleanup_days': 30,
+            'query_logs_keep': 1000,
+            'metrics_days': 30
+        }
+
+def _save_maintenance_config(cleanup_days, query_logs_keep, metrics_days):
+    """Salva configurações de manutenção"""
+    try:
+        # Cleanup days
+        setting = AppSetting.query.filter_by(key='maintenance_cleanup_days').first()
+        if not setting:
+            setting = AppSetting(key='maintenance_cleanup_days')
+            db.session.add(setting)
+        setting.value = str(cleanup_days)
+        
+        # Query logs keep
+        setting2 = AppSetting.query.filter_by(key='maintenance_query_logs_keep').first()
+        if not setting2:
+            setting2 = AppSetting(key='maintenance_query_logs_keep')
+            db.session.add(setting2)
+        setting2.value = str(query_logs_keep)
+        
+        # Metrics days
+        setting3 = AppSetting.query.filter_by(key='maintenance_metrics_days').first()
+        if not setting3:
+            setting3 = AppSetting(key='maintenance_metrics_days')
+            db.session.add(setting3)
+        setting3.value = str(metrics_days)
+        
+        db.session.commit()
+        return True
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Erro ao salvar configurações: {e}')
+        return False
+
+# ============================================================================
 # Limpeza e Otimização Automática
 # ============================================================================
 
-def _cleanup_old_logs(days=30):
-    """Limpa logs antigos"""
+def _cleanup_old_logs(days=30, query_logs_keep=1000, metrics_days=30):
+    """Limpa logs antigos com configurações customizáveis"""
     try:
         start_time = time.time()
         cutoff = datetime.now(ZoneInfo('America/Sao_Paulo')) - timedelta(days=days)
+        metrics_cutoff = datetime.now(ZoneInfo('America/Sao_Paulo')) - timedelta(days=metrics_days)
+        
+        # Obter tamanho antes
+        logs_stats_before = _get_logs_statistics()
+        size_before_mb = logs_stats_before['total_estimated_size_mb']
         
         # Limpar SystemLog
         deleted_system = SystemLog.query.filter(SystemLog.data < cutoff).delete()
         
-        # Limpar QueryLog antigo (manter últimos 1000)
-        query_logs = QueryLog.query.order_by(QueryLog.timestamp.desc()).offset(1000).all()
+        # Limpar QueryLog antigo (manter últimos N)
+        query_logs = QueryLog.query.order_by(QueryLog.timestamp.desc()).offset(query_logs_keep).all()
         deleted_queries = 0
         for qlog in query_logs:
             db.session.delete(qlog)
             deleted_queries += 1
         
-        # Limpar MetricHistory antigo (manter últimos 30 dias)
-        deleted_metrics = MetricHistory.query.filter(MetricHistory.timestamp < cutoff).delete()
+        # Limpar MetricHistory antigo
+        deleted_metrics = MetricHistory.query.filter(MetricHistory.timestamp < metrics_cutoff).delete()
         
         db.session.commit()
         duration = time.time() - start_time
+        
+        # Obter tamanho depois
+        logs_stats_after = _get_logs_statistics()
+        size_after_mb = logs_stats_after['total_estimated_size_mb']
+        space_freed_mb = size_before_mb - size_after_mb
         
         # Registrar manutenção
         maint = MaintenanceLog()
@@ -929,11 +1181,30 @@ def _cleanup_old_logs(days=30):
         maint.status = 'completed'
         maint.duration_seconds = duration
         maint.items_processed = deleted_system + deleted_queries + deleted_metrics
-        maint.executed_by = 'system'
+        maint.executed_by = current_user.username if current_user.is_authenticated else 'system'
+        maint.operation_details = json.dumps({
+            'days': days,
+            'query_logs_keep': query_logs_keep,
+            'metrics_days': metrics_days,
+            'size_before_mb': size_before_mb,
+            'size_after_mb': size_after_mb,
+            'space_freed_mb': space_freed_mb
+        })
         db.session.add(maint)
         db.session.commit()
         
-        return {'deleted': deleted_system + deleted_queries + deleted_metrics, 'duration': duration}
+        return {
+            'deleted': deleted_system + deleted_queries + deleted_metrics,
+            'duration': duration,
+            'size_before_mb': size_before_mb,
+            'size_after_mb': size_after_mb,
+            'space_freed_mb': round(space_freed_mb, 2),
+            'details': {
+                'system_logs': deleted_system,
+                'query_logs': deleted_queries,
+                'metrics': deleted_metrics
+            }
+        }
     except Exception as e:
         try:
             db.session.rollback()
@@ -948,6 +1219,10 @@ def _optimize_database():
         uri = current_app.config.get('SQLALCHEMY_DATABASE_URI', '')
         is_sqlite = isinstance(uri, str) and uri.startswith('sqlite:')
         
+        # Obter tamanho antes
+        db_stats_before = _get_database_stats()
+        size_before_mb = db_stats_before.get('size_mb', 0)
+        
         if is_sqlite:
             # VACUUM e ANALYZE para SQLite
             db.session.execute(text('VACUUM'))
@@ -956,17 +1231,33 @@ def _optimize_database():
         
         duration = time.time() - start_time
         
+        # Obter tamanho depois
+        db_stats_after = _get_database_stats()
+        size_after_mb = db_stats_after.get('size_mb', 0)
+        space_freed_mb = size_before_mb - size_after_mb
+        
         # Registrar manutenção
         maint = MaintenanceLog()
         maint.maintenance_type = 'optimize_database'
         maint.description = 'Otimização do banco de dados (VACUUM + ANALYZE)'
         maint.status = 'completed'
         maint.duration_seconds = duration
-        maint.executed_by = 'system'
+        maint.executed_by = current_user.username if current_user.is_authenticated else 'system'
+        maint.operation_details = json.dumps({
+            'size_before_mb': size_before_mb,
+            'size_after_mb': size_after_mb,
+            'space_freed_mb': round(space_freed_mb, 2)
+        })
         db.session.add(maint)
         db.session.commit()
         
-        return {'status': 'completed', 'duration': duration}
+        return {
+            'status': 'completed',
+            'duration': duration,
+            'size_before_mb': size_before_mb,
+            'size_after_mb': size_after_mb,
+            'space_freed_mb': round(space_freed_mb, 2)
+        }
     except Exception as e:
         try:
             db.session.rollback()
@@ -1467,10 +1758,16 @@ def maintenance_cleanup():
     if not _check_dev_access():
         return jsonify({'ok': False, 'error': 'forbidden'}), 403
     
-    days = int(request.args.get('days', 30))
-    
     try:
-        result = _cleanup_old_logs(days)
+        # Obter parâmetros da requisição ou usar configurações padrão
+        data = request.get_json() or {}
+        days = int(data.get('days')) if data.get('days') else 30
+        query_logs_keep = int(data.get('query_logs_keep')) if data.get('query_logs_keep') else 1000
+        metrics_days = int(data.get('metrics_days')) if data.get('metrics_days') else 30
+        
+        result = _cleanup_old_logs(days, query_logs_keep, metrics_days)
+        if 'error' in result:
+            return jsonify({'ok': False, 'error': result['error']}), 500
         return jsonify({'ok': True, 'result': result})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)}), 500
@@ -2001,6 +2298,30 @@ def git_status():
             except Exception as e:
                 current_app.logger.warning(f'Erro ao obter versão do __init__.py: {e}')
         
+        # Obter versão mais recente disponível no GitHub (última tag do remoto)
+        latest_version = None
+        try:
+            # Buscar a tag mais recente do repositório remoto
+            result_tags = subprocess.run(
+                ['git', 'tag', '--sort=-version:refname', '--list', 'v*'],
+                cwd=repo_dir,
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result_tags.returncode == 0 and result_tags.stdout.strip():
+                all_tags = [tag.strip() for tag in result_tags.stdout.strip().split('\n') if tag.strip()]
+                if all_tags:
+                    import re
+                    def version_key(tag):
+                        parts = re.findall(r'\d+', tag.lstrip('vV'))
+                        return tuple(int(p) for p in parts) if parts else (0,)
+                    all_tags_sorted = sorted(all_tags, key=version_key, reverse=True)
+                    latest_version = all_tags_sorted[0].lstrip('vV')
+                    current_app.logger.info(f'Versão mais recente disponível: {latest_version}')
+        except Exception as e:
+            current_app.logger.warning(f'Erro ao obter versão mais recente: {e}')
+        
         # Verificar se há atualização disponível
         update_available = False
         if current_commit and latest_commit_hash:
@@ -2021,6 +2342,7 @@ def git_status():
         return jsonify({
             'ok': True,
             'current_version': current_version,
+            'latest_version': latest_version,
             'current_commit': current_commit[:7] if current_commit else None,
             'latest_commit': latest_commit_hash[:7] if latest_commit_hash else None,
             'latest_commit_full': latest_commit_hash,
@@ -2325,6 +2647,253 @@ def git_update():
             'error': error_msg,
             'suggestion': 'Verifique os logs do sistema para mais detalhes.'
         }), 500
+
+# ============================================================================
+# Novos Endpoints para Manutenção Melhorada
+# ============================================================================
+
+@bp.route('/maintenance/stats', methods=['GET'], strict_slashes=False)
+@login_required
+def maintenance_stats():
+    """Endpoint para estatísticas de manutenção"""
+    if not _check_dev_access():
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    try:
+        db_stats = _get_database_stats()
+        logs_stats = _get_logs_statistics()
+        backups_stats = _get_backups_statistics()
+        
+        # Última manutenção de cada tipo
+        last_cleanup = MaintenanceLog.query.filter(
+            MaintenanceLog.maintenance_type == 'cleanup_logs',
+            MaintenanceLog.status == 'completed'
+        ).order_by(MaintenanceLog.created_at.desc()).first()
+        
+        last_optimize = MaintenanceLog.query.filter(
+            MaintenanceLog.maintenance_type == 'optimize_database',
+            MaintenanceLog.status == 'completed'
+        ).order_by(MaintenanceLog.created_at.desc()).first()
+        
+        last_verify = BackupVerification.query.order_by(BackupVerification.created_at.desc()).first()
+        
+        return jsonify({
+            'ok': True,
+            'database': db_stats,
+            'logs': logs_stats,
+            'backups': backups_stats,
+            'last_maintenance': {
+                'cleanup': last_cleanup.created_at.isoformat() if last_cleanup else None,
+                'optimize': last_optimize.created_at.isoformat() if last_optimize else None,
+                'verify': last_verify.created_at.isoformat() if last_verify else None
+            }
+        })
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@bp.route('/maintenance/recommendations', methods=['GET'], strict_slashes=False)
+@login_required
+def maintenance_recommendations():
+    """Endpoint para recomendações automáticas"""
+    if not _check_dev_access():
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    try:
+        recommendations = _get_maintenance_recommendations()
+        return jsonify({'ok': True, 'recommendations': recommendations})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@bp.route('/maintenance/config', methods=['GET', 'POST'], strict_slashes=False)
+@login_required
+def maintenance_config():
+    """Endpoint para obter/salvar configurações de manutenção"""
+    if not _check_dev_access():
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    try:
+        if request.method == 'GET':
+            config = _get_maintenance_config()
+            return jsonify({'ok': True, 'config': config})
+        else:  # POST
+            data = request.get_json() or {}
+            cleanup_days = int(data.get('cleanup_days', 30))
+            query_logs_keep = int(data.get('query_logs_keep', 1000))
+            metrics_days = int(data.get('metrics_days', 30))
+            
+            if _save_maintenance_config(cleanup_days, query_logs_keep, metrics_days):
+                return jsonify({'ok': True, 'message': 'Configurações salvas com sucesso'})
+            else:
+                return jsonify({'ok': False, 'error': 'Erro ao salvar configurações'}), 500
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@bp.route('/maintenance/history', methods=['GET'], strict_slashes=False)
+@login_required
+def maintenance_history():
+    """Endpoint para histórico de manutenções com filtros"""
+    if not _check_dev_access():
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    try:
+        # Filtros
+        maintenance_type = request.args.get('type', 'all')
+        status = request.args.get('status', 'all')
+        limit = int(request.args.get('limit', 50))
+        
+        query = MaintenanceLog.query
+        
+        if maintenance_type != 'all':
+            query = query.filter(MaintenanceLog.maintenance_type == maintenance_type)
+        if status != 'all':
+            query = query.filter(MaintenanceLog.status == status)
+        
+        logs = query.order_by(MaintenanceLog.created_at.desc()).limit(limit).all()
+        
+        result = []
+        for log in logs:
+            result.append({
+                'id': log.id,
+                'created_at': log.created_at.isoformat() if log.created_at else None,
+                'maintenance_type': log.maintenance_type,
+                'description': log.description,
+                'status': log.status,
+                'duration_seconds': log.duration_seconds,
+                'items_processed': log.items_processed,
+                'executed_by': log.executed_by,
+                'operation_details': json.loads(log.operation_details) if log.operation_details else None
+            })
+        
+        return jsonify({'ok': True, 'history': result})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@bp.route('/maintenance/run-all', methods=['POST'], strict_slashes=False)
+@login_required
+def maintenance_run_all():
+    """Executa todas as manutenções em sequência"""
+    if not _check_dev_access():
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    try:
+        data = request.get_json() or {}
+        run_cleanup = data.get('cleanup', True)
+        run_optimize = data.get('optimize', True)
+        run_verify = data.get('verify', True)
+        
+        results = {}
+        
+        # Limpeza
+        if run_cleanup:
+            config = _get_maintenance_config()
+            cleanup_result = _cleanup_old_logs(
+                config['cleanup_days'],
+                config['query_logs_keep'],
+                config['metrics_days']
+            )
+            results['cleanup'] = cleanup_result
+        
+        # Otimização
+        if run_optimize:
+            optimize_result = _optimize_database()
+            results['optimize'] = optimize_result
+        
+        # Verificação de backups
+        if run_verify:
+            verify_result = _verify_all_backups()
+            results['verify'] = verify_result
+        
+        return jsonify({
+            'ok': True,
+            'message': 'Manutenções executadas com sucesso',
+            'results': results
+        })
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@bp.route('/maintenance/export-report', methods=['GET'], strict_slashes=False)
+@login_required
+def maintenance_export_report():
+    """Exporta relatório de manutenção"""
+    if not _check_dev_access():
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    
+    try:
+        # Obter estatísticas
+        db_stats = _get_database_stats()
+        logs_stats = _get_logs_statistics()
+        backups_stats = _get_backups_statistics()
+        recommendations = _get_maintenance_recommendations()
+        config = _get_maintenance_config()
+        
+        # Últimas manutenções
+        last_maintenances = MaintenanceLog.query.order_by(MaintenanceLog.created_at.desc()).limit(20).all()
+        
+        # Gerar relatório em formato texto
+        report_lines = []
+        report_lines.append("=" * 80)
+        report_lines.append("RELATÓRIO DE MANUTENÇÃO - MultiMax")
+        report_lines.append("=" * 80)
+        report_lines.append(f"Gerado em: {datetime.now(ZoneInfo('America/Sao_Paulo')).strftime('%d/%m/%Y %H:%M:%S')}")
+        report_lines.append("")
+        
+        report_lines.append("ESTATÍSTICAS DO BANCO DE DADOS")
+        report_lines.append("-" * 80)
+        report_lines.append(f"Tipo: {db_stats.get('type', 'N/A')}")
+        report_lines.append(f"Tamanho: {db_stats.get('size_mb', 0):.2f} MB")
+        report_lines.append(f"Tabelas: {db_stats.get('tables_count', 0)}")
+        report_lines.append("")
+        
+        report_lines.append("ESTATÍSTICAS DE LOGS")
+        report_lines.append("-" * 80)
+        report_lines.append(f"SystemLog - Total: {logs_stats['system_logs']['total']}, Antigos (>30d): {logs_stats['system_logs']['old_30d']}")
+        report_lines.append(f"QueryLog - Total: {logs_stats['query_logs']['total']}, Acima de 1000: {logs_stats['query_logs']['over_1000']}")
+        report_lines.append(f"MetricHistory - Total: {logs_stats['metrics']['total']}, Antigos (>30d): {logs_stats['metrics']['old_30d']}")
+        report_lines.append(f"Tamanho total estimado: {logs_stats['total_estimated_size_mb']:.2f} MB")
+        report_lines.append(f"Tamanho de logs antigos: {logs_stats['old_estimated_size_mb']:.2f} MB")
+        report_lines.append("")
+        
+        report_lines.append("ESTATÍSTICAS DE BACKUPS")
+        report_lines.append("-" * 80)
+        report_lines.append(f"Quantidade: {backups_stats['count']}")
+        report_lines.append(f"Tamanho total: {backups_stats['total_size_mb']:.2f} MB")
+        report_lines.append(f"Verificados: {backups_stats['verified']}, Corrompidos: {backups_stats['corrupted']}")
+        report_lines.append(f"Última verificação: {backups_stats['last_verification'] or 'Nunca'}")
+        report_lines.append("")
+        
+        report_lines.append("RECOMENDAÇÕES")
+        report_lines.append("-" * 80)
+        if recommendations:
+            for rec in recommendations:
+                priority_label = {'high': 'ALTA', 'medium': 'MÉDIA', 'low': 'BAIXA'}.get(rec['priority'], 'NORMAL')
+                report_lines.append(f"[{priority_label}] {rec['message']}")
+        else:
+            report_lines.append("Nenhuma recomendação no momento.")
+        report_lines.append("")
+        
+        report_lines.append("CONFIGURAÇÕES")
+        report_lines.append("-" * 80)
+        report_lines.append(f"Limpeza de logs: {config['cleanup_days']} dias")
+        report_lines.append(f"QueryLogs a manter: {config['query_logs_keep']}")
+        report_lines.append(f"MetricHistory: {config['metrics_days']} dias")
+        report_lines.append("")
+        
+        report_lines.append("ÚLTIMAS MANUTENÇÕES (20 mais recentes)")
+        report_lines.append("-" * 80)
+        for maint in last_maintenances:
+            report_lines.append(f"{maint.created_at.strftime('%d/%m/%Y %H:%M:%S')} - {maint.maintenance_type} - {maint.status} - {maint.duration_seconds:.2f}s")
+        report_lines.append("")
+        report_lines.append("=" * 80)
+        
+        report_text = "\n".join(report_lines)
+        
+        # Retornar como resposta de texto
+        response = make_response(report_text)
+        response.headers['Content-Type'] = 'text/plain; charset=utf-8'
+        response.headers['Content-Disposition'] = f'attachment; filename=relatorio_manutencao_{datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%Y%m%d_%H%M%S")}.txt'
+        return response
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
 
 def _log_git_update_error(error_msg, username, results=None):
     """Registra erro de atualização Git no log do sistema"""

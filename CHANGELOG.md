@@ -1,3 +1,56 @@
+## [2.5.6] - 2025-01-15
+
+### ✨ Melhorias Significativas no Módulo de Banco de Dados
+
+#### Manutenção e Otimização - Card Completamente Renovado
+- **Estatísticas Visuais em Tempo Real**: Adicionado painel de estatísticas rápidas mostrando tamanho do banco, logs e quantidade de backups
+- **Sistema de Recomendações Automáticas**: Implementado sistema inteligente que analisa métricas e gera recomendações com prioridades (alta, média, baixa)
+  - Recomendações baseadas em tamanho de logs antigos
+  - Alertas sobre necessidade de otimização do banco
+  - Avisos sobre verificação de backups
+  - Detecção automática de backups corrompidos
+- **Métricas Antes/Depois**: Todas as operações de manutenção agora mostram métricas detalhadas
+  - Tamanho do banco antes e depois da otimização
+  - Espaço liberado em MB após limpeza de logs
+  - Comparação visual de tamanhos
+- **Histórico Melhorado com Filtros**: Adicionados filtros por tipo de manutenção e status
+  - Filtro por tipo: Limpeza, Otimização, Verificação
+  - Filtro por status: Concluído, Falhou, Em execução
+  - Coluna adicional mostrando quem executou a manutenção
+- **Executar Todas as Manutenções**: Novo botão para executar todas as manutenções em sequência
+- **Exportar Relatório Completo**: Funcionalidade para exportar relatório detalhado em formato texto
+  - Estatísticas do banco de dados
+  - Estatísticas de logs
+  - Estatísticas de backups
+  - Recomendações atuais
+  - Configurações de manutenção
+  - Histórico das últimas 20 manutenções
+- **Configurações Customizáveis**: Sistema de configurações usando AppSetting
+  - Dias para limpeza de logs (padrão: 30)
+  - Quantidade de QueryLogs a manter (padrão: 1000)
+  - Dias para MetricHistory (padrão: 30)
+- **Atualização Automática**: Estatísticas e recomendações atualizadas automaticamente a cada minuto
+- **Interface Visual Aprimorada**: 
+  - Cards de estatísticas rápidas
+  - Recomendações com cores por prioridade
+  - Suporte completo a modo escuro
+  - Layout responsivo e profissional
+
+#### Backend - Novos Endpoints
+- `/maintenance/stats` - Estatísticas completas de manutenção
+- `/maintenance/recommendations` - Recomendações automáticas
+- `/maintenance/config` - Obter/salvar configurações
+- `/maintenance/history` - Histórico com filtros avançados
+- `/maintenance/run-all` - Executar todas as manutenções
+- `/maintenance/export-report` - Exportar relatório completo
+
+#### Melhorias Técnicas
+- Funções auxiliares para cálculo de estatísticas
+- Sistema de recomendações baseado em análise de métricas
+- Armazenamento de configurações em AppSetting
+- Métricas detalhadas em todas as operações de manutenção
+- Logs de manutenção com detalhes de operação em JSON
+
 ## [2.5.5] - 2025-01-15
 
 ### ✨ Novas Funcionalidades e Melhorias
