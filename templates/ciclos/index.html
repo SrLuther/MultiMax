@@ -90,12 +90,12 @@
                 </div>
             </div>
             <div class="colaborador-actions">
-                <button type="button" class="btn-card btn-card-secondary" onclick="abrirHistorico({{ stat.collaborator.id }}, '{{ stat.collaborator.name }}')">
+                <button type="button" class="btn-card btn-card-secondary" onclick="abrirHistorico({{ stat.collaborator.id }}, {{ stat.collaborator.name|tojson }})">
                     <i class="bi bi-clock-history"></i>
                     Detalhes / Histórico
                 </button>
                 {% if can_edit %}
-                <button type="button" class="btn-card btn-card-primary" onclick="abrirLancamento({{ stat.collaborator.id }}, '{{ stat.collaborator.name }}')">
+                <button type="button" class="btn-card btn-card-primary" onclick="abrirLancamento({{ stat.collaborator.id }}, {{ stat.collaborator.name|tojson }})">
                     <i class="bi bi-plus-circle"></i>
                     + Lançar Horas
                 </button>
@@ -1550,6 +1550,7 @@ let currentCollaboratorId = null;
 let currentCollaboratorName = null;
 let currentPage = 1;
 let currentCicloId = null;
+const canEdit = {% if can_edit %}true{% else %}false{% endif %};
 
 // Função para validar horas (múltiplos de 0.5)
 // NÃO aceita vírgula - bloqueia completamente
@@ -1699,26 +1700,28 @@ function carregarHistorico(collaboratorId, page) {
                 row.insertCell(1).textContent = reg.origem;
                 row.insertCell(2).textContent = reg.descricao;
                 row.insertCell(3).textContent = reg.horas + 'h';
-                {% if can_edit %}
-                const cellAcoes = row.insertCell(4);
-                cellAcoes.style.textAlign = 'center';
-                
-                // Botão Ajustar
-                const btnAjustar = document.createElement('button');
-                btnAjustar.className = 'btn btn-sm btn-warning me-1';
-                btnAjustar.innerHTML = '<i class="bi bi-pencil"></i>';
-                btnAjustar.title = 'Ajustar';
-                btnAjustar.onclick = () => abrirAjuste(reg.id, reg.horas, reg.descricao);
-                cellAcoes.appendChild(btnAjustar);
-                
-                // Botão Excluir
-                const btnExcluir = document.createElement('button');
-                btnExcluir.className = 'btn btn-sm btn-danger';
-                btnExcluir.innerHTML = '<i class="bi bi-trash"></i>';
-                btnExcluir.title = 'Excluir';
-                btnExcluir.onclick = () => excluirRegistro(reg.id, collaboratorId);
-                cellAcoes.appendChild(btnExcluir);
-                {% endif %}
+                if (canEdit) {
+                    const cellAcoes = row.insertCell(4);
+                    cellAcoes.style.textAlign = 'center';
+                    
+                    // Botão Ajustar
+                    const btnAjustar = document.createElement('button');
+                    btnAjustar.className = 'btn btn-sm btn-warning me-1';
+                    btnAjustar.innerHTML = '<i class="bi bi-pencil"></i>';
+                    btnAjustar.title = 'Ajustar';
+                    btnAjustar.onclick = function() { abrirAjuste(reg.id, reg.horas, reg.descricao); };
+                    cellAcoes.appendChild(btnAjustar);
+                    
+                    // Botão Excluir
+                    const btnExcluir = document.createElement('button');
+                    btnExcluir.className = 'btn btn-sm btn-danger';
+                    btnExcluir.innerHTML = '<i class="bi bi-trash"></i>';
+                    btnExcluir.title = 'Excluir';
+                    btnExcluir.onclick = function() { excluirRegistro(reg.id, collaboratorId); };
+                    cellAcoes.appendChild(btnExcluir);
+                } else {
+                    row.insertCell(4).textContent = '';
+                }
             });
             
             // Preencher resumo
@@ -1892,19 +1895,30 @@ document.addEventListener('DOMContentLoaded', function() {
                     method: 'POST',
                     body: formData
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.error || 'Erro desconhecido');
+                        });
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.ok) {
                         bootstrap.Modal.getInstance(document.getElementById('modalAjustar')).hide();
-                        bootstrap.Modal.getInstance(document.getElementById('modalHistorico')).hide();
-                        location.reload();
+                        // Recarregar histórico ao invés de recarregar página inteira
+                        if (typeof currentCollaboratorId !== 'undefined' && typeof currentPage !== 'undefined') {
+                            carregarHistorico(currentCollaboratorId, currentPage);
+                        } else {
+                            location.reload();
+                        }
                     } else {
                         alert('Erro ao ajustar registro: ' + (data.error || 'Erro desconhecido'));
                     }
                 })
                 .catch(error => {
                     console.error('Erro:', error);
-                    alert('Erro ao ajustar registro');
+                    alert('Erro ao ajustar registro: ' + error.message);
                 });
             });
         }

@@ -1,3 +1,24 @@
+## [2.5.8] - 2025-01-15
+
+### 🔧 Correções e Melhorias Técnicas
+
+#### Correções de Lint e Type Checking
+- **Correção de Erros de JavaScript**: Corrigidos erros de sintaxe JavaScript no template de Ciclos
+  - Uso de `|tojson` para escape correto de strings em atributos `onclick`
+  - Substituição de código Jinja2 dentro de blocos JavaScript por variáveis JavaScript
+  - Conversão de arrow functions para `function()` para melhor compatibilidade
+  - Adicionada variável `canEdit` definida pelo Jinja2 para uso no JavaScript
+
+- **Correção de Type Checking Python**: Corrigidos avisos do linter em `ciclos.py`
+  - Adicionada verificação para `base_dir` não ser `None` antes de usar
+  - Adicionada verificação para `HTML` (WeasyPrint) não ser `None` antes de usar
+  - Melhor tratamento de erros quando WeasyPrint não está disponível
+
+#### Melhorias Técnicas
+- Melhor separação entre código de template (Jinja2) e JavaScript
+- Código mais robusto com verificações de tipo adequadas
+- Melhor experiência de desenvolvimento com menos erros de lint
+
 ## [2.5.7] - 2025-01-15
 
 ### 🎯 Melhorias de Navegação e Experiência do Usuário

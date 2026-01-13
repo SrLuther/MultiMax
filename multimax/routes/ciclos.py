@@ -416,8 +416,7 @@ def historico(collaborator_id):
 def ajustar(ciclo_id):
     """Ajustar registro manualmente (apenas admin/dev)"""
     if current_user.nivel not in ['admin', 'DEV']:
-        flash('Acesso negado. Apenas administradores podem ajustar registros.', 'danger')
-        return redirect(url_for('ciclos.index'))
+        return jsonify({'ok': False, 'error': 'Acesso negado. Apenas administradores podem ajustar registros.'}), 403
     
     try:
         ciclo = Ciclo.query.get_or_404(ciclo_id)
@@ -429,8 +428,7 @@ def ajustar(ciclo_id):
         allow_negative = (ciclo.origem == 'Folga utilizada')
         valido, valor_horas_decimal, erro = _validate_hours_format(valor_horas_str, allow_negative=allow_negative)
         if not valido:
-            flash(erro or 'Formato inválido.', 'warning')
-            return redirect(url_for('ciclos.index'))
+            return jsonify({'ok': False, 'error': erro or 'Formato inválido.'}), 400
         
         # NÃO calcular dias no ajuste - sempre 0
         # Conversão de horas em dias acontece APENAS no fechamento
@@ -454,13 +452,11 @@ def ajustar(ciclo_id):
         db.session.add(log)
         
         db.session.commit()
-        flash('Registro ajustado com sucesso!', 'success')
+        return jsonify({'ok': True, 'message': 'Registro ajustado com sucesso!'})
         
     except Exception as e:
         db.session.rollback()
-        flash(f'Erro ao ajustar registro: {str(e)}', 'danger')
-    
-    return redirect(url_for('ciclos.index'))
+        return jsonify({'ok': False, 'error': str(e)}), 500
 
 @bp.route('/excluir/<int:ciclo_id>', methods=['POST'], strict_slashes=False)
 @login_required
@@ -1055,7 +1051,11 @@ def pdf_individual(collaborator_id):
         )
         
         # Passar base_url para o WeasyPrint resolver caminhos relativos corretamente
-        pdf = HTML(string=html, base_url=str(base_dir)).write_pdf()
+        if not WEASYPRINT_AVAILABLE or HTML is None:
+            flash('WeasyPrint não está disponível. Não é possível gerar PDF.', 'danger')
+            return redirect(url_for('ciclos.index'))
+        base_url = str(base_dir) if base_dir else os.getcwd()
+        pdf = HTML(string=html, base_url=base_url).write_pdf()
         
         response = make_response(pdf)
         response.headers['Content-Type'] = 'application/pdf'
@@ -1166,7 +1166,11 @@ def pdf_geral():
         )
         
         # Passar base_url para o WeasyPrint resolver caminhos relativos corretamente
-        pdf = HTML(string=html, base_url=str(base_dir)).write_pdf()
+        if not WEASYPRINT_AVAILABLE or HTML is None:
+            flash('WeasyPrint não está disponível. Não é possível gerar PDF.', 'danger')
+            return redirect(url_for('ciclos.index'))
+        base_url = str(base_dir) if base_dir else os.getcwd()
+        pdf = HTML(string=html, base_url=base_url).write_pdf()
         
         response = make_response(pdf)
         response.headers['Content-Type'] = 'application/pdf'
