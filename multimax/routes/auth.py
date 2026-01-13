@@ -9,7 +9,7 @@ bp = Blueprint('auth', __name__)
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('home.index'))
+        return redirect(url_for('usuarios.perfil'))
     if request.method == 'POST':
         action = request.form.get('action', 'login')
         
@@ -109,7 +109,7 @@ def login():
                     import logging
                     logging.getLogger(__name__).error(f"Erro ao registrar login: {e}")
                 flash('Login realizado com sucesso!', 'success')
-                return redirect(url_for('home.index'))
+                return redirect(url_for('usuarios.perfil'))
             else:
                 flash('Nome de usuário ou senha inválidos.', 'danger')
     
@@ -119,7 +119,7 @@ def login():
 @bp.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for('home.index'))
+        return redirect(url_for('usuarios.perfil'))
     return redirect(url_for('auth.login', register='true'))
 
 @bp.route('/logout')

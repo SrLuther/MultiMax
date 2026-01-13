@@ -1,3 +1,18 @@
+## [2.5.7] - 2025-01-15
+
+### 🎯 Melhorias de Navegação e Experiência do Usuário
+
+#### Página Inicial Redirecionada para Perfil
+- **Redirecionamento Pós-Login**: Após fazer login, os usuários são automaticamente direcionados para a página de perfil
+- **Rota Raiz Atualizada**: A rota raiz (`/`) agora redireciona usuários autenticados diretamente para o perfil
+- **Acesso Direto ao Perfil**: Usuários já autenticados que acessam a página de login são redirecionados para o perfil
+- **Melhoria na Experiência**: Facilita o acesso rápido às informações pessoais e saldo de horas do colaborador
+
+#### Alterações Técnicas
+- Modificado redirecionamento em `auth.py` após login bem-sucedido
+- Atualizada rota raiz em `__init__.py` para redirecionar para perfil
+- Mantida compatibilidade com todas as funcionalidades existentes
+
 ## [2.5.6] - 2025-01-15
 
 ### ✨ Melhorias Significativas no Módulo de Banco de Dados

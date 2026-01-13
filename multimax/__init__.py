@@ -220,7 +220,7 @@ def create_app():
         from flask import redirect, url_for
         if not current_user.is_authenticated:
             return redirect(url_for('auth.login'))
-        return redirect(url_for('home.index'))
+        return redirect(url_for('usuarios.perfil'))
 
     @app.route('/health', strict_slashes=False)
     def _health():
