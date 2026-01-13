@@ -316,6 +316,65 @@
 </div>
 {% endif %}
 
+<!-- Card Explicativo -->
+<div class="ciclos-info-card">
+    <div class="ciclos-info-header">
+        <h3 class="ciclos-info-title">
+            <i class="bi bi-info-circle"></i>
+            Como Funciona o Sistema de Ciclos
+        </h3>
+    </div>
+    <div class="ciclos-info-body">
+        <div class="ciclos-info-content">
+            <div class="ciclos-info-item">
+                <div class="ciclos-info-icon">
+                    <i class="bi bi-clock"></i>
+                </div>
+                <div class="ciclos-info-text">
+                    <h4>Lançamento de Horas</h4>
+                    <p>Os colaboradores recebem horas trabalhadas de diferentes origens: domingos, feriados, horas adicionais ou outros eventos especiais. Cada lançamento registra as horas acumuladas no ciclo atual.</p>
+                </div>
+            </div>
+            <div class="ciclos-info-item">
+                <div class="ciclos-info-icon">
+                    <i class="bi bi-calendar-check"></i>
+                </div>
+                <div class="ciclos-info-text">
+                    <h4>Conversão em Dias</h4>
+                    <p>A cada <strong>8 horas</strong> completas, o sistema converte automaticamente em <strong>1 dia completo</strong>. Por exemplo: 16 horas = 2 dias completos, 10 horas = 1 dia completo + 2 horas restantes.</p>
+                </div>
+            </div>
+            <div class="ciclos-info-item">
+                <div class="ciclos-info-icon">
+                    <i class="bi bi-cash-coin"></i>
+                </div>
+                <div class="ciclos-info-text">
+                    <h4>Valor Aproximado</h4>
+                    <p>O valor em R$ é calculado apenas sobre os <strong>dias completos</strong> (múltiplos de 8h). As horas restantes (menos de 8h) não entram no cálculo de pagamento do ciclo atual, mas são preservadas para o próximo ciclo.</p>
+                </div>
+            </div>
+            <div class="ciclos-info-item">
+                <div class="ciclos-info-icon">
+                    <i class="bi bi-arrow-repeat"></i>
+                </div>
+                <div class="ciclos-info-text">
+                    <h4>Fechamento do Ciclo</h4>
+                    <p>Quando o ciclo é fechado (Registrar Pagamento), os <strong>dias completos</strong> são convertidos em R$ para pagamento. As <strong>horas restantes</strong> (ex: 2h, 5h, etc.) são automaticamente transportadas para o próximo ciclo como "Carryover", onde poderão se somar a novas horas lançadas.</p>
+                </div>
+            </div>
+            <div class="ciclos-info-item">
+                <div class="ciclos-info-icon">
+                    <i class="bi bi-lightbulb"></i>
+                </div>
+                <div class="ciclos-info-text">
+                    <h4>Exemplo Prático</h4>
+                    <p>Se um colaborador tem <strong>18 horas</strong> acumuladas: isso resulta em <strong>2 dias completos</strong> (16h) + <strong>2 horas restantes</strong>. Ao fechar o ciclo, receberá o valor de 2 dias. As 2 horas restantes seguirão para o próximo ciclo e, se somarem mais 6 horas, completarão 1 dia adicional.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Lançamento de Horas -->
 {% if can_edit %}
 <div class="modal fade" id="modalLancamento" tabindex="-1" aria-labelledby="modalLancamentoLabel" aria-hidden="true">
@@ -1338,6 +1397,151 @@
 [data-theme="dark"] .empty-state-small-modern i {
     color: #6b7280;
 }
+
+/* Card Explicativo */
+.ciclos-info-card {
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8edff 100%);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-top: 3rem;
+    margin-bottom: 2rem;
+    border: 2px solid #667eea;
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.15);
+}
+
+.ciclos-info-header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+}
+
+.ciclos-info-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.ciclos-info-title i {
+    color: #667eea;
+    font-size: 1.75rem;
+}
+
+.ciclos-info-body {
+    padding: 0;
+}
+
+.ciclos-info-content {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.ciclos-info-item {
+    display: flex;
+    gap: 1.25rem;
+    align-items: flex-start;
+    padding: 1.25rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.ciclos-info-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.ciclos-info-icon {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.ciclos-info-text {
+    flex: 1;
+}
+
+.ciclos-info-text h4 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0 0 0.5rem 0;
+}
+
+.ciclos-info-text p {
+    font-size: 0.9375rem;
+    color: #4b5563;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.ciclos-info-text p strong {
+    color: #667eea;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .ciclos-info-card {
+        padding: 1.5rem;
+        margin-top: 2rem;
+    }
+    
+    .ciclos-info-title {
+        font-size: 1.25rem;
+    }
+    
+    .ciclos-info-item {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .ciclos-info-text {
+        text-align: left;
+    }
+}
+
+[data-theme="dark"] .ciclos-info-card {
+    background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+    border-color: #667eea;
+}
+
+[data-theme="dark"] .ciclos-info-header {
+    border-bottom-color: rgba(102, 126, 234, 0.3);
+}
+
+[data-theme="dark"] .ciclos-info-title {
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .ciclos-info-item {
+    background-color: #1f2937;
+    border: 1px solid #374151;
+}
+
+[data-theme="dark"] .ciclos-info-text h4 {
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .ciclos-info-text p {
+    color: #d1d5db;
+}
+
+[data-theme="dark"] .ciclos-info-text p strong {
+    color: #a78bfa;
+}
 </style>
 
 <script>
@@ -1497,11 +1701,23 @@ function carregarHistorico(collaboratorId, page) {
                 row.insertCell(3).textContent = reg.horas + 'h';
                 {% if can_edit %}
                 const cellAcoes = row.insertCell(4);
+                cellAcoes.style.textAlign = 'center';
+                
+                // Botão Ajustar
                 const btnAjustar = document.createElement('button');
-                btnAjustar.className = 'btn btn-sm btn-warning';
+                btnAjustar.className = 'btn btn-sm btn-warning me-1';
                 btnAjustar.innerHTML = '<i class="bi bi-pencil"></i>';
+                btnAjustar.title = 'Ajustar';
                 btnAjustar.onclick = () => abrirAjuste(reg.id, reg.horas, reg.descricao);
                 cellAcoes.appendChild(btnAjustar);
+                
+                // Botão Excluir
+                const btnExcluir = document.createElement('button');
+                btnExcluir.className = 'btn btn-sm btn-danger';
+                btnExcluir.innerHTML = '<i class="bi bi-trash"></i>';
+                btnExcluir.title = 'Excluir';
+                btnExcluir.onclick = () => excluirRegistro(reg.id, collaboratorId);
+                cellAcoes.appendChild(btnExcluir);
                 {% endif %}
             });
             
@@ -1694,6 +1910,35 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+
+// Função para excluir registro
+function excluirRegistro(cicloId, collaboratorId) {
+    if (!confirm('Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.')) {
+        return;
+    }
+    
+    fetch(`/ciclos/excluir/${cicloId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.ok) {
+            // Recarregar histórico após exclusão
+            carregarHistorico(collaboratorId, currentPage);
+            // Mostrar mensagem de sucesso
+            alert(data.message || 'Registro excluído com sucesso!');
+        } else {
+            alert('Erro ao excluir registro: ' + (data.error || 'Erro desconhecido'));
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao excluir registro');
+    });
+}
 
 // Abrir modal de fechamento
 function abrirModalFechamento() {

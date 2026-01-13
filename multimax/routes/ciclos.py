@@ -462,6 +462,46 @@ def ajustar(ciclo_id):
     
     return redirect(url_for('ciclos.index'))
 
+@bp.route('/excluir/<int:ciclo_id>', methods=['POST'], strict_slashes=False)
+@login_required
+def excluir(ciclo_id):
+    """Excluir registro do histórico (apenas admin/dev)"""
+    if current_user.nivel not in ['admin', 'DEV']:
+        return jsonify({'ok': False, 'error': 'Acesso negado. Apenas administradores podem excluir registros.'}), 403
+    
+    try:
+        ciclo = Ciclo.query.get_or_404(ciclo_id)
+        
+        # Verificar se o registro está ativo (só pode excluir registros ativos)
+        if ciclo.status_ciclo != 'ativo':
+            return jsonify({'ok': False, 'error': 'Apenas registros ativos podem ser excluídos.'}), 400
+        
+        collaborator_id = ciclo.collaborator_id
+        colaborador_nome = ciclo.nome_colaborador
+        horas_excluidas = float(ciclo.valor_horas)
+        
+        # Excluir registro
+        db.session.delete(ciclo)
+        
+        # Log
+        log = SystemLog()
+        log.origem = 'Ciclos'
+        log.evento = 'exclusao_registro'
+        log.detalhes = f'Exclusão de registro {ciclo_id}: {horas_excluidas}h de {colaborador_nome}'
+        log.usuario = current_user.name or current_user.username
+        db.session.add(log)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'ok': True,
+            'message': f'Registro excluído com sucesso! {horas_excluidas}h removidas de {colaborador_nome}'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': f'Erro ao excluir registro: {str(e)}'}), 500
+
 @bp.route('/fechamento/resumo', methods=['GET'], strict_slashes=False)
 @login_required
 def resumo_fechamento():

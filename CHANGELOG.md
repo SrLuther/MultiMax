@@ -1,3 +1,43 @@
+## [2.5.5] - 2025-01-15
+
+### ✨ Novas Funcionalidades e Melhorias
+
+#### Dashboard
+- **Card Informativo do Sistema**: Adicionado card elegante e profissional no dashboard com informações completas sobre o sistema
+  - Informações sobre sistema independente não patrocinado
+  - Proprietário: Luciano Santos Costa
+  - Resumo completo e detalhado de todas as funcionalidades da versão 2.5.5
+  - Design profissional e responsivo com suporte a modo escuro
+
+#### Módulo de Ciclos
+- **Exclusão de Registros**: Adicionada funcionalidade de exclusão de registros no histórico de colaboradores
+  - Botão de excluir ao lado do botão de ajustar
+  - Confirmação antes de exclusão
+  - Atualização automática do histórico após exclusão
+  - Validação de permissões (apenas admin/dev)
+  
+- **Card Explicativo**: Adicionado card informativo no rodapé da página de Ciclos
+  - Explicação clara e compreensível de como funciona a lógica de ciclos
+  - Exemplos práticos de conversão de horas em dias
+  - Informações sobre fechamento de ciclo e carryover
+  - Design elegante e profissional
+
+#### Interface
+- **Dashboard**: Substituído botão "Jornada" por "Ciclos" no grid de atalhos
+- **Dashboard**: Adicionado badge do ciclo atual na página de Ciclos
+  - Exibe "Ciclo X | Mês" que atualiza automaticamente
+  - Design integrado ao header da página
+
+### 🎨 Melhorias de Interface
+- Cards informativos com design moderno e responsivo
+- Melhorias na apresentação de informações do sistema
+- Suporte completo a modo escuro em novos componentes
+
+### 🔧 Correções
+- Nenhuma correção nesta versão
+
+---
+
 ## [2.5.4] - 2025-01-11
 
 ### 🔧 Correção de Caminhos de Imagens nos PDFs
