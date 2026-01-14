@@ -72,7 +72,8 @@ def create_app():
         static_folder=os.path.join(base_dir, "static"),
     )
     # Definir caminho do banco de dados SQLite (caminho absoluto)
-    # Prioridade: DB_FILE_PATH > padrão /multimax-data/estoque.db (dentro do container) ou /opt/multimax-data/estoque.db (fora do container)
+    # Prioridade: DB_FILE_PATH > padrão /multimax-data/estoque.db
+    # (dentro do container) ou /opt/multimax-data/estoque.db (fora do container)
     db_file_path_env = os.getenv("DB_FILE_PATH")
     if db_file_path_env:
         # Se DB_FILE_PATH foi definido, usar diretamente
@@ -198,9 +199,12 @@ def create_app():
         app.register_blueprint(notificacoes_bp)
     if dbadmin_bp:
         app.register_blueprint(dbadmin_bp)
-        app.logger.info(
-            f'Blueprint dbadmin registrado com sucesso. Rotas disponíveis: {[rule.rule for rule in app.url_map.iter_rules() if rule.endpoint.startswith("dbadmin.")]}'
-        )
+        rotas = [
+            rule.rule
+            for rule in app.url_map.iter_rules()
+            if rule.endpoint.startswith("dbadmin.")
+        ]
+        app.logger.info(f"Blueprint dbadmin registrado com sucesso. Rotas disponíveis: {rotas}")
     else:
         app.logger.warning("Blueprint dbadmin não foi registrado (dbadmin_bp é None)")
 
@@ -326,7 +330,7 @@ def create_app():
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Status do Banco de Dados</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">  # noqa: E501
   <style>
     :root {{
       --mm-bg: #0a0a0a;
@@ -373,8 +377,8 @@ def create_app():
       width: 44px;
       height: 44px;
       border-radius: 12px;
-      background: {'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.1))' if ok else 'linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(185, 28, 28, 0.1))'};
-      border: 1px solid {'rgba(16, 185, 129, 0.3)' if ok else 'rgba(239, 68, 68, 0.3)'};
+      background: {'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.1))' if ok else 'linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(185, 28, 28, 0.1))'};  # noqa: E501
+      border: 1px solid {'rgba(16, 185, 129, 0.3)' if ok else 'rgba(239, 68, 68, 0.3)'};  # noqa: E501
       display: flex;
       align-items: center;
       justify-content: center;
@@ -398,8 +402,8 @@ def create_app():
       border-radius: 50px;
       font-size: 13px;
       font-weight: 600;
-      background: {'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.08))' if ok else 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(185, 28, 28, 0.08))'};
-      border: 1px solid {'rgba(16, 185, 129, 0.3)' if ok else 'rgba(239, 68, 68, 0.3)'};
+      background: {'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.08))' if ok else 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(185, 28, 28, 0.08))'};  # noqa: E501
+      border: 1px solid {'rgba(16, 185, 129, 0.3)' if ok else 'rgba(239, 68, 68, 0.3)'};  # noqa: E501
       color: {'var(--mm-success)' if ok else 'var(--mm-danger)'};
     }}
     .db-status-dot {{
@@ -445,7 +449,7 @@ def create_app():
       font-size: 16px;
       margin-bottom: 12px;
     }}
-    .kpi-status .db-kpi-icon {{ background: {'rgba(16, 185, 129, 0.15)' if ok else 'rgba(239, 68, 68, 0.15)'}; color: {'var(--mm-success)' if ok else 'var(--mm-danger)'}; }}
+    .kpi-status .db-kpi-icon {{ background: {'rgba(16, 185, 129, 0.15)' if ok else 'rgba(239, 68, 68, 0.15)'}; color: {'var(--mm-success)' if ok else 'var(--mm-danger)'}; }}  # noqa: E501
     .kpi-version .db-kpi-icon {{ background: rgba(59, 130, 246, 0.15); color: var(--mm-primary); }}
     .kpi-size .db-kpi-icon {{ background: rgba(6, 182, 212, 0.15); color: var(--mm-cyan); }}
     .kpi-tables .db-kpi-icon {{ background: rgba(139, 92, 246, 0.15); color: var(--mm-purple); }}
@@ -561,7 +565,7 @@ def create_app():
       </div>
       <div class="db-info-row">
         <span class="db-info-label">Status</span>
-        <span class="db-info-value {'success' if ok else 'error'}">{err if err else ('Conexao funcionando normalmente' if ok else 'Falha na conexao')}</span>
+        <span class="db-info-value {'success' if ok else 'error'}">{err if err else ('Conexao funcionando normalmente' if ok else 'Falha na conexao')}</span>  # noqa: E501
       </div>
     </div>
   </div>
@@ -977,9 +981,11 @@ def create_app():
                             pass
                         try:
                             db.session.execute(
-                                text(
-                                    f'create policy allow_server_all on public."{t}" for all to "{role}" using (true) with check (true)'
+                                policy_sql = (
+                                    f'create policy allow_server_all on public."{t}" '
+                                    f'for all to "{role}" using (true) with check (true)'
                                 )
+                                text(policy_sql)
                             )
                         except Exception:
                             pass
@@ -1518,8 +1524,10 @@ def create_app():
                         db.session.execute(
                             text(
                                 f"""
-                            INSERT INTO time_off_record (collaborator_id, date, record_type, hours, notes, origin, created_at, created_by)
-                            SELECT collaborator_id, date, 'horas', hours, COALESCE(reason, 'Horas extras'), 'migrado', {now_func}, 'sistema'
+                            INSERT INTO time_off_record (
+                                collaborator_id, date, record_type, hours, notes, origin, created_at, created_by
+                            )
+                            SELECT collaborator_id, date, 'horas', hours, COALESCE(reason, 'Horas extras'), 'migrado', {now_func}, 'sistema'  # noqa: E501
                             FROM hour_bank_entry
                             WHERE NOT EXISTS (
                                 SELECT 1 FROM time_off_record tor
@@ -1537,8 +1545,10 @@ def create_app():
                         db.session.execute(
                             text(
                                 f"""
-                            INSERT INTO time_off_record (collaborator_id, date, record_type, days, notes, origin, created_at, created_by)
-                            SELECT collaborator_id, date, 'folga_adicional', COALESCE(amount_days, 1), COALESCE(notes, 'Folga adicional'), COALESCE(origin, 'migrado'), {now_func}, 'sistema'
+                            INSERT INTO time_off_record (
+                                collaborator_id, date, record_type, days, notes, origin, created_at, created_by
+                            )
+                            SELECT collaborator_id, date, 'folga_adicional', COALESCE(amount_days, 1), COALESCE(notes, 'Folga adicional'), COALESCE(origin, 'migrado'), {now_func}, 'sistema'  # noqa: E501
                             FROM leave_credit
                             WHERE NOT EXISTS (
                                 SELECT 1 FROM time_off_record tor
@@ -1556,8 +1566,10 @@ def create_app():
                         db.session.execute(
                             text(
                                 f"""
-                            INSERT INTO time_off_record (collaborator_id, date, record_type, days, notes, origin, created_at, created_by)
-                            SELECT collaborator_id, date, 'folga_usada', COALESCE(days_used, 1), COALESCE(notes, 'Folga usada'), 'migrado', {now_func}, 'sistema'
+                            INSERT INTO time_off_record (
+                                collaborator_id, date, record_type, days, notes, origin, created_at, created_by
+                            )
+                            SELECT collaborator_id, date, 'folga_usada', COALESCE(days_used, 1), COALESCE(notes, 'Folga usada'), 'migrado', {now_func}, 'sistema'  # noqa: E501
                             FROM leave_assignment
                             WHERE NOT EXISTS (
                                 SELECT 1 FROM time_off_record tor
@@ -1575,8 +1587,10 @@ def create_app():
                         db.session.execute(
                             text(
                                 f"""
-                            INSERT INTO time_off_record (collaborator_id, date, record_type, days, amount_paid, rate_per_day, notes, origin, created_at, created_by)
-                            SELECT collaborator_id, date, 'conversao', amount_days, amount_paid, COALESCE(rate_per_day, 65.0), COALESCE(notes, 'Conversão em dinheiro'), 'migrado', {now_func}, 'sistema'
+                            INSERT INTO time_off_record (
+                                collaborator_id, date, record_type, days, amount_paid, rate_per_day, notes, origin, created_at, created_by
+                            )
+                            SELECT collaborator_id, date, 'conversao', amount_days, amount_paid, COALESCE(rate_per_day, 65.0), COALESCE(notes, 'Conversão em dinheiro'), 'migrado', {now_func}, 'sistema'  # noqa: E501
                             FROM leave_conversion
                             WHERE NOT EXISTS (
                                 SELECT 1 FROM time_off_record tor

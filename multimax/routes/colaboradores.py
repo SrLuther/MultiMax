@@ -743,7 +743,11 @@ def gerar_escala_automatica():
 
     if len(equipe_abertura) < 3 or len(equipe_fechamento) < 3:
         flash(
-            f"Equipe de Abertura incompleta: {len(equipe_abertura)}/3 pessoas necessárias. Equipe de Fechamento (Tarde) incompleta: {len(equipe_fechamento)}/3 pessoas necessárias. Configure as equipes primeiro.",
+            (
+                f"Equipe de Abertura incompleta: {len(equipe_abertura)}/3 pessoas necessárias. "
+                f"Equipe de Fechamento (Tarde) incompleta: {len(equipe_fechamento)}/3 pessoas necessárias. "
+                "Configure as equipes primeiro."
+            ),
             "warning",
         )
         return redirect(url_for("colaboradores.escala", semana=semana_inicio.strftime("%Y-%m-%d")))
