@@ -2461,9 +2461,9 @@ def git_status():
                 if result_tags.returncode == 0 and result_tags.stdout.strip():
                     all_tags = [tag.strip() for tag in result_tags.stdout.strip().split("\n") if tag.strip()]
                     if all_tags:
-                        import re
-
                         def version_key(tag):
+                            import re
+
                             parts = re.findall(r"\d+", tag.lstrip("vV"))
                             return tuple(int(p) for p in parts) if parts else (0,)
 
@@ -2482,7 +2482,7 @@ def git_status():
                 if os.path.exists(init_path):
                     with open(init_path, "r", encoding="utf-8") as f:
                         content = f.read()
-                        import re
+                        import re  # noqa: F401
 
                         match = re.search(r"return '([\d.]+)'", content)
                         if match:
