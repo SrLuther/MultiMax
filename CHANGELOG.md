@@ -1,3 +1,36 @@
+## [2.5.9] - 2025-01-15
+
+### 🔧 Refatoração Completa do Módulo de Ciclos
+
+#### Reconstrução Arquitetural
+- **JavaScript Extraído para Arquivo Externo**: Todo o JavaScript do módulo Ciclos foi movido para `static/js/ciclos.js`
+  - Eliminação completa de JavaScript inline no template HTML
+  - Separação total entre código de template (Jinja2) e JavaScript
+  - Nenhum Jinja2 dentro de strings JavaScript, eliminando erros de parsing
+
+- **Sistema de Configuração via Meta Tags**: URLs e configurações agora são passadas via meta tags HTML
+  - `ciclos-can-edit`: Permissão de edição
+  - `ciclos-url-confirmar-fechamento`: URL do endpoint de fechamento
+  - `ciclos-url-pdf-geral`: URL do PDF geral
+  - `ciclos-url-resumo-fechamento`: URL do resumo de fechamento
+
+- **Botões com Data Attributes**: Todos os botões agora usam apenas `data-*` attributes
+  - Remoção completa de atributos `onclick` inline
+  - Event listeners registrados via `addEventListener` após `DOMContentLoaded`
+  - Botões "+ Lançar Horas" e "Detalhes / Histórico" funcionando corretamente
+
+#### Correções Críticas
+- **Eliminação de Erro "Unexpected end of input"**: Problema de parsing JavaScript completamente resolvido
+  - HTML válido sem JavaScript inline quebrando o parsing
+  - JavaScript isolado e sintaticamente correto
+  - Nenhum risco de interrupção de parsing por interpolação de template
+
+#### Benefícios Técnicos
+- **Manutenibilidade**: JavaScript em arquivo separado, fácil de debugar e manter
+- **Performance**: Arquivo JS pode ser cacheado pelo navegador
+- **Robustez**: Código mais robusto e menos propenso a erros
+- **Separação de Responsabilidades**: HTML apenas marcação, JavaScript apenas lógica
+
 ## [2.5.8] - 2025-01-15
 
 ### 🔧 Correções e Melhorias Técnicas
