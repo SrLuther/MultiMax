@@ -2475,9 +2475,10 @@ def git_status():
                                         # Se o commit da tag é igual ao commit atual, usar essa tag
                                         if tag_commit == current_commit:
                                             current_version = tag.lstrip("vV")
+                                            commit_short = current_commit[:7]
                                             msg = (
                                                 f"Versão atualizada (tag exata encontrada pelo commit): "
-                                                f"{current_version} (tag: {tag}, commit: {current_commit[:7]})"
+                                                f"{current_version} (tag: {tag}, commit: {commit_short})"
                                             )
                                             current_app.logger.info(msg)
                                             tag_found = True
@@ -2486,7 +2487,8 @@ def git_status():
                                     current_app.logger.debug(f"Erro ao verificar commit da tag {tag}: {tag_err}")
                                     continue
 
-                            # Se não encontrou tag exata, usar git describe para pegar a tag mais próxima ANTES do commit atual
+                            # Se não encontrou tag exata, usar git describe para pegar
+                            # a tag mais próxima ANTES do commit atual
                             if not tag_found:
                                 result_describe = subprocess.run(
                                     ["git", "describe", "--tags", "--abbrev=0", "HEAD"],
