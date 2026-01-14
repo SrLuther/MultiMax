@@ -1,3 +1,9 @@
+## [2.6.1] - 2026-01-14
+
+### 🔧 Atualização
+
+- Versao 2.6.1 - fc0ae1b fix: Corrige erro 500 na pÃƒÂ¡gina de banco de dados
+
 ## [2.6.0] - 2025-01-15
 
 ### 🔒 Correções Críticas de Segurança JavaScript
