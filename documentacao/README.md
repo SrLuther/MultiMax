@@ -12,6 +12,8 @@ Esta pasta contém toda a documentação técnica e de referência do projeto Mu
 ### Versionamento
 - **VERSION_SYNC.md** - Documentação sobre sincronização de versão entre arquivos
 - **PROCESSO_ATUALIZACAO_VERSAO.md** - Processo completo de atualização de versão
+- **README_VERSIONAMENTO.md** - Regras e comandos do fluxo de versionamento automático
+- **VERSIONAMENTO_AUTOMATICO.md** - Documentação completa do sistema de versionamento automático
 
 ### Manutenção e Organização
 - **ARQUIVOS_VAZIOS_EXPLICACAO.md** - Explicação detalhada sobre arquivos e pastas vazios no projeto, seus motivos e necessidades
