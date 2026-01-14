@@ -426,8 +426,11 @@ def salvar_cronograma():
             tarefa.observacao = observacao if observacao else tarefa.observacao
             tarefa.designados = designados if designados else tarefa.designados
             db.session.commit()
-            flash(
-                f'Limpeza "{tarefa.nome_limpeza}" marcada como concluída e reagendada para {tarefa.proxima_data.strftime("%d/%m/%Y")}.',
+            msg = (
+                f'Limpeza "{tarefa.nome_limpeza}" marcada como concluída e reagendada para '
+                f'{tarefa.proxima_data.strftime("%d/%m/%Y")}.'
+            )
+            flash(msg,
                 "success",
             )
         except Exception as e:

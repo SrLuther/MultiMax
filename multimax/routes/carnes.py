@@ -80,7 +80,8 @@ def _ensure_reception_columns():
             try:
                 db.session.execute(
                     text(
-                        "CREATE UNIQUE INDEX IF NOT EXISTS ux_meat_reception_reference_code ON meat_reception (reference_code)"
+                        "CREATE UNIQUE INDEX IF NOT EXISTS "
+                        "ux_meat_reception_reference_code ON meat_reception (reference_code)"
                     )
                 )
             except Exception:

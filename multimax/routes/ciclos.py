@@ -150,7 +150,10 @@ def _validate_hours_format(value_str, allow_negative=False):
         return (
             False,
             None,
-            "Formato inválido. Use apenas números inteiros ou decimais com ponto (ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos.",
+            (
+                "Formato inválido. Use apenas números inteiros ou decimais com ponto "
+                "(ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos."
+            ),
         )
 
     # Bloquear dois pontos (formato 2:30)
@@ -158,7 +161,10 @@ def _validate_hours_format(value_str, allow_negative=False):
         return (
             False,
             None,
-            "Formato inválido. Use apenas números inteiros ou decimais com ponto (ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos.",
+            (
+                "Formato inválido. Use apenas números inteiros ou decimais com ponto "
+                "(ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos."
+            ),
         )
 
     try:
@@ -174,7 +180,10 @@ def _validate_hours_format(value_str, allow_negative=False):
             return (
                 False,
                 None,
-                "Formato inválido. Use apenas números inteiros ou decimais com ponto (ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos.",
+                (
+                "Formato inválido. Use apenas números inteiros ou decimais com ponto "
+                "(ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos."
+            ),
             )
 
         return (True, valor, None)
@@ -182,7 +191,10 @@ def _validate_hours_format(value_str, allow_negative=False):
         return (
             False,
             None,
-            "Formato inválido. Use apenas números inteiros ou decimais com ponto (ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos.",
+            (
+                "Formato inválido. Use apenas números inteiros ou decimais com ponto "
+                "(ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos."
+            ),
         )
 
 
@@ -721,16 +733,20 @@ def confirmar_fechamento():
         log = SystemLog()
         log.origem = "Ciclos"
         log.evento = "fechamento_ciclo"
-        log.detalhes = f"Fechamento do ciclo {proximo_ciclo_id}: {total_dias_geral} dias, {total_horas_geral}h, R$ {total_valor_geral:.2f}"
+        log.detalhes = (
+            f"Fechamento do ciclo {proximo_ciclo_id}: {total_dias_geral} dias, "
+            f"{total_horas_geral}h, R$ {total_valor_geral:.2f}"
+        )
         log.usuario = current_user.name or current_user.username
         db.session.add(log)
 
         db.session.commit()
 
-        flash(
-            f"Ciclo {proximo_ciclo_id} fechado com sucesso! {total_dias_geral} dias completos, {round(total_horas_geral, 1)}h totais, R$ {total_valor_geral:.2f}",
-            "success",
+        msg = (
+            f"Ciclo {proximo_ciclo_id} fechado com sucesso! {total_dias_geral} dias completos, "
+            f"{round(total_horas_geral, 1)}h totais, R$ {total_valor_geral:.2f}"
         )
+        flash(msg, "success")
 
     except Exception as e:
         db.session.rollback()

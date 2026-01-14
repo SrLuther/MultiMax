@@ -887,8 +887,12 @@ def gerar_escala_automatica():
                         db.session.add(te)
 
         db.session.commit()
-        flash(
-            f"Escala gerada com sucesso! {turnos_criados} turnos criados. Equipe {open_team} na abertura (2x Abertura 5h + 1x Abertura 6h), Equipe {close_team} no turno Tarde (3 pessoas).",
+        msg = (
+            f"Escala gerada com sucesso! {turnos_criados} turnos criados. "
+            f"Equipe {open_team} na abertura (2x Abertura 5h + 1x Abertura 6h), "
+            f"Equipe {close_team} no turno Tarde (3 pessoas)."
+        )
+        flash(msg,
             "success",
         )
     except Exception as e:

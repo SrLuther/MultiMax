@@ -103,7 +103,10 @@ def _log_unauthorized_access():
         log = SystemLog()
         log.origem = "Segurança"
         log.evento = "acesso_negado"
-        log.detalhes = f'Tentativa de acesso não autorizada à página Banco de Dados - Usuário: {current_user.username if current_user.is_authenticated else "Não autenticado"}'
+        user_info = (
+            current_user.username if current_user.is_authenticated else "Não autenticado"
+        )
+        log.detalhes = f"Tentativa de acesso não autorizada à página Banco de Dados - Usuário: {user_info}"
         log.usuario = current_user.username if current_user.is_authenticated else "Sistema"
         db.session.add(log)
         db.session.commit()
@@ -1133,7 +1136,10 @@ def _get_maintenance_recommendations():
                 {
                     "type": "cleanup_logs",
                     "priority": "high" if logs_stats["old_estimated_size_mb"] > 50 else "medium",
-                    "message": f'Recomenda-se limpeza de logs: {logs_stats["old_estimated_size_mb"]:.1f} MB de logs antigos (>30 dias)',
+                    "message": (
+                        f'Recomenda-se limpeza de logs: {logs_stats["old_estimated_size_mb"]:.1f} '
+                        "MB de logs antigos (>30 dias)"
+                    ),
                     "estimated_size_mb": logs_stats["old_estimated_size_mb"],
                 }
             )
@@ -1142,7 +1148,10 @@ def _get_maintenance_recommendations():
                 {
                     "type": "cleanup_logs",
                     "priority": "low",
-                    "message": f'Considere limpar logs antigos: {logs_stats["old_estimated_size_mb"]:.1f} MB disponíveis',
+                    "message": (
+                        f'Considere limpar logs antigos: {logs_stats["old_estimated_size_mb"]:.1f} '
+                        "MB disponíveis"
+                    ),
                     "estimated_size_mb": logs_stats["old_estimated_size_mb"],
                 }
             )
@@ -1189,7 +1198,10 @@ def _get_maintenance_recommendations():
                     {
                         "type": "verify_backups",
                         "priority": "medium" if days_since_verify > 14 else "low",
-                        "message": f"Recomenda-se verificação de backups: última verificação há {days_since_verify} dias",
+                        "message": (
+                            f"Recomenda-se verificação de backups: "
+                            f"última verificação há {days_since_verify} dias"
+                        ),
                         "days_since": days_since_verify,
                     }
                 )
@@ -2314,13 +2326,15 @@ def git_status():
                 timeout=30 if force else 20,  # Timeout maior para fetch forçado
             )
             if fetch_result.returncode != 0:
+                stderr_preview = fetch_result.stderr[:300] if fetch_result.stderr else ""
+                stdout_preview = fetch_result.stdout[:300] if fetch_result.stdout else ""
                 current_app.logger.warning(
-                    f"Erro ao fazer fetch. Return code: {fetch_result.returncode}, stderr: {fetch_result.stderr[:300]}, stdout: {fetch_result.stdout[:300]}"
+                    f"Erro ao fazer fetch. Return code: {fetch_result.returncode}, "
+                    f"stderr: {stderr_preview}, stdout: {stdout_preview}"
                 )
             else:
-                current_app.logger.info(
-                    f'Fetch realizado com sucesso (branch e tags). Output: {fetch_result.stdout[:200] if fetch_result.stdout else "sem output"}'
-                )
+                output_preview = fetch_result.stdout[:200] if fetch_result.stdout else "sem output"
+                current_app.logger.info(f"Fetch realizado com sucesso (branch e tags). Output: {output_preview}")
 
             # Buscar tags remotas explicitamente para garantir que todas as tags foram baixadas
             # Isso garante que a versão mais recente seja encontrada
