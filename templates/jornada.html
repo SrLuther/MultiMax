@@ -1069,6 +1069,17 @@ const notesHidden = document.getElementById('notesHidden');
 const modalTitleText = document.getElementById('modalTitleText');
 
 // ============================================================================
+// URLs do Backend (usando |tojson para evitar erros de parsing)
+// ============================================================================
+const URL_JORNADA_IS_HOLIDAY = {{ url_for('jornada.is_holiday') | tojson }};
+const URL_JORNADA_UPDATE_BASE = {{ url_for('jornada.update', worklog_id='__ID__') | tojson }};
+const URL_JORNADA_INDEX = {{ url_for('jornada.index') | tojson }};
+const URL_JORNADA_CREATE = {{ url_for('jornada.create') | tojson }};
+const URL_USUARIOS_HORAS_ADICIONAR = {{ url_for('usuarios.gestao_colabs_horas_adicionar') | tojson }};
+const URL_USUARIOS_FOLGA_CREDITO_ADICIONAR = {{ url_for('usuarios.gestao_colabs_folga_credito_adicionar') | tojson }};
+const URL_USUARIOS_FOLGA_USO_ADICIONAR = {{ url_for('usuarios.gestao_colabs_folga_uso_adicionar') | tojson }};
+
+// ============================================================================
 // Tabs
 // ============================================================================
 (function() {
@@ -1091,7 +1102,7 @@ const modalTitleText = document.getElementById('modalTitleText');
             // Adicionar active à tab e content selecionados
             tab.classList.add('active');
             tab.setAttribute('aria-selected', 'true');
-            const targetContent = document.getElementById(`tab-${targetTab}`);
+            const targetContent = document.getElementById('tab-' + targetTab);
             if (targetContent) {
                 targetContent.classList.add('active');
             }
@@ -1153,7 +1164,7 @@ document.querySelectorAll('[data-edit-id]').forEach(btn => {
         const obs = btn.getAttribute('data-edit-obs') || '';
         
         document.getElementById('_edit_id').value = id;
-        form.action = "{{ url_for('jornada.update', worklog_id='__ID__') }}".replace('__ID__', id);
+        form.action = URL_JORNADA_UPDATE_BASE.replace('__ID__', id);
         tipoHidden.value = tipo;
         modalTitleText.textContent = 'Editar Registro';
         submitLabel.textContent = 'Salvar Alterações';
@@ -1223,11 +1234,11 @@ function setAction() {
     
     if (!editIdVal) {
         if (val === 'horas') {
-            form.action = "{{ url_for('usuarios.gestao_colabs_horas_adicionar') }}";
+            form.action = URL_USUARIOS_HORAS_ADICIONAR;
         } else if (val === 'folga_credito') {
-            form.action = "{{ url_for('usuarios.gestao_colabs_folga_credito_adicionar') }}";
+            form.action = URL_USUARIOS_FOLGA_CREDITO_ADICIONAR;
         } else if (val === 'folga_uso') {
-            form.action = "{{ url_for('usuarios.gestao_colabs_folga_uso_adicionar') }}";
+            form.action = URL_USUARIOS_FOLGA_USO_ADICIONAR;
         }
     }
     
@@ -1252,7 +1263,7 @@ function formatBRDate(dstr) {
     const dd = String(dt.getDate()).padStart(2, '0');
     const mm = String(dt.getMonth() + 1).padStart(2, '0');
     const yyyy = dt.getFullYear();
-    return `${dd}/${mm}/${yyyy}`;
+    return dd + '/' + mm + '/' + yyyy;
 }
 
 function isSunday(d) {
@@ -1262,7 +1273,7 @@ function isSunday(d) {
 
 function checkHoliday(d) {
     const dateFeedback = document.getElementById('dateFeedback');
-    fetch("{{ url_for('jornada.is_holiday') }}?date=" + encodeURIComponent(d))
+    fetch(URL_JORNADA_IS_HOLIDAY + "?date=" + encodeURIComponent(d))
         .then(r => r.json())
         .then(j => {
             if (j && j.holiday) {
@@ -1328,7 +1339,7 @@ form.addEventListener('submit', (e) => {
         if (valorHidden) valorHidden.value = v.toString();
         if (dataHidden) dataHidden.value = d;
         
-        const updateUrl = form.action || "{{ url_for('jornada.update', worklog_id='__ID__') }}".replace('__ID__', editIdVal);
+        const updateUrl = form.action || URL_JORNADA_UPDATE_BASE.replace('__ID__', editIdVal);
         const updateForm = new FormData(form);
         updateForm.set('tipo', tipoVal);
         updateForm.set('collaborator_id', cid);
@@ -1338,7 +1349,7 @@ form.addEventListener('submit', (e) => {
         
         fetch(updateUrl, { method: 'POST', body: updateForm })
             .then(() => {
-                window.location.href = "{{ url_for('jornada.index') }}";
+                window.location.href = URL_JORNADA_INDEX;
             })
             .catch(() => {
                 submitLoading.hidden = true;
@@ -1362,7 +1373,7 @@ form.addEventListener('submit', (e) => {
         if (dataHidden) dataHidden.value = d;
         
         // Usar a rota jornada.create que salva diretamente em RegistroJornada
-        const createUrl = "{{ url_for('jornada.create') }}";
+        const createUrl = URL_JORNADA_CREATE;
         const createForm = new FormData();
         createForm.append('tipo', tipo);
         createForm.append('collaborator_id', cid);
@@ -1376,7 +1387,7 @@ form.addEventListener('submit', (e) => {
         })
             .then(response => {
                 if (response.redirected || response.ok) {
-                    window.location.href = "{{ url_for('jornada.index') }}";
+                    window.location.href = URL_JORNADA_INDEX;
                 } else {
                     return response.text().then(text => {
                         console.error('Resposta do servidor:', text);
@@ -1409,9 +1420,9 @@ function renderSummary() {
     let valor = '—';
     if (vraw !== '' && !isNaN(parseFloat(vraw))) {
         if (val === 'horas') {
-            valor = `${parseFloat(vraw)}h`;
+            valor = String(parseFloat(vraw)) + 'h';
         } else {
-            valor = `${Math.max(1, Math.round(parseFloat(vraw)))} dia(s)`;
+            valor = String(Math.max(1, Math.round(parseFloat(vraw)))) + ' dia(s)';
         }
     }
     
@@ -1424,7 +1435,7 @@ function renderSummary() {
         colaborador = opt ? opt.text : '—';
     }
     
-    box.textContent = `Operação: ${tipo} • Valor: ${valor} • Data: ${data} • Colaborador: ${colaborador}`;
+    box.textContent = 'Operação: ' + escapeHtml(tipo) + ' • Valor: ' + escapeHtml(valor) + ' • Data: ' + escapeHtml(data) + ' • Colaborador: ' + escapeHtml(colaborador);
 }
 
 if (valorInput) valorInput.addEventListener('input', renderSummary);

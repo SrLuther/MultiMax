@@ -331,6 +331,13 @@
         let searchResults = [];
         let selectedIndex = -1;
         
+        function escapeHtml(text) {
+            if (text == null) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
         function toggleNotifications() {
             const dropdown = document.getElementById('notificationsDropdown');
             notificationsOpen = !notificationsOpen;
@@ -351,25 +358,55 @@
                     badge.textContent = data.count > 9 ? '9+' : data.count;
                     badge.style.display = 'flex';
                     
-                    list.innerHTML = data.notifications.map(n => `
-                        <a href="${n.url}" class="mm-notification-item" onclick="markRead('${n.type}', ${n.id})">
-                            <div class="mm-notification-icon mm-notification-${n.color}">
-                                <i class="bi bi-${n.icon}"></i>
-                            </div>
-                            <div class="mm-notification-content">
-                                <div class="mm-notification-title">${n.title}</div>
-                                <div class="mm-notification-subtitle">${n.subtitle}</div>
-                            </div>
-                        </a>
-                    `).join('');
+                    list.textContent = '';
+                    data.notifications.forEach(n => {
+                        const link = document.createElement('a');
+                        link.href = escapeHtml(n.url);
+                        link.className = 'mm-notification-item';
+                        link.setAttribute('data-type', escapeHtml(n.type));
+                        link.setAttribute('data-id', String(n.id));
+                        link.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            markRead(n.type, n.id);
+                        });
+                        
+                        const iconDiv = document.createElement('div');
+                        iconDiv.className = 'mm-notification-icon mm-notification-' + escapeHtml(n.color);
+                        const icon = document.createElement('i');
+                        icon.className = 'bi bi-' + escapeHtml(n.icon);
+                        iconDiv.appendChild(icon);
+                        
+                        const contentDiv = document.createElement('div');
+                        contentDiv.className = 'mm-notification-content';
+                        
+                        const titleDiv = document.createElement('div');
+                        titleDiv.className = 'mm-notification-title';
+                        titleDiv.textContent = n.title || '';
+                        
+                        const subtitleDiv = document.createElement('div');
+                        subtitleDiv.className = 'mm-notification-subtitle';
+                        subtitleDiv.textContent = n.subtitle || '';
+                        
+                        contentDiv.appendChild(titleDiv);
+                        contentDiv.appendChild(subtitleDiv);
+                        
+                        link.appendChild(iconDiv);
+                        link.appendChild(contentDiv);
+                        list.appendChild(link);
+                    });
                 } else {
                     badge.style.display = 'none';
-                    list.innerHTML = `
-                        <div class="mm-notifications-empty">
-                            <i class="bi bi-check-circle" style="color: var(--mm-success);"></i>
-                            <span>Tudo em dia!</span>
-                        </div>
-                    `;
+                    list.textContent = '';
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.className = 'mm-notifications-empty';
+                    const icon = document.createElement('i');
+                    icon.className = 'bi bi-check-circle';
+                    icon.style.color = 'var(--mm-success)';
+                    const span = document.createElement('span');
+                    span.textContent = 'Tudo em dia!';
+                    emptyDiv.appendChild(icon);
+                    emptyDiv.appendChild(span);
+                    list.appendChild(emptyDiv);
                 }
             } catch (e) {
                 console.error('Erro ao carregar notificações:', e);
@@ -390,12 +427,18 @@
         function markAllRead() {
             const badge = document.getElementById('notificationsBadge');
             badge.style.display = 'none';
-            document.getElementById('notificationsList').innerHTML = `
-                <div class="mm-notifications-empty">
-                    <i class="bi bi-check-circle" style="color: var(--mm-success);"></i>
-                    <span>Tudo em dia!</span>
-                </div>
-            `;
+            const list = document.getElementById('notificationsList');
+            list.textContent = '';
+            const emptyDiv = document.createElement('div');
+            emptyDiv.className = 'mm-notifications-empty';
+            const icon = document.createElement('i');
+            icon.className = 'bi bi-check-circle';
+            icon.style.color = 'var(--mm-success)';
+            const span = document.createElement('span');
+            span.textContent = 'Tudo em dia!';
+            emptyDiv.appendChild(icon);
+            emptyDiv.appendChild(span);
+            list.appendChild(emptyDiv);
         }
         
         function openSearch() {
@@ -418,42 +461,82 @@
         }
         
         async function performSearch(query) {
+            const resultsContainer = document.getElementById('searchResults');
             if (query.length < 2) {
-                document.getElementById('searchResults').innerHTML = `
-                    <div class="mm-search-empty">
-                        <i class="bi bi-search" style="font-size: 2rem; opacity: 0.3;"></i>
-                        <span>Digite para buscar...</span>
-                    </div>
-                `;
+                resultsContainer.textContent = '';
+                const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'mm-search-empty';
+                const icon = document.createElement('i');
+                icon.className = 'bi bi-search';
+                icon.style.fontSize = '2rem';
+                icon.style.opacity = '0.3';
+                const span = document.createElement('span');
+                span.textContent = 'Digite para buscar...';
+                emptyDiv.appendChild(icon);
+                emptyDiv.appendChild(span);
+                resultsContainer.appendChild(emptyDiv);
                 searchResults = [];
                 return;
             }
             
             try {
-                const res = await fetch(`/api/v1/search?q=${encodeURIComponent(query)}`);
+                const searchUrl = '/api/v1/search?q=' + encodeURIComponent(query);
+                const res = await fetch(searchUrl);
                 const data = await res.json();
                 searchResults = data.results;
                 
+                resultsContainer.textContent = '';
                 if (searchResults.length === 0) {
-                    document.getElementById('searchResults').innerHTML = `
-                        <div class="mm-search-empty">
-                            <i class="bi bi-emoji-frown" style="font-size: 2rem; opacity: 0.3;"></i>
-                            <span>Nenhum resultado encontrado</span>
-                        </div>
-                    `;
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.className = 'mm-search-empty';
+                    const icon = document.createElement('i');
+                    icon.className = 'bi bi-emoji-frown';
+                    icon.style.fontSize = '2rem';
+                    icon.style.opacity = '0.3';
+                    const span = document.createElement('span');
+                    span.textContent = 'Nenhum resultado encontrado';
+                    emptyDiv.appendChild(icon);
+                    emptyDiv.appendChild(span);
+                    resultsContainer.appendChild(emptyDiv);
                 } else {
-                    document.getElementById('searchResults').innerHTML = searchResults.map((r, i) => `
-                        <a href="${r.url}" class="mm-search-result ${i === selectedIndex ? 'selected' : ''}" data-index="${i}">
-                            <div class="mm-search-result-icon">
-                                <i class="bi bi-${r.icon}"></i>
-                            </div>
-                            <div class="mm-search-result-content">
-                                <div class="mm-search-result-title">${r.title}</div>
-                                <div class="mm-search-result-subtitle">${r.subtitle}</div>
-                            </div>
-                            <span class="mm-search-result-type">${r.type}</span>
-                        </a>
-                    `).join('');
+                    searchResults.forEach((r, i) => {
+                        const link = document.createElement('a');
+                        link.href = escapeHtml(r.url);
+                        link.className = 'mm-search-result';
+                        if (i === selectedIndex) {
+                            link.classList.add('selected');
+                        }
+                        link.setAttribute('data-index', String(i));
+                        
+                        const iconDiv = document.createElement('div');
+                        iconDiv.className = 'mm-search-result-icon';
+                        const icon = document.createElement('i');
+                        icon.className = 'bi bi-' + escapeHtml(r.icon);
+                        iconDiv.appendChild(icon);
+                        
+                        const contentDiv = document.createElement('div');
+                        contentDiv.className = 'mm-search-result-content';
+                        
+                        const titleDiv = document.createElement('div');
+                        titleDiv.className = 'mm-search-result-title';
+                        titleDiv.textContent = r.title || '';
+                        
+                        const subtitleDiv = document.createElement('div');
+                        subtitleDiv.className = 'mm-search-result-subtitle';
+                        subtitleDiv.textContent = r.subtitle || '';
+                        
+                        contentDiv.appendChild(titleDiv);
+                        contentDiv.appendChild(subtitleDiv);
+                        
+                        const typeSpan = document.createElement('span');
+                        typeSpan.className = 'mm-search-result-type';
+                        typeSpan.textContent = r.type || '';
+                        
+                        link.appendChild(iconDiv);
+                        link.appendChild(contentDiv);
+                        link.appendChild(typeSpan);
+                        resultsContainer.appendChild(link);
+                    });
                 }
             } catch (e) {
                 console.error('Erro na busca:', e);
@@ -516,7 +599,10 @@
             group.className = 'mm-flex mm-gap-2';
             var btnView = document.createElement('a');
             btnView.className = 'mm-btn mm-btn-outline';
-            btnView.innerHTML = '<i class="bi bi-eye"></i> Visualizar';
+            var viewIcon = document.createElement('i');
+            viewIcon.className = 'bi bi-eye';
+            btnView.appendChild(viewIcon);
+            btnView.appendChild(document.createTextNode(' Visualizar'));
             btnView.href = '#';
             btnView.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -525,7 +611,10 @@
             });
             var btnPrint = document.createElement('a');
             btnPrint.className = 'mm-btn mm-btn-outline';
-            btnPrint.innerHTML = '<i class="bi bi-printer"></i> Imprimir';
+            var printIcon = document.createElement('i');
+            printIcon.className = 'bi bi-printer';
+            btnPrint.appendChild(printIcon);
+            btnPrint.appendChild(document.createTextNode(' Imprimir'));
             btnPrint.href = '#';
             btnPrint.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -549,7 +638,10 @@
             });
             var btnDownload = document.createElement('a');
             btnDownload.className = 'mm-btn mm-btn-outline';
-            btnDownload.innerHTML = '<i class="bi bi-download"></i> Download';
+            var downloadIcon = document.createElement('i');
+            downloadIcon.className = 'bi bi-download';
+            btnDownload.appendChild(downloadIcon);
+            btnDownload.appendChild(document.createTextNode(' Download'));
             btnDownload.href = href + (href.indexOf('?') >= 0 ? '&' : '?') + 'mode=download';
             group.appendChild(btnView);
             group.appendChild(btnPrint);

@@ -1884,6 +1884,10 @@
 </style>
 
 <script>
+// URLs do Backend (usando |tojson para evitar erros de parsing)
+const URL_JORNADA_GET_DAY_VALUE = {{ url_for("jornada.get_day_value") | tojson }};
+const URL_JORNADA_SET_DAY_VALUE = {{ url_for("jornada.set_day_value") | tojson }};
+
 document.addEventListener('DOMContentLoaded', function() {
     // Garantir que os cards de valores estejam visíveis
     const valoresCard = document.querySelector('.valores-card-modern');
@@ -1926,7 +1930,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function loadDayValue() {
-    fetch('{{ url_for("jornada.get_day_value") }}')
+    fetch(URL_JORNADA_GET_DAY_VALUE)
         .then(response => response.json())
         .then(data => {
             if (data.ok) {
@@ -1954,10 +1958,14 @@ function saveDayValue() {
     const btnSalvar = document.getElementById('btnSalvarValor');
     if (btnSalvar) {
         btnSalvar.disabled = true;
-        btnSalvar.innerHTML = '<i class="bi bi-hourglass-split"></i> Salvando...';
+        const icon = document.createElement('i');
+        icon.className = 'bi bi-hourglass-split';
+        btnSalvar.textContent = '';
+        btnSalvar.appendChild(icon);
+        btnSalvar.appendChild(document.createTextNode(' Salvando...'));
     }
     
-    fetch('{{ url_for("jornada.set_day_value") }}', {
+    fetch(URL_JORNADA_SET_DAY_VALUE, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1979,7 +1987,11 @@ function saveDayValue() {
             alert('Erro ao salvar: ' + (data.error || 'Erro desconhecido'));
             if (btnSalvar) {
                 btnSalvar.disabled = false;
-                btnSalvar.innerHTML = '<i class="bi bi-check-lg"></i> Salvar';
+                const icon = document.createElement('i');
+                icon.className = 'bi bi-check-lg';
+                btnSalvar.textContent = '';
+                btnSalvar.appendChild(icon);
+                btnSalvar.appendChild(document.createTextNode(' Salvar'));
             }
         }
     })
@@ -1988,7 +2000,11 @@ function saveDayValue() {
         alert('Erro ao salvar configuração. Tente novamente.');
         if (btnSalvar) {
             btnSalvar.disabled = false;
-            btnSalvar.innerHTML = '<i class="bi bi-check-lg"></i> Salvar';
+            const icon = document.createElement('i');
+            icon.className = 'bi bi-check-lg';
+            btnSalvar.textContent = '';
+            btnSalvar.appendChild(icon);
+            btnSalvar.appendChild(document.createTextNode(' Salvar'));
         }
     });
 }

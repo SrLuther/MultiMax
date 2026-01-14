@@ -413,6 +413,13 @@
 </style>
 
 <script>
+function escapeHtml(text) {
+    if (text == null) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Carregar calendário do mês atual
     const hoje = new Date();
@@ -423,7 +430,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function loadCalendario(year, month) {
-    const url = `/jornada/calendario/${year}/${month}`;
+    const url = '/jornada/calendario/' + year + '/' + month;
     fetch(url)
         .then(response => response.json())
         .then(data => {
@@ -447,10 +454,10 @@ function renderCalendario(data) {
                         'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     const monthYearEl = document.getElementById('calendarMonthYear');
     if (monthYearEl && data.year && data.month) {
-        monthYearEl.textContent = `${monthNames[data.month - 1]} ${data.year}`;
+        monthYearEl.textContent = monthNames[data.month - 1] + ' ' + data.year;
     }
     
-    container.innerHTML = '';
+    container.textContent = '';
     
     // Cabeçalho dos dias da semana
     const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -484,7 +491,7 @@ function renderCalendario(data) {
         const diaDiv = document.createElement('div');
         diaDiv.className = 'jornada-calendar-day';
         
-        const dateStr = `${data.year}-${String(data.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dateStr = String(data.year) + '-' + String(data.month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
         
         if (dateStr === hojeStr) {
             diaDiv.classList.add('jornada-calendar-day-today');
@@ -493,23 +500,51 @@ function renderCalendario(data) {
             diaDiv.classList.add('jornada-calendar-day-holiday');
         }
         
-        diaDiv.innerHTML = `
-            <div class="jornada-calendar-day-number">${day}</div>
-            ${diaData.feriado ? `<div class="jornada-calendar-day-holiday-name">${diaData.feriado.name}</div>` : ''}
-            ${diaData.records && diaData.records.length > 0 ? `
-                <div class="jornada-calendar-day-records">
-                    ${diaData.records.slice(0, 2).map(r => `
-                        <div class="jornada-calendar-day-record" title="${r.collaborator_name}: ${r.notes || ''}">
-                            ${r.record_type === 'horas' ? `${r.hours}h` : ''}
-                            ${r.record_type === 'folga_adicional' ? `+${r.days}d` : ''}
-                            ${r.record_type === 'folga_usada' ? `-${r.days}d` : ''}
-                            ${r.record_type === 'conversao' ? `R$` : ''}
-                        </div>
-                    `).join('')}
-                    ${diaData.records.length > 2 ? `<div class="jornada-calendar-day-record">+${diaData.records.length - 2} mais</div>` : ''}
-                </div>
-            ` : ''}
-        `;
+        const numberDiv = document.createElement('div');
+        numberDiv.className = 'jornada-calendar-day-number';
+        numberDiv.textContent = String(day);
+        diaDiv.appendChild(numberDiv);
+        
+        if (diaData.feriado && diaData.feriado.name) {
+            const holidayDiv = document.createElement('div');
+            holidayDiv.className = 'jornada-calendar-day-holiday-name';
+            holidayDiv.textContent = diaData.feriado.name;
+            diaDiv.appendChild(holidayDiv);
+        }
+        
+        if (diaData.records && diaData.records.length > 0) {
+            const recordsDiv = document.createElement('div');
+            recordsDiv.className = 'jornada-calendar-day-records';
+            
+            diaData.records.slice(0, 2).forEach(function(r) {
+                const recordDiv = document.createElement('div');
+                recordDiv.className = 'jornada-calendar-day-record';
+                const titleText = (r.collaborator_name || '') + ': ' + (r.notes || '');
+                recordDiv.setAttribute('title', titleText);
+                
+                let recordText = '';
+                if (r.record_type === 'horas' && r.hours) {
+                    recordText = String(r.hours) + 'h';
+                } else if (r.record_type === 'folga_adicional' && r.days) {
+                    recordText = '+' + String(r.days) + 'd';
+                } else if (r.record_type === 'folga_usada' && r.days) {
+                    recordText = '-' + String(r.days) + 'd';
+                } else if (r.record_type === 'conversao') {
+                    recordText = 'R$';
+                }
+                recordDiv.textContent = recordText;
+                recordsDiv.appendChild(recordDiv);
+            });
+            
+            if (diaData.records.length > 2) {
+                const moreDiv = document.createElement('div');
+                moreDiv.className = 'jornada-calendar-day-record';
+                moreDiv.textContent = '+' + String(diaData.records.length - 2) + ' mais';
+                recordsDiv.appendChild(moreDiv);
+            }
+            
+            diaDiv.appendChild(recordsDiv);
+        }
         
         container.appendChild(diaDiv);
     }

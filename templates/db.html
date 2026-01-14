@@ -1,6 +1,25 @@
 {% extends 'base.html' %}
 {% block title %}Banco de Dados — MultiMax{% endblock %}
 
+{% block head %}
+<!-- Meta tags para configuração do módulo DB Admin -->
+<meta name="db-url-metrics" content="{{ url_for('dbadmin.metrics') }}">
+<meta name="db-url-health" content="{{ url_for('dbadmin.health') }}">
+<meta name="db-url-logs" content="{{ url_for('dbadmin.logs') }}">
+<meta name="db-url-metrics-trends" content="{{ url_for('dbadmin.metrics_trends') }}">
+<meta name="db-url-slow-queries" content="{{ url_for('dbadmin.slow_queries') }}">
+<meta name="db-url-maintenance-stats" content="{{ url_for('dbadmin.maintenance_stats') }}">
+<meta name="db-url-maintenance-recommendations" content="{{ url_for('dbadmin.maintenance_recommendations') }}">
+<meta name="db-url-maintenance-history" content="{{ url_for('dbadmin.maintenance_history') }}">
+<meta name="db-url-maintenance-cleanup" content="{{ url_for('dbadmin.maintenance_cleanup') }}">
+<meta name="db-url-maintenance-optimize" content="{{ url_for('dbadmin.maintenance_optimize') }}">
+<meta name="db-url-verify-backups" content="{{ url_for('dbadmin.verify_backups') }}">
+<meta name="db-url-maintenance-run-all" content="{{ url_for('dbadmin.maintenance_run_all') }}">
+<meta name="db-url-maintenance-export-report" content="{{ url_for('dbadmin.maintenance_export_report') }}">
+<meta name="db-url-git-status" content="{{ url_for('dbadmin.git_status') }}">
+<meta name="db-url-git-update" content="{{ url_for('dbadmin.git_update') }}">
+{% endblock %}
+
 {% block content %}
 <div class="db-container">
     <!-- Hero Header -->
@@ -59,11 +78,11 @@
                 Monitoramento de Atualizações Git
             </h3>
             <div style="display: flex; gap: 0.5rem;">
-                <button type="button" class="db-btn-modern db-btn-outline" onclick="refreshGitStatus(false)" id="refreshGitBtn">
+                <button type="button" class="db-btn-modern db-btn-outline" data-action="refresh-git" data-force="false" id="refreshGitBtn">
                     <i class="bi bi-arrow-repeat"></i>
                     Atualizar
                 </button>
-                <button type="button" class="db-btn-modern db-btn-outline" onclick="refreshGitStatus(true)" id="forceCheckBtn" title="Força uma checagem completa do repositório remoto">
+                <button type="button" class="db-btn-modern db-btn-outline" data-action="refresh-git" data-force="true" id="forceCheckBtn" title="Força uma checagem completa do repositório remoto">
                     <i class="bi bi-arrow-repeat"></i>
                     Forçar Checagem
                 </button>
@@ -116,7 +135,7 @@
                 </div>
                 
                 <div class="db-git-actions" style="display: flex; flex-direction: column; gap: 0.75rem;">
-                    <button type="button" class="db-btn-modern db-btn-primary db-btn-lg" id="applyUpdateBtn" onclick="showUpdateConfirmation(false)" disabled style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+                    <button type="button" class="db-btn-modern db-btn-primary db-btn-lg" id="applyUpdateBtn" data-action="show-update-confirmation" data-force="false" disabled style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
                             <i class="bi bi-cloud-arrow-down"></i>
                             <span>Aplicar Atualização Completa</span>
@@ -125,7 +144,7 @@
                             Inclui rebuild do container
                         </small>
                     </button>
-                    <button type="button" class="db-btn-modern db-btn-warning db-btn-lg" id="reinstallUpdateBtn" onclick="showUpdateConfirmation(true)" style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+                    <button type="button" class="db-btn-modern db-btn-warning db-btn-lg" id="reinstallUpdateBtn" data-action="show-update-confirmation" data-force="true" style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
                             <i class="bi bi-arrow-clockwise"></i>
                             <span>Reinstalar Atualização</span>
@@ -190,7 +209,7 @@
                 <i class="bi bi-heart-pulse"></i>
                 Monitoramento de Serviços
             </h3>
-            <button type="button" class="db-btn-modern db-btn-outline" onclick="refreshHealthChecks()">
+            <button type="button" class="db-btn-modern db-btn-outline" data-action="refresh-health-checks">
                 <i class="bi bi-arrow-repeat"></i>
                 Atualizar
             </button>
@@ -214,22 +233,22 @@
                 Logs em Tempo Real
             </h3>
             <div class="db-logs-controls">
-                <select id="logTypeFilter" class="db-select-modern" onchange="updateLogs()">
+                <select id="logTypeFilter" class="db-select-modern" data-action="update-logs">
                     <option value="all">Todos os tipos</option>
                     <option value="system">Sistema</option>
                     <option value="app">Aplicação</option>
                 </select>
-                <select id="logLevelFilter" class="db-select-modern" onchange="updateLogs()">
+                <select id="logLevelFilter" class="db-select-modern" data-action="update-logs">
                     <option value="all">Todos os níveis</option>
                     <option value="ERROR">Erro</option>
                     <option value="WARNING">Aviso</option>
                     <option value="INFO">Info</option>
                 </select>
-                <button type="button" class="db-btn-modern db-btn-outline" id="pauseLogsBtn" onclick="toggleLogsPause()">
+                <button type="button" class="db-btn-modern db-btn-outline" id="pauseLogsBtn" data-action="toggle-logs-pause">
                     <i class="bi bi-pause-fill"></i>
                     Pausar
                 </button>
-                <button type="button" class="db-btn-modern db-btn-outline" onclick="clearLogs()">
+                <button type="button" class="db-btn-modern db-btn-outline" data-action="clear-logs">
                     <i class="bi bi-trash"></i>
                     Limpar
                 </button>
@@ -280,7 +299,7 @@
                 <i class="bi bi-code-square"></i>
                 Queries Lentas do Banco
             </h3>
-            <button type="button" class="db-btn-modern db-btn-outline" onclick="updateSlowQueries()">
+            <button type="button" class="db-btn-modern db-btn-outline" data-action="update-slow-queries">
                 <i class="bi bi-arrow-repeat"></i>
                 Atualizar
             </button>
@@ -383,7 +402,7 @@
                 <i class="bi bi-activity"></i>
                 Diagnóstico Completo
             </h3>
-            <button type="button" class="db-btn-modern db-btn-outline" onclick="reloadDiag()">
+            <button type="button" class="db-btn-modern db-btn-outline" data-action="reload-diag">
                 <i class="bi bi-arrow-repeat"></i>
                 Recarregar
             </button>
@@ -607,1289 +626,98 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/db.js') }}"></script>
 <script>
-var __mmChartsLoaded = false;
-function ensureChartJs(cb){
-  if (window.Chart) { __mmChartsLoaded = true; cb(); return; }
-  if (__mmChartsLoaded) { cb(); return; }
-  var s = document.createElement('script');
-  s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
-  s.onload = function(){ __mmChartsLoaded = true; cb(); };
-  document.head.appendChild(s);
-}
-function startResourceCharts(){
-  var cpuCtx = document.getElementById('cpuChart');
-  var memCtx = document.getElementById('memChart');
-  if (!cpuCtx || !memCtx) return;
-  var labels = [];
-  var cpuData = [];
-  var memData = [];
-  var cpuChart = new Chart(cpuCtx, {
-    type: 'line',
-    data: { labels: labels, datasets: [{ label: 'CPU %', data: cpuData, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.15)', tension: 0.25, fill: true }] },
-    options: { 
-        responsive: true, 
-        maintainAspectRatio: false,
-        animation: false, 
-        plugins: {
-            legend: { display: false }
-        },
-        scales: { 
-            y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } },
-            x: { grid: { display: false } }
-        } 
-    }
-  });
-  var memChart = new Chart(memCtx, {
-    type: 'line',
-    data: { labels: labels, datasets: [{ label: 'Memória %', data: memData, borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.15)', tension: 0.25, fill: true }] },
-    options: { 
-        responsive: true, 
-        maintainAspectRatio: false,
-        animation: false,
-        plugins: {
-            legend: { display: false }
-        },
-        scales: { 
-            y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } },
-            x: { grid: { display: false } }
-        } 
-    }
-  });
-  function pushPoint(ts, cpu, mem){
-    var t = new Date(ts);
-    var hh = String(t.getHours()).padStart(2,'0');
-    var mm = String(t.getMinutes()).padStart(2,'0');
-    var ss = String(t.getSeconds()).padStart(2,'0');
-    labels.push(hh+':'+mm+':'+ss);
-    cpuData.push(cpu);
-    memData.push(mem);
-    if (labels.length > 60){ labels.shift(); cpuData.shift(); memData.shift(); }
-    cpuChart.update('none');
-    memChart.update('none');
-  }
-  function updateServerClock(ts){
-    var el = document.getElementById('serverClock');
-    if (!el) return;
-    var t = new Date(ts);
-    var hh = String(t.getHours()).padStart(2,'0');
-    var mm = String(t.getMinutes()).padStart(2,'0');
-    var ss = String(t.getSeconds()).padStart(2,'0');
-    el.textContent = 'Servidor — ' + hh + ':' + mm + ':' + ss;
-  }
-  async function fetchMetrics(){
-    try{
-      var resp = await fetch("{{ url_for('dbadmin.metrics') }}");
-      var json = await resp.json();
-      if (!json || !json.ok || json.cpu == null || json.mem == null) return;
-      pushPoint(json.ts, json.cpu, json.mem);
-      updateServerClock(json.ts);
-    } catch(e){}
-  }
-  fetchMetrics();
-  var metricsInterval = setInterval(fetchMetrics, 10000); // Otimizado: 10s para reduzir CPU
-  
-  // Pausar atualizações quando a página não está visível
-  document.addEventListener('visibilitychange', function() {
-    if (document.hidden) {
-      if (metricsInterval) {
-        clearInterval(metricsInterval);
-        metricsInterval = null;
-      }
-    } else {
-      if (!metricsInterval) {
-        fetchMetrics(); // Atualizar imediatamente ao voltar
-        metricsInterval = setInterval(fetchMetrics, 10000);
-      }
-    }
-  });
-}
-function resizeDbFrame() {
-  var f = document.getElementById('dbStatusFrame');
-  if (!f) return;
-  try {
-    var doc = f.contentWindow && f.contentWindow.document;
-    if (!doc) return;
-    var h1 = doc.documentElement ? doc.documentElement.scrollHeight : 0;
-    var h2 = doc.body ? doc.body.scrollHeight : 0;
-    var h = Math.max(h1, h2);
-    if (h && h > 0) {
-      f.style.height = (h + 16) + 'px';
-    }
-  } catch (e) {
-    // ignore
-  }
-}
-function reloadDiag() {
-  var f = document.getElementById('dbStatusFrame');
-  if (!f) return;
-  var base = f.src.split('?')[0];
-  f.src = base + '?t=' + Date.now();
-}
-// Health Checks
-var healthCheckInterval = null;
-var logsPaused = false;
-var logsInterval = null;
-
-function getStatusIcon(status) {
-  if (status === 'ok') return '<i class="bi bi-check-circle-fill" style="color: #10b981;"></i>';
-  if (status === 'warning') return '<i class="bi bi-exclamation-triangle-fill" style="color: #f59e0b;"></i>';
-  return '<i class="bi bi-x-circle-fill" style="color: #ef4444;"></i>';
-}
-
-function getStatusBadgeClass(status) {
-  if (status === 'ok') return 'db-badge-success';
-  if (status === 'warning') return 'db-badge-warning';
-  return 'db-badge-danger';
-}
-
-function formatTimestamp(isoString) {
-  if (!isoString) return '-';
-  var d = new Date(isoString);
-  return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
-}
-
-function getServiceName(service) {
-  var names = {
-    'database': 'Banco de Dados',
-    'backend': 'Backend',
-    'nginx': 'Nginx',
-    'port': 'Porta 5000 (Backend)',
-    'deploy_agent': 'Deploy Agent (Porta 9000)',
-    'cpu': 'CPU',
-    'memory': 'Memória',
-    'disk': 'Disco'
-  };
-  return names[service] || service;
-}
-
-async function refreshHealthChecks() {
-  try {
-    var resp = await fetch("{{ url_for('dbadmin.health') }}");
-    var json = await resp.json();
-    if (!json || !json.ok || !json.health) return;
-    
-    var grid = document.getElementById('healthChecksGrid');
-    if (!grid) return;
-    
-    var html = '';
-    var services = ['database', 'backend', 'nginx', 'port', 'deploy_agent', 'cpu', 'memory', 'disk'];
-    
-    services.forEach(function(service) {
-      var health = json.health[service];
-      if (!health) return;
-      
-      html += '<div class="db-health-item">';
-      html += '<div class="db-health-header">';
-      html += '<div class="db-health-icon">' + getStatusIcon(health.status) + '</div>';
-      html += '<div class="db-health-title">' + getServiceName(service) + '</div>';
-      html += '<span class="db-badge-modern ' + getStatusBadgeClass(health.status) + '">' + health.status.toUpperCase() + '</span>';
-      html += '</div>';
-      html += '<div class="db-health-message">' + (health.message || '-') + '</div>';
-      if (health.response_time_ms !== undefined && health.response_time_ms !== null) {
-        html += '<div class="db-health-detail">Tempo de resposta: ' + health.response_time_ms.toFixed(2) + 'ms</div>';
-      }
-      if (service === 'deploy_agent' && health.port_9000_open !== undefined) {
-        html += '<div class="db-health-detail">Porta 9000: ' + (health.port_9000_open ? 'Aberta' : 'Fechada') + '</div>';
-      }
-      if (health.usage_percent !== undefined && health.usage_percent !== null) {
-        html += '<div class="db-health-detail">Uso: ' + health.usage_percent + '%</div>';
-      }
-      if (health.available_gb !== undefined && health.available_gb !== null) {
-        html += '<div class="db-health-detail">Disponível: ' + health.available_gb + ' GB</div>';
-      }
-      html += '<div class="db-health-time">Verificado: ' + formatTimestamp(health.checked_at) + '</div>';
-      html += '</div>';
-    });
-    
-    grid.innerHTML = html;
-    document.getElementById('lastHealthCheck').textContent = formatTimestamp(new Date().toISOString());
-  } catch(e) {
-    console.error('Erro ao atualizar health checks:', e);
-  }
-}
-
-// Logs em Tempo Real
-async function updateLogs() {
-  if (logsPaused) return;
-  
-  try {
-    var type = document.getElementById('logTypeFilter').value;
-    var level = document.getElementById('logLevelFilter').value;
-    var url = "{{ url_for('dbadmin.logs') }}?type=" + type + "&level=" + level + "&limit=100";
-    
-    var resp = await fetch(url);
-    var json = await resp.json();
-    if (!json || !json.ok || !json.logs) return;
-    
-    var container = document.getElementById('logsContainer');
-    if (!container) return;
-    
-    var html = '';
-    json.logs.forEach(function(log) {
-      var levelClass = 'db-log-info';
-      if (log.level === 'ERROR') levelClass = 'db-log-error';
-      else if (log.level === 'WARNING') levelClass = 'db-log-warning';
-      
-      html += '<div class="db-log-entry ' + levelClass + '">';
-      html += '<div class="db-log-time">' + formatTimestamp(log.timestamp) + '</div>';
-      html += '<div class="db-log-level">' + log.level + '</div>';
-      html += '<div class="db-log-origin">' + (log.origin || '-') + '</div>';
-      html += '<div class="db-log-message">' + (log.message || '-') + '</div>';
-      html += '</div>';
-    });
-    
-    container.innerHTML = html;
-    
-    // Auto-scroll se não estiver pausado
-    if (!logsPaused) {
-      container.scrollTop = container.scrollHeight;
-    }
-  } catch(e) {
-    console.error('Erro ao atualizar logs:', e);
-  }
-}
-
-function toggleLogsPause() {
-  logsPaused = !logsPaused;
-  var btn = document.getElementById('pauseLogsBtn');
-  if (btn) {
-    if (logsPaused) {
-      btn.innerHTML = '<i class="bi bi-play-fill"></i> Continuar';
-      btn.classList.remove('db-btn-outline');
-      btn.classList.add('db-btn-primary');
-    } else {
-      btn.innerHTML = '<i class="bi bi-pause-fill"></i> Pausar';
-      btn.classList.remove('db-btn-primary');
-      btn.classList.add('db-btn-outline');
-      updateLogs();
-    }
-  }
-}
-
-function clearLogs() {
-  var container = document.getElementById('logsContainer');
-  if (container) {
-    container.innerHTML = '<div class="db-logs-loading">Logs limpos</div>';
-  }
-}
-
-// Funções removidas: updateIncidents, clearAllAlerts, refreshDashboard - cards correspondentes foram removidos
-
-// Tendências
-var trendsChart = null;
-async function updateTrends() {
-  try {
-    var metricType = document.getElementById('trendMetricType').value;
-    var hours = parseInt(document.getElementById('trendHours').value);
-    var url = "{{ url_for('dbadmin.metrics_trends') }}?type=" + metricType + "&hours=" + hours;
-    
-    var resp = await fetch(url);
-    var json = await resp.json();
-    if (!json || !json.ok || !json.trends) return;
-    
-    var trends = json.trends;
-    var statsEl = document.getElementById('trendsStats');
-    if (statsEl) {
-      var html = '<div class="db-trend-stats-item"><strong>Média:</strong> ' + trends.average + '</div>';
-      html += '<div class="db-trend-stats-item"><strong>Mín:</strong> ' + trends.min + '</div>';
-      html += '<div class="db-trend-stats-item"><strong>Máx:</strong> ' + trends.max + '</div>';
-      html += '<div class="db-trend-stats-item"><strong>Tendência:</strong> ' + (trends.trend === 'increasing' ? '↑ Crescendo' : trends.trend === 'decreasing' ? '↓ Diminuindo' : '→ Estável') + '</div>';
-      statsEl.innerHTML = html;
-    }
-    
-    // Gráfico
-    var ctx = document.getElementById('trendsChart');
-    if (!ctx) return;
-    
-    ensureChartJs(function() {
-      if (trendsChart) {
-        trendsChart.destroy();
-      }
-      trendsChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: trends.timestamps.map(function(ts) {
-            var d = new Date(ts);
-            return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-          }),
-          datasets: [{
-            label: metricType.toUpperCase(),
-            data: trends.values,
-            borderColor: '#667eea',
-            backgroundColor: 'rgba(102, 126, 234, 0.1)',
-            tension: 0.4,
-            fill: true
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false }
-          },
-          scales: {
-            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
-            x: { grid: { display: false } }
-          }
-        }
-      });
-    });
-  } catch(e) {
-    console.error('Erro ao atualizar tendências:', e);
-  }
-}
-
-// Queries lentas
-async function updateSlowQueries() {
-  try {
-    var resp = await fetch("{{ url_for('dbadmin.slow_queries') }}");
-    var json = await resp.json();
-    if (!json || !json.ok || !json.queries) return;
-    
-    var tbody = document.getElementById('slowQueriesTableBody');
-    if (!tbody) return;
-    
-    var html = '';
-    json.queries.forEach(function(q) {
-      html += '<tr class="db-table-row">';
-      html += '<td class="db-table-date">' + formatTimestamp(q.timestamp) + '</td>';
-      html += '<td><span class="db-badge-modern db-badge-warning">' + q.execution_time_ms.toFixed(2) + ' ms</span></td>';
-      html += '<td><code class="db-code-modern">' + (q.endpoint || '-') + '</code></td>';
-      html += '<td><code class="db-code-modern" style="font-size: 0.75rem;">' + q.query + '</code></td>';
-      html += '</tr>';
-    });
-    
-    if (html === '') {
-      html = '<tr><td colspan="4" class="text-center">Nenhuma query lenta encontrada</td></tr>';
-    }
-    
-    tbody.innerHTML = html;
-  } catch(e) {
-    console.error('Erro ao atualizar queries:', e);
-  }
-}
-
-// Manutenção - Funções Melhoradas
-var maintenanceStats = null;
-var maintenanceRecommendations = [];
-
-async function loadMaintenanceStats() {
-  try {
-    var resp = await fetch("{{ url_for('dbadmin.maintenance_stats') }}");
-    var json = await resp.json();
-    if (json && json.ok) {
-      maintenanceStats = json;
-      updateMaintenanceDisplay();
-    }
-  } catch(e) {
-    console.error('Erro ao carregar estatísticas:', e);
-  }
-}
-
-async function loadMaintenanceRecommendations() {
-  try {
-    var resp = await fetch("{{ url_for('dbadmin.maintenance_recommendations') }}");
-    var json = await resp.json();
-    if (json && json.ok) {
-      maintenanceRecommendations = json.recommendations || [];
-      updateRecommendationsDisplay();
-    }
-  } catch(e) {
-    console.error('Erro ao carregar recomendações:', e);
-  }
-}
-
-function updateMaintenanceDisplay() {
-  if (!maintenanceStats) return;
-  
-  // Atualizar estatísticas rápidas no card (se existir)
-  var statsEl = document.getElementById('maintenanceQuickStats');
-  if (statsEl && maintenanceStats.database) {
-    var db = maintenanceStats.database;
-    var logs = maintenanceStats.logs;
-    var backups = maintenanceStats.backups;
-    
-    statsEl.innerHTML = `
-      <div class="db-maintenance-quick-stats">
-        <div class="db-quick-stat-item">
-          <span class="db-quick-stat-label">Banco:</span>
-          <span class="db-quick-stat-value">${(db.size_mb || 0).toFixed(2)} MB</span>
-        </div>
-        <div class="db-quick-stat-item">
-          <span class="db-quick-stat-label">Logs:</span>
-          <span class="db-quick-stat-value">${(logs.total_estimated_size_mb || 0).toFixed(2)} MB</span>
-        </div>
-        <div class="db-quick-stat-item">
-          <span class="db-quick-stat-label">Backups:</span>
-          <span class="db-quick-stat-value">${backups.count || 0}</span>
-        </div>
-      </div>
-    `;
-  }
-}
-
-function updateRecommendationsDisplay() {
-  var recEl = document.getElementById('maintenanceRecommendations');
-  if (!recEl) return;
-  
-  if (maintenanceRecommendations.length === 0) {
-    recEl.innerHTML = '<div class="db-no-recommendations">Nenhuma recomendação no momento.</div>';
-    return;
-  }
-  
-  var html = '<div class="db-recommendations-list">';
-  maintenanceRecommendations.forEach(function(rec) {
-    var priorityClass = 'db-rec-' + rec.priority;
-    var priorityIcon = rec.priority === 'high' ? 'bi-exclamation-triangle-fill' : 
-                       rec.priority === 'medium' ? 'bi-info-circle-fill' : 'bi-lightbulb-fill';
-    html += `
-      <div class="db-recommendation-item ${priorityClass}">
-        <i class="bi ${priorityIcon}"></i>
-        <span>${rec.message}</span>
-      </div>
-    `;
-  });
-  html += '</div>';
-  recEl.innerHTML = html;
-}
-
-async function loadMaintenanceHistory() {
-  try {
-    var type = document.getElementById('maintenanceHistoryType')?.value || 'all';
-    var status = document.getElementById('maintenanceHistoryStatus')?.value || 'all';
-    var url = "{{ url_for('dbadmin.maintenance_history') }}?type=" + type + "&status=" + status + "&limit=20";
-    
-    var resp = await fetch(url);
-    var json = await resp.json();
-    if (!json || !json.ok || !json.history) return;
-    
-    var tbody = document.getElementById('maintenanceHistoryBody');
-    if (!tbody) return;
-    
-    var html = '';
-    if (json.history.length === 0) {
-      html = '<tr><td colspan="6" class="text-center">Nenhuma manutenção encontrada</td></tr>';
-    } else {
-      json.history.forEach(function(m) {
-        var date = m.created_at ? new Date(m.created_at).toLocaleString('pt-BR') : '-';
-        var duration = m.duration_seconds ? m.duration_seconds.toFixed(2) + 's' : '-';
-        var items = m.items_processed !== null ? m.items_processed : '-';
-        var statusBadge = m.status === 'completed' ? 'db-badge-success' : 
-                         m.status === 'failed' ? 'db-badge-danger' : 'db-badge-warning';
-        var typeLabel = m.maintenance_type === 'cleanup_logs' ? 'Limpeza' :
-                       m.maintenance_type === 'optimize_database' ? 'Otimização' :
-                       m.maintenance_type === 'cleanup_backups' ? 'Limpeza Backups' :
-                       m.maintenance_type === 'verify_backups' ? 'Verificação' : m.maintenance_type;
-        
-        html += '<tr class="db-table-row">';
-        html += '<td class="db-table-date">' + date + '</td>';
-        html += '<td>' + typeLabel + '</td>';
-        html += '<td><span class="db-badge-modern ' + statusBadge + '">' + m.status + '</span></td>';
-        html += '<td>' + duration + '</td>';
-        html += '<td>' + items + '</td>';
-        html += '<td>' + (m.executed_by || '-') + '</td>';
-        html += '</tr>';
-      });
-    }
-    
-    tbody.innerHTML = html;
-  } catch(e) {
-    console.error('Erro ao carregar histórico:', e);
-    var tbody = document.getElementById('maintenanceHistoryBody');
-    if (tbody) {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-center">Erro ao carregar histórico</td></tr>';
-    }
-  }
-}
-
-async function runMaintenanceCleanup() {
-  if (!confirm('Executar limpeza de logs antigos?')) return;
-  try {
-    var resp = await fetch("{{ url_for('dbadmin.maintenance_cleanup') }}", { 
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'}
-    });
-    var json = await resp.json();
-    if (json && json.ok) {
-      var result = json.result;
-      var msg = 'Limpeza concluída!\n';
-      msg += 'Itens removidos: ' + result.deleted + '\n';
-      msg += 'Duração: ' + result.duration.toFixed(2) + 's\n';
-      if (result.space_freed_mb !== undefined) {
-        msg += 'Espaço liberado: ' + result.space_freed_mb + ' MB\n';
-        if (result.size_before_mb !== undefined && result.size_after_mb !== undefined) {
-          msg += 'Antes: ' + result.size_before_mb.toFixed(2) + ' MB\n';
-          msg += 'Depois: ' + result.size_after_mb.toFixed(2) + ' MB';
-        }
-      }
-      alert(msg);
-      loadMaintenanceStats();
-      loadMaintenanceHistory();
-      updateSlowQueries();
-    } else {
-      alert('Erro: ' + (json.error || 'Erro desconhecido'));
-    }
-  } catch(e) {
-    alert('Erro ao executar limpeza: ' + e.message);
-  }
-}
-
-async function runMaintenanceOptimize() {
-  if (!confirm('Otimizar banco de dados? Isso pode levar alguns segundos.')) return;
-  try {
-    var resp = await fetch("{{ url_for('dbadmin.maintenance_optimize') }}", { method: 'POST' });
-    var json = await resp.json();
-    if (json && json.ok) {
-      var result = json.result;
-      var msg = 'Otimização concluída!\n';
-      msg += 'Duração: ' + result.duration.toFixed(2) + 's\n';
-      if (result.space_freed_mb !== undefined) {
-        msg += 'Espaço liberado: ' + result.space_freed_mb + ' MB\n';
-        if (result.size_before_mb !== undefined && result.size_after_mb !== undefined) {
-          msg += 'Antes: ' + result.size_before_mb.toFixed(2) + ' MB\n';
-          msg += 'Depois: ' + result.size_after_mb.toFixed(2) + ' MB';
-        }
-      }
-      alert(msg);
-      loadMaintenanceStats();
-      loadMaintenanceHistory();
-    } else {
-      alert('Erro: ' + (json.error || 'Erro desconhecido'));
-    }
-  } catch(e) {
-    alert('Erro ao otimizar: ' + e.message);
-  }
-}
-
-async function verifyAllBackups() {
-  if (!confirm('Verificar integridade de todos os backups?')) return;
-  try {
-    var resp = await fetch("{{ url_for('dbadmin.verify_backups') }}", { method: 'POST' });
-    var json = await resp.json();
-    if (json && json.ok) {
-      var msg = 'Verificação concluída:\n';
-      json.results.forEach(function(r) {
-        msg += r.filename + ': ' + r.status + '\n';
-      });
-      alert(msg);
-      loadMaintenanceStats();
-      loadMaintenanceRecommendations();
-    } else {
-      alert('Erro: ' + (json.error || 'Erro desconhecido'));
-    }
-  } catch(e) {
-    alert('Erro ao verificar backups: ' + e.message);
-  }
-}
-
-async function runMaintenanceAll() {
-  if (!confirm('Executar todas as manutenções? Isso pode levar alguns minutos.')) return;
-  try {
-    var resp = await fetch("{{ url_for('dbadmin.maintenance_run_all') }}", {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({cleanup: true, optimize: true, verify: true})
-    });
-    var json = await resp.json();
-    if (json && json.ok) {
-      var msg = 'Manutenções executadas com sucesso!\n\n';
-      if (json.results.cleanup) {
-        msg += 'Limpeza: ' + json.results.cleanup.deleted + ' itens removidos\n';
-      }
-      if (json.results.optimize) {
-        msg += 'Otimização: concluída\n';
-      }
-      if (json.results.verify) {
-        msg += 'Verificação: concluída\n';
-      }
-      alert(msg);
-      loadMaintenanceStats();
-      loadMaintenanceRecommendations();
-      loadMaintenanceHistory();
-    } else {
-      alert('Erro: ' + (json.error || 'Erro desconhecido'));
-    }
-  } catch(e) {
-    alert('Erro ao executar manutenções: ' + e.message);
-  }
-}
-
-function exportMaintenanceReport() {
-  window.location.href = "{{ url_for('dbadmin.maintenance_export_report') }}";
-}
-
+// Event listeners para data-attributes
 document.addEventListener('DOMContentLoaded', function() {
-  var f = document.getElementById('dbStatusFrame');
-  if (f) {
-    f.addEventListener('load', resizeDbFrame);
-  }
-  ensureChartJs(startResourceCharts);
-  
-  // Inicializar health checks
-  refreshHealthChecks();
-  healthCheckInterval = setInterval(refreshHealthChecks, 30000); // A cada 30 segundos
-  
-  // Inicializar logs
-  updateLogs();
-  logsInterval = setInterval(updateLogs, 10000); // A cada 10 segundos
-  
-  // Inicializar tendências
-  updateTrends();
-  
-  // Inicializar queries lentas
-  updateSlowQueries();
-  
-  // Iniciar monitoramento Git
-  if (document.getElementById('gitUpdateCard')) {
-    refreshGitStatus();
-    gitStatusInterval = setInterval(refreshGitStatus, 60000); // Otimizado: de 30s para 60s
-  }
-});
-
-// Git Update Monitoring
-let gitStatusInterval = null;
-let updateCountdownInterval = null;
-let updateCountdown = 10;
-
-function refreshGitStatus(force = false) {
-    const btn = document.getElementById(force ? 'forceCheckBtn' : 'refreshGitBtn');
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> ' + (force ? 'Forçando...' : 'Atualizando...');
-    }
-    
-    // Adicionar timestamp e parâmetro force para evitar cache
-    const url = '{{ url_for("dbadmin.git_status") }}' + '?t=' + Date.now() + (force ? '&force=true' : '');
-    
-    fetch(url, {
-        method: 'GET',
-        headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-        }
-    })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(data => {
-                    throw new Error(data.error || `HTTP ${response.status}`);
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.ok) {
-                updateGitStatusDisplay(data);
-                console.log('Status Git atualizado:', {
-                    current_commit: data.current_commit,
-                    latest_commit: data.latest_commit,
-                    update_available: data.update_available
-                });
-            } else {
-                const errorMsg = data.error || 'Erro ao buscar status do Git';
-                console.error('Erro na resposta:', errorMsg);
-                showGitError(errorMsg);
-            }
-        })
-        .catch(error => {
-            console.error('Erro ao buscar status Git:', error);
-            showGitError('Erro de conexão: ' + error.message);
-        })
-        .finally(() => {
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> ' + (force ? 'Forçar Checagem' : 'Atualizar');
+    // Botões com data-action
+    document.querySelectorAll('[data-action]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const action = this.getAttribute('data-action');
+            const force = this.getAttribute('data-force') === 'true';
+            
+            switch(action) {
+                case 'refresh-git':
+                    if (window.dbAdmin && window.dbAdmin.refreshGitStatus) {
+                        window.dbAdmin.refreshGitStatus(force);
+                    }
+                    break;
+                case 'show-update-confirmation':
+                    if (window.dbAdmin && window.dbAdmin.showUpdateConfirmation) {
+                        window.dbAdmin.showUpdateConfirmation(force);
+                    }
+                    break;
+                case 'refresh-health-checks':
+                    if (window.dbAdmin && window.dbAdmin.refreshHealthChecks) {
+                        window.dbAdmin.refreshHealthChecks();
+                    }
+                    break;
+                case 'toggle-logs-pause':
+                    if (window.dbAdmin && window.dbAdmin.toggleLogsPause) {
+                        window.dbAdmin.toggleLogsPause();
+                    }
+                    break;
+                case 'clear-logs':
+                    if (window.dbAdmin && window.dbAdmin.clearLogs) {
+                        window.dbAdmin.clearLogs();
+                    }
+                    break;
+                case 'update-slow-queries':
+                    if (window.dbAdmin && window.dbAdmin.updateSlowQueries) {
+                        window.dbAdmin.updateSlowQueries();
+                    }
+                    break;
+                case 'run-maintenance-cleanup':
+                    if (window.dbAdmin && window.dbAdmin.runMaintenanceCleanup) {
+                        window.dbAdmin.runMaintenanceCleanup();
+                    }
+                    break;
+                case 'run-maintenance-optimize':
+                    if (window.dbAdmin && window.dbAdmin.runMaintenanceOptimize) {
+                        window.dbAdmin.runMaintenanceOptimize();
+                    }
+                    break;
+                case 'verify-all-backups':
+                    if (window.dbAdmin && window.dbAdmin.verifyAllBackups) {
+                        window.dbAdmin.verifyAllBackups();
+                    }
+                    break;
+                case 'reload-diag':
+                    if (window.dbAdmin && window.dbAdmin.reloadDiag) {
+                        window.dbAdmin.reloadDiag();
+                    }
+                    break;
             }
         });
-}
-
-function updateGitStatusDisplay(data) {
-    // Atualizar valores - usar campos retornados pela rota
-    document.getElementById('currentVersion').textContent = data.current_version || 'N/A';
-    document.getElementById('currentCommit').textContent = data.current_commit || data.current_commit_hash || 'N/A';
-    document.getElementById('latestCommit').textContent = data.latest_commit || data.latest_commit_hash || data.remote_commit_hash || 'N/A';
-    document.getElementById('commitMessage').textContent = data.commit_message || data.remote_commit_msg || 'N/A';
-    
-    // Atualizar indicador de status
-    const indicator = document.getElementById('updateIndicator');
-    const applyBtn = document.getElementById('applyUpdateBtn');
-    
-    if (data.update_available) {
-        indicator.className = 'db-git-update-indicator update-available';
-        indicator.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i><span><strong>Atualização disponível!</strong> Há uma nova versão no repositório remoto.</span>';
-        if (applyBtn) {
-            applyBtn.disabled = false;
-        }
-    } else {
-        indicator.className = 'db-git-update-indicator up-to-date';
-        indicator.innerHTML = '<i class="bi bi-check-circle-fill"></i><span>Sistema está atualizado. Você está na versão mais recente.</span>';
-        if (applyBtn) {
-            applyBtn.disabled = true;
-        }
-    }
-}
-
-function showGitError(message) {
-    const indicator = document.getElementById('updateIndicator');
-    if (indicator) {
-        indicator.className = 'db-git-update-indicator error';
-        indicator.innerHTML = `<i class="bi bi-x-circle-fill"></i><span>${message}</span>`;
-    }
-    
-    // Atualizar campos com mensagem de erro
-    const fields = ['currentVersion', 'currentCommit', 'latestCommit', 'commitMessage'];
-    fields.forEach(fieldId => {
-        const field = document.getElementById(fieldId);
-        if (field) {
-            field.textContent = 'Erro ao carregar';
-            field.style.color = '#dc2626';
-        }
     });
     
-    const applyBtn = document.getElementById('applyUpdateBtn');
-    if (applyBtn) {
-        applyBtn.disabled = true;
-    }
-}
-
-function showUpdateConfirmation(force = false) {
-    // Criar modal
-    const overlay = document.createElement('div');
-    overlay.className = 'db-git-modal-overlay';
-    overlay.id = 'updateModalOverlay';
-    
-    const modal = document.createElement('div');
-    modal.className = 'db-git-modal';
-    
-    modal.innerHTML = `
-        <div class="db-git-modal-header">
-            <i class="bi bi-exclamation-triangle-fill" style="color: #f59e0b; font-size: 2rem;"></i>
-            <h3 class="db-git-modal-title">Confirmar Atualização do Sistema</h3>
-        </div>
-        <div class="db-git-modal-body">
-            <div class="db-git-modal-message">
-                <p style="font-size: 1.1rem; margin-bottom: 1rem;"><strong>${force ? 'O sistema aplicará a atualização forçada (reinstalação).' : 'O sistema aplicará a atualização completa.'}</strong></p>
-                ${force ? '<p style="margin-bottom: 0.75rem; color: #f59e0b; font-weight: 600;">⚠️ Esta é uma reinstalação forçada. O sistema será atualizado mesmo se já estiver na versão mais recente.</p>' : ''}
-                
-                <!-- Informações de Versão -->
-                <div id="versionInfoContainer" style="margin-bottom: 1rem; padding: 1rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e5e7eb;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <i class="bi bi-info-circle" style="color: #3b82f6; font-size: 1.25rem;"></i>
-                        <strong style="color: #1f2937; font-size: 1rem;">Informações de Versão</strong>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div>
-                            <div style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.25rem;">Versão Instalada:</div>
-                            <div id="currentVersionInfo" style="font-size: 1.125rem; font-weight: 600; color: #1f2937;">
-                                <i class="bi bi-hourglass-split" style="animation: spin 1s linear infinite;"></i>
-                                Verificando...
-                            </div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.25rem;">Versão Mais Recente (GitHub):</div>
-                            <div id="latestVersionInfo" style="font-size: 1.125rem; font-weight: 600; color: #1f2937;">
-                                <i class="bi bi-hourglass-split" style="animation: spin 1s linear infinite;"></i>
-                                Verificando...
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <p style="margin-bottom: 0.75rem;">Esta operação inclui:</p>
-                <ul style="margin-left: 1.5rem; margin-bottom: 1rem; color: #4b5563;">
-                    <li>Atualização do código do GitHub${force ? ' (forçado)' : ''}</li>
-                    <li>Rebuild completo do container Docker (sem cache)</li>
-                    <li>Reinicialização do sistema</li>
-                </ul>
-                <p style="margin-bottom: 1.5rem; color: #dc2626; font-weight: 600;">
-                    ⚠️ A página ficará temporariamente indisponível. Aguarde até 5 minutos e depois atualize a página.
-                </p>
-            </div>
-            <div class="db-git-countdown-container">
-                <div class="db-git-countdown">
-                    <div class="db-git-countdown-value" id="countdownValue" style="font-size: 3rem; font-weight: 700; color: #dc2626;">10</div>
-                    <div class="db-git-countdown-label">segundos</div>
-                </div>
-            </div>
-        </div>
-        <div class="db-git-modal-actions">
-            <button type="button" class="db-git-modal-btn db-git-modal-btn-cancel" onclick="closeUpdateModal()">Cancelar</button>
-            <button type="button" class="db-git-modal-btn db-git-modal-btn-confirm" id="confirmUpdateBtn" onclick="applyUpdate(${force})" disabled>
-                <i class="bi bi-cloud-arrow-down"></i>
-                ${force ? 'Reinstalar Atualização' : 'Aplicar Atualização'}
-            </button>
-        </div>
-    `;
-    
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-    
-    // Buscar informações de versão
-    fetchVersionInfo();
-    
-    // Iniciar contagem regressiva
-    updateCountdown = 10;
-    const countdownValue = document.getElementById('countdownValue');
-    const confirmBtn = document.getElementById('confirmUpdateBtn');
-    
-    updateCountdownInterval = setInterval(() => {
-        updateCountdown--;
-        if (countdownValue) {
-            countdownValue.textContent = updateCountdown;
-            // Mudar cor quando próximo de zero
-            if (updateCountdown <= 3) {
-                countdownValue.style.color = '#dc2626';
-                countdownValue.style.animation = 'pulse 0.5s infinite';
-            }
-        }
-        
-        if (updateCountdown <= 0) {
-            clearInterval(updateCountdownInterval);
-            if (confirmBtn) {
-                confirmBtn.disabled = false;
-                confirmBtn.style.opacity = '1';
-                confirmBtn.style.cursor = 'pointer';
-            }
-            // Auto-fechar após 10 segundos se não houver ação
-            setTimeout(() => {
-                if (document.getElementById('updateModalOverlay')) {
-                    closeUpdateModal();
-                }
-            }, 10000);
-        }
-    }, 1000);
-}
-
-function fetchVersionInfo() {
-    // Buscar informações de versão do endpoint
-    fetch("{{ url_for('dbadmin.git_status') }}?force=false")
-        .then(response => response.json())
-        .then(data => {
-            const currentVersionEl = document.getElementById('currentVersionInfo');
-            const latestVersionEl = document.getElementById('latestVersionInfo');
+    // Selects com data-action
+    document.querySelectorAll('select[data-action]').forEach(function(select) {
+        select.addEventListener('change', function() {
+            const action = this.getAttribute('data-action');
             
-            if (data.ok) {
-                if (currentVersionEl) {
-                    currentVersionEl.innerHTML = `<span style="color: #059669;">${data.current_version || 'N/A'}</span>`;
-                }
-                if (latestVersionEl) {
-                    const latestVersion = data.latest_version || 'N/A';
-                    latestVersionEl.innerHTML = `<span style="color: #3b82f6;">${latestVersion}</span>`;
-                }
-            } else {
-                if (currentVersionEl) {
-                    currentVersionEl.innerHTML = '<span style="color: #dc2626;">Erro ao verificar</span>';
-                }
-                if (latestVersionEl) {
-                    latestVersionEl.innerHTML = '<span style="color: #dc2626;">Erro ao verificar</span>';
-                }
-            }
-        })
-        .catch(error => {
-            const currentVersionEl = document.getElementById('currentVersionInfo');
-            const latestVersionEl = document.getElementById('latestVersionInfo');
-            
-            if (currentVersionEl) {
-                currentVersionEl.innerHTML = '<span style="color: #dc2626;">Erro de conexão</span>';
-            }
-            if (latestVersionEl) {
-                latestVersionEl.innerHTML = '<span style="color: #dc2626;">Erro de conexão</span>';
+            switch(action) {
+                case 'update-logs':
+                    if (window.dbAdmin && window.dbAdmin.updateLogs) {
+                        window.dbAdmin.updateLogs();
+                    }
+                    break;
+                case 'update-trends':
+                    if (window.dbAdmin && window.dbAdmin.updateTrends) {
+                        window.dbAdmin.updateTrends();
+                    }
+                    break;
             }
         });
-}
-
-function closeUpdateModal() {
-    const overlay = document.getElementById('updateModalOverlay');
-    if (overlay) {
-        overlay.remove();
-    }
-    if (updateCountdownInterval) {
-        clearInterval(updateCountdownInterval);
-    }
-    updateCountdown = 10;
-}
-
-function applyUpdate(force = false) {
-    const confirmBtn = document.getElementById('confirmUpdateBtn');
-    const countdownValue = document.getElementById('countdownValue');
-    
-    if (confirmBtn) {
-        confirmBtn.disabled = true;
-        confirmBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Aplicando...';
-    }
-    
-    if (countdownValue) {
-        countdownValue.textContent = '0';
-        countdownValue.style.color = '#16a34a';
-    }
-    
-    // Função para atualizar etapas visuais
-    function updateStep(stepNum, status) {
-        const stepEl = document.getElementById(`step${stepNum}`);
-        if (stepEl) {
-            if (status === 'processing') {
-                stepEl.innerHTML = stepEl.innerHTML.replace(/[✓⏳]/g, '⏳');
-                stepEl.style.opacity = '1';
-                stepEl.style.fontWeight = '600';
-            } else if (status === 'completed') {
-                stepEl.innerHTML = stepEl.innerHTML.replace(/[✓⏳]/g, '✓');
-                stepEl.style.opacity = '1';
-                stepEl.style.color = '#059669';
-            }
-        }
-    }
-    
-    // Mostrar mensagem de processamento com etapas
-    const modalBody = document.querySelector('.db-git-modal-body');
-    if (modalBody) {
-        const processingMsg = document.createElement('div');
-        processingMsg.id = 'processingMsg';
-        processingMsg.className = 'db-git-processing-msg';
-        processingMsg.innerHTML = `
-            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <i class="bi bi-arrow-repeat" style="animation: spin 1s linear infinite;"></i>
-                    <span><strong>Aplicando atualização completa...</strong></span>
-                </div>
-                <div id="updateSteps" style="margin-left: 2rem; font-size: 0.9rem; color: #6b7280;">
-                    <div id="step1">✓ Atualizando código do GitHub...</div>
-                    <div id="step2" style="opacity: 0.5;">⏳ Parando containers...</div>
-                    <div id="step3" style="opacity: 0.5;">⏳ Rebuild do container (pode demorar alguns minutos)...</div>
-                    <div id="step4" style="opacity: 0.5;">⏳ Iniciando containers...</div>
-                </div>
-            </div>
-        `;
-        modalBody.appendChild(processingMsg);
-        
-        // Simular progresso das etapas (o backend não retorna progresso em tempo real)
-        let stepTimeout = 2000; // 2 segundos entre etapas
-        updateStep(1, 'processing');
-        setTimeout(() => {
-            updateStep(1, 'completed');
-            updateStep(2, 'processing');
-            setTimeout(() => {
-                updateStep(2, 'completed');
-                updateStep(3, 'processing');
-                setTimeout(() => {
-                    updateStep(3, 'completed');
-                    updateStep(4, 'processing');
-                }, stepTimeout * 2); // Build demora mais
-            }, stepTimeout);
-        }, stepTimeout);
-    }
-    
-    fetch('{{ url_for("dbadmin.git_update") }}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ force: force })
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(err => {
-                // Se for erro de "já está atualizado", mostrar mensagem específica
-                if (err.already_up_to_date) {
-                    throw new Error(err.error || 'Sistema já está atualizado');
-                }
-                // Construir mensagem de erro com sugestões se disponível
-                let errorMsg = err.error || `HTTP ${response.status}`;
-                if (err.suggestion) {
-                    errorMsg += '\n\n💡 Sugestão: ' + err.suggestion;
-                }
-                if (err.details) {
-                    errorMsg += '\n\nDetalhes: ' + err.details.substring(0, 300);
-                }
-                const errorObj = new Error(errorMsg);
-                errorObj.errorData = err; // Preservar dados do erro
-                throw errorObj;
-            });
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.ok) {
-            // Marcar todas as etapas como concluídas
-            for (let i = 1; i <= 4; i++) {
-                updateStep(i, 'completed');
-            }
-            
-            // Mostrar mensagem de sucesso antes de fechar
-            const modalBody = document.querySelector('.db-git-modal-body');
-            if (modalBody) {
-                const processingMsg = document.getElementById('processingMsg');
-                if (processingMsg) {
-                    processingMsg.className = 'db-git-success-msg';
-                    processingMsg.innerHTML = `
-                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <i class="bi bi-check-circle-fill"></i>
-                            <div>
-                                <strong>Atualização completa aplicada com sucesso!</strong>
-                                <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">O sistema será reiniciado. Aguarde até 5 minutos.</p>
-                            </div>
-                        </div>
-                    `;
-                }
-            }
-            
-            // Fechar modal após 3 segundos
-            setTimeout(() => {
-                closeUpdateModal();
-                // Mostrar notificação final
-                const notification = document.createElement('div');
-                notification.className = 'db-git-notification';
-                notification.innerHTML = `
-                    <div class="db-git-notification-content">
-                        <i class="bi bi-info-circle-fill"></i>
-                        <div>
-                            <strong>Atualização em andamento</strong>
-                            <p>A página ficará temporariamente indisponível. Aguarde até 5 minutos e depois atualize a página manualmente.</p>
-                        </div>
-                    </div>
-                `;
-                document.body.appendChild(notification);
-                
-                // Remover notificação após 10 segundos
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        notification.remove();
-                    }
-                }, 10000);
-            }, 3000);
-        } else {
-            // Mostrar erro com sugestões e botão de download
-            const modalBody = document.querySelector('.db-git-modal-body');
-            if (modalBody) {
-                const processingMsg = document.getElementById('processingMsg');
-                if (processingMsg) {
-                    // Preparar conteúdo completo para download
-                    let errorText = `ERRO: ${data.error || 'Erro desconhecido'}\n`;
-                    errorText += `Data/Hora: ${new Date().toLocaleString('pt-BR')}\n\n`;
-                    
-                    if (data.suggestion) {
-                        errorText += `💡 SUGESTÃO:\n${data.suggestion}\n\n`;
-                    }
-                    if (data.details) {
-                        errorText += `DETALHES:\n${data.details}\n\n`;
-                    }
-                    if (data.quickstart_guide) {
-                        errorText += `GUIA RÁPIDO: ${data.quickstart_guide}\n`;
-                    }
-                    if (data.full_guide) {
-                        errorText += `GUIA COMPLETO: ${data.full_guide}\n`;
-                    }
-                    if (data.deploy_agent_url) {
-                        errorText += `URL DO DEPLOY AGENT: ${data.deploy_agent_url}\n`;
-                    }
-                    
-                    // Criar blob para download
-                    const errorBlob = new Blob([errorText], { type: 'text/plain;charset=utf-8' });
-                    const errorUrl = URL.createObjectURL(errorBlob);
-                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-                    const filename = `erro-deploy-agent-${timestamp}.txt`;
-                    
-                    let errorHtml = `
-                        <div style="display: flex; flex-direction: column; gap: 1rem;">
-                            <div style="display: flex; align-items: flex-start; gap: 0.75rem; color: #dc2626;">
-                                <i class="bi bi-x-circle-fill" style="font-size: 1.5rem; flex-shrink: 0; margin-top: 0.25rem;"></i>
-                                <div style="flex: 1;">
-                                    <strong style="font-size: 1.1rem;">Erro: ${data.error || 'Erro desconhecido'}</strong>
-                                </div>
-                            </div>
-                            
-                            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: -0.5rem;">
-                                <button type="button" onclick="downloadErrorText('${errorUrl}', '${filename}')" class="db-btn-modern db-btn-outline" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; font-size: 0.875rem;">
-                                    <i class="bi bi-download"></i>
-                                    <span>Download da Mensagem Completa (.txt)</span>
-                                </button>
-                            </div>
-                            
-                            <div style="max-height: 400px; overflow-y: auto; border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 6px; padding: 1rem; background: rgba(0, 0, 0, 0.02);">
-                                ${data.suggestion ? `
-                                    <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(245, 158, 11, 0.1); border-left: 4px solid #f59e0b; border-radius: 4px;">
-                                        <strong style="display: block; margin-bottom: 0.5rem; color: #92400e;">💡 Sugestão:</strong>
-                                        <div style="white-space: pre-wrap; line-height: 1.6; color: #78350f; font-size: 0.9rem;">${escapeHtml(data.suggestion)}</div>
-                                    </div>
-                                ` : ''}
-                                ${data.details ? `
-                                    <div style="margin-top: ${data.suggestion ? '1rem' : '0'}; padding: 1rem; background: rgba(0, 0, 0, 0.03); border-radius: 4px;">
-                                        <strong style="display: block; margin-bottom: 0.5rem;">Detalhes:</strong>
-                                        <div style="font-family: 'Courier New', monospace; font-size: 0.85rem; white-space: pre-wrap; word-wrap: break-word; color: #374151;">${escapeHtml(data.details)}</div>
-                                    </div>
-                                ` : ''}
-                                ${data.quickstart_guide || data.full_guide ? `
-                                    <div style="margin-top: 1rem; padding: 1rem; background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; border-radius: 4px;">
-                                        <strong style="display: block; margin-bottom: 0.5rem; color: #1e40af;">📚 Documentação:</strong>
-                                        ${data.quickstart_guide ? `<div style="margin-bottom: 0.5rem; color: #1e3a8a;">• ${escapeHtml(data.quickstart_guide)}</div>` : ''}
-                                        ${data.full_guide ? `<div style="color: #1e3a8a;">• ${escapeHtml(data.full_guide)}</div>` : ''}
-                                    </div>
-                                ` : ''}
-                                ${data.deploy_agent_url ? `
-                                    <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(107, 114, 128, 0.1); border-radius: 4px; font-size: 0.85rem; color: #4b5563;">
-                                        <strong>URL do Deploy Agent:</strong> <code>${escapeHtml(data.deploy_agent_url)}</code>
-                                    </div>
-                                ` : ''}
-                            </div>
-                        </div>
-                    `;
-                    
-                    processingMsg.className = 'db-git-error-msg';
-                    processingMsg.innerHTML = errorHtml;
-                }
-            }
-            
-            if (confirmBtn) {
-                confirmBtn.disabled = false;
-                confirmBtn.innerHTML = '<i class="bi bi-cloud-arrow-down"></i> Aplicar Atualização';
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Erro ao aplicar atualização:', error);
-        const modalBody = document.querySelector('.db-git-modal-body');
-        if (modalBody) {
-            const processingMsg = document.getElementById('processingMsg');
-            if (processingMsg) {
-                const isAlreadyUpdated = error.message && error.message.includes('já está atualizado');
-                
-                // Preparar conteúdo completo para download
-                let errorText = `${isAlreadyUpdated ? 'AVISO' : 'ERRO'}: ${error.message || 'Erro de conexão. Verifique se o sistema está acessível.'}\n`;
-                errorText += `Data/Hora: ${new Date().toLocaleString('pt-BR')}\n\n`;
-                
-                if (error.errorData) {
-                    if (error.errorData.error) {
-                        errorText += `ERRO: ${error.errorData.error}\n\n`;
-                    }
-                    if (error.errorData.suggestion) {
-                        errorText += `💡 SUGESTÃO:\n${error.errorData.suggestion}\n\n`;
-                    }
-                    if (error.errorData.details) {
-                        errorText += `DETALHES:\n${error.errorData.details}\n\n`;
-                    }
-                    if (error.errorData.quickstart_guide) {
-                        errorText += `GUIA RÁPIDO: ${error.errorData.quickstart_guide}\n`;
-                    }
-                    if (error.errorData.full_guide) {
-                        errorText += `GUIA COMPLETO: ${error.errorData.full_guide}\n`;
-                    }
-                    if (error.errorData.deploy_agent_url) {
-                        errorText += `URL DO DEPLOY AGENT: ${error.errorData.deploy_agent_url}\n`;
-                    }
-                }
-                
-                // Criar blob para download
-                const errorBlob = new Blob([errorText], { type: 'text/plain;charset=utf-8' });
-                const errorUrl = URL.createObjectURL(errorBlob);
-                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-                const filename = `erro-deploy-${timestamp}.txt`;
-                
-                let errorHtml = `
-                    <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <div style="display: flex; align-items: flex-start; gap: 0.75rem; color: ${isAlreadyUpdated ? '#f59e0b' : '#dc2626'};">
-                            <i class="bi bi-${isAlreadyUpdated ? 'exclamation-triangle-fill' : 'x-circle-fill'}" style="font-size: 1.5rem; flex-shrink: 0; margin-top: 0.25rem;"></i>
-                            <div style="flex: 1;">
-                                <strong style="font-size: 1.1rem;">${isAlreadyUpdated ? 'Aviso:' : 'Erro:'}</strong>
-                                <div style="margin-top: 0.25rem;">${escapeHtml(error.message || 'Erro de conexão. Verifique se o sistema está acessível.')}</div>
-                                ${isAlreadyUpdated ? '<p style="margin-top: 0.5rem; color: #6b7280; font-size: 0.875rem;">Use o botão "Reinstalar Atualização" para forçar a atualização mesmo assim.</p>' : ''}
-                            </div>
-                        </div>
-                        
-                        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: -0.5rem;">
-                            <button type="button" onclick="downloadErrorText('${errorUrl}', '${filename}')" class="db-btn-modern db-btn-outline" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; font-size: 0.875rem;">
-                                <i class="bi bi-download"></i>
-                                <span>Download da Mensagem Completa (.txt)</span>
-                            </button>
-                        </div>
-                        
-                        ${error.errorData ? `
-                            <div style="max-height: 400px; overflow-y: auto; border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 6px; padding: 1rem; background: rgba(0, 0, 0, 0.02);">
-                                ${error.errorData.suggestion ? `
-                                    <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(245, 158, 11, 0.1); border-left: 4px solid #f59e0b; border-radius: 4px;">
-                                        <strong style="display: block; margin-bottom: 0.5rem; color: #92400e;">💡 Sugestão:</strong>
-                                        <div style="white-space: pre-wrap; line-height: 1.6; color: #78350f; font-size: 0.9rem;">${escapeHtml(error.errorData.suggestion)}</div>
-                                    </div>
-                                ` : ''}
-                                ${error.errorData.details ? `
-                                    <div style="margin-top: ${error.errorData.suggestion ? '1rem' : '0'}; padding: 1rem; background: rgba(0, 0, 0, 0.03); border-radius: 4px;">
-                                        <strong style="display: block; margin-bottom: 0.5rem;">Detalhes:</strong>
-                                        <div style="font-family: 'Courier New', monospace; font-size: 0.85rem; white-space: pre-wrap; word-wrap: break-word; color: #374151;">${escapeHtml(error.errorData.details)}</div>
-                                    </div>
-                                ` : ''}
-                                ${error.errorData.quickstart_guide || error.errorData.full_guide ? `
-                                    <div style="margin-top: 1rem; padding: 1rem; background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; border-radius: 4px;">
-                                        <strong style="display: block; margin-bottom: 0.5rem; color: #1e40af;">📚 Documentação:</strong>
-                                        ${error.errorData.quickstart_guide ? `<div style="margin-bottom: 0.5rem; color: #1e3a8a;">• ${escapeHtml(error.errorData.quickstart_guide)}</div>` : ''}
-                                        ${error.errorData.full_guide ? `<div style="color: #1e3a8a;">• ${escapeHtml(error.errorData.full_guide)}</div>` : ''}
-                                    </div>
-                                ` : ''}
-                                ${error.errorData.deploy_agent_url ? `
-                                    <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(107, 114, 128, 0.1); border-radius: 4px; font-size: 0.85rem; color: #4b5563;">
-                                        <strong>URL do Deploy Agent:</strong> <code>${escapeHtml(error.errorData.deploy_agent_url)}</code>
-                                    </div>
-                                ` : ''}
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-                
-                processingMsg.className = 'db-git-error-msg';
-                processingMsg.innerHTML = errorHtml;
-            }
-        }
-        
-        if (confirmBtn) {
-            confirmBtn.disabled = false;
-            confirmBtn.innerHTML = '<i class="bi bi-cloud-arrow-down"></i> ' + (force ? 'Reinstalar Atualização' : 'Aplicar Atualização');
-        }
     });
-}
-
-// Função auxiliar para escapar HTML (prevenir XSS)
-function escapeHtml(text) {
-    if (!text) return '';
-    const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-    };
-    return String(text).replace(/[&<>"']/g, m => map[m]);
-}
-
-// Função para fazer download do texto de erro em arquivo .txt
-function downloadErrorText(blobUrl, filename) {
-    try {
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = filename;
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        link.click();
-        
-        // Remover link após download iniciar
-        setTimeout(() => {
-            document.body.removeChild(link);
-            // Limpar o objeto URL após um tempo (libera memória)
-            URL.revokeObjectURL(blobUrl);
-        }, 100);
-    } catch (err) {
-        console.error('Erro ao fazer download do arquivo:', err);
-        alert('Erro ao fazer download do arquivo. Por favor, copie a mensagem manualmente.');
-    }
-}
-
-// Limpar intervalo ao sair da página
-window.addEventListener('beforeunload', function() {
-    if (gitStatusInterval) {
-        clearInterval(gitStatusInterval);
-    }
-    if (updateCountdownInterval) {
-        clearInterval(updateCountdownInterval);
-    }
 });
 </script>
+{% endblock %}
+
+</style>
 
 <style>
 /* Container */

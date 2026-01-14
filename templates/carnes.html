@@ -409,39 +409,85 @@
 {% block scripts %}
 <!-- JavaScript mantido do original -->
 <script>
+function escapeHtml(text) {
+  if (text == null) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 // Bovina
-function B_carrierOptions(){
+function B_populateCarrierSelect(select){
   const names = Array.from(document.querySelectorAll('#carnesFormBovina input[name="carrier_nome"]')).map(i=>i.value.trim());
-  let opts = '<option value="-1">—</option>';
+  select.textContent = '';
+  const opt0 = document.createElement('option');
+  opt0.value = '-1';
+  opt0.textContent = '—';
+  select.appendChild(opt0);
   for(let i=0;i<names.length;i++){
-    const n = names[i] || `Entregador ${i+1}`;
-    opts += `<option value="${i}">${n}</option>`;
+    const n = names[i] || ('Entregador ' + (i+1));
+    const opt = document.createElement('option');
+    opt.value = String(i);
+    opt.textContent = n;
+    select.appendChild(opt);
   }
-  return opts;
 }
 function B_updateCarrierSelects(){
   const selects = document.querySelectorAll('#carnesFormBovina select[name="part_carrier"]');
-  selects.forEach(s=>{ const cur = s.value; s.innerHTML = B_carrierOptions(); s.value = cur; });
+  selects.forEach(s=>{ const cur = s.value; B_populateCarrierSelect(s); s.value = cur; });
 }
 function B_addCarrier(){
   const wrap = document.getElementById('B_carriers');
   const row = document.createElement('div');
   row.className = 'form-row-modern';
-  row.innerHTML = `
-    <div class="form-group-modern">
-      <label class="form-label-modern">Nome</label>
-      <input type="text" name="carrier_nome" class="form-input-modern" required oninput="B_updateCarrierSelects()">
-    </div>
-    <div class="form-group-modern">
-      <label class="form-label-modern">Peso (kg)</label>
-      <input type="number" step="0.01" name="carrier_peso" class="form-input-modern" required oninput="B_updateTotal()">
-    </div>
-    <div class="form-group-modern form-group-action">
-      <button type="button" class="btn-remove-modern" onclick="this.closest('.form-row-modern').remove(); B_updateTotal();">
-        <i class="bi bi-trash"></i>
-        Remover
-      </button>
-    </div>`;
+  
+  const group1 = document.createElement('div');
+  group1.className = 'form-group-modern';
+  const label1 = document.createElement('label');
+  label1.className = 'form-label-modern';
+  label1.textContent = 'Nome';
+  const input1 = document.createElement('input');
+  input1.type = 'text';
+  input1.name = 'carrier_nome';
+  input1.className = 'form-input-modern';
+  input1.required = true;
+  input1.addEventListener('input', B_updateCarrierSelects);
+  group1.appendChild(label1);
+  group1.appendChild(input1);
+  
+  const group2 = document.createElement('div');
+  group2.className = 'form-group-modern';
+  const label2 = document.createElement('label');
+  label2.className = 'form-label-modern';
+  label2.textContent = 'Peso (kg)';
+  const input2 = document.createElement('input');
+  input2.type = 'number';
+  input2.step = '0.01';
+  input2.name = 'carrier_peso';
+  input2.className = 'form-input-modern';
+  input2.required = true;
+  input2.addEventListener('input', B_updateTotal);
+  group2.appendChild(label2);
+  group2.appendChild(input2);
+  
+  const group3 = document.createElement('div');
+  group3.className = 'form-group-modern form-group-action';
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'btn-remove-modern';
+  button.addEventListener('click', function() {
+    row.remove();
+    B_updateTotal();
+  });
+  const icon = document.createElement('i');
+  icon.className = 'bi bi-trash';
+  button.appendChild(icon);
+  button.appendChild(document.createTextNode(' Remover'));
+  group3.appendChild(button);
+  
+  row.appendChild(group1);
+  row.appendChild(group2);
+  row.appendChild(group3);
   wrap.appendChild(row);
   B_updateTotal();
 }
@@ -456,32 +502,109 @@ function B_addAnimal(){
     {cat:'traseiro',lado:'1'},
     {cat:'traseiro',lado:'2'}
   ];
-  blk.innerHTML = `
-    <div class="animal-header-modern">
-      <strong>Romaneio #${idx}</strong>
-      <button type="button" class="btn-remove-modern" onclick="B_deleteAnimalIfEmpty(this)">Excluir Romaneio</button>
-    </div>
-    <div class="animal-body-modern">
-      <div class="parts-grid-modern">${parts.map((p)=>{
-        return `
-        <div class="part-card-modern">
-          <div class="part-label-modern">${(p.lado==='1'||p.lado==='2') ? (p.cat.charAt(0).toUpperCase()+p.cat.slice(1)+' '+p.lado) : (p.cat+' — '+p.lado)}</div>
-          <input type="hidden" name="part_categoria" value="${p.cat}">
-          <input type="hidden" name="part_lado" value="${p.lado}">
-          <input type="hidden" name="animal_numero" value="${idx}">
-          <div class="form-group-modern">
-            <label class="form-label-modern">Peso bruto (kg)</label>
-            <input type="number" step="0.01" name="part_peso_bruto" class="form-input-modern" oninput="B_updateTotal()">
-          </div>
-          <div class="form-group-modern">
-            <label class="form-label-modern">Entregador</label>
-            <select name="part_carrier" class="form-input-modern" onchange="B_updateTotal()">${B_carrierOptions()}</select>
-          </div>
-          <input type="hidden" name="part_tara" value="0">
-          <button type="button" class="btn-save-part-modern" onclick="B_savePart(this)">Salvar parte</button>
-        </div>`;
-      }).join('')}</div>
-    </div>`;
+  
+  const header = document.createElement('div');
+  header.className = 'animal-header-modern';
+  const strong = document.createElement('strong');
+  strong.textContent = 'Romaneio #' + idx;
+  const deleteBtn = document.createElement('button');
+  deleteBtn.type = 'button';
+  deleteBtn.className = 'btn-remove-modern';
+  deleteBtn.addEventListener('click', function() {
+    B_deleteAnimalIfEmpty(deleteBtn);
+  });
+  deleteBtn.textContent = 'Excluir Romaneio';
+  header.appendChild(strong);
+  header.appendChild(deleteBtn);
+  
+  const body = document.createElement('div');
+  body.className = 'animal-body-modern';
+  const grid = document.createElement('div');
+  grid.className = 'parts-grid-modern';
+  
+  parts.forEach(function(p) {
+    const partCard = document.createElement('div');
+    partCard.className = 'part-card-modern';
+    
+    const label = document.createElement('div');
+    label.className = 'part-label-modern';
+    let labelText = '';
+    if (p.lado === '1' || p.lado === '2') {
+      labelText = p.cat.charAt(0).toUpperCase() + p.cat.slice(1) + ' ' + p.lado;
+    } else {
+      labelText = p.cat + ' — ' + p.lado;
+    }
+    label.textContent = labelText;
+    
+    const hidden1 = document.createElement('input');
+    hidden1.type = 'hidden';
+    hidden1.name = 'part_categoria';
+    hidden1.value = p.cat;
+    
+    const hidden2 = document.createElement('input');
+    hidden2.type = 'hidden';
+    hidden2.name = 'part_lado';
+    hidden2.value = p.lado;
+    
+    const hidden3 = document.createElement('input');
+    hidden3.type = 'hidden';
+    hidden3.name = 'animal_numero';
+    hidden3.value = String(idx);
+    
+    const group1 = document.createElement('div');
+    group1.className = 'form-group-modern';
+    const label1 = document.createElement('label');
+    label1.className = 'form-label-modern';
+    label1.textContent = 'Peso bruto (kg)';
+    const input1 = document.createElement('input');
+    input1.type = 'number';
+    input1.step = '0.01';
+    input1.name = 'part_peso_bruto';
+    input1.className = 'form-input-modern';
+    input1.addEventListener('input', B_updateTotal);
+    group1.appendChild(label1);
+    group1.appendChild(input1);
+    
+    const group2 = document.createElement('div');
+    group2.className = 'form-group-modern';
+    const label2 = document.createElement('label');
+    label2.className = 'form-label-modern';
+    label2.textContent = 'Entregador';
+    const select = document.createElement('select');
+    select.name = 'part_carrier';
+    select.className = 'form-input-modern';
+    select.addEventListener('change', B_updateTotal);
+    B_populateCarrierSelect(select);
+    group2.appendChild(label2);
+    group2.appendChild(select);
+    
+    const hidden4 = document.createElement('input');
+    hidden4.type = 'hidden';
+    hidden4.name = 'part_tara';
+    hidden4.value = '0';
+    
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'btn-save-part-modern';
+    saveBtn.addEventListener('click', function() {
+      B_savePart(saveBtn);
+    });
+    saveBtn.textContent = 'Salvar parte';
+    
+    partCard.appendChild(label);
+    partCard.appendChild(hidden1);
+    partCard.appendChild(hidden2);
+    partCard.appendChild(hidden3);
+    partCard.appendChild(group1);
+    partCard.appendChild(group2);
+    partCard.appendChild(hidden4);
+    partCard.appendChild(saveBtn);
+    grid.appendChild(partCard);
+  });
+  
+  body.appendChild(grid);
+  blk.appendChild(header);
+  blk.appendChild(body);
   wrap.appendChild(blk);
   B_restorePartDraftsForBlock(blk);
 }
@@ -494,7 +617,7 @@ function B_partFields(container){
   const carrier = sel ? sel.value : '-1';
   return {animal, cat, lado, peso, carrier};
 }
-function B_partKey(f){ return `recepcao-bov:${f.animal}:${f.cat}:${f.lado}`; }
+function B_partKey(f){ return 'recepcao-bov:' + escapeHtml(String(f.animal)) + ':' + escapeHtml(f.cat) + ':' + escapeHtml(f.lado); }
 function B_savePart(btn){
   const container = btn.closest('.part-card-modern');
   if (!container) return;
@@ -569,35 +692,117 @@ function S_addAnimal(){
   const blk = document.createElement('div');
   blk.className = 'animal-block-modern';
   const parts = [{cat:'carcaça',lado:'peso1'}];
-  blk.innerHTML = `
-    <div class="animal-header-modern">
-      <strong>Peso #${idx}</strong>
-      <button type="button" class="btn-remove-modern" onclick="S_deleteAnimalIfEmpty(this)">Excluir Peso</button>
-    </div>
-    <div class="animal-body-modern">
-      <div class="parts-grid-modern">${parts.map((p)=>{
-        return `
-        <div class="part-card-modern">
-          <div class="part-label-modern">${p.lado==='peso1' ? 'Primeiro peso' : ('Peso '+String(p.lado).slice(-1))}</div>
-          <input type="hidden" name="part_categoria" value="${p.cat}">
-          <input type="hidden" name="part_lado" value="${p.lado}">
-          <input type="hidden" name="animal_numero" value="${idx}">
-          <div class="form-group-modern">
-            <label class="form-label-modern">Peso bruto (kg)</label>
-            <input type="number" step="0.01" name="part_peso_bruto" class="form-input-modern" oninput="S_updateTotal()">
-          </div>
-          <div class="form-group-modern">
-            <label class="form-label-modern">Tara da caixa (kg)</label>
-            <input type="number" step="0.01" name="part_tara" class="form-input-modern" oninput="S_updateTotal()">
-          </div>
-          <input type="hidden" name="part_carrier" value="-1">
-          <button type="button" class="btn-save-part-modern" onclick="S_savePart(this)">Salvar parte</button>
-        </div>`;
-      }).join('')}</div>
-      <div class="mt-4">
-        <button type="button" class="btn-add-peso-modern" onclick="S_addSuinaPeso(this)">Adicionar Peso</button>
-      </div>
-    </div>`;
+  
+  const header = document.createElement('div');
+  header.className = 'animal-header-modern';
+  const strong = document.createElement('strong');
+  strong.textContent = 'Peso #' + idx;
+  const deleteBtn = document.createElement('button');
+  deleteBtn.type = 'button';
+  deleteBtn.className = 'btn-remove-modern';
+  deleteBtn.addEventListener('click', function() {
+    S_deleteAnimalIfEmpty(deleteBtn);
+  });
+  deleteBtn.textContent = 'Excluir Peso';
+  header.appendChild(strong);
+  header.appendChild(deleteBtn);
+  
+  const body = document.createElement('div');
+  body.className = 'animal-body-modern';
+  const grid = document.createElement('div');
+  grid.className = 'parts-grid-modern';
+  
+  parts.forEach(function(p) {
+    const partCard = document.createElement('div');
+    partCard.className = 'part-card-modern';
+    
+    const label = document.createElement('div');
+    label.className = 'part-label-modern';
+    let labelText = p.lado === 'peso1' ? 'Primeiro peso' : ('Peso ' + String(p.lado).slice(-1));
+    label.textContent = labelText;
+    
+    const hidden1 = document.createElement('input');
+    hidden1.type = 'hidden';
+    hidden1.name = 'part_categoria';
+    hidden1.value = p.cat;
+    
+    const hidden2 = document.createElement('input');
+    hidden2.type = 'hidden';
+    hidden2.name = 'part_lado';
+    hidden2.value = p.lado;
+    
+    const hidden3 = document.createElement('input');
+    hidden3.type = 'hidden';
+    hidden3.name = 'animal_numero';
+    hidden3.value = String(idx);
+    
+    const group1 = document.createElement('div');
+    group1.className = 'form-group-modern';
+    const label1 = document.createElement('label');
+    label1.className = 'form-label-modern';
+    label1.textContent = 'Peso bruto (kg)';
+    const input1 = document.createElement('input');
+    input1.type = 'number';
+    input1.step = '0.01';
+    input1.name = 'part_peso_bruto';
+    input1.className = 'form-input-modern';
+    input1.addEventListener('input', S_updateTotal);
+    group1.appendChild(label1);
+    group1.appendChild(input1);
+    
+    const group2 = document.createElement('div');
+    group2.className = 'form-group-modern';
+    const label2 = document.createElement('label');
+    label2.className = 'form-label-modern';
+    label2.textContent = 'Tara da caixa (kg)';
+    const input2 = document.createElement('input');
+    input2.type = 'number';
+    input2.step = '0.01';
+    input2.name = 'part_tara';
+    input2.className = 'form-input-modern';
+    input2.addEventListener('input', S_updateTotal);
+    group2.appendChild(label2);
+    group2.appendChild(input2);
+    
+    const hidden4 = document.createElement('input');
+    hidden4.type = 'hidden';
+    hidden4.name = 'part_carrier';
+    hidden4.value = '-1';
+    
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'btn-save-part-modern';
+    saveBtn.addEventListener('click', function() {
+      S_savePart(saveBtn);
+    });
+    saveBtn.textContent = 'Salvar parte';
+    
+    partCard.appendChild(label);
+    partCard.appendChild(hidden1);
+    partCard.appendChild(hidden2);
+    partCard.appendChild(hidden3);
+    partCard.appendChild(group1);
+    partCard.appendChild(group2);
+    partCard.appendChild(hidden4);
+    partCard.appendChild(saveBtn);
+    grid.appendChild(partCard);
+  });
+  
+  const mt4 = document.createElement('div');
+  mt4.className = 'mt-4';
+  const addPesoBtn = document.createElement('button');
+  addPesoBtn.type = 'button';
+  addPesoBtn.className = 'btn-add-peso-modern';
+  addPesoBtn.addEventListener('click', function() {
+    S_addSuinaPeso(addPesoBtn);
+  });
+  addPesoBtn.textContent = 'Adicionar Peso';
+  mt4.appendChild(addPesoBtn);
+  
+  body.appendChild(grid);
+  body.appendChild(mt4);
+  blk.appendChild(header);
+  blk.appendChild(body);
   wrap.appendChild(blk);
   S_restorePartDraftsForBlock(blk);
 }
@@ -607,24 +812,79 @@ function S_addSuinaPeso(btn){
   const next = existing + 1;
   const cont = blk.querySelector('.parts-grid-modern');
   const animal = blk.querySelector('input[name="animal_numero"]').value;
-  const card = `
-    <div class="part-card-modern">
-      <div class="part-label-modern">${next === 1 ? 'Primeiro peso' : ('Peso '+next)}</div>
-      <input type="hidden" name="part_categoria" value="carcaça">
-      <input type="hidden" name="part_lado" value="peso${next}">
-      <input type="hidden" name="animal_numero" value="${animal}">
-      <div class="form-group-modern">
-        <label class="form-label-modern">Peso bruto (kg)</label>
-        <input type="number" step="0.01" name="part_peso_bruto" class="form-input-modern" oninput="S_updateTotal()">
-      </div>
-      <div class="form-group-modern">
-        <label class="form-label-modern">Tara da caixa (kg)</label>
-        <input type="number" step="0.01" name="part_tara" class="form-input-modern" oninput="S_updateTotal()">
-      </div>
-      <input type="hidden" name="part_carrier" value="-1">
-      <button type="button" class="btn-save-part-modern" onclick="S_savePart(this)">Salvar parte</button>
-    </div>`;
-  cont.insertAdjacentHTML('beforeend', card);
+  
+  const card = document.createElement('div');
+  card.className = 'part-card-modern';
+  
+  const label = document.createElement('div');
+  label.className = 'part-label-modern';
+  label.textContent = next === 1 ? 'Primeiro peso' : ('Peso ' + next);
+  
+  const hidden1 = document.createElement('input');
+  hidden1.type = 'hidden';
+  hidden1.name = 'part_categoria';
+  hidden1.value = 'carcaça';
+  
+  const hidden2 = document.createElement('input');
+  hidden2.type = 'hidden';
+  hidden2.name = 'part_lado';
+  hidden2.value = 'peso' + next;
+  
+  const hidden3 = document.createElement('input');
+  hidden3.type = 'hidden';
+  hidden3.name = 'animal_numero';
+  hidden3.value = animal;
+  
+  const group1 = document.createElement('div');
+  group1.className = 'form-group-modern';
+  const label1 = document.createElement('label');
+  label1.className = 'form-label-modern';
+  label1.textContent = 'Peso bruto (kg)';
+  const input1 = document.createElement('input');
+  input1.type = 'number';
+  input1.step = '0.01';
+  input1.name = 'part_peso_bruto';
+  input1.className = 'form-input-modern';
+  input1.addEventListener('input', S_updateTotal);
+  group1.appendChild(label1);
+  group1.appendChild(input1);
+  
+  const group2 = document.createElement('div');
+  group2.className = 'form-group-modern';
+  const label2 = document.createElement('label');
+  label2.className = 'form-label-modern';
+  label2.textContent = 'Tara da caixa (kg)';
+  const input2 = document.createElement('input');
+  input2.type = 'number';
+  input2.step = '0.01';
+  input2.name = 'part_tara';
+  input2.className = 'form-input-modern';
+  input2.addEventListener('input', S_updateTotal);
+  group2.appendChild(label2);
+  group2.appendChild(input2);
+  
+  const hidden4 = document.createElement('input');
+  hidden4.type = 'hidden';
+  hidden4.name = 'part_carrier';
+  hidden4.value = '-1';
+  
+  const saveBtn = document.createElement('button');
+  saveBtn.type = 'button';
+  saveBtn.className = 'btn-save-part-modern';
+  saveBtn.addEventListener('click', function() {
+    S_savePart(saveBtn);
+  });
+  saveBtn.textContent = 'Salvar parte';
+  
+  card.appendChild(label);
+  card.appendChild(hidden1);
+  card.appendChild(hidden2);
+  card.appendChild(hidden3);
+  card.appendChild(group1);
+  card.appendChild(group2);
+  card.appendChild(hidden4);
+  card.appendChild(saveBtn);
+  cont.appendChild(card);
   S_updateTotal(); S_refreshAnimalDeleteStates();
 }
 function S_partFields(container){
@@ -635,7 +895,7 @@ function S_partFields(container){
   const tara = container.querySelector('input[name="part_tara"]').value;
   return {animal, cat, lado, peso, tara};
 }
-function S_partKey(f){ return `recepcao-sui:${f.animal}:${f.cat}:${f.lado}`; }
+function S_partKey(f){ return 'recepcao-sui:' + escapeHtml(String(f.animal)) + ':' + escapeHtml(f.cat) + ':' + escapeHtml(f.lado); }
 function S_savePart(btn){ const c = btn.closest('.part-card-modern'); if (!c) return; const f = S_partFields(c); try { localStorage.setItem(S_partKey(f), JSON.stringify(f)); } catch(e) {} btn.disabled = true; setTimeout(function(){ btn.disabled = false; }, 600); }
 function S_restorePartDraftsForBlock(blk){
   const cards = blk.querySelectorAll('.part-card-modern');
@@ -672,14 +932,34 @@ function F_addPeso(){
   const wrap = document.getElementById('F_pesos');
   const row = document.createElement('div');
   row.className = 'form-row-modern';
-  row.innerHTML = `
-    <div class="form-group-modern">
-      <label class="form-label-modern">Peso (kg)</label>
-      <input type="number" step="0.01" name="frango_peso_item" class="form-input-modern" oninput="F_updateTotal()">
-    </div>
-    <div class="form-group-modern form-group-action">
-      <button type="button" class="btn-remove-modern" onclick="F_removePeso(this)">Remover</button>
-    </div>`;
+  
+  const group1 = document.createElement('div');
+  group1.className = 'form-group-modern';
+  const label1 = document.createElement('label');
+  label1.className = 'form-label-modern';
+  label1.textContent = 'Peso (kg)';
+  const input1 = document.createElement('input');
+  input1.type = 'number';
+  input1.step = '0.01';
+  input1.name = 'frango_peso_item';
+  input1.className = 'form-input-modern';
+  input1.addEventListener('input', F_updateTotal);
+  group1.appendChild(label1);
+  group1.appendChild(input1);
+  
+  const group2 = document.createElement('div');
+  group2.className = 'form-group-modern form-group-action';
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'btn-remove-modern';
+  button.addEventListener('click', function() {
+    F_removePeso(button);
+  });
+  button.textContent = 'Remover';
+  group2.appendChild(button);
+  
+  row.appendChild(group1);
+  row.appendChild(group2);
   wrap.appendChild(row);
   F_updateTotal();
 }

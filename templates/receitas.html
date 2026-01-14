@@ -525,40 +525,114 @@
 <script>
 var produtosData = [
 {% for p in produtos %}
-{id: {{ p.id }}, nome: "{{ p.nome|e }}", preco: {{ p.preco_custo or 0 }}},
+{id: {{ p.id }}, nome: {{ p.nome | tojson }}, preco: {{ p.preco_custo or 0 }}},
 {% endfor %}
 ];
+
+// Função auxiliar para escapar HTML
+function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Função auxiliar para criar opções de produtos de forma segura
+function createProdutoOptions() {
+    var options = [];
+    produtosData.forEach(function(p) {
+        var option = document.createElement('option');
+        option.value = p.id;
+        option.setAttribute('data-preco', p.preco);
+        option.textContent = escapeHtml(p.nome) + ' (R$ ' + p.preco.toFixed(2) + '/kg)';
+        options.push(option);
+    });
+    return options;
+}
 
 function addIng(){
     var cont = document.getElementById('ingList');
     var wrap = document.createElement('div');
     wrap.className = 'ing-row-modern ing-row';
-    wrap.innerHTML = `
-        <div class="form-group-modern">
-            <label class="form-label-modern">Ingrediente</label>
-            <input type="text" name="ing_nome[]" class="form-input-modern" required>
-        </div>
-        <div class="form-group-modern">
-            <label class="form-label-modern">Produto do Estoque</label>
-            <select name="ing_produto_id[]" class="form-input-modern" onchange="updateCusto(this)">
-                <option value="">-- Nenhum --</option>
-                ${produtosData.map(p => '<option value="'+p.id+'" data-preco="'+p.preco+'">'+p.nome+' (R$ '+p.preco.toFixed(2)+'/kg)</option>').join('')}
-            </select>
-        </div>
-        <div class="form-group-modern">
-            <label class="form-label-modern">Qtd (kg)</label>
-            <input type="number" step="0.001" name="ing_qtd_kg[]" class="form-input-modern qtd-kg" placeholder="0.000" onchange="updateCusto(this)">
-        </div>
-        <div class="form-group-modern">
-            <label class="form-label-modern">Qtd Texto</label>
-            <input type="text" name="ing_qtd[]" class="form-input-modern" placeholder="Ex: 200 g">
-        </div>
-        <div class="form-group-modern form-group-action">
-            <button type="button" class="btn-remove-ing-modern" onclick="this.closest('.ing-row').remove()">
-                <i class="bi bi-trash"></i>
-            </button>
-        </div>
-    `;
+    
+    // Criar elementos de forma segura
+    var grupo1 = document.createElement('div');
+    grupo1.className = 'form-group-modern';
+    var label1 = document.createElement('label');
+    label1.className = 'form-label-modern';
+    label1.textContent = 'Ingrediente';
+    var input1 = document.createElement('input');
+    input1.type = 'text';
+    input1.name = 'ing_nome[]';
+    input1.className = 'form-input-modern';
+    input1.required = true;
+    grupo1.appendChild(label1);
+    grupo1.appendChild(input1);
+    
+    var grupo2 = document.createElement('div');
+    grupo2.className = 'form-group-modern';
+    var label2 = document.createElement('label');
+    label2.className = 'form-label-modern';
+    label2.textContent = 'Produto do Estoque';
+    var select2 = document.createElement('select');
+    select2.name = 'ing_produto_id[]';
+    select2.className = 'form-input-modern';
+    select2.addEventListener('change', function() { updateCusto(this); });
+    var optionNone = document.createElement('option');
+    optionNone.value = '';
+    optionNone.textContent = '-- Nenhum --';
+    select2.appendChild(optionNone);
+    createProdutoOptions().forEach(function(opt) {
+        select2.appendChild(opt);
+    });
+    grupo2.appendChild(label2);
+    grupo2.appendChild(select2);
+    
+    var grupo3 = document.createElement('div');
+    grupo3.className = 'form-group-modern';
+    var label3 = document.createElement('label');
+    label3.className = 'form-label-modern';
+    label3.textContent = 'Qtd (kg)';
+    var input3 = document.createElement('input');
+    input3.type = 'number';
+    input3.step = '0.001';
+    input3.name = 'ing_qtd_kg[]';
+    input3.className = 'form-input-modern qtd-kg';
+    input3.placeholder = '0.000';
+    input3.addEventListener('change', function() { updateCusto(this); });
+    grupo3.appendChild(label3);
+    grupo3.appendChild(input3);
+    
+    var grupo4 = document.createElement('div');
+    grupo4.className = 'form-group-modern';
+    var label4 = document.createElement('label');
+    label4.className = 'form-label-modern';
+    label4.textContent = 'Qtd Texto';
+    var input4 = document.createElement('input');
+    input4.type = 'text';
+    input4.name = 'ing_qtd[]';
+    input4.className = 'form-input-modern';
+    input4.placeholder = 'Ex: 200 g';
+    grupo4.appendChild(label4);
+    grupo4.appendChild(input4);
+    
+    var grupo5 = document.createElement('div');
+    grupo5.className = 'form-group-modern form-group-action';
+    var btn5 = document.createElement('button');
+    btn5.type = 'button';
+    btn5.className = 'btn-remove-ing-modern';
+    btn5.addEventListener('click', function() {
+        this.closest('.ing-row').remove();
+    });
+    var icon5 = document.createElement('i');
+    icon5.className = 'bi bi-trash';
+    btn5.appendChild(icon5);
+    grupo5.appendChild(btn5);
+    
+    wrap.appendChild(grupo1);
+    wrap.appendChild(grupo2);
+    wrap.appendChild(grupo3);
+    wrap.appendChild(grupo4);
+    wrap.appendChild(grupo5);
     cont.appendChild(wrap);
 }
 document.addEventListener('DOMContentLoaded', function(){
@@ -570,32 +644,86 @@ function addIngEdit(){
     var cont = document.getElementById('ingEditList');
     var wrap = document.createElement('div');
     wrap.className = 'ing-row-modern ing-row';
-    wrap.innerHTML = `
-        <div class="form-group-modern">
-            <label class="form-label-modern">Ingrediente</label>
-            <input type="text" name="ing_nome[]" class="form-input-modern" required>
-        </div>
-        <div class="form-group-modern">
-            <label class="form-label-modern">Produto do Estoque</label>
-            <select name="ing_produto_id[]" class="form-input-modern" onchange="updateCusto(this)">
-                <option value="">-- Nenhum --</option>
-                ${produtosData.map(p => '<option value="'+p.id+'" data-preco="'+p.preco+'">'+p.nome+' (R$ '+p.preco.toFixed(2)+'/kg)</option>').join('')}
-            </select>
-        </div>
-        <div class="form-group-modern">
-            <label class="form-label-modern">Qtd (kg)</label>
-            <input type="number" step="0.001" name="ing_qtd_kg[]" class="form-input-modern qtd-kg" placeholder="0.000" onchange="updateCusto(this)">
-        </div>
-        <div class="form-group-modern">
-            <label class="form-label-modern">Qtd Texto</label>
-            <input type="text" name="ing_qtd[]" class="form-input-modern" placeholder="Ex: 200 g">
-        </div>
-        <div class="form-group-modern form-group-action">
-            <button type="button" class="btn-remove-ing-modern" onclick="this.closest('.ing-row').remove()">
-                <i class="bi bi-trash"></i>
-            </button>
-        </div>
-    `;
+    
+    // Criar elementos de forma segura
+    var grupo1 = document.createElement('div');
+    grupo1.className = 'form-group-modern';
+    var label1 = document.createElement('label');
+    label1.className = 'form-label-modern';
+    label1.textContent = 'Ingrediente';
+    var input1 = document.createElement('input');
+    input1.type = 'text';
+    input1.name = 'ing_nome[]';
+    input1.className = 'form-input-modern';
+    input1.required = true;
+    grupo1.appendChild(label1);
+    grupo1.appendChild(input1);
+    
+    var grupo2 = document.createElement('div');
+    grupo2.className = 'form-group-modern';
+    var label2 = document.createElement('label');
+    label2.className = 'form-label-modern';
+    label2.textContent = 'Produto do Estoque';
+    var select2 = document.createElement('select');
+    select2.name = 'ing_produto_id[]';
+    select2.className = 'form-input-modern';
+    select2.addEventListener('change', function() { updateCusto(this); });
+    var optionNone = document.createElement('option');
+    optionNone.value = '';
+    optionNone.textContent = '-- Nenhum --';
+    select2.appendChild(optionNone);
+    createProdutoOptions().forEach(function(opt) {
+        select2.appendChild(opt);
+    });
+    grupo2.appendChild(label2);
+    grupo2.appendChild(select2);
+    
+    var grupo3 = document.createElement('div');
+    grupo3.className = 'form-group-modern';
+    var label3 = document.createElement('label');
+    label3.className = 'form-label-modern';
+    label3.textContent = 'Qtd (kg)';
+    var input3 = document.createElement('input');
+    input3.type = 'number';
+    input3.step = '0.001';
+    input3.name = 'ing_qtd_kg[]';
+    input3.className = 'form-input-modern qtd-kg';
+    input3.placeholder = '0.000';
+    input3.addEventListener('change', function() { updateCusto(this); });
+    grupo3.appendChild(label3);
+    grupo3.appendChild(input3);
+    
+    var grupo4 = document.createElement('div');
+    grupo4.className = 'form-group-modern';
+    var label4 = document.createElement('label');
+    label4.className = 'form-label-modern';
+    label4.textContent = 'Qtd Texto';
+    var input4 = document.createElement('input');
+    input4.type = 'text';
+    input4.name = 'ing_qtd[]';
+    input4.className = 'form-input-modern';
+    input4.placeholder = 'Ex: 200 g';
+    grupo4.appendChild(label4);
+    grupo4.appendChild(input4);
+    
+    var grupo5 = document.createElement('div');
+    grupo5.className = 'form-group-modern form-group-action';
+    var btn5 = document.createElement('button');
+    btn5.type = 'button';
+    btn5.className = 'btn-remove-ing-modern';
+    btn5.addEventListener('click', function() {
+        this.closest('.ing-row').remove();
+    });
+    var icon5 = document.createElement('i');
+    icon5.className = 'bi bi-trash';
+    btn5.appendChild(icon5);
+    grupo5.appendChild(btn5);
+    
+    wrap.appendChild(grupo1);
+    wrap.appendChild(grupo2);
+    wrap.appendChild(grupo3);
+    wrap.appendChild(grupo4);
+    wrap.appendChild(grupo5);
     cont.appendChild(wrap);
 }
 function updateCusto(el){

@@ -171,7 +171,7 @@
   function makeTable(bodyId, labels, entradas, saidas) {
     const body = document.getElementById(bodyId);
     if (!body) return;
-    body.innerHTML = '';
+    body.textContent = '';
     let sumE = 0, sumS = 0;
     const n = Math.max(labels.length, entradas.length, saidas.length);
     for (let i = 0; i < n; i++) {
@@ -196,7 +196,7 @@
     const table = body.parentElement;
     const tfoot = table ? table.querySelector('tfoot') : null;
     if (tfoot) {
-      tfoot.innerHTML = '';
+      tfoot.textContent = '';
       const trf = document.createElement('tr');
       trf.className = 'table-light';
       const tdT = document.createElement('td');

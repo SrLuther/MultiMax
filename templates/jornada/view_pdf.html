@@ -239,6 +239,9 @@
 </div>
 
 <script>
+// URLs do Backend (usando |tojson para evitar erros de parsing)
+const PDF_URL = {{ pdf_url | tojson }};
+
 function hideLoading() {
     const loading = document.getElementById('pdfLoading');
     if (loading) {
@@ -254,15 +257,15 @@ function printPDF() {
             frame.contentWindow.print();
         } catch (e) {
             // Fallback: abrir PDF em nova janela para impressão
-            window.open('{{ pdf_url }}&mode=print', '_blank');
+            window.open(PDF_URL + '&mode=print', '_blank');
         }
     } else {
-        window.open('{{ pdf_url }}&mode=print', '_blank');
+        window.open(PDF_URL + '&mode=print', '_blank');
     }
 }
 
 function sharePDF() {
-    const pdfUrl = '{{ pdf_url }}&download=1';
+    const pdfUrl = PDF_URL + '&download=1';
     const title = 'Relatório de Jornada - MultiMax';
     
     if (navigator.share) {
@@ -314,7 +317,17 @@ setTimeout(() => {
     const loading = document.getElementById('pdfLoading');
     const frame = document.getElementById('pdfFrame');
     if (loading && loading.style.display !== 'none') {
-        loading.innerHTML = '<i class="bi bi-exclamation-triangle"></i><p>Erro ao carregar PDF. <a href="{{ pdf_url }}&download=1">Clique aqui para baixar</a></p>';
+        const icon = document.createElement('i');
+        icon.className = 'bi bi-exclamation-triangle';
+        const p = document.createElement('p');
+        p.textContent = 'Erro ao carregar PDF. ';
+        const link = document.createElement('a');
+        link.href = PDF_URL + '&download=1';
+        link.textContent = 'Clique aqui para baixar';
+        p.appendChild(link);
+        loading.textContent = '';
+        loading.appendChild(icon);
+        loading.appendChild(p);
     }
 }, 10000);
 </script>
