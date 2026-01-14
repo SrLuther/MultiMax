@@ -1,3 +1,45 @@
+## [2.6.0] - 2025-01-15
+
+### 🔒 Correções Críticas de Segurança JavaScript
+
+#### Eliminação de 68 Alertas Críticos de Parsing JavaScript
+- **Correção de Jinja2 em Funções JavaScript**: Substituído uso de `{{ url_for(...) }}` dentro de `fetch()` e `window.open()` por constantes JavaScript usando `|tojson`
+  - `templates/jornada.html`: URLs movidas para constantes JS
+  - `templates/jornada/index.html`: URLs movidas para constantes JS
+  - `templates/jornada/view_pdf.html`: URLs movidas para constantes JS
+
+- **Substituição de `innerHTML` por Criação Manual de Elementos**: Eliminado risco de XSS em 24 ocorrências
+  - `templates/base.html`: Notificações e busca agora usam `createElement` e `textContent`
+  - `templates/carnes.html`: Formulários dinâmicos criados manualmente
+  - `templates/graficos.html`: Tabelas criadas sem `innerHTML`
+  - `templates/jornada/em_aberto.html`: Calendário criado manualmente
+  - `templates/receitas.html`: Ingredientes criados manualmente
+
+- **Eliminação de Template Strings com Dados Dinâmicos**: Substituídas 26 ocorrências por concatenação segura
+  - Todas as template strings `${...}` substituídas por concatenação com `escapeHtml()`
+  - Prevenção de XSS em interpolação de dados do backend
+
+- **Adição de Função `escapeHtml()`**: Função de escape implementada em todos os templates afetados
+  - Prevenção de injeção de código malicioso
+  - Sanitização adequada de dados dinâmicos
+
+#### Arquivos Corrigidos
+- `templates/base.html`: 9 ocorrências corrigidas
+- `templates/carnes.html`: 12 ocorrências corrigidas
+- `templates/graficos.html`: 2 ocorrências corrigidas
+- `templates/jornada.html`: 5 ocorrências corrigidas
+- `templates/jornada/index.html`: 3 ocorrências corrigidas
+- `templates/jornada/view_pdf.html`: 3 ocorrências corrigidas
+- `templates/jornada/em_aberto.html`: 8 ocorrências corrigidas
+- `templates/receitas.html`: 2 ocorrências corrigidas
+- `templates/cronograma.html`: 1 ocorrência corrigida
+
+#### Benefícios de Segurança
+- **Zero Alertas Críticos**: Todos os 68 alertas críticos foram eliminados
+- **Prevenção de XSS**: Dados dinâmicos agora são escapados corretamente
+- **Parsing Robusto**: JavaScript não pode mais ser quebrado por valores dinâmicos
+- **Manutenibilidade**: Código mais seguro e previsível
+
 ## [2.5.9] - 2025-01-15
 
 ### 🔧 Refatoração Completa do Módulo de Ciclos
