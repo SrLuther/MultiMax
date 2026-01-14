@@ -980,13 +980,11 @@ def create_app():
                         except Exception:
                             pass
                         try:
-                            db.session.execute(
-                                policy_sql = (
-                                    f'create policy allow_server_all on public."{t}" '
-                                    f'for all to "{role}" using (true) with check (true)'
-                                )
-                                text(policy_sql)
+                            policy_sql = (
+                                f'create policy allow_server_all on public."{t}" '
+                                f'for all to "{role}" using (true) with check (true)'
                             )
+                            db.session.execute(text(policy_sql))
                         except Exception:
                             pass
                 db.session.commit()

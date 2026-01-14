@@ -1490,11 +1490,9 @@ def exportar_exemplo_pdf():
         story.append(Paragraph("Conteúdo Principal", styles["SectionTitle"]))
         lorem = (
             "Este é um exemplo de PDF com cabeçalho padronizado, cards com cantos arredondados e conteúdo consistente. "
-            (
-                "A primeira página possui um card menor com metadados da requisição "
-                "(usuário, data/hora e tipo), seguido por um card ocupando o restante da página "
-                "com o conteúdo principal. "
-            )
+            "A primeira página possui um card menor com metadados da requisição "
+            "(usuário, data/hora e tipo), seguido por um card ocupando o restante da página "
+            "com o conteúdo principal. "
             "As páginas seguintes usam um card único ocupando toda a página para o conteúdo."
         )
         for _ in range(3):

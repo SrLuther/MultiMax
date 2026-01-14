@@ -2477,7 +2477,7 @@ def git_status():
                                             current_version = tag.lstrip("vV")
                                             msg = (
                                                 f"Versão atualizada (tag exata encontrada pelo commit): "
-                                                f"{current_version} (tag: {tag}, commit: {current_commit[:7]})"
+                                                f"{current_version} (tag: {tag}, commit: {current_commit[:7]})"  # noqa: E501
                                             )
                                             current_app.logger.info(msg)
                                             tag_found = True
@@ -2714,7 +2714,9 @@ def git_update():
                 health_data = health_response.json()
                 current_app.logger.info(f'Deploy Agent está saudável: {health_data.get("service", "unknown")}')
             else:
-                current_app.logger.warning(f"Deploy Agent health check retornou status {health_response.status_code}")
+                current_app.logger.warning(
+                    f"Deploy Agent health check retornou status {health_response.status_code}"
+                )
         except RequestsConnectionError:
             # Se não conseguir conectar ao health check, o serviço não está rodando
             # Não faz sentido tentar o deploy, então retorna erro imediatamente
@@ -2899,7 +2901,8 @@ def git_update():
         _log_git_update_error(error_msg, current_user.username)
 
         suggestion_text = (
-            "⚠️ O Deploy Agent não está respondendo. O serviço não está rodando ou não está acessível.\n\n"
+            "⚠️ O Deploy Agent não está respondendo. "
+            "O serviço não está rodando ou não está acessível.\n\n"
             "📋 INSTALAÇÃO RÁPIDA (se ainda não instalado):\n\n"
             "1. Acesse o servidor via SSH\n"
             "2. Copie deploy_agent.py para /opt/multimax/\n"
