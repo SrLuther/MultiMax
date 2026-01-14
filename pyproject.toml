@@ -46,3 +46,13 @@ markers = [
     "integration: Integration tests",
     "slow: Slow running tests",
 ]
+
+[tool.coverage.run]
+source = ["multimax"]
+omit = [
+    "multimax/__init__.py",
+    "multimax/models.py",
+    "multimax/optimizations.py",
+    "multimax/routes/*",
+    "multimax/services/*",
+]

@@ -9,7 +9,7 @@ from flask import Flask
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 
-db = SQLAlchemy()
+db = SQLAlchemy(session_options={"expire_on_commit": False})
 login_manager = LoginManager()
 
 
@@ -112,6 +112,10 @@ def create_app():
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "uma_chave_secreta_muito_forte_e_aleatoria")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    # Nos testes (SQLite em memória), evitar que objetos fiquem "expirados" após commit,
+    # o que causa DetachedInstanceError quando fixtures retornam instâncias.
+    if (os.getenv("TESTING") or "").strip().lower() == "true":
+        app.config["SQLALCHEMY_SESSION_OPTIONS"] = {"expire_on_commit": False}
     app.config["PER_PAGE"] = 10
     app.config["DATA_DIR"] = data_dir_str
     backup_dir = os.path.join(data_dir_str, "backups")

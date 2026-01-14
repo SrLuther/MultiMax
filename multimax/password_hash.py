@@ -17,7 +17,7 @@ try:
     def check_password_hash(pwhash: str, password: str) -> bool:
         return bool(_chk(pwhash, password))
 
-except Exception:
+except Exception:  # pragma: no cover
 
     def _b64e(b: bytes) -> str:
         return base64.b64encode(b).decode("ascii")

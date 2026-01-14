@@ -428,6 +428,7 @@ def saida_produto(id: int):
     return redirect(url_for("estoque.lista_produtos"))
 
 
+@bp.route("/estoque/adicionar", methods=["POST"])
 @bp.route("/adicionar", methods=["POST"])
 @login_required
 def adicionar():
@@ -503,6 +504,7 @@ def adicionar():
     return redirect(url_for("estoque.index"))
 
 
+@bp.route("/estoque/entrada/<int:id>", methods=["POST"])
 @bp.route("/entrada/<int:id>", methods=["POST"])
 @login_required
 def entrada(id: int):
@@ -540,6 +542,7 @@ def entrada(id: int):
     return redirect(url_for("estoque.index"))
 
 
+@bp.route("/estoque/saida/<int:id>", methods=["POST"])
 @bp.route("/saida/<int:id>", methods=["POST"])
 @login_required
 def saida(id: int):
