@@ -2346,13 +2346,15 @@ def git_status():
                 timeout=15,
             )
             if tags_fetch_result.returncode == 0:
-                current_app.logger.info(
-                    f'Tags atualizadas com sucesso. Output: {tags_fetch_result.stdout[:200] if tags_fetch_result.stdout else "sem output"}'
+                output_preview = (
+                    tags_fetch_result.stdout[:200] if tags_fetch_result.stdout else "sem output"
                 )
+                current_app.logger.info(f"Tags atualizadas com sucesso. Output: {output_preview}")
             else:
-                current_app.logger.warning(
-                    f'Aviso ao buscar tags: {tags_fetch_result.stderr[:200] if tags_fetch_result.stderr else "sem erro"}'
+                stderr_preview = (
+                    tags_fetch_result.stderr[:200] if tags_fetch_result.stderr else "sem erro"
                 )
+                current_app.logger.warning(f"Aviso ao buscar tags: {stderr_preview}")
 
             # Verificar se a referência remota existe após o fetch
             ref_check = subprocess.run(
@@ -2382,8 +2384,11 @@ def git_status():
                     f"Commit remoto obtido via rev-parse: {latest_commit_hash[:7]} (full: {latest_commit_hash})"
                 )
             else:
+                stderr_preview = result.stderr[:300] if result.stderr else ""
+                stdout_preview = result.stdout[:300] if result.stdout else ""
                 current_app.logger.warning(
-                    f"Erro ao obter commit remoto. Return code: {result.returncode}, stderr: {result.stderr[:300]}, stdout: {result.stdout[:300]}"
+                    f"Erro ao obter commit remoto. Return code: {result.returncode}, "
+                    f"stderr: {stderr_preview}, stdout: {stdout_preview}"
                 )
                 # Tentar alternativa: usar ls-remote diretamente
                 if "remote_ref_hash" in locals() and remote_ref_hash:
@@ -2449,7 +2454,8 @@ def git_status():
                                 parts = re.findall(r"\d+", tag.lstrip("vV"))
                                 return tuple(int(p) for p in parts) if parts else (0,)
 
-                            # Ordenar tags por versão (mais recente primeiro) para verificar da mais nova para a mais antiga
+                            # Ordenar tags por versão (mais recente primeiro)
+                            # para verificar da mais nova para a mais antiga
                             all_tags_sorted = sorted(all_tags, key=version_key, reverse=True)
 
                             # Verificar se alguma tag corresponde ao commit atual
@@ -2469,9 +2475,11 @@ def git_status():
                                         # Se o commit da tag é igual ao commit atual, usar essa tag
                                         if tag_commit == current_commit:
                                             current_version = tag.lstrip("vV")
-                                            current_app.logger.info(
-                                                f"Versão atualizada (tag exata encontrada pelo commit): {current_version} (tag: {tag}, commit: {current_commit[:7]})"
+                                            msg = (
+                                                f"Versão atualizada (tag exata encontrada pelo commit): "
+                                                f"{current_version} (tag: {tag}, commit: {current_commit[:7]})"
                                             )
+                                            current_app.logger.info(msg)
                                             tag_found = True
                                             break
                                 except Exception as tag_err:
@@ -2494,11 +2502,14 @@ def git_status():
                                         f"Versão atualizada (tag mais próxima via describe): {current_version}"
                                     )
                                 else:
-                                    # Último fallback: usar a tag mais recente disponível (mas avisar que pode não ser exata)
+                                    # Último fallback: usar a tag mais recente disponível
+                                    # (mas avisar que pode não ser exata)
                                     current_version = all_tags_sorted[0].lstrip("vV")
-                                    current_app.logger.warning(
-                                        f"Versão atualizada (tag mais recente - fallback, pode não ser exata): {current_version}"
+                                    msg = (
+                                        f"Versão atualizada (tag mais recente - fallback, "
+                                        f"pode não ser exata): {current_version}"
                                     )
+                                    current_app.logger.warning(msg)
             else:
                 # Se não temos commit atual, usar a tag mais recente disponível
                 result_tags = subprocess.run(
@@ -2572,9 +2583,14 @@ def git_status():
         update_available = False
         if current_commit and latest_commit_hash:
             update_available = current_commit != latest_commit_hash
-            current_app.logger.info(
-                f"Comparação de commits: local={current_commit[:7] if current_commit else None} (full: {current_commit}), remoto={latest_commit_hash[:7] if latest_commit_hash else None} (full: {latest_commit_hash}), atualização disponível={update_available}"
+            local_short = current_commit[:7] if current_commit else None
+            remote_short = latest_commit_hash[:7] if latest_commit_hash else None
+            msg = (
+                f"Comparação de commits: local={local_short} (full: {current_commit}), "
+                f"remoto={remote_short} (full: {latest_commit_hash}), "
+                f"atualização disponível={update_available}"
             )
+            current_app.logger.info(msg)
             if not update_available:
                 current_app.logger.info("Commits são idênticos - sistema está atualizado")
             else:
@@ -2585,9 +2601,14 @@ def git_status():
                 missing.append("current_commit")
             if not latest_commit_hash:
                 missing.append("latest_commit_hash")
-            current_app.logger.warning(
-                f'Não foi possível comparar commits. Faltando: {", ".join(missing)}. current_commit={current_commit[:7] if current_commit else None}, latest_commit_hash={latest_commit_hash[:7] if latest_commit_hash else None}'
+            missing_str = ", ".join(missing)
+            local_short = current_commit[:7] if current_commit else None
+            remote_short = latest_commit_hash[:7] if latest_commit_hash else None
+            msg = (
+                f"Não foi possível comparar commits. Faltando: {missing_str}. "
+                f"current_commit={local_short}, latest_commit_hash={remote_short}"
             )
+            current_app.logger.warning(msg)
 
         return jsonify(
             {
@@ -2707,7 +2728,7 @@ def git_update():
                 "2. Copie deploy_agent.py para /opt/multimax/\n"
                 "3. Instale Flask: pip3 install flask\n"
                 "4. Crie serviço systemd: /etc/systemd/system/deploy-agent.service\n"
-                "5. Execute: sudo systemctl daemon-reload && sudo systemctl enable deploy-agent && sudo systemctl start deploy-agent\n\n"
+                "5. Execute: sudo systemctl daemon-reload && sudo systemctl enable deploy-agent && sudo systemctl start deploy-agent\n\n"  # noqa: E501
                 "📚 Guias disponíveis:\n"
                 "  • DEPLOY_AGENT_QUICKSTART.md - Instalação rápida (5 minutos)\n"
                 "  • DEPLOY_AGENT_INSTALL.md - Instalação detalhada\n\n"
@@ -2767,7 +2788,11 @@ def git_update():
                     log = SystemLog()
                     log.origem = "GitUpdate"
                     log.evento = "update_success"
-                    log.detalhes = f'Atualização aplicada com sucesso via Deploy Agent por {current_user.username}. Duração: {result_data.get("duration", 0):.2f}s'
+                    duration = result_data.get("duration", 0)
+                    log.detalhes = (
+                        f"Atualização aplicada com sucesso via Deploy Agent por "
+                        f"{current_user.username}. Duração: {duration:.2f}s"
+                    )
                     log.usuario = current_user.username
                     db.session.add(log)
                     db.session.commit()
@@ -2859,7 +2884,10 @@ def git_update():
                 {
                     "ok": False,
                     "error": error_msg,
-                    "suggestion": "O processo de deploy pode estar demorando mais do que o esperado. Verifique os logs do Deploy Agent.",
+                    "suggestion": (
+                        "O processo de deploy pode estar demorando mais do que o esperado. "
+                        "Verifique os logs do Deploy Agent."
+                    ),
                 }
             ),
             504,
@@ -3132,15 +3160,15 @@ def maintenance_export_report():
 
         report_lines.append("ESTATÍSTICAS DE LOGS")
         report_lines.append("-" * 80)
-        report_lines.append(
-            f"SystemLog - Total: {logs_stats['system_logs']['total']}, Antigos (>30d): {logs_stats['system_logs']['old_30d']}"
-        )
-        report_lines.append(
-            f"QueryLog - Total: {logs_stats['query_logs']['total']}, Acima de 1000: {logs_stats['query_logs']['over_1000']}"
-        )
-        report_lines.append(
-            f"MetricHistory - Total: {logs_stats['metrics']['total']}, Antigos (>30d): {logs_stats['metrics']['old_30d']}"
-        )
+        sys_total = logs_stats["system_logs"]["total"]
+        sys_old = logs_stats["system_logs"]["old_30d"]
+        report_lines.append(f"SystemLog - Total: {sys_total}, Antigos (>30d): {sys_old}")
+        qlog_total = logs_stats["query_logs"]["total"]
+        qlog_over = logs_stats["query_logs"]["over_1000"]
+        report_lines.append(f"QueryLog - Total: {qlog_total}, Acima de 1000: {qlog_over}")
+        metrics_total = logs_stats["metrics"]["total"]
+        metrics_old = logs_stats["metrics"]["old_30d"]
+        report_lines.append(f"MetricHistory - Total: {metrics_total}, Antigos (>30d): {metrics_old}")
         report_lines.append(f"Tamanho total estimado: {logs_stats['total_estimated_size_mb']:.2f} MB")
         report_lines.append(f"Tamanho de logs antigos: {logs_stats['old_estimated_size_mb']:.2f} MB")
         report_lines.append("")
@@ -3173,9 +3201,12 @@ def maintenance_export_report():
         report_lines.append("ÚLTIMAS MANUTENÇÕES (20 mais recentes)")
         report_lines.append("-" * 80)
         for maint in last_maintenances:
-            report_lines.append(
-                f"{maint.created_at.strftime('%d/%m/%Y %H:%M:%S')} - {maint.maintenance_type} - {maint.status} - {maint.duration_seconds:.2f}s"
+            maint_date = maint.created_at.strftime("%d/%m/%Y %H:%M:%S")
+            maint_line = (
+                f"{maint_date} - {maint.maintenance_type} - {maint.status} - "
+                f"{maint.duration_seconds:.2f}s"
             )
+            report_lines.append(maint_line)
         report_lines.append("")
         report_lines.append("=" * 80)
 
@@ -3184,9 +3215,10 @@ def maintenance_export_report():
         # Retornar como resposta de texto
         response = make_response(report_text)
         response.headers["Content-Type"] = "text/plain; charset=utf-8"
-        response.headers[
-            "Content-Disposition"
-        ] = f'attachment; filename=relatorio_manutencao_{datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%Y%m%d_%H%M%S")}.txt'
+        timestamp = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%Y%m%d_%H%M%S")
+        response.headers["Content-Disposition"] = (
+            f"attachment; filename=relatorio_manutencao_{timestamp}.txt"
+        )
         return response
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500

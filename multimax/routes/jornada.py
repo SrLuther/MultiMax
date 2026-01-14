@@ -946,7 +946,10 @@ def historico_colaborador(collaborator_id):
                 "created_at": arch.created_at,
                 "created_by": arch.created_by,
                 "archived": True,
-                "archive_period": f"{arch.archive_period_start.strftime('%d/%m/%Y')} - {arch.archive_period_end.strftime('%d/%m/%Y')}",
+                "archive_period": (
+                    f"{arch.archive_period_start.strftime('%d/%m/%Y')} - "
+                    f"{arch.archive_period_end.strftime('%d/%m/%Y')}"
+                ),
                 "archived_at": arch.archived_at,
             }
         )

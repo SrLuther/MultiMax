@@ -1490,7 +1490,11 @@ def exportar_exemplo_pdf():
         story.append(Paragraph("Conteúdo Principal", styles["SectionTitle"]))
         lorem = (
             "Este é um exemplo de PDF com cabeçalho padronizado, cards com cantos arredondados e conteúdo consistente. "
-            "A primeira página possui um card menor com metadados da requisição (usuário, data/hora e tipo), seguido por um card ocupando o restante da página com o conteúdo principal. "
+            (
+                "A primeira página possui um card menor com metadados da requisição "
+                "(usuário, data/hora e tipo), seguido por um card ocupando o restante da página "
+                "com o conteúdo principal. "
+            )
             "As páginas seguintes usam um card único ocupando toda a página para o conteúdo."
         )
         for _ in range(3):
@@ -1588,7 +1592,8 @@ def exportar_jornada_pdf():
                 credits_sum = int(cq.with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
                 assigned_sum = int(aq.with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
                 converted_sum = int(vq.with_entities(func.coalesce(func.sum(TimeOffRecord.days), 0)).scalar() or 0)
-                # Saldo de dias = folgas adicionais + dias convertidos das horas brutas - folgas usadas - conversões em dinheiro
+                # Saldo de dias = folgas adicionais + dias convertidos das horas brutas
+                # - folgas usadas - conversões em dinheiro
                 saldo_days = credits_sum + days_from_hours - assigned_sum - converted_sum
                 resumo.append({"id": c.id, "name": c.name, "residual_hours": residual_hours, "saldo_days": saldo_days})
                 for e in hq.order_by(TimeOffRecord.date.desc()).all():

@@ -1138,7 +1138,8 @@ def gestao():
                     .scalar()
                     or 0
                 )
-                # Saldo de dias = folgas adicionais + dias convertidos das horas brutas - folgas usadas - conversões em dinheiro
+                # Saldo de dias = folgas adicionais + dias convertidos das horas brutas
+                # - folgas usadas - conversões em dinheiro
                 saldo_days = int(credits_sum) + days_from_hours - int(assigned_sum) - int(converted_sum)
                 try:
                     # Detalhamento por período
@@ -1781,10 +1782,12 @@ def gestao_colabs_horas_verificar_conversao():
         missing_credits = max(0, desired_credits - auto_credits)
 
         if missing_credits == 0:
-            flash(
-                f"Nenhuma conversão necessária. O colaborador {collaborator.name} já tem todas as horas convertidas em dias (total bruto: {total_bruto_hours:.2f}h = {desired_credits} dia(s) já convertido(s)).",
-                "info",
+            msg = (
+                f"Nenhuma conversão necessária. O colaborador {collaborator.name} já tem todas as "
+                f"horas convertidas em dias (total bruto: {total_bruto_hours:.2f}h = "
+                f"{desired_credits} dia(s) já convertido(s))."
             )
+            flash(msg, "info")
             return redirect(url_for("usuarios.gestao", view="colaboradores", saldo_collaborator_id=collaborator_id))
 
         # 5. Calcular dias totais que o colaborador já tem (todos os créditos)
@@ -1836,11 +1839,12 @@ def gestao_colabs_horas_verificar_conversao():
                 return redirect(url_for("usuarios.gestao", view="colaboradores", saldo_collaborator_id=collaborator_id))
 
             missing_credits = allowed_credits
-            flash(
-                f"Atenção: A conversão foi limitada a {allowed_credits} dia(s) para não ultrapassar o limite de {max_allowed_days} dias. "
-                f"Saldo atual: {current_balance} dias, após conversão: {current_balance + allowed_credits} dias.",
-                "warning",
+            msg = (
+                f"Atenção: A conversão foi limitada a {allowed_credits} dia(s) para não ultrapassar "
+                f"o limite de {max_allowed_days} dias. Saldo atual: {current_balance} dias, "
+                f"após conversão: {current_balance + allowed_credits} dias."
             )
+            flash(msg, "warning")
 
         # 11. Aplicar conversão
         converted_count = 0
@@ -1971,7 +1975,10 @@ def gestao_colabs_horas_excluir(id: int):
                         db.session.add(comp)
                     db.session.commit()
                 flash(
-                    f"Lançamento excluído. Conversões automáticas revertidas: -{excess} dia(s) e +{excess*8}h no banco.",
+                    (
+                        f"Lançamento excluído. Conversões automáticas revertidas: "
+                        f"-{excess} dia(s) e +{excess*8}h no banco."
+                    ),
                     "warning",
                 )
             elif auto_credits < desired_credits:
@@ -2000,7 +2007,10 @@ def gestao_colabs_horas_excluir(id: int):
                     db.session.add(adj)
                 db.session.commit()
                 flash(
-                    f"Lançamento excluído. Conversões automáticas ajustadas: +{missing} dia(s) e -{missing*8}h no banco.",
+                    (
+                        f"Lançamento excluído. Conversões automáticas ajustadas: "
+                        f"+{missing} dia(s) e -{missing*8}h no banco."
+                    ),
                     "info",
                 )
             else:
