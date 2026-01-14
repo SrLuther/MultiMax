@@ -27,6 +27,4 @@ types-requests>=2.31.0
 types-flask>=1.1.0
 # types-flask-login não existe no PyPI - removido
 
-# JavaScript/TypeScript analysis
-eslint>=8.0.0
-prettier>=3.0.0
+# Nota: ESLint e Prettier são instalados via npm no CI/CD, não via pip
