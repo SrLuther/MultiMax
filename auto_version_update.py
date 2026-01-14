@@ -71,30 +71,27 @@ def update_changelog(new_version: str, commit_message: str = None):
     changelog = Path("CHANGELOG.md")
     if not changelog.exists():
         print("AVISO: CHANGELOG.md nao encontrado, criando...")
-        changelog.write_text(
-            f"## [{new_version}] - {date.today().isoformat()}\n\n### 🔧 Atualização\n\n- {commit_message or f'Versão {new_version}'}\n\n",
-            encoding="utf-8",
+        commit_msg = commit_message or f"Versao {new_version}"
+        changelog_content = (
+            f"## [{new_version}] - {date.today().isoformat()}\n\n"
+            f"### Atualizacao\n\n- {commit_msg}\n\n"
         )
+        changelog.write_text(changelog_content, encoding="utf-8")
         return
 
     content = changelog.read_text(encoding="utf-8")
     today = date.today().isoformat()
 
     # Cria nova entrada
-    new_entry = (
-        f"## [{new_version}] - {today}\n\n### 🔧 Atualização\n\n- {commit_message or f'Versão {new_version}'}\n\n"
-    )
+    commit_msg = commit_message or f"Versao {new_version}"
+    new_entry = f"## [{new_version}] - {today}\n\n### Atualizacao\n\n- {commit_msg}\n\n"
 
     # Adiciona no topo
     pattern = r"^## \[[\d.]+\] - \d{4}-\d{2}-\d{2}"
-    if re.search(pattern, content, re.MULTILINE):
-        content = re.sub(
-            pattern,
-            new_entry.rstrip() + "\n\n" + re.search(pattern, content, re.MULTILINE).group(0),
-            content,
-            count=1,
-            flags=re.MULTILINE,
-        )
+    match = re.search(pattern, content, re.MULTILINE)
+    if match:
+        replacement = new_entry.rstrip() + "\n\n" + match.group(0)
+        content = re.sub(pattern, replacement, content, count=1, flags=re.MULTILINE)
     else:
         content = new_entry + content
 
