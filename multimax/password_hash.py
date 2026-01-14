@@ -2,7 +2,7 @@ import base64
 import hashlib
 import hmac
 import os
-from typing import Any, Callable, cast
+from typing import Callable, cast
 
 try:
     import importlib
