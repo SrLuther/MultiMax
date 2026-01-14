@@ -54,15 +54,15 @@ jobs:
 
     - name: Run flake8
       run: |
-        flake8 multimax/ cron/ deploy_agent.py app.py --max-line-length=120 --extend-ignore=E203,W503,D100,D101,D102,D103,D104,D105,D107,D200,D400,D401,D205,C901 --exclude=__pycache__,migrations,instance
+        flake8 multimax/ cron/ app.py --max-line-length=120 --extend-ignore=E203,W503,D100,D101,D102,D103,D104,D105,D107,D200,D400,D401,D205,C901 --exclude=__pycache__,migrations,instance
 
     - name: Run black check
       run: |
-        black --check --line-length=120 multimax/ cron/ deploy_agent.py app.py
+        black --check --line-length=120 multimax/ cron/ app.py
 
     - name: Run isort check
       run: |
-        isort --check-only --profile black --line-length=120 multimax/ cron/ deploy_agent.py app.py
+        isort --check-only --profile black --line-length=120 multimax/ cron/ app.py
 
     - name: Run mypy type checking
       run: |
