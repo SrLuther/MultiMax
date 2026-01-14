@@ -108,4 +108,3 @@ git push origin v2.3.11
 - **Tag SEM push = ERRO CRÍTICO**
 
 Sempre seguir este processo completo!
-

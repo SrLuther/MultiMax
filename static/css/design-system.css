@@ -13,25 +13,25 @@
   --mm-primary-dark: #00cc6a;
   --mm-primary-light: #33ffaa;
   --mm-primary-rgb: 0, 255, 136;
-  
+
   /* Cores Secundárias */
   --mm-secondary: #198754;
   --mm-secondary-dark: #146c43;
   --mm-secondary-light: #20a86a;
-  
+
   /* Cores de Acento */
   --mm-accent-cyan: #00d4ff;
   --mm-accent-purple: #a855f7;
   --mm-accent-orange: #ff6b35;
   --mm-accent-pink: #ec4899;
   --mm-accent-yellow: #fbbf24;
-  
+
   /* Cores de Status */
   --mm-success: #22c55e;
   --mm-warning: #f59e0b;
   --mm-danger: #ef4444;
   --mm-info: #3b82f6;
-  
+
   /* Cores Neutras - Light Mode */
   --mm-bg-primary: #f8fafc;
   --mm-bg-secondary: #f1f5f9;
@@ -42,7 +42,7 @@
   --mm-text-muted: #94a3b8;
   --mm-border: #e2e8f0;
   --mm-border-light: #f1f5f9;
-  
+
   /* Sombras */
   --mm-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --mm-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
@@ -51,11 +51,11 @@
   --mm-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
   --mm-shadow-glow: 0 0 20px rgba(var(--mm-primary-rgb), 0.3);
   --mm-shadow-glow-lg: 0 0 40px rgba(var(--mm-primary-rgb), 0.4);
-  
+
   /* Tipografia */
   --mm-font-sans: 'Ubuntu', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --mm-font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-  
+
   /* Tamanhos de Fonte */
   --mm-text-xs: 0.75rem;
   --mm-text-sm: 0.875rem;
@@ -65,12 +65,12 @@
   --mm-text-2xl: 1.5rem;
   --mm-text-3xl: 1.875rem;
   --mm-text-4xl: 2.25rem;
-  
+
   /* Line Heights */
   --mm-leading-tight: 1.25;
   --mm-leading-normal: 1.5;
   --mm-leading-relaxed: 1.625;
-  
+
   /* Font Weights */
   --mm-font-light: 300;
   --mm-font-normal: 400;
@@ -78,7 +78,7 @@
   --mm-font-semibold: 600;
   --mm-font-bold: 700;
   --mm-font-extrabold: 800;
-  
+
   /* Espaçamentos */
   --mm-space-0: 0;
   --mm-space-1: 0.25rem;
@@ -92,7 +92,7 @@
   --mm-space-12: 3rem;
   --mm-space-16: 4rem;
   --mm-space-20: 5rem;
-  
+
   /* Border Radius */
   --mm-radius-sm: 0.25rem;
   --mm-radius: 0.5rem;
@@ -101,12 +101,12 @@
   --mm-radius-xl: 1.25rem;
   --mm-radius-2xl: 1.5rem;
   --mm-radius-full: 9999px;
-  
+
   /* Transições */
   --mm-transition-fast: 150ms ease;
   --mm-transition: 200ms ease;
   --mm-transition-slow: 300ms ease;
-  
+
   /* Z-index */
   --mm-z-dropdown: 100;
   --mm-z-sticky: 200;
@@ -114,7 +114,7 @@
   --mm-z-modal-backdrop: 400;
   --mm-z-modal: 500;
   --mm-z-tooltip: 600;
-  
+
   /* Sidebar */
   --mm-sidebar-width: 260px;
   --mm-sidebar-collapsed: 72px;
@@ -132,7 +132,7 @@
   --mm-text-muted: #64748b;
   --mm-border: #334155;
   --mm-border-light: #1e293b;
-  
+
   --mm-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
   --mm-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
   --mm-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
@@ -829,11 +829,11 @@ body {
 }
 
 @keyframes mm-slide-up {
-  from { 
+  from {
     opacity: 0;
     transform: translateY(10px);
   }
-  to { 
+  to {
     opacity: 1;
     transform: translateY(0);
   }
@@ -865,7 +865,7 @@ body {
   :root {
     --mm-sidebar-width: 72px;
   }
-  
+
   .mm-sidebar-brand,
   .mm-nav-section-title {
     display: none;
@@ -877,20 +877,20 @@ body {
     transform: translateX(-100%);
     width: 280px;
   }
-  
+
   .mm-sidebar.open {
     transform: translateX(0);
   }
-  
+
   .mm-topbar {
     left: 0;
   }
-  
+
   .mm-main {
     margin-left: 0;
     padding: var(--mm-space-4);
   }
-  
+
   .mm-sidebar-brand,
   .mm-nav-section-title,
   .mm-nav-text {

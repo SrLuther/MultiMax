@@ -36,7 +36,7 @@
             </div>
             <div class="kpi-decoration-carnes"></div>
     </div>
-    
+
         <div class="kpi-card-carnes kpi-suina">
             <div class="kpi-icon-carnes">
                     <i class="bi bi-box-seam"></i>
@@ -47,7 +47,7 @@
             </div>
             <div class="kpi-decoration-carnes"></div>
     </div>
-    
+
         <div class="kpi-card-carnes kpi-frango">
             <div class="kpi-icon-carnes">
                     <i class="bi bi-box-seam"></i>
@@ -58,7 +58,7 @@
             </div>
             <div class="kpi-decoration-carnes"></div>
     </div>
-    
+
         <div class="kpi-card-carnes kpi-primary">
             <div class="kpi-icon-carnes">
                 <i class="bi bi-{% if nova %}pencil{% else %}list-check{% endif %}"></i>
@@ -92,7 +92,7 @@
         <div class="tipo-form-body">
             <form id="carnesFormBovina" method="post" action="{{ url_for('carnes.nova') }}" class="form-modern">
             <input type="hidden" name="tipo" value="bovina">
-                
+
                 <div class="form-row-modern">
                     <div class="form-group-modern">
                         <label class="form-label-modern">
@@ -119,7 +119,7 @@
                         <input type="number" step="0.01" name="peso_nota" class="form-input-modern" oninput="B_updateTotal()">
                 </div>
             </div>
-            
+
                 <div class="section-card-modern">
                     <div class="section-header-modern">
                         <h3 class="section-title-modern">
@@ -133,7 +133,7 @@
                 </div>
                     <div class="section-body-modern" id="B_carriers"></div>
             </div>
-            
+
                 <div class="section-card-modern">
                     <div class="section-header-modern">
                         <h3 class="section-title-modern">
@@ -147,7 +147,7 @@
                 </div>
                     <div class="section-body-modern" id="B_animals"></div>
             </div>
-            
+
                 <div class="stats-grid-modern">
                     <div class="stat-card-modern stat-success">
                         <div class="stat-label-modern">Total líquido</div>
@@ -162,7 +162,7 @@
                         <div class="stat-value-modern"><span id="B_perdaTransporte">0.00</span> kg</div>
                 </div>
             </div>
-            
+
                 <div class="form-actions-modern">
                     <button type="submit" id="B_saveAllBtn" class="btn-save-modern" disabled>
                         <i class="bi bi-check-lg"></i>
@@ -184,7 +184,7 @@
         <div class="tipo-form-body">
             <form id="carnesFormSuina" method="post" action="{{ url_for('carnes.nova') }}" class="form-modern">
             <input type="hidden" name="tipo" value="suina">
-                
+
                 <div class="form-row-modern">
                     <div class="form-group-modern">
                         <label class="form-label-modern">
@@ -201,7 +201,7 @@
                         <input type="text" name="observacao" class="form-input-modern">
                 </div>
             </div>
-            
+
                 <div class="section-card-modern">
                     <div class="section-header-modern">
                         <h3 class="section-title-modern">
@@ -215,14 +215,14 @@
                 </div>
                     <div class="section-body-modern" id="S_animals"></div>
             </div>
-            
+
                 <div class="stats-grid-modern">
                     <div class="stat-card-modern stat-success">
                         <div class="stat-label-modern">Total líquido estimado</div>
                         <div class="stat-value-modern"><span id="S_totalLiquido">0.00</span> kg</div>
                 </div>
             </div>
-            
+
                 <div class="form-actions-modern">
                     <button type="submit" id="S_saveAllBtn" class="btn-save-modern" disabled>
                         <i class="bi bi-check-lg"></i>
@@ -245,7 +245,7 @@
             <form id="carnesFormFrango" method="post" action="{{ url_for('carnes.nova') }}" class="form-modern">
             <input type="hidden" name="tipo" value="frango">
             <input type="hidden" name="peso_frango" id="F_peso_total_hidden" value="0">
-                
+
                 <div class="form-row-modern">
                     <div class="form-group-modern">
                         <label class="form-label-modern">
@@ -262,7 +262,7 @@
                         <input type="text" name="observacao" class="form-input-modern">
                 </div>
             </div>
-            
+
                 <div class="section-card-modern">
                     <div class="section-header-modern">
                         <h3 class="section-title-modern">
@@ -276,14 +276,14 @@
                 </div>
                     <div class="section-body-modern" id="F_pesos"></div>
             </div>
-            
+
                 <div class="stats-grid-modern">
                     <div class="stat-card-modern stat-success">
                         <div class="stat-label-modern">Total de pesos</div>
                         <div class="stat-value-modern"><span id="F_totalLiquido">0.00</span> kg</div>
                 </div>
             </div>
-            
+
                 <div class="form-actions-modern">
                     <button type="submit" id="F_saveAllBtn" class="btn-save-modern" disabled>
                         <i class="bi bi-check-lg"></i>
@@ -440,7 +440,7 @@ function B_addCarrier(){
   const wrap = document.getElementById('B_carriers');
   const row = document.createElement('div');
   row.className = 'form-row-modern';
-  
+
   const group1 = document.createElement('div');
   group1.className = 'form-group-modern';
   const label1 = document.createElement('label');
@@ -454,7 +454,7 @@ function B_addCarrier(){
   input1.addEventListener('input', B_updateCarrierSelects);
   group1.appendChild(label1);
   group1.appendChild(input1);
-  
+
   const group2 = document.createElement('div');
   group2.className = 'form-group-modern';
   const label2 = document.createElement('label');
@@ -469,7 +469,7 @@ function B_addCarrier(){
   input2.addEventListener('input', B_updateTotal);
   group2.appendChild(label2);
   group2.appendChild(input2);
-  
+
   const group3 = document.createElement('div');
   group3.className = 'form-group-modern form-group-action';
   const button = document.createElement('button');
@@ -484,7 +484,7 @@ function B_addCarrier(){
   button.appendChild(icon);
   button.appendChild(document.createTextNode(' Remover'));
   group3.appendChild(button);
-  
+
   row.appendChild(group1);
   row.appendChild(group2);
   row.appendChild(group3);
@@ -502,7 +502,7 @@ function B_addAnimal(){
     {cat:'traseiro',lado:'1'},
     {cat:'traseiro',lado:'2'}
   ];
-  
+
   const header = document.createElement('div');
   header.className = 'animal-header-modern';
   const strong = document.createElement('strong');
@@ -516,16 +516,16 @@ function B_addAnimal(){
   deleteBtn.textContent = 'Excluir Romaneio';
   header.appendChild(strong);
   header.appendChild(deleteBtn);
-  
+
   const body = document.createElement('div');
   body.className = 'animal-body-modern';
   const grid = document.createElement('div');
   grid.className = 'parts-grid-modern';
-  
+
   parts.forEach(function(p) {
     const partCard = document.createElement('div');
     partCard.className = 'part-card-modern';
-    
+
     const label = document.createElement('div');
     label.className = 'part-label-modern';
     let labelText = '';
@@ -535,22 +535,22 @@ function B_addAnimal(){
       labelText = p.cat + ' — ' + p.lado;
     }
     label.textContent = labelText;
-    
+
     const hidden1 = document.createElement('input');
     hidden1.type = 'hidden';
     hidden1.name = 'part_categoria';
     hidden1.value = p.cat;
-    
+
     const hidden2 = document.createElement('input');
     hidden2.type = 'hidden';
     hidden2.name = 'part_lado';
     hidden2.value = p.lado;
-    
+
     const hidden3 = document.createElement('input');
     hidden3.type = 'hidden';
     hidden3.name = 'animal_numero';
     hidden3.value = String(idx);
-    
+
     const group1 = document.createElement('div');
     group1.className = 'form-group-modern';
     const label1 = document.createElement('label');
@@ -564,7 +564,7 @@ function B_addAnimal(){
     input1.addEventListener('input', B_updateTotal);
     group1.appendChild(label1);
     group1.appendChild(input1);
-    
+
     const group2 = document.createElement('div');
     group2.className = 'form-group-modern';
     const label2 = document.createElement('label');
@@ -577,12 +577,12 @@ function B_addAnimal(){
     B_populateCarrierSelect(select);
     group2.appendChild(label2);
     group2.appendChild(select);
-    
+
     const hidden4 = document.createElement('input');
     hidden4.type = 'hidden';
     hidden4.name = 'part_tara';
     hidden4.value = '0';
-    
+
     const saveBtn = document.createElement('button');
     saveBtn.type = 'button';
     saveBtn.className = 'btn-save-part-modern';
@@ -590,7 +590,7 @@ function B_addAnimal(){
       B_savePart(saveBtn);
     });
     saveBtn.textContent = 'Salvar parte';
-    
+
     partCard.appendChild(label);
     partCard.appendChild(hidden1);
     partCard.appendChild(hidden2);
@@ -601,7 +601,7 @@ function B_addAnimal(){
     partCard.appendChild(saveBtn);
     grid.appendChild(partCard);
   });
-  
+
   body.appendChild(grid);
   blk.appendChild(header);
   blk.appendChild(body);
@@ -692,7 +692,7 @@ function S_addAnimal(){
   const blk = document.createElement('div');
   blk.className = 'animal-block-modern';
   const parts = [{cat:'carcaça',lado:'peso1'}];
-  
+
   const header = document.createElement('div');
   header.className = 'animal-header-modern';
   const strong = document.createElement('strong');
@@ -706,36 +706,36 @@ function S_addAnimal(){
   deleteBtn.textContent = 'Excluir Peso';
   header.appendChild(strong);
   header.appendChild(deleteBtn);
-  
+
   const body = document.createElement('div');
   body.className = 'animal-body-modern';
   const grid = document.createElement('div');
   grid.className = 'parts-grid-modern';
-  
+
   parts.forEach(function(p) {
     const partCard = document.createElement('div');
     partCard.className = 'part-card-modern';
-    
+
     const label = document.createElement('div');
     label.className = 'part-label-modern';
     let labelText = p.lado === 'peso1' ? 'Primeiro peso' : ('Peso ' + String(p.lado).slice(-1));
     label.textContent = labelText;
-    
+
     const hidden1 = document.createElement('input');
     hidden1.type = 'hidden';
     hidden1.name = 'part_categoria';
     hidden1.value = p.cat;
-    
+
     const hidden2 = document.createElement('input');
     hidden2.type = 'hidden';
     hidden2.name = 'part_lado';
     hidden2.value = p.lado;
-    
+
     const hidden3 = document.createElement('input');
     hidden3.type = 'hidden';
     hidden3.name = 'animal_numero';
     hidden3.value = String(idx);
-    
+
     const group1 = document.createElement('div');
     group1.className = 'form-group-modern';
     const label1 = document.createElement('label');
@@ -749,7 +749,7 @@ function S_addAnimal(){
     input1.addEventListener('input', S_updateTotal);
     group1.appendChild(label1);
     group1.appendChild(input1);
-    
+
     const group2 = document.createElement('div');
     group2.className = 'form-group-modern';
     const label2 = document.createElement('label');
@@ -763,12 +763,12 @@ function S_addAnimal(){
     input2.addEventListener('input', S_updateTotal);
     group2.appendChild(label2);
     group2.appendChild(input2);
-    
+
     const hidden4 = document.createElement('input');
     hidden4.type = 'hidden';
     hidden4.name = 'part_carrier';
     hidden4.value = '-1';
-    
+
     const saveBtn = document.createElement('button');
     saveBtn.type = 'button';
     saveBtn.className = 'btn-save-part-modern';
@@ -776,7 +776,7 @@ function S_addAnimal(){
       S_savePart(saveBtn);
     });
     saveBtn.textContent = 'Salvar parte';
-    
+
     partCard.appendChild(label);
     partCard.appendChild(hidden1);
     partCard.appendChild(hidden2);
@@ -787,7 +787,7 @@ function S_addAnimal(){
     partCard.appendChild(saveBtn);
     grid.appendChild(partCard);
   });
-  
+
   const mt4 = document.createElement('div');
   mt4.className = 'mt-4';
   const addPesoBtn = document.createElement('button');
@@ -798,7 +798,7 @@ function S_addAnimal(){
   });
   addPesoBtn.textContent = 'Adicionar Peso';
   mt4.appendChild(addPesoBtn);
-  
+
   body.appendChild(grid);
   body.appendChild(mt4);
   blk.appendChild(header);
@@ -812,29 +812,29 @@ function S_addSuinaPeso(btn){
   const next = existing + 1;
   const cont = blk.querySelector('.parts-grid-modern');
   const animal = blk.querySelector('input[name="animal_numero"]').value;
-  
+
   const card = document.createElement('div');
   card.className = 'part-card-modern';
-  
+
   const label = document.createElement('div');
   label.className = 'part-label-modern';
   label.textContent = next === 1 ? 'Primeiro peso' : ('Peso ' + next);
-  
+
   const hidden1 = document.createElement('input');
   hidden1.type = 'hidden';
   hidden1.name = 'part_categoria';
   hidden1.value = 'carcaça';
-  
+
   const hidden2 = document.createElement('input');
   hidden2.type = 'hidden';
   hidden2.name = 'part_lado';
   hidden2.value = 'peso' + next;
-  
+
   const hidden3 = document.createElement('input');
   hidden3.type = 'hidden';
   hidden3.name = 'animal_numero';
   hidden3.value = animal;
-  
+
   const group1 = document.createElement('div');
   group1.className = 'form-group-modern';
   const label1 = document.createElement('label');
@@ -848,7 +848,7 @@ function S_addSuinaPeso(btn){
   input1.addEventListener('input', S_updateTotal);
   group1.appendChild(label1);
   group1.appendChild(input1);
-  
+
   const group2 = document.createElement('div');
   group2.className = 'form-group-modern';
   const label2 = document.createElement('label');
@@ -862,12 +862,12 @@ function S_addSuinaPeso(btn){
   input2.addEventListener('input', S_updateTotal);
   group2.appendChild(label2);
   group2.appendChild(input2);
-  
+
   const hidden4 = document.createElement('input');
   hidden4.type = 'hidden';
   hidden4.name = 'part_carrier';
   hidden4.value = '-1';
-  
+
   const saveBtn = document.createElement('button');
   saveBtn.type = 'button';
   saveBtn.className = 'btn-save-part-modern';
@@ -875,7 +875,7 @@ function S_addSuinaPeso(btn){
     S_savePart(saveBtn);
   });
   saveBtn.textContent = 'Salvar parte';
-  
+
   card.appendChild(label);
   card.appendChild(hidden1);
   card.appendChild(hidden2);
@@ -932,7 +932,7 @@ function F_addPeso(){
   const wrap = document.getElementById('F_pesos');
   const row = document.createElement('div');
   row.className = 'form-row-modern';
-  
+
   const group1 = document.createElement('div');
   group1.className = 'form-group-modern';
   const label1 = document.createElement('label');
@@ -946,7 +946,7 @@ function F_addPeso(){
   input1.addEventListener('input', F_updateTotal);
   group1.appendChild(label1);
   group1.appendChild(input1);
-  
+
   const group2 = document.createElement('div');
   group2.className = 'form-group-modern form-group-action';
   const button = document.createElement('button');
@@ -957,7 +957,7 @@ function F_addPeso(){
   });
   button.textContent = 'Remover';
   group2.appendChild(button);
-  
+
   row.appendChild(group1);
   row.appendChild(group2);
   wrap.appendChild(row);
@@ -1841,11 +1841,11 @@ F_updateTotal();
     .form-row-modern {
         grid-template-columns: 1fr;
     }
-    
+
     .form-group-wide {
         grid-column: span 1;
     }
-    
+
     .parts-grid-modern {
         grid-template-columns: 1fr;
     }

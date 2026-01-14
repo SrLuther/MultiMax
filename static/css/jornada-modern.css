@@ -11,7 +11,7 @@
     --jornada-warning: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
     --jornada-danger: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
     --jornada-info: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-    
+
     /* Cores de Fundo - Light */
     --jornada-bg: #f8fafc;
     --jornada-surface: #ffffff;
@@ -20,7 +20,7 @@
     --jornada-table-row-even: #f8fafc;
     --jornada-table-row-hover: #f1f5f9;
     --jornada-table-header-bg: #e2e8f0;
-    
+
     /* Cores de Texto - Light */
     --jornada-text: #0f172a;
     --jornada-text-secondary: #475569;
@@ -29,17 +29,17 @@
     --jornada-title-icon: #667eea;
     --jornada-table-header-text: #0f172a;
     --jornada-table-text: #0f172a;
-    
+
     /* Bordas - Light */
     --jornada-border: #e2e8f0;
     --jornada-border-light: #f1f5f9;
     --jornada-table-border: #e2e8f0;
-    
+
     /* Sombras - Light */
     --jornada-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
     --jornada-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
     --jornada-glow: 0 0 20px rgba(102, 126, 234, 0.2);
-    
+
     /* Hover e Foco - Light */
     --jornada-hover-bg: #f1f5f9;
     --jornada-focus-ring: rgba(102, 126, 234, 0.3);
@@ -54,7 +54,7 @@
     --jornada-warning: linear-gradient(135deg, #fb923c 0%, #fbbf24 100%);
     --jornada-danger: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
     --jornada-info: linear-gradient(135deg, #7dd3fc 0%, #a78bfa 100%);
-    
+
     /* Cores de Fundo - Dark */
     --jornada-bg: #0f172a;
     --jornada-surface: rgba(30, 41, 59, 0.8);
@@ -63,7 +63,7 @@
     --jornada-table-row-even: rgba(30, 41, 59, 0.5);
     --jornada-table-row-hover: rgba(51, 65, 85, 0.8);
     --jornada-table-header-bg: #334155;
-    
+
     /* Cores de Texto - Dark (ALTO CONTRASTE) */
     --jornada-text: #f8fafc;
     --jornada-text-secondary: #cbd5e1;
@@ -72,17 +72,17 @@
     --jornada-title-icon: #818cf8; /* Roxo vibrante */
     --jornada-table-header-text: #ffffff; /* BRANCO para cabeçalho */
     --jornada-table-text: #f8fafc; /* BRANCO para texto da tabela */
-    
+
     /* Bordas - Dark */
     --jornada-border: rgba(148, 163, 184, 0.2);
     --jornada-border-light: rgba(148, 163, 184, 0.1);
     --jornada-table-border: rgba(148, 163, 184, 0.3);
-    
+
     /* Sombras - Dark */
     --jornada-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     --jornada-shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
     --jornada-glow: 0 0 20px rgba(129, 140, 248, 0.4);
-    
+
     /* Hover e Foco - Dark */
     --jornada-hover-bg: rgba(51, 65, 85, 0.8);
     --jornada-focus-ring: rgba(129, 140, 248, 0.5);
@@ -92,7 +92,7 @@
 .jornada-container {
     min-height: 100vh;
     background: var(--jornada-bg);
-    background-image: 
+    background-image:
         radial-gradient(at 0% 0%, rgba(102, 126, 234, 0.1) 0px, transparent 50%),
         radial-gradient(at 100% 100%, rgba(118, 75, 162, 0.1) 0px, transparent 50%);
     padding: 2rem;
@@ -807,38 +807,38 @@
     .jornada-container {
         padding: 1rem;
     }
-    
+
     .jornada-hero {
         padding: 2rem 1.5rem;
     }
-    
+
     .jornada-title {
         font-size: 2rem;
     }
-    
+
     .jornada-hero-content {
         flex-direction: column;
         align-items: flex-start;
     }
-    
+
     .jornada-hero-actions {
         width: 100%;
         flex-direction: column;
     }
-    
+
     .btn-jornada {
         width: 100%;
         justify-content: center;
     }
-    
+
     .jornada-filter-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .jornada-stats-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .jornada-nav {
         flex-direction: column;
     }
@@ -982,35 +982,35 @@
     .jornada-container {
         padding: 1rem;
     }
-    
+
     .jornada-hero-content {
         flex-direction: column;
         gap: 1rem;
     }
-    
+
     .jornada-nav {
         flex-direction: column;
         width: 100%;
     }
-    
+
     .jornada-filter-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .jornada-stats-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .jornada-table-wrapper {
         overflow-x: auto;
     }
-    
+
     .jornada-calendar-grid {
         grid-template-columns: repeat(7, 1fr);
         gap: 0.5rem;
         padding: 1rem;
     }
-    
+
     .jornada-calendar-day {
         min-height: 80px;
         padding: 0.5rem;

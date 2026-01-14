@@ -95,20 +95,20 @@
     // Chart.js loader
     var __mmChartsLoaded = false;
     function ensureChartJs(cb) {
-        if (window.Chart) { 
-            __mmChartsLoaded = true; 
-            cb(); 
-            return; 
+        if (window.Chart) {
+            __mmChartsLoaded = true;
+            cb();
+            return;
         }
-        if (__mmChartsLoaded) { 
-            cb(); 
-            return; 
+        if (__mmChartsLoaded) {
+            cb();
+            return;
         }
         var s = document.createElement('script');
         s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
-        s.onload = function() { 
-            __mmChartsLoaded = true; 
-            cb(); 
+        s.onload = function() {
+            __mmChartsLoaded = true;
+            cb();
         };
         document.head.appendChild(s);
     }
@@ -117,62 +117,62 @@
         var cpuCtx = document.getElementById('cpuChart');
         var memCtx = document.getElementById('memChart');
         if (!cpuCtx || !memCtx) return;
-        
+
         var labels = [];
         var cpuData = [];
         var memData = [];
-        
+
         var cpuChart = new Chart(cpuCtx, {
             type: 'line',
-            data: { 
-                labels: labels, 
-                datasets: [{ 
-                    label: 'CPU %', 
-                    data: cpuData, 
-                    borderColor: '#3b82f6', 
-                    backgroundColor: 'rgba(59,130,246,0.15)', 
-                    tension: 0.25, 
-                    fill: true 
-                }] 
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'CPU %',
+                    data: cpuData,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59,130,246,0.15)',
+                    tension: 0.25,
+                    fill: true
+                }]
             },
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: false,
-                animation: false, 
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: { 
-                    y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } },
-                    x: { grid: { display: false } }
-                } 
-            }
-        });
-        
-        var memChart = new Chart(memCtx, {
-            type: 'line',
-            data: { 
-                labels: labels, 
-                datasets: [{ 
-                    label: 'Memória %', 
-                    data: memData, 
-                    borderColor: '#22c55e', 
-                    backgroundColor: 'rgba(34,197,94,0.15)', 
-                    tension: 0.25, 
-                    fill: true 
-                }] 
-            },
-            options: { 
-                responsive: true, 
+            options: {
+                responsive: true,
                 maintainAspectRatio: false,
                 animation: false,
                 plugins: {
                     legend: { display: false }
                 },
-                scales: { 
+                scales: {
                     y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } },
                     x: { grid: { display: false } }
-                } 
+                }
+            }
+        });
+
+        var memChart = new Chart(memCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Memória %',
+                    data: memData,
+                    borderColor: '#22c55e',
+                    backgroundColor: 'rgba(34,197,94,0.15)',
+                    tension: 0.25,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } },
+                    x: { grid: { display: false } }
+                }
             }
         });
 
@@ -187,10 +187,10 @@
             labels.push(hh + ':' + mm + ':' + ss);
             cpuData.push(cpu);
             memData.push(mem);
-            if (labels.length > 60) { 
-                labels.shift(); 
-                cpuData.shift(); 
-                memData.shift(); 
+            if (labels.length > 60) {
+                labels.shift();
+                cpuData.shift();
+                memData.shift();
             }
             cpuChart.update('none');
             memChart.update('none');
@@ -221,7 +221,7 @@
 
         fetchMetrics();
         state.intervals.metrics = setInterval(fetchMetrics, 10000);
-        
+
         document.addEventListener('visibilitychange', function() {
             if (document.hidden) {
                 if (state.intervals.metrics) {
@@ -277,13 +277,13 @@
     function formatTimestamp(isoString) {
         if (!isoString) return '-';
         var d = new Date(isoString);
-        return d.toLocaleString('pt-BR', { 
-            day: '2-digit', 
-            month: '2-digit', 
-            year: 'numeric', 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            second: '2-digit' 
+        return d.toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
         });
     }
 
@@ -307,66 +307,66 @@
             var resp = await fetch(state.urls.health);
             var json = await resp.json();
             if (!json || !json.ok || !json.health) return;
-            
+
             var grid = document.getElementById('healthChecksGrid');
             if (!grid) return;
-            
+
             // Criar elementos DOM de forma segura ao invés de innerHTML
             grid.innerHTML = ''; // Limpar primeiro
-            
+
             var services = ['database', 'backend', 'nginx', 'port', 'deploy_agent', 'cpu', 'memory', 'disk'];
-            
+
             services.forEach(function(service) {
                 var health = json.health[service];
                 if (!health) return;
-                
+
                 var item = createElement('div', { className: 'db-health-item' });
                 var header = createElement('div', { className: 'db-health-header' });
                 var icon = createElement('div', { className: 'db-health-icon', innerHTML: getStatusIcon(health.status) });
                 var title = createElement('div', { className: 'db-health-title' }, getServiceName(service));
-                var badge = createElement('span', { 
-                    className: 'db-badge-modern ' + getStatusBadgeClass(health.status) 
+                var badge = createElement('span', {
+                    className: 'db-badge-modern ' + getStatusBadgeClass(health.status)
                 }, health.status.toUpperCase());
-                
+
                 header.appendChild(icon);
                 header.appendChild(title);
                 header.appendChild(badge);
-                
+
                 var message = createElement('div', { className: 'db-health-message' }, health.message || '-');
                 item.appendChild(header);
                 item.appendChild(message);
-                
+
                 if (health.response_time_ms !== undefined && health.response_time_ms !== null) {
-                    var detail1 = createElement('div', { className: 'db-health-detail' }, 
+                    var detail1 = createElement('div', { className: 'db-health-detail' },
                         'Tempo de resposta: ' + health.response_time_ms.toFixed(2) + 'ms');
                     item.appendChild(detail1);
                 }
-                
+
                 if (service === 'deploy_agent' && health.port_9000_open !== undefined) {
-                    var detail2 = createElement('div', { className: 'db-health-detail' }, 
+                    var detail2 = createElement('div', { className: 'db-health-detail' },
                         'Porta 9000: ' + (health.port_9000_open ? 'Aberta' : 'Fechada'));
                     item.appendChild(detail2);
                 }
-                
+
                 if (health.usage_percent !== undefined && health.usage_percent !== null) {
-                    var detail3 = createElement('div', { className: 'db-health-detail' }, 
+                    var detail3 = createElement('div', { className: 'db-health-detail' },
                         'Uso: ' + health.usage_percent + '%');
                     item.appendChild(detail3);
                 }
-                
+
                 if (health.available_gb !== undefined && health.available_gb !== null) {
-                    var detail4 = createElement('div', { className: 'db-health-detail' }, 
+                    var detail4 = createElement('div', { className: 'db-health-detail' },
                         'Disponível: ' + health.available_gb + ' GB');
                     item.appendChild(detail4);
                 }
-                
-                var time = createElement('div', { className: 'db-health-time' }, 
+
+                var time = createElement('div', { className: 'db-health-time' },
                     'Verificado: ' + formatTimestamp(health.checked_at));
                 item.appendChild(time);
-                
+
                 grid.appendChild(item);
             });
-            
+
             var lastCheck = document.getElementById('lastHealthCheck');
             if (lastCheck) {
                 lastCheck.textContent = formatTimestamp(new Date().toISOString());
@@ -379,42 +379,42 @@
     // Logs em Tempo Real
     async function updateLogs() {
         if (state.logsPaused) return;
-        
+
         try {
             var type = document.getElementById('logTypeFilter')?.value || 'all';
             var level = document.getElementById('logLevelFilter')?.value || 'all';
-            
+
             if (!state.urls.logs) return;
             var url = state.urls.logs + '?type=' + encodeURIComponent(type) + '&level=' + encodeURIComponent(level) + '&limit=100';
-            
+
             var resp = await fetch(url);
             var json = await resp.json();
             if (!json || !json.ok || !json.logs) return;
-            
+
             var container = document.getElementById('logsContainer');
             if (!container) return;
-            
+
             // Criar elementos DOM de forma segura
             container.innerHTML = '';
-            
+
             json.logs.forEach(function(log) {
                 var levelClass = 'db-log-info';
                 if (log.level === 'ERROR') levelClass = 'db-log-error';
                 else if (log.level === 'WARNING') levelClass = 'db-log-warning';
-                
+
                 var entry = createElement('div', { className: 'db-log-entry ' + levelClass });
                 var time = createElement('div', { className: 'db-log-time' }, formatTimestamp(log.timestamp));
                 var levelEl = createElement('div', { className: 'db-log-level' }, log.level);
                 var origin = createElement('div', { className: 'db-log-origin' }, log.origin || '-');
                 var message = createElement('div', { className: 'db-log-message' }, log.message || '-');
-                
+
                 entry.appendChild(time);
                 entry.appendChild(levelEl);
                 entry.appendChild(origin);
                 entry.appendChild(message);
                 container.appendChild(entry);
             });
-            
+
             if (!state.logsPaused) {
                 container.scrollTop = container.scrollHeight;
             }
@@ -455,14 +455,14 @@
         try {
             var metricType = document.getElementById('trendMetricType')?.value || 'cpu';
             var hours = parseInt(document.getElementById('trendHours')?.value || 24);
-            
+
             if (!state.urls.metrics_trends) return;
             var url = state.urls.metrics_trends + '?type=' + encodeURIComponent(metricType) + '&hours=' + hours;
-            
+
             var resp = await fetch(url);
             var json = await resp.json();
             if (!json || !json.ok || !json.trends) return;
-            
+
             var trends = json.trends;
             var statsEl = document.getElementById('trendsStats');
             if (statsEl) {
@@ -481,10 +481,10 @@
                     statsEl.appendChild(item);
                 });
             }
-            
+
             var ctx = document.getElementById('trendsChart');
             if (!ctx) return;
-            
+
             ensureChartJs(function() {
                 if (trendsChart) {
                     trendsChart.destroy();
@@ -531,12 +531,12 @@
             var resp = await fetch(state.urls.slow_queries);
             var json = await resp.json();
             if (!json || !json.ok || !json.queries) return;
-            
+
             var tbody = document.getElementById('slowQueriesTableBody');
             if (!tbody) return;
-            
+
             tbody.innerHTML = '';
-            
+
             if (json.queries.length === 0) {
                 var row = createElement('tr');
                 var cell = createElement('td', { colSpan: '4', className: 'text-center' }, 'Nenhuma query lenta encontrada');
@@ -555,7 +555,7 @@
                     var queryCell = createElement('td');
                     var code2 = createElement('code', { className: 'db-code-modern', style: 'font-size: 0.75rem;' }, q.query);
                     queryCell.appendChild(code2);
-                    
+
                     row.appendChild(dateCell);
                     row.appendChild(timeCell);
                     row.appendChild(endpointCell);
@@ -602,34 +602,34 @@
 
     function updateMaintenanceDisplay() {
         if (!maintenanceStats) return;
-        
+
         var statsEl = document.getElementById('maintenanceQuickStats');
         if (statsEl && maintenanceStats.database) {
             var db = maintenanceStats.database;
             var logs = maintenanceStats.logs;
             var backups = maintenanceStats.backups;
-            
+
             statsEl.innerHTML = '';
             var container = createElement('div', { className: 'db-maintenance-quick-stats' });
-            
+
             var stat1 = createElement('div', { className: 'db-quick-stat-item' });
             var label1 = createElement('span', { className: 'db-quick-stat-label' }, 'Banco:');
             var value1 = createElement('span', { className: 'db-quick-stat-value' }, (db.size_mb || 0).toFixed(2) + ' MB');
             stat1.appendChild(label1);
             stat1.appendChild(value1);
-            
+
             var stat2 = createElement('div', { className: 'db-quick-stat-item' });
             var label2 = createElement('span', { className: 'db-quick-stat-label' }, 'Logs:');
             var value2 = createElement('span', { className: 'db-quick-stat-value' }, (logs.total_estimated_size_mb || 0).toFixed(2) + ' MB');
             stat2.appendChild(label2);
             stat2.appendChild(value2);
-            
+
             var stat3 = createElement('div', { className: 'db-quick-stat-item' });
             var label3 = createElement('span', { className: 'db-quick-stat-label' }, 'Backups:');
             var value3 = createElement('span', { className: 'db-quick-stat-value' }, (backups.count || 0).toString());
             stat3.appendChild(label3);
             stat3.appendChild(value3);
-            
+
             container.appendChild(stat1);
             container.appendChild(stat2);
             container.appendChild(stat3);
@@ -640,21 +640,21 @@
     function updateRecommendationsDisplay() {
         var recEl = document.getElementById('maintenanceRecommendations');
         if (!recEl) return;
-        
+
         recEl.innerHTML = '';
-        
+
         if (maintenanceRecommendations.length === 0) {
             var empty = createElement('div', { className: 'db-no-recommendations' }, 'Nenhuma recomendação no momento.');
             recEl.appendChild(empty);
             return;
         }
-        
+
         var list = createElement('div', { className: 'db-recommendations-list' });
         maintenanceRecommendations.forEach(function(rec) {
             var priorityClass = 'db-rec-' + rec.priority;
-            var priorityIcon = rec.priority === 'high' ? 'bi-exclamation-triangle-fill' : 
+            var priorityIcon = rec.priority === 'high' ? 'bi-exclamation-triangle-fill' :
                                rec.priority === 'medium' ? 'bi-info-circle-fill' : 'bi-lightbulb-fill';
-            
+
             var item = createElement('div', { className: 'db-recommendation-item ' + priorityClass });
             var icon = createElement('i', { className: 'bi ' + priorityIcon });
             var span = createElement('span', {}, rec.message);
@@ -669,19 +669,19 @@
         try {
             var type = document.getElementById('maintenanceHistoryType')?.value || 'all';
             var status = document.getElementById('maintenanceHistoryStatus')?.value || 'all';
-            
+
             if (!state.urls.maintenance_history) return;
             var url = state.urls.maintenance_history + '?type=' + encodeURIComponent(type) + '&status=' + encodeURIComponent(status) + '&limit=20';
-            
+
             var resp = await fetch(url);
             var json = await resp.json();
             if (!json || !json.ok || !json.history) return;
-            
+
             var tbody = document.getElementById('maintenanceHistoryBody');
             if (!tbody) return;
-            
+
             tbody.innerHTML = '';
-            
+
             if (json.history.length === 0) {
                 var row = createElement('tr');
                 var cell = createElement('td', { colSpan: '6', className: 'text-center' }, 'Nenhuma manutenção encontrada');
@@ -692,13 +692,13 @@
                     var date = m.created_at ? new Date(m.created_at).toLocaleString('pt-BR') : '-';
                     var duration = m.duration_seconds ? m.duration_seconds.toFixed(2) + 's' : '-';
                     var items = m.items_processed !== null ? m.items_processed.toString() : '-';
-                    var statusBadge = m.status === 'completed' ? 'db-badge-success' : 
+                    var statusBadge = m.status === 'completed' ? 'db-badge-success' :
                                      m.status === 'failed' ? 'db-badge-danger' : 'db-badge-warning';
                     var typeLabel = m.maintenance_type === 'cleanup_logs' ? 'Limpeza' :
                                    m.maintenance_type === 'optimize_database' ? 'Otimização' :
                                    m.maintenance_type === 'cleanup_backups' ? 'Limpeza Backups' :
                                    m.maintenance_type === 'verify_backups' ? 'Verificação' : m.maintenance_type;
-                    
+
                     var row = createElement('tr', { className: 'db-table-row' });
                     var dateCell = createElement('td', { className: 'db-table-date' }, date);
                     var typeCell = createElement('td', {}, typeLabel);
@@ -708,7 +708,7 @@
                     var durationCell = createElement('td', {}, duration);
                     var itemsCell = createElement('td', {}, items);
                     var executedCell = createElement('td', {}, m.executed_by || '-');
-                    
+
                     row.appendChild(dateCell);
                     row.appendChild(typeCell);
                     row.appendChild(statusCell);
@@ -735,7 +735,7 @@
         if (!confirm('Executar limpeza de logs antigos?')) return;
         try {
             if (!state.urls.maintenance_cleanup) return;
-            var resp = await fetch(state.urls.maintenance_cleanup, { 
+            var resp = await fetch(state.urls.maintenance_cleanup, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'}
             });
@@ -860,10 +860,10 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> ' + (force ? 'Forçando...' : 'Atualizando...');
         }
-        
+
         if (!state.urls.git_status) return;
         const url = state.urls.git_status + '?t=' + Date.now() + (force ? '&force=true' : '');
-        
+
         fetch(url, {
             method: 'GET',
             headers: {
@@ -905,15 +905,15 @@
         const currentCommit = document.getElementById('currentCommit');
         const latestCommit = document.getElementById('latestCommit');
         const commitMessage = document.getElementById('commitMessage');
-        
+
         if (currentVersion) currentVersion.textContent = data.current_version || 'N/A';
         if (currentCommit) currentCommit.textContent = data.current_commit || data.current_commit_hash || 'N/A';
         if (latestCommit) latestCommit.textContent = data.latest_commit || data.latest_commit_hash || data.remote_commit_hash || 'N/A';
         if (commitMessage) commitMessage.textContent = data.commit_message || data.remote_commit_msg || 'N/A';
-        
+
         const indicator = document.getElementById('updateIndicator');
         const applyBtn = document.getElementById('applyUpdateBtn');
-        
+
         if (indicator) {
             if (data.update_available) {
                 indicator.className = 'db-git-update-indicator update-available';
@@ -933,7 +933,7 @@
             indicator.className = 'db-git-update-indicator error';
             indicator.innerHTML = '<i class="bi bi-x-circle-fill"></i><span>' + escapeHtml(message) + '</span>';
         }
-        
+
         const fields = ['currentVersion', 'currentCommit', 'latestCommit', 'commitMessage'];
         fields.forEach(fieldId => {
             const field = document.getElementById(fieldId);
@@ -942,7 +942,7 @@
                 field.style.color = '#dc2626';
             }
         });
-        
+
         const applyBtn = document.getElementById('applyUpdateBtn');
         if (applyBtn) {
             applyBtn.disabled = true;
@@ -956,7 +956,7 @@
         .then(data => {
             const currentVersionEl = document.getElementById('currentVersionInfo');
             const latestVersionEl = document.getElementById('latestVersionInfo');
-            
+
             if (data.ok) {
                 if (currentVersionEl) {
                     currentVersionEl.innerHTML = '<span style="color: #059669;">' + escapeHtml(data.current_version || 'N/A') + '</span>';
@@ -977,7 +977,7 @@
         .catch(error => {
             const currentVersionEl = document.getElementById('currentVersionInfo');
             const latestVersionEl = document.getElementById('latestVersionInfo');
-            
+
             if (currentVersionEl) {
                 currentVersionEl.innerHTML = '<span style="color: #dc2626;">Erro de conexão</span>';
             }
@@ -991,7 +991,7 @@
         force = force || false;
         const overlay = createElement('div', { className: 'db-git-modal-overlay', id: 'updateModalOverlay' });
         const modal = createElement('div', { className: 'db-git-modal' });
-        
+
         // Criar estrutura do modal usando createElement (simplificado para evitar innerHTML perigoso)
         // Nota: Para modais complexos com muito HTML dinâmico, usar template strings é aceitável
         // desde que os dados sejam escapados adequadamente
@@ -1051,23 +1051,23 @@
                 </button>
             </div>
         `;
-        
+
         overlay.appendChild(modal);
         document.body.appendChild(overlay);
-        
+
         // Event listeners para botões do modal
         overlay.querySelector('[data-action="close"]').addEventListener('click', closeUpdateModal);
         overlay.querySelector('[data-action="confirm"]').addEventListener('click', function() {
             const forceValue = this.getAttribute('data-force') === 'true';
             applyUpdate(forceValue);
         });
-        
+
         fetchVersionInfo();
-        
+
         state.updateCountdown = 10;
         const countdownValue = document.getElementById('countdownValue');
         const confirmBtn = document.getElementById('confirmUpdateBtn');
-        
+
         state.updateCountdownInterval = setInterval(() => {
             state.updateCountdown--;
             if (countdownValue) {
@@ -1077,7 +1077,7 @@
                     countdownValue.style.animation = 'pulse 0.5s infinite';
                 }
             }
-            
+
             if (state.updateCountdown <= 0) {
                 clearInterval(state.updateCountdownInterval);
                 if (confirmBtn) {
@@ -1109,19 +1109,19 @@
         force = force || false;
         const confirmBtn = document.getElementById('confirmUpdateBtn');
         const countdownValue = document.getElementById('countdownValue');
-        
+
         if (confirmBtn) {
             confirmBtn.disabled = true;
             confirmBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Aplicando...';
         }
-        
+
         if (countdownValue) {
             countdownValue.textContent = '0';
             countdownValue.style.color = '#16a34a';
         }
-        
+
         if (!state.urls.git_update) return;
-        
+
         fetch(state.urls.git_update, {
             method: 'POST',
             headers: {
@@ -1233,22 +1233,22 @@
     // Inicialização quando DOM estiver pronto
     document.addEventListener('DOMContentLoaded', function() {
         initialize();
-        
+
         var f = document.getElementById('dbStatusFrame');
         if (f) {
             f.addEventListener('load', resizeDbFrame);
         }
         ensureChartJs(startResourceCharts);
-        
+
         refreshHealthChecks();
         state.intervals.healthCheck = setInterval(refreshHealthChecks, 30000);
-        
+
         updateLogs();
         state.intervals.logs = setInterval(updateLogs, 10000);
-        
+
         updateTrends();
         updateSlowQueries();
-        
+
         if (document.getElementById('gitUpdateCard')) {
             refreshGitStatus();
             state.gitStatusInterval = setInterval(refreshGitStatus, 60000);

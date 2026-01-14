@@ -425,7 +425,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const hoje = new Date();
     const year = hoje.getFullYear();
     const month = hoje.getMonth() + 1;
-    
+
     loadCalendario(year, month);
 });
 
@@ -448,17 +448,17 @@ function loadCalendario(year, month) {
 function renderCalendario(data) {
     const container = document.getElementById('calendario-jornada');
     if (!container) return;
-    
+
     // Atualizar título do calendário
-    const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+    const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
                         'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     const monthYearEl = document.getElementById('calendarMonthYear');
     if (monthYearEl && data.year && data.month) {
         monthYearEl.textContent = monthNames[data.month - 1] + ' ' + data.year;
     }
-    
+
     container.textContent = '';
-    
+
     // Cabeçalho dos dias da semana
     const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     diasSemana.forEach(dia => {
@@ -467,61 +467,61 @@ function renderCalendario(data) {
         header.textContent = dia;
         container.appendChild(header);
     });
-    
+
     // Calcular primeiro dia do mês e quantos dias tem o mês
     const primeiroDia = new Date(data.year, data.month - 1, 1);
     const ultimoDia = new Date(data.year, data.month, 0);
     const diasNoMes = ultimoDia.getDate();
     const diaSemanaInicio = primeiroDia.getDay(); // 0=domingo, 6=sábado
-    
+
     // Preencher dias vazios antes do primeiro dia do mês
     for (let i = 0; i < diaSemanaInicio; i++) {
         const emptyDiv = document.createElement('div');
         emptyDiv.className = 'jornada-calendar-day jornada-calendar-day-empty';
         container.appendChild(emptyDiv);
     }
-    
+
     // Dias do mês
     const hoje = new Date();
     const hojeStr = hoje.toISOString().split('T')[0];
-    
+
     for (let day = 1; day <= diasNoMes; day++) {
         const dayKey = day;
         const diaData = data.calendario[dayKey] || {};
         const diaDiv = document.createElement('div');
         diaDiv.className = 'jornada-calendar-day';
-        
+
         const dateStr = String(data.year) + '-' + String(data.month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
-        
+
         if (dateStr === hojeStr) {
             diaDiv.classList.add('jornada-calendar-day-today');
         }
         if (diaData.feriado) {
             diaDiv.classList.add('jornada-calendar-day-holiday');
         }
-        
+
         const numberDiv = document.createElement('div');
         numberDiv.className = 'jornada-calendar-day-number';
         numberDiv.textContent = String(day);
         diaDiv.appendChild(numberDiv);
-        
+
         if (diaData.feriado && diaData.feriado.name) {
             const holidayDiv = document.createElement('div');
             holidayDiv.className = 'jornada-calendar-day-holiday-name';
             holidayDiv.textContent = diaData.feriado.name;
             diaDiv.appendChild(holidayDiv);
         }
-        
+
         if (diaData.records && diaData.records.length > 0) {
             const recordsDiv = document.createElement('div');
             recordsDiv.className = 'jornada-calendar-day-records';
-            
+
             diaData.records.slice(0, 2).forEach(function(r) {
                 const recordDiv = document.createElement('div');
                 recordDiv.className = 'jornada-calendar-day-record';
                 const titleText = (r.collaborator_name || '') + ': ' + (r.notes || '');
                 recordDiv.setAttribute('title', titleText);
-                
+
                 let recordText = '';
                 if (r.record_type === 'horas' && r.hours) {
                     recordText = String(r.hours) + 'h';
@@ -535,17 +535,17 @@ function renderCalendario(data) {
                 recordDiv.textContent = recordText;
                 recordsDiv.appendChild(recordDiv);
             });
-            
+
             if (diaData.records.length > 2) {
                 const moreDiv = document.createElement('div');
                 moreDiv.className = 'jornada-calendar-day-record';
                 moreDiv.textContent = '+' + String(diaData.records.length - 2) + ' mais';
                 recordsDiv.appendChild(moreDiv);
             }
-            
+
             diaDiv.appendChild(recordsDiv);
         }
-        
+
         container.appendChild(diaDiv);
     }
 }

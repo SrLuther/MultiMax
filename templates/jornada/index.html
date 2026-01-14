@@ -551,7 +551,7 @@
                         </button>
                     </div>
                 </form>
-                
+
                 {% if ferias %}
                 <div class="ferias-table-wrapper">
                     <table class="ferias-table-modern">
@@ -593,7 +593,7 @@
                 {% endif %}
             </div>
         </div>
-        
+
         <!-- Atestados Médicos -->
         <div class="atestados-card-modern">
             <div class="atestados-header-modern">
@@ -659,7 +659,7 @@
                         </button>
                     </div>
                 </form>
-                
+
                 {% if atestados %}
                 <div class="atestados-table-wrapper">
                     <table class="atestados-table-modern">
@@ -1568,11 +1568,11 @@
     .form-row-modern {
         grid-template-columns: 1fr;
     }
-    
+
     .ferias-atestados-grid-modern {
         grid-template-columns: 1fr;
     }
-    
+
     .stats-grid-jornada,
     .stats-secondary-grid-jornada {
         grid-template-columns: 1fr;
@@ -1866,17 +1866,17 @@
     .valores-grid-modern {
         grid-template-columns: 1fr;
     }
-    
+
     .valores-header-modern {
         flex-direction: column;
         gap: 1rem;
         align-items: flex-start;
     }
-    
+
     .valor-card-value-modern {
         font-size: 1.75rem;
     }
-    
+
     .valor-card-value-highlight {
         font-size: 2rem;
     }
@@ -1896,14 +1896,14 @@ document.addEventListener('DOMContentLoaded', function() {
         valoresCard.style.visibility = 'visible';
         valoresCard.style.opacity = '1';
     }
-    
+
     const valoresGrid = document.querySelector('.valores-grid-modern');
     if (valoresGrid) {
         valoresGrid.style.display = 'grid';
         valoresGrid.style.visibility = 'visible';
         valoresGrid.style.opacity = '1';
     }
-    
+
     // Carregar valor atual ao abrir modal
     const modalConfigValor = document.getElementById('modalConfigValor');
     if (modalConfigValor) {
@@ -1911,7 +1911,7 @@ document.addEventListener('DOMContentLoaded', function() {
             loadDayValue();
         });
     }
-    
+
     // Salvar valor
     const btnSalvarValor = document.getElementById('btnSalvarValor');
     if (btnSalvarValor) {
@@ -1919,7 +1919,7 @@ document.addEventListener('DOMContentLoaded', function() {
             saveDayValue();
         });
     }
-    
+
     // Atualizar cards quando filtros mudarem
     const formFiltros = document.querySelector('.filtros-form-modern');
     if (formFiltros) {
@@ -1948,13 +1948,13 @@ function loadDayValue() {
 function saveDayValue() {
     const input = document.getElementById('inputValorDia');
     if (!input) return;
-    
+
     const dayValue = parseFloat(input.value);
     if (isNaN(dayValue) || dayValue < 0) {
         alert('Por favor, insira um valor válido maior ou igual a zero.');
         return;
     }
-    
+
     const btnSalvar = document.getElementById('btnSalvarValor');
     if (btnSalvar) {
         btnSalvar.disabled = true;
@@ -1964,7 +1964,7 @@ function saveDayValue() {
         btnSalvar.appendChild(icon);
         btnSalvar.appendChild(document.createTextNode(' Salvando...'));
     }
-    
+
     fetch(URL_JORNADA_SET_DAY_VALUE, {
         method: 'POST',
         headers: {
@@ -1980,7 +1980,7 @@ function saveDayValue() {
             if (modal) {
                 modal.hide();
             }
-            
+
             // Recarregar página para atualizar os cards
             window.location.reload();
         } else {

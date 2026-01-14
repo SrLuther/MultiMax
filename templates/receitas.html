@@ -38,7 +38,7 @@
             </div>
             <div class="kpi-decoration-receitas"></div>
         </div>
-        
+
         <div class="kpi-card-receitas kpi-info">
             <div class="kpi-icon-receitas">
                 <i class="bi bi-box-seam"></i>
@@ -49,7 +49,7 @@
             </div>
             <div class="kpi-decoration-receitas"></div>
         </div>
-        
+
         <div class="kpi-card-receitas kpi-success">
             <div class="kpi-icon-receitas">
                 <i class="bi bi-flower1"></i>
@@ -60,7 +60,7 @@
             </div>
             <div class="kpi-decoration-receitas"></div>
         </div>
-        
+
         <div class="kpi-card-receitas kpi-warning">
             <div class="kpi-icon-receitas">
                 <i class="bi bi-list-check"></i>
@@ -156,7 +156,7 @@
             <!-- Paginação -->
             <div class="pagination-wrapper-modern">
                 <nav class="pagination-modern">
-                    <a href="{{ url_for('receitas.index', page=receitas_pag.prev_num if receitas_pag else 1, q=q) }}" 
+                    <a href="{{ url_for('receitas.index', page=receitas_pag.prev_num if receitas_pag else 1, q=q) }}"
                        class="pagination-btn {% if not receitas_pag or not receitas_pag.has_prev %}disabled{% endif %}">
                         <i class="bi bi-chevron-left"></i>
                         <span>Anterior</span>
@@ -167,7 +167,7 @@
                         <span class="pagination-text">de</span>
                         <span class="pagination-total">{{ receitas_pag.pages if receitas_pag else 1 }}</span>
                     </div>
-                    <a href="{{ url_for('receitas.index', page=receitas_pag.next_num if receitas_pag else 1, q=q) }}" 
+                    <a href="{{ url_for('receitas.index', page=receitas_pag.next_num if receitas_pag else 1, q=q) }}"
                        class="pagination-btn {% if not receitas_pag or not receitas_pag.has_next %}disabled{% endif %}">
                         <span>Próxima</span>
                         <i class="bi bi-chevron-right"></i>
@@ -355,7 +355,7 @@
                     </label>
                     <input type="text" name="nome" class="form-input-modern" required placeholder="Ex: Linguiça Toscana">
                 </div>
-                
+
                 <div class="form-group-modern">
                     <label class="form-label-modern">
                         <i class="bi bi-box-seam"></i>
@@ -378,7 +378,7 @@
                         </label>
                     </div>
                 </div>
-                
+
                 <div class="form-group-modern">
                     <label class="form-label-modern">
                         <i class="bi bi-journal-text"></i>
@@ -386,7 +386,7 @@
                     </label>
                     <textarea name="preparo" class="form-textarea-modern" rows="5" placeholder="Descreva o modo de preparo passo a passo..." required></textarea>
                 </div>
-                
+
                 <div class="ingredientes-header-modern">
                     <label class="form-label-modern" style="margin: 0;">
                         <i class="bi bi-list-ul"></i>
@@ -432,7 +432,7 @@
                     </label>
                     <input type="text" name="nome" class="form-input-modern" value="{{ selecionada.nome }}" required>
                 </div>
-                
+
                 <div class="form-group-modern">
                     <label class="form-label-modern">
                         <i class="bi bi-box-seam"></i>
@@ -455,7 +455,7 @@
                         </label>
                     </div>
                 </div>
-                
+
                 <div class="form-group-modern">
                     <label class="form-label-modern">
                         <i class="bi bi-journal-text"></i>
@@ -463,7 +463,7 @@
                     </label>
                     <textarea name="preparo" class="form-textarea-modern" rows="5" required>{{ selecionada.preparo }}</textarea>
                 </div>
-                
+
                 <div class="ingredientes-header-modern">
                     <label class="form-label-modern" style="margin: 0;">
                         <i class="bi bi-list-ul"></i>
@@ -553,7 +553,7 @@ function addIng(){
     var cont = document.getElementById('ingList');
     var wrap = document.createElement('div');
     wrap.className = 'ing-row-modern ing-row';
-    
+
     // Criar elementos de forma segura
     var grupo1 = document.createElement('div');
     grupo1.className = 'form-group-modern';
@@ -567,7 +567,7 @@ function addIng(){
     input1.required = true;
     grupo1.appendChild(label1);
     grupo1.appendChild(input1);
-    
+
     var grupo2 = document.createElement('div');
     grupo2.className = 'form-group-modern';
     var label2 = document.createElement('label');
@@ -586,7 +586,7 @@ function addIng(){
     });
     grupo2.appendChild(label2);
     grupo2.appendChild(select2);
-    
+
     var grupo3 = document.createElement('div');
     grupo3.className = 'form-group-modern';
     var label3 = document.createElement('label');
@@ -601,7 +601,7 @@ function addIng(){
     input3.addEventListener('change', function() { updateCusto(this); });
     grupo3.appendChild(label3);
     grupo3.appendChild(input3);
-    
+
     var grupo4 = document.createElement('div');
     grupo4.className = 'form-group-modern';
     var label4 = document.createElement('label');
@@ -614,7 +614,7 @@ function addIng(){
     input4.placeholder = 'Ex: 200 g';
     grupo4.appendChild(label4);
     grupo4.appendChild(input4);
-    
+
     var grupo5 = document.createElement('div');
     grupo5.className = 'form-group-modern form-group-action';
     var btn5 = document.createElement('button');
@@ -627,7 +627,7 @@ function addIng(){
     icon5.className = 'bi bi-trash';
     btn5.appendChild(icon5);
     grupo5.appendChild(btn5);
-    
+
     wrap.appendChild(grupo1);
     wrap.appendChild(grupo2);
     wrap.appendChild(grupo3);
@@ -644,7 +644,7 @@ function addIngEdit(){
     var cont = document.getElementById('ingEditList');
     var wrap = document.createElement('div');
     wrap.className = 'ing-row-modern ing-row';
-    
+
     // Criar elementos de forma segura
     var grupo1 = document.createElement('div');
     grupo1.className = 'form-group-modern';
@@ -658,7 +658,7 @@ function addIngEdit(){
     input1.required = true;
     grupo1.appendChild(label1);
     grupo1.appendChild(input1);
-    
+
     var grupo2 = document.createElement('div');
     grupo2.className = 'form-group-modern';
     var label2 = document.createElement('label');
@@ -677,7 +677,7 @@ function addIngEdit(){
     });
     grupo2.appendChild(label2);
     grupo2.appendChild(select2);
-    
+
     var grupo3 = document.createElement('div');
     grupo3.className = 'form-group-modern';
     var label3 = document.createElement('label');
@@ -692,7 +692,7 @@ function addIngEdit(){
     input3.addEventListener('change', function() { updateCusto(this); });
     grupo3.appendChild(label3);
     grupo3.appendChild(input3);
-    
+
     var grupo4 = document.createElement('div');
     grupo4.className = 'form-group-modern';
     var label4 = document.createElement('label');
@@ -705,7 +705,7 @@ function addIngEdit(){
     input4.placeholder = 'Ex: 200 g';
     grupo4.appendChild(label4);
     grupo4.appendChild(input4);
-    
+
     var grupo5 = document.createElement('div');
     grupo5.className = 'form-group-modern form-group-action';
     var btn5 = document.createElement('button');
@@ -718,7 +718,7 @@ function addIngEdit(){
     icon5.className = 'bi bi-trash';
     btn5.appendChild(icon5);
     grupo5.appendChild(btn5);
-    
+
     wrap.appendChild(grupo1);
     wrap.appendChild(grupo2);
     wrap.appendChild(grupo3);
@@ -1873,12 +1873,12 @@ function updateCusto(el){
     .receitas-main-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .receita-details-section {
         position: static;
         max-height: none;
     }
-    
+
     .ing-row-modern {
         grid-template-columns: 1fr;
     }

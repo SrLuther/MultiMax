@@ -4,9 +4,17 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Flask-198754?style=for-the-badge&logo=flask&logoColor=white&labelColor=1a1d1f&color=198754" alt="Flask Badge"/>
-  <img src="https://img.shields.io/badge/Python-3.10+-1a1d1f?style=for-the-badge&logo=python&logoColor=yellow&labelColor=198754&color=1a1d1f" alt="Python Badge"/>
+  <img src="https://img.shields.io/badge/Python-3.11+-1a1d1f?style=for-the-badge&logo=python&logoColor=yellow&labelColor=198754&color=1a1d1f" alt="Python Badge"/>
   <img src="https://img.shields.io/badge/Status-Estável-198754?style=for-the-badge&labelColor=1a1d1f&color=198754" alt="Status Badge"/>
   <img src="https://img.shields.io/badge/Licença-MIT-1a1d1f?style=for-the-badge&labelColor=198754&color=1a1d1f" alt="License Badge"/>
+</p>
+
+<p align="center">
+  <img src="https://github.com/SrLuther/MultiMax/workflows/CI/badge.svg" alt="CI Status"/>
+  <img src="https://img.shields.io/codecov/c/github/SrLuther/MultiMax?label=coverage" alt="Code Coverage"/>
+  <img src="https://img.shields.io/badge/code%20style-black-000000.svg" alt="Code Style: Black"/>
+  <img src="https://img.shields.io/badge/security-bandit-yellow.svg" alt="Security: Bandit"/>
+  <img src="https://img.shields.io/badge/types-mypy-blue.svg" alt="Type Checking: mypy"/>
 </p>
 
 # MultiMax — Plataforma Integrada de Gestão Operacional
@@ -191,3 +199,42 @@ MIT License — veja o arquivo LICENSE ou a seção de Licença neste README.
 - Logs de requisição com mascaramento de campos sensíveis.
 - Injeção de versão por contexto (tag/commit/APP_VERSION).
 - PWA com manifest e atalhos para áreas-chave.
+
+## 11. Qualidade e Segurança
+
+O projeto MultiMax implementa uma suíte completa de ferramentas de qualidade e segurança:
+
+### Ferramentas de Qualidade
+
+- **Black**: Formatação automática de código Python
+- **isort**: Organização de imports
+- **flake8**: Linting e verificação de estilo
+- **mypy**: Verificação estática de tipos
+- **pytest**: Framework de testes com cobertura mínima de 80%
+- **pytest-cov**: Geração de relatórios de cobertura (HTML, XML, terminal)
+
+### Ferramentas de Segurança
+
+- **bandit**: Análise de segurança do código Python
+- **safety**: Verificação de vulnerabilidades em dependências
+- **ESLint/Prettier**: Análise de código JavaScript/TypeScript
+- **JavaScript Safety Check**: Verificação customizada de padrões inseguros em templates
+
+### CI/CD
+
+O pipeline CI/CD (`.github/workflows/ci.yml`) executa automaticamente:
+
+1. Pre-commit hooks (formatação, linting)
+2. Verificação de tipos (mypy)
+3. Testes com cobertura (pytest)
+4. Análise de segurança (bandit, safety)
+5. Verificação de JavaScript (ESLint, safety check)
+
+### Testes
+
+Consulte `tests/README.md` para informações detalhadas sobre como executar e adicionar testes.
+
+### Cobertura
+
+- Meta mínima: **80%**
+- Relatórios gerados em: terminal, XML (CI/CD), HTML (visualização)

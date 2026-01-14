@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, nova-versao-deploy ]
+  pull_request:
+    branches: [ main, master, nova-versao-deploy ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ['3.11']
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libcairo2-dev libpango1.0-dev libgdk-pixbuf2.0-dev libffi-dev shared-mime-info
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+
+    - name: Install Node.js for ESLint/Prettier
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install ESLint and Prettier
+      run: |
+        npm install -g eslint prettier || echo "ESLint/Prettier installation skipped"
+
+    - name: Install pre-commit hooks
+      run: |
+        pre-commit install
+
+    - name: Run pre-commit on all files
+      run: |
+        pre-commit run --all-files || true
+
+    - name: Run flake8
+      run: |
+        flake8 multimax/ cron/ deploy_agent.py app.py --max-line-length=120 --extend-ignore=E203,W503,D100,D103,D400,D401,D205 --exclude=__pycache__,migrations,instance || true
+
+    - name: Run black check
+      run: |
+        black --check --line-length=120 multimax/ cron/ deploy_agent.py app.py || true
+
+    - name: Run isort check
+      run: |
+        isort --check-only --profile black --line-length=120 multimax/ cron/ deploy_agent.py app.py || true
+
+    - name: Run mypy type checking
+      run: |
+        mypy multimax/ --config-file=.mypy.ini || echo "mypy check completed with warnings"
+
+    - name: Run bandit security check
+      run: |
+        bandit -r multimax/ -f json -o bandit-report.json --skip B101,B601 || true
+        bandit -r multimax/ -ll --skip B101,B601
+
+    - name: Check for security vulnerabilities
+      run: |
+        safety check --json || true
+        safety check || true
+
+    - name: Run JavaScript safety check
+      run: |
+        python tools/js_safety_check.py || echo "JavaScript safety check completed"
+
+    - name: Run ESLint on JavaScript files
+      run: |
+        find static/js -name "*.js" -not -name "*.min.js" -exec eslint {} \; || echo "ESLint check completed"
+
+    - name: Run tests with pytest and coverage
+      run: |
+        pytest tests/ -v --cov=multimax --cov-report=xml --cov-report=html --cov-report=term-missing --cov-fail-under=80
+      continue-on-error: true
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      if: always()
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+    - name: Upload HTML coverage report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: coverage-html
+        path: htmlcov/
+
+    - name: Upload bandit report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: bandit-report
+        path: bandit-report.json

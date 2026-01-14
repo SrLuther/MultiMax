@@ -34,7 +34,7 @@
                 <span>| Controle inteligente</span>
             </div>
         </div>
-        
+
         <nav class="mm-sidebar-nav" aria-label="Navegação do sistema">
             <div class="mm-nav-section">
                 <div class="mm-nav-section-title">Principal</div>
@@ -47,7 +47,7 @@
                     <span class="mm-nav-text">Estoque</span>
                 </a>
             </div>
-            
+
             {% if current_user.is_authenticated and current_user.nivel in ('visualizador','operador','admin','DEV') %}
             <div class="mm-nav-section">
                 <div class="mm-nav-section-title">Operações</div>
@@ -72,10 +72,10 @@
                     <span class="mm-nav-text">Ciclos</span>
                 </a>
             </div>
-            
+
             {% endif %}
-            
-            
+
+
             {% if current_user.is_authenticated and current_user.nivel in ('admin', 'DEV') %}
             <div class="mm-nav-section">
                 <div class="mm-nav-section-title">Administração</div>
@@ -92,7 +92,7 @@
             </div>
             {% endif %}
         </nav>
-        
+
         <div class="mm-sidebar-footer">
             {% if current_user.is_authenticated %}
             <a href="{{ url_for('usuarios.perfil') }}" class="mm-nav-item">
@@ -124,7 +124,7 @@
         </div>
         <div class="mm-topbar-right">
             {% if current_user.is_authenticated %}
-            
+
             <div class="mm-quick-actions d-none d-lg-flex" role="toolbar" aria-label="Ações rápidas">
                 <a href="{{ url_for('estoque.lista_produtos') }}" class="mm-quick-action" title="Gerenciar produtos" aria-label="Gerenciar produtos">
                     <i class="bi bi-plus-circle" aria-hidden="true"></i>
@@ -138,15 +138,15 @@
                 </a>
                 {% endif %}
             </div>
-            
+
             <div class="mm-topbar-divider d-none d-lg-block" aria-hidden="true"></div>
-            
+
             <button class="mm-search-trigger" onclick="openSearch()" title="Buscar (Ctrl+K)" aria-label="Abrir busca global, atalho Ctrl+K">
                 <i class="bi bi-search" aria-hidden="true"></i>
                 <span class="d-none d-md-inline">Buscar</span>
                 <kbd class="d-none d-lg-inline" aria-hidden="true">Ctrl+K</kbd>
             </button>
-            
+
             <div class="mm-notifications-wrapper">
                 <button class="mm-notifications-btn" onclick="toggleNotifications()" id="notificationsBtn" aria-label="Notificações" aria-haspopup="true" aria-expanded="false">
                     <i class="bi bi-bell" aria-hidden="true"></i>
@@ -169,7 +169,7 @@
                 </div>
             </div>
             {% endif %}
-            
+
             <button class="mm-theme-toggle" onclick="toggleTheme()" aria-label="Alternar tema claro/escuro" aria-pressed="false">
                 <i class="bi bi-moon" id="themeIcon" aria-hidden="true"></i>
             </button>
@@ -181,7 +181,7 @@
             {% endif %}
         </div>
     </header>
-    
+
     <div class="mm-install-banner" id="installBanner" role="alert" style="display: none;">
         <div class="mm-install-content">
             <i class="bi bi-download" aria-hidden="true"></i>
@@ -194,7 +194,7 @@
             </button>
         </div>
     </div>
-    
+
     <div class="mm-search-modal" id="searchModal" onclick="closeSearchOnOverlay(event)" role="dialog" aria-modal="true" aria-label="Busca global">
         <div class="mm-search-container">
             <div class="mm-search-input-wrapper">
@@ -227,7 +227,7 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
-        
+
         {% block content %}{% endblock %}
     </main>
 
@@ -238,13 +238,13 @@
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
-            
+
             if (window.innerWidth <= 768) {
                 // Mobile: toggle sidebar e overlay
                 sidebar.classList.toggle('active');
                 sidebar.classList.toggle('mm-sidebar-open');
                 overlay.classList.toggle('active');
-                
+
                 // Prevenir scroll do body quando sidebar está aberto
                 if (sidebar.classList.contains('active')) {
                     document.body.style.overflow = 'hidden';
@@ -256,7 +256,7 @@
                 sidebar.classList.toggle('collapsed');
             }
         }
-        
+
         function closeSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
@@ -264,7 +264,7 @@
             overlay.classList.remove('active');
             document.body.style.overflow = '';
         }
-        
+
         // Fechar sidebar ao clicar em um link (mobile)
         if (window.innerWidth <= 768) {
             document.addEventListener('DOMContentLoaded', function() {
@@ -276,19 +276,19 @@
                 });
             });
         }
-        
+
         // Fechar sidebar ao redimensionar para desktop
         window.addEventListener('resize', function() {
             if (window.innerWidth > 768) {
                 closeSidebar();
             }
         });
-        
+
         function toggleTheme() {
             const html = document.documentElement;
             const icon = document.getElementById('themeIcon');
             const currentTheme = html.getAttribute('data-theme');
-            
+
             if (currentTheme === 'light') {
                 html.setAttribute('data-theme', 'dark');
                 icon.classList.remove('bi-moon');
@@ -301,19 +301,19 @@
                 localStorage.setItem('theme', 'light');
             }
         }
-        
+
         document.addEventListener('DOMContentLoaded', function() {
             const savedTheme = localStorage.getItem('theme') || 'light';
             const html = document.documentElement;
             const icon = document.getElementById('themeIcon');
-            
+
             html.setAttribute('data-theme', savedTheme);
             if (savedTheme === 'dark') {
                 icon.classList.remove('bi-moon');
                 icon.classList.add('bi-sun');
             }
         });
-        
+
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
                 navigator.serviceWorker.register('/static/service-worker.js')
@@ -325,19 +325,19 @@
                     });
             });
         }
-        
+
         let notificationsOpen = false;
         let searchOpen = false;
         let searchResults = [];
         let selectedIndex = -1;
-        
+
         function escapeHtml(text) {
             if (text == null) return '';
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
-        
+
         function toggleNotifications() {
             const dropdown = document.getElementById('notificationsDropdown');
             notificationsOpen = !notificationsOpen;
@@ -346,18 +346,18 @@
                 loadNotifications();
             }
         }
-        
+
         async function loadNotifications() {
             try {
                 const res = await fetch('/api/v1/notifications');
                 const data = await res.json();
                 const list = document.getElementById('notificationsList');
                 const badge = document.getElementById('notificationsBadge');
-                
+
                 if (data.count > 0) {
                     badge.textContent = data.count > 9 ? '9+' : data.count;
                     badge.style.display = 'flex';
-                    
+
                     list.textContent = '';
                     data.notifications.forEach(n => {
                         const link = document.createElement('a');
@@ -369,27 +369,27 @@
                             e.preventDefault();
                             markRead(n.type, n.id);
                         });
-                        
+
                         const iconDiv = document.createElement('div');
                         iconDiv.className = 'mm-notification-icon mm-notification-' + escapeHtml(n.color);
                         const icon = document.createElement('i');
                         icon.className = 'bi bi-' + escapeHtml(n.icon);
                         iconDiv.appendChild(icon);
-                        
+
                         const contentDiv = document.createElement('div');
                         contentDiv.className = 'mm-notification-content';
-                        
+
                         const titleDiv = document.createElement('div');
                         titleDiv.className = 'mm-notification-title';
                         titleDiv.textContent = n.title || '';
-                        
+
                         const subtitleDiv = document.createElement('div');
                         subtitleDiv.className = 'mm-notification-subtitle';
                         subtitleDiv.textContent = n.subtitle || '';
-                        
+
                         contentDiv.appendChild(titleDiv);
                         contentDiv.appendChild(subtitleDiv);
-                        
+
                         link.appendChild(iconDiv);
                         link.appendChild(contentDiv);
                         list.appendChild(link);
@@ -412,7 +412,7 @@
                 console.error('Erro ao carregar notificações:', e);
             }
         }
-        
+
         async function markRead(type, id) {
             if (!type || !id) return;
             try {
@@ -423,7 +423,7 @@
                 });
             } catch (e) {}
         }
-        
+
         function markAllRead() {
             const badge = document.getElementById('notificationsBadge');
             badge.style.display = 'none';
@@ -440,14 +440,14 @@
             emptyDiv.appendChild(span);
             list.appendChild(emptyDiv);
         }
-        
+
         function openSearch() {
             searchOpen = true;
             document.getElementById('searchModal').classList.add('open');
             document.getElementById('searchInput').focus();
             document.body.style.overflow = 'hidden';
         }
-        
+
         function closeSearch() {
             searchOpen = false;
             document.getElementById('searchModal').classList.remove('open');
@@ -455,11 +455,11 @@
             document.body.style.overflow = '';
             selectedIndex = -1;
         }
-        
+
         function closeSearchOnOverlay(e) {
             if (e.target.id === 'searchModal') closeSearch();
         }
-        
+
         async function performSearch(query) {
             const resultsContainer = document.getElementById('searchResults');
             if (query.length < 2) {
@@ -478,13 +478,13 @@
                 searchResults = [];
                 return;
             }
-            
+
             try {
                 const searchUrl = '/api/v1/search?q=' + encodeURIComponent(query);
                 const res = await fetch(searchUrl);
                 const data = await res.json();
                 searchResults = data.results;
-                
+
                 resultsContainer.textContent = '';
                 if (searchResults.length === 0) {
                     const emptyDiv = document.createElement('div');
@@ -507,31 +507,31 @@
                             link.classList.add('selected');
                         }
                         link.setAttribute('data-index', String(i));
-                        
+
                         const iconDiv = document.createElement('div');
                         iconDiv.className = 'mm-search-result-icon';
                         const icon = document.createElement('i');
                         icon.className = 'bi bi-' + escapeHtml(r.icon);
                         iconDiv.appendChild(icon);
-                        
+
                         const contentDiv = document.createElement('div');
                         contentDiv.className = 'mm-search-result-content';
-                        
+
                         const titleDiv = document.createElement('div');
                         titleDiv.className = 'mm-search-result-title';
                         titleDiv.textContent = r.title || '';
-                        
+
                         const subtitleDiv = document.createElement('div');
                         subtitleDiv.className = 'mm-search-result-subtitle';
                         subtitleDiv.textContent = r.subtitle || '';
-                        
+
                         contentDiv.appendChild(titleDiv);
                         contentDiv.appendChild(subtitleDiv);
-                        
+
                         const typeSpan = document.createElement('span');
                         typeSpan.className = 'mm-search-result-type';
                         typeSpan.textContent = r.type || '';
-                        
+
                         link.appendChild(iconDiv);
                         link.appendChild(contentDiv);
                         link.appendChild(typeSpan);
@@ -542,17 +542,17 @@
                 console.error('Erro na busca:', e);
             }
         }
-        
+
         document.addEventListener('keydown', function(e) {
             if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                 e.preventDefault();
                 openSearch();
             }
-            
+
             if (e.key === 'Escape' && searchOpen) {
                 closeSearch();
             }
-            
+
             if (searchOpen && searchResults.length > 0) {
                 if (e.key === 'ArrowDown') {
                     e.preventDefault();
@@ -568,24 +568,24 @@
                 }
             }
         });
-        
+
         function updateSearchSelection() {
             document.querySelectorAll('.mm-search-result').forEach((el, i) => {
                 el.classList.toggle('selected', i === selectedIndex);
             });
         }
-        
+
         document.getElementById('searchInput')?.addEventListener('input', function(e) {
             performSearch(e.target.value);
         });
-        
+
         document.addEventListener('click', function(e) {
             if (notificationsOpen && !e.target.closest('.mm-notifications-wrapper')) {
                 notificationsOpen = false;
                 document.getElementById('notificationsDropdown').classList.remove('open');
             }
         });
-        
+
         if (document.getElementById('notificationsBadge')) {
             loadNotifications();
             setInterval(loadNotifications, 60000);
@@ -650,7 +650,7 @@
         });
     });
     </script>
-    
+
     <style>
     .mm-search-trigger {
         display: flex;
@@ -677,7 +677,7 @@
         font-size: 0.7rem;
         color: var(--mm-text-muted);
     }
-    
+
     .mm-notifications-wrapper {
         position: relative;
     }
@@ -795,7 +795,7 @@
         text-decoration: none;
         font-size: var(--mm-text-sm);
     }
-    
+
     .mm-search-modal {
         position: fixed;
         inset: 0;
@@ -910,12 +910,12 @@
         border-radius: 3px;
         margin-right: 4px;
     }
-    
+
     @media (max-width: 768px) {
         .mm-notifications-dropdown { width: 280px; right: -60px; }
         .mm-search-container { margin: 0 var(--mm-space-2); }
     }
-    
+
     .mm-skip-link {
         position: absolute;
         top: -100px;
@@ -934,7 +934,7 @@
         outline: 2px solid var(--mm-primary-dark);
         outline-offset: 2px;
     }
-    
+
     .mm-quick-actions {
         display: flex;
         align-items: center;
@@ -963,14 +963,14 @@
         outline-offset: 2px;
     }
     .mm-quick-action i { font-size: 1.1rem; }
-    
+
     .mm-topbar-divider {
         width: 1px;
         height: 24px;
         background: var(--mm-border);
         margin: 0 var(--mm-space-2);
     }
-    
+
     .mm-install-banner {
         position: fixed;
         bottom: 0;
@@ -1002,32 +1002,32 @@
         align-items: center;
         gap: var(--mm-space-2);
     }
-    
+
     @media (max-width: 768px) {
         .mm-install-banner {
             flex-direction: column;
             text-align: center;
         }
     }
-    
+
     *:focus-visible {
         outline: 2px solid var(--mm-primary);
         outline-offset: 2px;
     }
     </style>
-    
+
     <script>
         let deferredPrompt = null;
-        
+
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            
+
             if (!localStorage.getItem('pwaInstallDismissed')) {
                 document.getElementById('installBanner').style.display = 'flex';
             }
         });
-        
+
         function installPWA() {
             if (deferredPrompt) {
                 deferredPrompt.prompt();
@@ -1040,17 +1040,17 @@
                 });
             }
         }
-        
+
         function dismissInstall() {
             document.getElementById('installBanner').style.display = 'none';
             localStorage.setItem('pwaInstallDismissed', 'true');
         }
-        
+
         window.addEventListener('appinstalled', () => {
             document.getElementById('installBanner').style.display = 'none';
             deferredPrompt = null;
         });
-        
+
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistration().then((reg) => {
                 if (reg) {

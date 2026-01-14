@@ -93,7 +93,7 @@
             <form method="get" action="{{ url_for('cronograma.cronograma') }}" class="filters-form-modern">
                 <input type="hidden" name="hpage" value="{{ historico_pagination.page if historico_pagination else 1 }}">
                 <input type="hidden" name="htipo" value="{{ htipo }}">
-                
+
                 <div class="tipo-selector-modern">
                     <label class="tipo-option-modern {% if tipo == '' %}selected{% endif %}">
                         <input type="radio" name="tipo" value="" {% if tipo == '' %}checked{% endif %}>
@@ -102,7 +102,7 @@
                             <span>Todos</span>
                         </div>
                     </label>
-                    
+
                     <label class="tipo-option-modern {% if tipo == 'Parcial' %}selected{% endif %}">
                         <input type="radio" name="tipo" value="Parcial" {% if tipo == 'Parcial' %}checked{% endif %}>
                         <div class="tipo-card-modern">
@@ -110,7 +110,7 @@
                             <span>Parcial</span>
                         </div>
                     </label>
-                    
+
                     <label class="tipo-option-modern {% if tipo == 'Geral' %}selected{% endif %}">
                         <input type="radio" name="tipo" value="Geral" {% if tipo == 'Geral' %}checked{% endif %}>
                         <div class="tipo-card-modern">
@@ -118,7 +118,7 @@
                             <span>Geral</span>
                         </div>
                     </label>
-                    
+
                     <label class="tipo-option-modern {% if tipo == 'Mensal' %}selected{% endif %}">
                         <input type="radio" name="tipo" value="Mensal" {% if tipo == 'Mensal' %}checked{% endif %}>
                         <div class="tipo-card-modern">
@@ -126,7 +126,7 @@
                             <span>Mensal</span>
                         </div>
                     </label>
-                    
+
                     <label class="tipo-option-modern {% if tipo == 'Semanal' %}selected{% endif %}">
                         <input type="radio" name="tipo" value="Semanal" {% if tipo == 'Semanal' %}checked{% endif %}>
                         <div class="tipo-card-modern">
@@ -135,7 +135,7 @@
                         </div>
                     </label>
                 </div>
-                
+
                 <button type="submit" class="btn-filter-modern">
                     <i class="bi bi-eye"></i>
                     Filtrar
@@ -391,7 +391,7 @@
             {% if historico_pagination %}
             <div class="pagination-wrapper-modern">
                 <nav class="pagination-modern">
-                    <a href="{{ url_for('cronograma.cronograma', hpage=historico_pagination.prev_num, htipo=htipo, tipo=tipo) }}" 
+                    <a href="{{ url_for('cronograma.cronograma', hpage=historico_pagination.prev_num, htipo=htipo, tipo=tipo) }}"
                        class="pagination-btn {% if not historico_pagination.has_prev %}disabled{% endif %}">
                         <i class="bi bi-chevron-left"></i>
                         <span>Anterior</span>
@@ -402,7 +402,7 @@
                         <span class="pagination-text">de</span>
                         <span class="pagination-total">{{ historico_pagination.pages }}</span>
                     </div>
-                    <a href="{{ url_for('cronograma.cronograma', hpage=historico_pagination.next_num, htipo=htipo, tipo=tipo) }}" 
+                    <a href="{{ url_for('cronograma.cronograma', hpage=historico_pagination.next_num, htipo=htipo, tipo=tipo) }}"
                        class="pagination-btn {% if not historico_pagination.has_next %}disabled{% endif %}">
                         <span>Próxima</span>
                         <i class="bi bi-chevron-right"></i>
@@ -430,14 +430,14 @@
 (function() {
     const tabs = document.querySelectorAll('.tab-modern');
     const contents = document.querySelectorAll('.tab-content-modern');
-    
+
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
             const targetTab = tab.getAttribute('data-tab');
-            
+
             tabs.forEach(t => t.classList.remove('active'));
             contents.forEach(c => c.classList.remove('active'));
-            
+
             tab.classList.add('active');
             const targetContent = document.getElementById('tab-' + targetTab);
             if (targetContent) {
@@ -1394,7 +1394,7 @@
     .concluir-grid-modern {
         grid-template-columns: 1fr 1fr;
     }
-    
+
     .freq-form-grid {
         grid-template-columns: 1fr;
     }
@@ -1484,11 +1484,3 @@
 }
 </style>
 {% endblock %}
-
-
-
-
-
-
-
-

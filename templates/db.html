@@ -103,7 +103,7 @@
                         <span class="db-git-value">nova-versao-deploy</span>
                     </div>
                 </div>
-                
+
                 <div class="db-git-status-grid" id="gitStatusGrid">
                     <div class="db-git-status-item">
                         <div class="db-git-status-label">Versão Local Atual</div>
@@ -126,14 +126,14 @@
                         <small class="db-git-status-hint">Descrição da última alteração</small>
                     </div>
                 </div>
-                
+
                 <div class="db-git-update-status" id="updateStatus">
                     <div class="db-git-update-indicator" id="updateIndicator">
                         <i class="bi bi-hourglass-split"></i>
                         <span>Verificando atualizações...</span>
                     </div>
                 </div>
-                
+
                 <div class="db-git-actions" style="display: flex; flex-direction: column; gap: 0.75rem;">
                     <button type="button" class="db-btn-modern db-btn-primary db-btn-lg" id="applyUpdateBtn" data-action="show-update-confirmation" data-force="false" disabled style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -638,7 +638,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.addEventListener('click', function() {
             const action = this.getAttribute('data-action');
             const force = this.getAttribute('data-force') === 'true';
-            
+
             switch(action) {
                 case 'refresh-git':
                     if (window.dbAdmin && window.dbAdmin.refreshGitStatus) {
@@ -693,12 +693,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-    
+
     // Selects com data-action
     document.querySelectorAll('select[data-action]').forEach(function(select) {
         select.addEventListener('change', function() {
             const action = this.getAttribute('data-action');
-            
+
             switch(action) {
                 case 'update-logs':
                     if (window.dbAdmin && window.dbAdmin.updateLogs) {
@@ -2494,7 +2494,7 @@ document.addEventListener('DOMContentLoaded', function() {
         max-height: 95vh;
         padding: 1.5rem;
     }
-    
+
     .db-git-modal-body {
         max-height: calc(95vh - 180px);
     }

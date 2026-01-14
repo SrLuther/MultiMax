@@ -242,8 +242,8 @@
                         <td>{{ r.created_by or 'Sistema' }}</td>
                         {% if current_user.nivel in ['admin', 'DEV'] %}
                         <td style="text-align: center;">
-                            <form method="post" action="{{ url_for('jornada.unificado_excluir', id=r.id) }}" 
-                                  onsubmit="return confirm('Tem certeza que deseja excluir este registro?');" 
+                            <form method="post" action="{{ url_for('jornada.unificado_excluir', id=r.id) }}"
+                                  onsubmit="return confirm('Tem certeza que deseja excluir este registro?');"
                                   style="display: inline;">
                                 <button type="submit" class="mm-btn mm-btn-sm mm-btn-danger">
                                     <i class="bi bi-trash"></i>
@@ -292,21 +292,21 @@ function updateFormFields() {
     const originField = document.getElementById('originField');
     const amountField = document.getElementById('amountField');
     const rateField = document.getElementById('rateField');
-    
+
     // Esconder todos os campos
     hoursField.style.display = 'none';
     daysField.style.display = 'none';
     originField.style.display = 'none';
     amountField.style.display = 'none';
     rateField.style.display = 'none';
-    
+
     // Remover required de todos
     hoursField.querySelector('input').required = false;
     daysField.querySelector('input').required = false;
     if (amountField.querySelector('input')) {
         amountField.querySelector('input').required = false;
     }
-    
+
     // Mostrar campos relevantes
     if (type === 'horas') {
         hoursField.style.display = 'block';
@@ -330,4 +330,3 @@ function updateFormFields() {
 }
 </script>
 {% endblock %}
-

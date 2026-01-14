@@ -113,12 +113,12 @@
                             <td class="grade-turno-cell {% if dia.is_today %}dia-today{% endif %}">
                                 {% if status %}
                                 {# Prioridade: mostrar status (Folga, Férias, Atestado) sobre o turno #}
-                                <div class="grade-turno-badge grade-turno-status grade-status-{{ status|lower }}" 
+                                <div class="grade-turno-badge grade-turno-status grade-status-{{ status|lower }}"
                                      title="{{ status }}">
                                     {{ status }}
                                 </div>
                                 {% elif turno %}
-                                <div class="grade-turno-badge grade-turno-{{ turno.turno|lower|replace(' ', '-') }} {% if current_user.nivel in ('operador', 'admin', 'DEV') %}grade-turno-editable{% endif %}" 
+                                <div class="grade-turno-badge grade-turno-{{ turno.turno|lower|replace(' ', '-') }} {% if current_user.nivel in ('operador', 'admin', 'DEV') %}grade-turno-editable{% endif %}"
                                      title="{{ turno.observacao or '' }}"
                                      {% if current_user.nivel in ('operador', 'admin', 'DEV') %}
                                      data-turno-id="{{ turno.id }}"
@@ -132,7 +132,7 @@
                                 </div>
                                 {% else %}
                                 {% if current_user.nivel in ('operador', 'admin', 'DEV') %}
-                                <button class="grade-btn-add" 
+                                <button class="grade-btn-add"
                                         data-colab-id="{{ colab.id }}"
                                         data-data="{{ dia.data.isoformat() }}"
                                         title="Adicionar turno">
@@ -233,7 +233,7 @@
                 <i class="bi bi-gear"></i>
                 Configurações de Escala
             </h3>
-            
+
             <!-- Gerar Escala Automática -->
             <div class="config-section">
                 <h4>Gerar Escala Automática</h4>
@@ -457,7 +457,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (modalElement) {
         modalTurno = new bootstrap.Modal(modalElement);
     }
-    
+
     // Event listeners para badges de turno editáveis
     document.querySelectorAll('.grade-turno-editable').forEach(function(badge) {
         badge.addEventListener('click', function() {
@@ -469,7 +469,7 @@ document.addEventListener('DOMContentLoaded', function() {
             editarTurno(turnoId, colabId, data, turno, obs);
         });
     });
-    
+
     // Event listeners para botões de adicionar turno
     document.querySelectorAll('.grade-btn-add').forEach(function(btn) {
         btn.addEventListener('click', function() {

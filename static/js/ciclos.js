@@ -73,34 +73,34 @@
         if (!valor || !valor.trim()) {
             return { valido: false, erro: 'Campo obrigatório' };
         }
-        
+
         valor = valor.trim();
-        
+
         // BLOQUEAR vírgula completamente
         if (valor.includes(',')) {
-            return { 
-                valido: false, 
-                erro: 'Formato inválido. Use apenas números inteiros ou decimais com ponto (ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos.' 
+            return {
+                valido: false,
+                erro: 'Formato inválido. Use apenas números inteiros ou decimais com ponto (ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos.'
             };
         }
-        
+
         // Bloquear formato 2:30
         if (valor.includes(':')) {
-            return { 
-                valido: false, 
-                erro: 'Formato inválido. Use apenas números inteiros ou decimais com ponto (ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos.' 
+            return {
+                valido: false,
+                erro: 'Formato inválido. Use apenas números inteiros ou decimais com ponto (ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos.'
             };
         }
-        
+
         try {
             const num = parseFloat(valor);
             if (isNaN(num)) {
-                return { 
-                    valido: false, 
-                    erro: 'Formato inválido. Use apenas números inteiros ou decimais com ponto (ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos.' 
+                return {
+                    valido: false,
+                    erro: 'Formato inválido. Use apenas números inteiros ou decimais com ponto (ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos.'
                 };
             }
-            
+
             // Validar Folga utilizada: deve ser exatamente -8h
             if (origem && origem === 'Folga utilizada') {
                 if (num !== -8.0) {
@@ -112,21 +112,21 @@
                     return { valido: false, erro: 'Valor não pode ser negativo' };
                 }
             }
-            
+
             // Verificar se é múltiplo de 0.5
             const resto = Math.abs(num) % 0.5;
             if (resto > 0.001 && resto < 0.499) {
-                return { 
-                    valido: false, 
-                    erro: 'Formato inválido. Use apenas números inteiros ou decimais com ponto (ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos.' 
+                return {
+                    valido: false,
+                    erro: 'Formato inválido. Use apenas números inteiros ou decimais com ponto (ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos.'
                 };
             }
-            
+
             return { valido: true, valor: num };
         } catch (e) {
-            return { 
-                valido: false, 
-                erro: 'Formato inválido. Use apenas números inteiros ou decimais com ponto (ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos.' 
+            return {
+                valido: false,
+                erro: 'Formato inválido. Use apenas números inteiros ou decimais com ponto (ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos.'
             };
         }
     }
@@ -138,14 +138,14 @@
         try {
             state.currentCollaboratorId = collaboratorId;
             state.currentCollaboratorName = collaboratorName;
-            
+
             const modalElement = document.getElementById('modalLancamento');
             if (!modalElement) {
                 console.error('Modal de lançamento não encontrado');
                 alert('Erro: Modal de lançamento não encontrado. Verifique se você tem permissão de edição.');
                 return;
             }
-            
+
             document.getElementById('lancamento_collaborator_id').value = collaboratorId;
             document.getElementById('lancamento_colaborador_nome').value = collaboratorName;
             document.getElementById('lancamento_data').value = new Date().toISOString().split('T')[0];
@@ -156,7 +156,7 @@
             document.getElementById('lancamento_horas').classList.remove('is-invalid');
             document.getElementById('lancamento_horas_error').textContent = '';
             document.getElementById('btnSalvarLancamento').disabled = true;
-            
+
             const modal = new bootstrap.Modal(modalElement);
             modal.show();
         } catch (error) {
@@ -173,24 +173,24 @@
             state.currentCollaboratorId = collaboratorId;
             state.currentCollaboratorName = collaboratorName;
             state.currentPage = 1;
-            
+
             const modalElement = document.getElementById('modalHistorico');
             if (!modalElement) {
                 console.error('Modal de histórico não encontrado');
                 alert('Erro: Modal de histórico não encontrado.');
                 return;
             }
-            
+
             document.getElementById('historico_colaborador_nome').textContent = collaboratorName;
             document.getElementById('historico_loading').style.display = 'block';
             document.getElementById('historico_content').style.display = 'none';
             document.getElementById('historico_empty').style.display = 'none';
             document.getElementById('btnAjustarHistorico').style.display = 'none';
             document.getElementById('btnPDFIndividual').style.display = 'none';
-            
+
             const modal = new bootstrap.Modal(modalElement);
             modal.show();
-            
+
             carregarHistorico(collaboratorId, 1);
         } catch (error) {
             console.error('Erro ao abrir modal de histórico:', error);
@@ -209,7 +209,7 @@
         document.getElementById('ajustar_horas').classList.remove('is-invalid');
         document.getElementById('ajustar_horas_error').textContent = '';
         document.getElementById('btnSalvarAjuste').disabled = false;
-        
+
         const modal = new bootstrap.Modal(document.getElementById('modalAjustar'));
         modal.show();
     }
@@ -222,21 +222,21 @@
             .then(response => response.json())
             .then(data => {
                 document.getElementById('historico_loading').style.display = 'none';
-                
+
                 if (!data.ok) {
                     alert('Erro ao carregar histórico: ' + data.error);
                     return;
                 }
-                
+
                 if (data.registros.length === 0) {
                     document.getElementById('historico_empty').style.display = 'block';
                     return;
                 }
-                
+
                 document.getElementById('historico_content').style.display = 'block';
                 document.getElementById('btnAjustarHistorico').style.display = 'inline-block';
                 document.getElementById('btnPDFIndividual').style.display = 'inline-block';
-                
+
                 // Preencher tabela
                 const tbody = document.getElementById('historico_tbody');
                 tbody.innerHTML = '';
@@ -249,7 +249,7 @@
                     if (state.canEdit) {
                         const cellAcoes = row.insertCell(4);
                         cellAcoes.style.textAlign = 'center';
-                        
+
                         // Botão Ajustar
                         const btnAjustar = document.createElement('button');
                         btnAjustar.className = 'btn btn-sm btn-warning me-1';
@@ -259,7 +259,7 @@
                             abrirAjuste(reg.id, reg.horas, reg.descricao);
                         });
                         cellAcoes.appendChild(btnAjustar);
-                        
+
                         // Botão Excluir
                         const btnExcluir = document.createElement('button');
                         btnExcluir.className = 'btn btn-sm btn-danger';
@@ -273,17 +273,17 @@
                         row.insertCell(4).textContent = '';
                     }
                 });
-                
+
                 // Preencher resumo
                 document.getElementById('historico_total_horas').textContent = data.balance.total_horas.toFixed(1) + 'h';
                 document.getElementById('historico_dias_fechados').textContent = data.balance.dias_completos;
                 document.getElementById('historico_horas_restantes').textContent = data.balance.horas_restantes.toFixed(1) + 'h';
                 document.getElementById('historico_valor_aproximado').textContent = 'R$ ' + data.balance.valor_aproximado.toFixed(2);
-                
+
                 // Preencher paginação
                 const pagination = document.getElementById('historico_pagination');
                 pagination.innerHTML = '';
-                
+
                 if (data.pagination.has_prev) {
                     const li = document.createElement('li');
                     li.className = 'page-item';
@@ -298,7 +298,7 @@
                     li.appendChild(a);
                     pagination.appendChild(li);
                 }
-                
+
                 for (let i = 1; i <= data.pagination.pages; i++) {
                     const li = document.createElement('li');
                     li.className = 'page-item' + (i === page ? ' active' : '');
@@ -313,7 +313,7 @@
                     li.appendChild(a);
                     pagination.appendChild(li);
                 }
-                
+
                 if (data.pagination.has_next) {
                     const li = document.createElement('li');
                     li.className = 'page-item';
@@ -343,7 +343,7 @@
         if (!confirm('Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.')) {
             return;
         }
-        
+
         fetch(`${state.urls.excluir}/${cicloId}`, {
             method: 'POST',
             headers: {
@@ -371,22 +371,22 @@
     function abrirModalFechamento() {
         document.getElementById('fechamento_loading').style.display = 'block';
         document.getElementById('fechamento_content').style.display = 'none';
-        
+
         const modal = new bootstrap.Modal(document.getElementById('modalFechamento'));
         modal.show();
-        
+
         fetch(state.urls.resumoFechamento)
             .then(response => response.json())
             .then(data => {
                 document.getElementById('fechamento_loading').style.display = 'none';
-                
+
                 if (!data.ok) {
                     alert('Erro ao carregar resumo: ' + data.error);
                     return;
                 }
-                
+
                 document.getElementById('fechamento_content').style.display = 'block';
-                
+
                 // Preencher avisos
                 if (data.avisos && data.avisos.length > 0) {
                     document.getElementById('fechamento_avisos').style.display = 'block';
@@ -400,7 +400,7 @@
                 } else {
                     document.getElementById('fechamento_avisos').style.display = 'none';
                 }
-                
+
                 // Preencher tabela
                 const tbody = document.getElementById('fechamento_tbody');
                 tbody.innerHTML = '';
@@ -412,7 +412,7 @@
                     row.insertCell(3).textContent = colab.horas_restantes + 'h';
                     row.insertCell(4).textContent = 'R$ ' + colab.valor.toFixed(2);
                 });
-                
+
                 // Preencher totais
                 document.getElementById('fechamento_total_horas').textContent = data.totais.total_horas + 'h';
                 document.getElementById('fechamento_total_dias').textContent = data.totais.total_dias + ' dias';
@@ -436,17 +436,17 @@
         const horas = document.getElementById('lancamento_horas').value;
         const lancamentoHoras = document.getElementById('lancamento_horas');
         const btnSalvarLancamento = document.getElementById('btnSalvarLancamento');
-        
+
         let valido = true;
-        
+
         if (!data || !origem || !horas) {
             valido = false;
         }
-        
+
         if ((origem === 'Horas adicionais' || origem === 'Outro') && !descricao.trim()) {
             valido = false;
         }
-        
+
         const validacaoHoras = validarHoras(horas, origem);
         if (!validacaoHoras.valido) {
             lancamentoHoras.classList.add('is-invalid');
@@ -456,7 +456,7 @@
             lancamentoHoras.classList.remove('is-invalid');
             document.getElementById('lancamento_horas_error').textContent = '';
         }
-        
+
         btnSalvarLancamento.disabled = !valido;
     }
 
@@ -476,7 +476,7 @@
                 abrirHistorico(collaboratorId, collaboratorName);
             });
         });
-        
+
         document.querySelectorAll('.btn-abrir-lancamento').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 const collaboratorId = parseInt(this.getAttribute('data-collaborator-id'));
@@ -484,13 +484,13 @@
                 abrirLancamento(collaboratorId, collaboratorName);
             });
         });
-        
+
         // Event listeners para modal de lançamento
         const lancamentoOrigem = document.getElementById('lancamento_origem');
         const lancamentoDescricaoGroup = document.getElementById('lancamento_descricao_group');
         const lancamentoDescricao = document.getElementById('lancamento_descricao');
         const lancamentoHoras = document.getElementById('lancamento_horas');
-        
+
         if (lancamentoOrigem) {
             lancamentoOrigem.addEventListener('change', function() {
                 if (this.value === 'Horas adicionais' || this.value === 'Outro') {
@@ -504,13 +504,13 @@
                 validarFormLancamento();
             });
         }
-        
+
         if (lancamentoHoras) {
             lancamentoHoras.addEventListener('input', function() {
                 validarFormLancamento();
             });
         }
-        
+
         // Botão Registrar Pagamento
         const btnRegistrarPagamento = document.getElementById('btnRegistrarPagamento');
         if (btnRegistrarPagamento) {
@@ -518,7 +518,7 @@
                 abrirModalFechamento();
             });
         }
-        
+
         // Botão Confirmar Fechamento
         const btnConfirmarFechamento = document.getElementById('btnConfirmarFechamento');
         if (btnConfirmarFechamento) {
@@ -527,19 +527,19 @@
                     const form = document.createElement('form');
                     form.method = 'POST';
                     form.action = state.urls.confirmarFechamento;
-                    
+
                     const observacoes = document.createElement('input');
                     observacoes.type = 'hidden';
                     observacoes.name = 'observacoes';
                     observacoes.value = document.getElementById('fechamento_observacoes').value;
                     form.appendChild(observacoes);
-                    
+
                     document.body.appendChild(form);
                     form.submit();
                 }
             });
         }
-        
+
         // Botão PDF Individual
         const btnPDFIndividual = document.getElementById('btnPDFIndividual');
         if (btnPDFIndividual) {
@@ -547,7 +547,7 @@
                 window.open(`${state.urls.pdfIndividual}/${state.currentCollaboratorId}`, '_blank');
             });
         }
-        
+
         // Botão PDF Geral
         const btnPDFGeral = document.getElementById('btnPDFGeral');
         if (btnPDFGeral) {
@@ -555,7 +555,7 @@
                 window.open(state.urls.pdfGeral, '_blank');
             });
         }
-        
+
         // Validar formulário de ajuste
         const ajustarHoras = document.getElementById('ajustar_horas');
         const btnSalvarAjuste = document.getElementById('btnSalvarAjuste');
@@ -572,7 +572,7 @@
                     btnSalvarAjuste.disabled = true;
                 }
             });
-            
+
             // Form de ajuste
             const formAjustar = document.getElementById('formAjustar');
             if (formAjustar) {
@@ -580,7 +580,7 @@
                     e.preventDefault();
                     const formData = new FormData(this);
                     const cicloId = document.getElementById('ajustar_ciclo_id').value;
-                    
+
                     fetch(`${state.urls.ajustar}/${cicloId}`, {
                         method: 'POST',
                         body: formData

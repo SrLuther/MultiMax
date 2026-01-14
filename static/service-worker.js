@@ -25,7 +25,7 @@ const CACHE_STRATEGIES = {
   cacheFirst: async (request, cacheName) => {
     const cached = await caches.match(request);
     if (cached) return cached;
-    
+
     try {
       const response = await fetch(request);
       if (response.ok) {
@@ -37,15 +37,15 @@ const CACHE_STRATEGIES = {
       return new Response('Offline', { status: 503, statusText: 'Offline' });
     }
   },
-  
+
   networkFirst: async (request, cacheName, timeout = 3000) => {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
-      
+
       const response = await fetch(request, { signal: controller.signal });
       clearTimeout(timeoutId);
-      
+
       if (response.ok) {
         const cache = await caches.open(cacheName);
         cache.put(request, response.clone());
@@ -54,24 +54,24 @@ const CACHE_STRATEGIES = {
     } catch (error) {
       const cached = await caches.match(request);
       if (cached) return cached;
-      
+
       return new Response(JSON.stringify({ error: 'Offline', cached: false }), {
         status: 503,
         headers: { 'Content-Type': 'application/json' }
       });
     }
   },
-  
+
   staleWhileRevalidate: async (request, cacheName) => {
     const cached = await caches.match(request);
-    
+
     const fetchPromise = fetch(request).then(response => {
       if (response.ok) {
         const cache = caches.open(cacheName).then(c => c.put(request, response.clone()));
       }
       return response;
     }).catch(() => cached);
-    
+
     return cached || fetchPromise;
   }
 };
@@ -99,26 +99,26 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
-  
+
   if (request.method !== 'GET') return;
-  
+
   if (url.pathname.startsWith('/static/')) {
     event.respondWith(CACHE_STRATEGIES.cacheFirst(request, STATIC_CACHE));
     return;
   }
-  
+
   if (API_ROUTES.some(route => url.pathname.startsWith(route))) {
     event.respondWith(CACHE_STRATEGIES.networkFirst(request, API_CACHE, 2000));
     return;
   }
-  
+
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request).catch(() => caches.match('/') || new Response('Offline'))
     );
     return;
   }
-  
+
   event.respondWith(CACHE_STRATEGIES.staleWhileRevalidate(request, DYNAMIC_CACHE));
 });
 
@@ -126,7 +126,7 @@ self.addEventListener('message', event => {
   if (event.data === 'skipWaiting') {
     self.skipWaiting();
   }
-  
+
   if (event.data === 'clearCache') {
     caches.keys().then(keys => {
       keys.forEach(key => caches.delete(key));
@@ -146,7 +146,7 @@ self.addEventListener('push', event => {
       url: data.url || '/'
     }
   };
-  
+
   event.waitUntil(
     self.registration.showNotification(title, options)
   );
@@ -154,18 +154,18 @@ self.addEventListener('push', event => {
 
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then(clientList => {
         const url = event.notification.data.url;
-        
+
         for (const client of clientList) {
           if (client.url === url && 'focus' in client) {
             return client.focus();
           }
         }
-        
+
         if (clients.openWindow) {
           return clients.openWindow(url);
         }

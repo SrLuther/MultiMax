@@ -181,7 +181,7 @@
         </div>
         <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Horas acumuladas</small>
     </div>
-    
+
     <div class="mm-card mm-kpi-card">
         <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-success);">
             <i class="bi bi-calendar-check"></i>
@@ -190,8 +190,8 @@
         <div class="mm-kpi-value mm-text-success">{{ balance_data.dias_completos }} dias</div>
         {% if collab %}
         <div class="mm-kpi-action mt-2">
-            <a href="/ciclos/" 
-               class="btn btn-sm btn-outline-primary" 
+            <a href="/ciclos/"
+               class="btn btn-sm btn-outline-primary"
                target="_blank"
                title="Visualizar histórico completo (abre em nova aba)">
                 <i class="bi bi-clock-history"></i>
@@ -201,7 +201,7 @@
         {% endif %}
         <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Conversíveis em R$</small>
     </div>
-    
+
     <div class="mm-card mm-kpi-card">
         <div class="mm-kpi-icon {% if balance_data.horas_restantes >= 0 %}mm-kpi-icon-pos mm-text-warning{% else %}mm-kpi-icon-neg mm-text-danger{% endif %}">
             <i class="bi bi-hourglass-split"></i>
@@ -212,7 +212,7 @@
         </div>
         <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Aguardando próximo ciclo</small>
     </div>
-    
+
     <div class="mm-card mm-kpi-card">
         <div class="mm-kpi-icon" style="background: rgba(139, 92, 246, 0.15); color: #8B5CF6;">
             <i class="bi bi-cash-coin"></i>
@@ -252,7 +252,7 @@
                     {{ collaborator_values.full_days }} dia(s) × R$ {{ "%.2f"|format(day_value) }}
                 </small>
             </div>
-            
+
             <!-- Valor Horas Parciais -->
             <div class="mm-card mm-kpi-card" style="background: white;">
                 <div class="mm-kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning);">
@@ -266,7 +266,7 @@
                     {{ "%.2f"|format(collaborator_values.residual_hours) }}h proporcional
                 </small>
             </div>
-            
+
             <!-- Valor Total Individual -->
             <div class="mm-card mm-kpi-card" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.1)); border: 2px solid var(--mm-success);">
                 <div class="mm-kpi-icon" style="background: rgba(16, 185, 129, 0.2); color: var(--mm-success);">
@@ -280,7 +280,7 @@
                     Dias completos + Horas parciais
                 </small>
             </div>
-            
+
             <!-- Valor por Dia -->
             <div class="mm-card mm-kpi-card" style="background: white;">
                 <div class="mm-kpi-icon" style="background: rgba(139, 92, 246, 0.15); color: #8B5CF6;">
@@ -295,7 +295,7 @@
                 </small>
             </div>
         </div>
-        
+
         {% if day_value == 0 %}
         <div class="mm-info-box mm-mt-4" style="background: rgba(245, 158, 11, 0.1); border-left: 3px solid var(--mm-warning);">
             <i class="bi bi-exclamation-triangle mm-text-warning"></i>
@@ -417,7 +417,7 @@
                     <i class="bi bi-key"></i> Alterar Senha
                 </button>
             </div>
-            
+
             <div id="tab-dados" class="mm-modal-tab-content active">
                 <form method="post" action="{{ url_for('usuarios.perfil') }}">
                     <div class="mm-form-group mm-mb-4">
@@ -439,7 +439,7 @@
                     </div>
                 </form>
             </div>
-            
+
             <div id="tab-senha" class="mm-modal-tab-content">
                 <form method="post" action="{{ url_for('usuarios.perfil_senha') }}">
                     <div class="mm-form-group mm-mb-4">
@@ -799,7 +799,7 @@
     .mm-grid-cols-2 {
         grid-template-columns: 1fr;
     }
-    
+
     .mm-grid-cols-4 {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -833,7 +833,7 @@ function closeEditModal(event) {
 function switchTab(tabName) {
     document.querySelectorAll('.mm-modal-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.mm-modal-tab-content').forEach(c => c.classList.remove('active'));
-    
+
     event.target.closest('.mm-modal-tab').classList.add('active');
     document.getElementById('tab-' + tabName).classList.add('active');
 }
@@ -845,13 +845,13 @@ document.addEventListener('keydown', function(e) {
 (function() {
     const countdown = document.getElementById('statusCountdown');
     if (!countdown) return;
-    
+
     const endTimestamp = parseInt(countdown.dataset.end) * 1000;
-    
+
     function updateCountdown() {
         const now = Date.now();
         const diff = endTimestamp - now;
-        
+
         if (diff <= 0) {
             document.getElementById('countDays').textContent = '0';
             document.getElementById('countHours').textContent = '0';
@@ -859,18 +859,18 @@ document.addEventListener('keydown', function(e) {
             document.getElementById('countSeconds').textContent = '0';
             return;
         }
-        
+
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
         const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        
+
         document.getElementById('countDays').textContent = days;
         document.getElementById('countHours').textContent = hours.toString().padStart(2, '0');
         document.getElementById('countMinutes').textContent = minutes.toString().padStart(2, '0');
         document.getElementById('countSeconds').textContent = seconds.toString().padStart(2, '0');
     }
-    
+
     updateCountdown();
     setInterval(updateCountdown, 1000);
 })();

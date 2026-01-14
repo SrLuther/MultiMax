@@ -1,13 +1,22 @@
 import os
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
+
 from .. import db
-from ..models import EventoDoDia, NotificacaoPersonalizada, NotificacaoDiaria
+from ..models import EventoDoDia, NotificacaoDiaria, NotificacaoPersonalizada
+
 
 def _enabled() -> bool:
-    return (os.getenv('NOTIFICACOES_ENABLED', 'false') or 'false').lower() == 'true'
+    return (os.getenv("NOTIFICACOES_ENABLED", "false") or "false").lower() == "true"
 
-def registrar_evento(tipo: str, produto: str | None = None, quantidade: int | None = None, limite: int | None = None, descricao: str | None = None):
+
+def registrar_evento(
+    tipo: str,
+    produto: str | None = None,
+    quantidade: int | None = None,
+    limite: int | None = None,
+    descricao: str | None = None,
+):
     if not _enabled():
         return
     e = EventoDoDia()
@@ -20,19 +29,26 @@ def registrar_evento(tipo: str, produto: str | None = None, quantidade: int | No
     db.session.add(e)
     db.session.commit()
 
+
 def _coletar_eventos(d: date):
     if not _enabled():
         return []
     return EventoDoDia.query.filter_by(data=d).order_by(EventoDoDia.id.asc()).all()
 
+
 def _coletar_personalizadas_pendentes():
     if not _enabled():
         return []
-    return NotificacaoPersonalizada.query.filter_by(enviada=False).order_by(NotificacaoPersonalizada.data_criacao.asc()).all()
+    return (
+        NotificacaoPersonalizada.query.filter_by(enviada=False)
+        .order_by(NotificacaoPersonalizada.data_criacao.asc())
+        .all()
+    )
+
 
 def gerar_relatorio(d: date | None = None):
     if not _enabled():
-        return ''
+        return ""
     if not d:
         d = date.today()
     eventos = _coletar_eventos(d)
@@ -56,24 +72,25 @@ def gerar_relatorio(d: date | None = None):
             linhas.append("• " + base)
         partes.append("Eventos do dia:\n" + "\n".join(linhas))
     if msgs:
-        linhas_m = ["• " + (m.mensagem or '').strip() for m in msgs if (m.mensagem or '').strip()]
+        linhas_m = ["• " + (m.mensagem or "").strip() for m in msgs if (m.mensagem or "").strip()]
         if linhas_m:
             partes.append("Avisos:\n" + "\n".join(linhas_m))
     if not partes:
-        return ''
+        return ""
     cab = f"Relatório diário {d.strftime('%d/%m/%Y')}"
     return cab + "\n\n" + "\n\n".join(partes)
 
-def enviar_relatorio_diario(tipo: str = 'automatico', limpar_personalizadas: bool = False) -> tuple[bool, str]:
+
+def enviar_relatorio_diario(tipo: str = "automatico", limpar_personalizadas: bool = False) -> tuple[bool, str]:
     if not _enabled():
-        return False, ''
+        return False, ""
     hoje = date.today()
     texto = gerar_relatorio(hoje)
     if not texto:
-        return False, ''
+        return False, ""
     n = NotificacaoDiaria()
     n.data = hoje
-    n.hora = datetime.now(ZoneInfo('America/Sao_Paulo')).strftime('%H:%M')
+    n.hora = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%H:%M")
     n.tipo = tipo
     n.conteudo = texto
     n.enviado = True
@@ -85,6 +102,7 @@ def enviar_relatorio_diario(tipo: str = 'automatico', limpar_personalizadas: boo
     db.session.commit()
     return True, texto
 
+
 def criar_mensagem_personalizada(mensagem: str, reenviar_20h: bool = True):
     if not _enabled():
         return None
@@ -94,5 +112,5 @@ def criar_mensagem_personalizada(mensagem: str, reenviar_20h: bool = True):
     msg.enviada = False
     db.session.add(msg)
     db.session.commit()
-    registrar_evento('aviso', descricao=mensagem)
+    registrar_evento("aviso", descricao=mensagem)
     return msg

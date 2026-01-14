@@ -117,7 +117,7 @@
                 Produtos em Estoque
             </h2>
         </div>
-        
+
         {% if produtos_pag and produtos_pag.items %}
         <div class="products-grid">
             {% for p in produtos_pag.items %}
@@ -177,7 +177,7 @@
         <!-- Paginação -->
         <div class="pagination-wrapper">
             <nav class="pagination-modern">
-                <a href="{{ url_for('estoque.index', ppage=produtos_pag.prev_num, busca=busca, cat=cat) }}" 
+                <a href="{{ url_for('estoque.index', ppage=produtos_pag.prev_num, busca=busca, cat=cat) }}"
                    class="pagination-btn {% if not produtos_pag.has_prev %}disabled{% endif %}">
                     <i class="bi bi-chevron-left"></i>
                     <span>Anterior</span>
@@ -188,7 +188,7 @@
                     <span class="pagination-text">de</span>
                     <span class="pagination-total">{{ produtos_pag.pages }}</span>
                 </div>
-                <a href="{{ url_for('estoque.index', ppage=produtos_pag.next_num, busca=busca, cat=cat) }}" 
+                <a href="{{ url_for('estoque.index', ppage=produtos_pag.next_num, busca=busca, cat=cat) }}"
                    class="pagination-btn {% if not produtos_pag.has_next %}disabled{% endif %}">
                     <span>Próxima</span>
                     <i class="bi bi-chevron-right"></i>
@@ -218,7 +218,7 @@
                 Histórico de Movimentações
             </h2>
         </div>
-        
+
         {% if historico and historico.items %}
         <div class="history-card">
             <div class="history-table-wrapper">
@@ -273,7 +273,7 @@
             <!-- Paginação do Histórico -->
             <div class="pagination-wrapper">
                 <nav class="pagination-modern">
-                    <a href="{{ url_for('estoque.index', page=historico.prev_num, busca=busca, cat=cat, ppage=produtos_pag.page if produtos_pag else 1) }}" 
+                    <a href="{{ url_for('estoque.index', page=historico.prev_num, busca=busca, cat=cat, ppage=produtos_pag.page if produtos_pag else 1) }}"
                        class="pagination-btn {% if not historico.has_prev %}disabled{% endif %}">
                         <i class="bi bi-chevron-left"></i>
                         <span>Anterior</span>
@@ -284,7 +284,7 @@
                         <span class="pagination-text">de</span>
                         <span class="pagination-total">{{ historico.pages }}</span>
                     </div>
-                    <a href="{{ url_for('estoque.index', page=historico.next_num, busca=busca, cat=cat, ppage=produtos_pag.page if produtos_pag else 1) }}" 
+                    <a href="{{ url_for('estoque.index', page=historico.next_num, busca=busca, cat=cat, ppage=produtos_pag.page if produtos_pag else 1) }}"
                        class="pagination-btn {% if not historico.has_next %}disabled{% endif %}">
                         <span>Próxima</span>
                         <i class="bi bi-chevron-right"></i>
@@ -996,7 +996,7 @@
     .filters-form {
         grid-template-columns: 1fr;
     }
-    
+
     .products-grid {
         grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     }

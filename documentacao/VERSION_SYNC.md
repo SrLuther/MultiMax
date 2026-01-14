@@ -45,4 +45,3 @@ Após atualizar a versão em todos os arquivos e fazer commit:
 3. A tag aparecerá no GitHub e poderá ser usada para criar releases
 
 **IMPORTANTE**: Sempre criar a tag com a mesma versão atualizada nos arquivos!
-

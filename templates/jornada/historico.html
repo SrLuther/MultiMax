@@ -94,7 +94,7 @@
                             <tr>
                                 <td>{{ record.date.strftime('%d/%m/%Y') }}</td>
                                 <td>
-                                    <span class="badge 
+                                    <span class="badge
                                         {% if record.record_type == 'horas' %}bg-info
                                         {% elif record.record_type == 'folga_adicional' %}bg-success
                                         {% elif record.record_type == 'folga_usada' %}bg-warning
@@ -186,4 +186,3 @@
     }
 </style>
 {% endblock %}
-

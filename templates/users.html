@@ -5,7 +5,7 @@
         <h3 class="mb-0">Gerenciar Usuários</h3>
         <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalNovoUsuario">Novo Usuário</button>
     </div>
-    
+
     <div class="table-responsive-sm">
     <table class="table table-hover align-middle">
         <thead class="table-dark">
@@ -42,7 +42,7 @@
                         <form method="post" action="{{ url_for('usuarios.reset_password', user_id=u.id) }}" class="d-inline">
                             <button type="submit" class="btn btn-outline-warning btn-sm">Redefinir senha</button>
                         </form>
-                        
+
                         <!-- Exclusão direta com confirmação (não permite excluir a si mesmo) -->
                         {% if u.id != current_user.id %}
                         <form method="post" action="{{ url_for('usuarios.excluir_user', user_id=u.id) }}" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir o usuário {{ u.name }} ({{ u.username }})? Esta ação é irreversível.')">

@@ -15,7 +15,7 @@
         if (!canvas || !chartData) return;
 
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        
+
         // eslint-disable-next-line no-undef
         new Chart(canvas, {
             type: 'bar',

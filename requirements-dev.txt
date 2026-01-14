@@ -1,0 +1,32 @@
+# Development dependencies for MultiMax
+# Install with: pip install -r requirements-dev.txt
+
+# Pre-commit hooks
+pre-commit>=3.6.0
+
+# Code formatting
+black>=23.12.1
+isort>=5.13.2
+
+# Linting
+flake8>=7.0.0
+flake8-docstrings>=1.7.0
+
+# Security
+safety>=2.3.5
+bandit>=1.7.6
+
+# Testing
+pytest>=7.4.4
+pytest-cov>=4.1.0
+pytest-mock>=3.12.0
+
+# Type checking
+mypy>=1.7.0
+types-requests>=2.31.0
+types-flask>=1.1.0
+types-flask-login>=0.6.0
+
+# JavaScript/TypeScript analysis
+eslint>=8.0.0
+prettier>=3.0.0

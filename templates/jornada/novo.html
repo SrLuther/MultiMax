@@ -103,13 +103,13 @@ function updateFormFields() {
     const daysField = document.getElementById('daysField');
     const amountField = document.getElementById('amountField');
     const rateField = document.getElementById('rateField');
-    
+
     // Esconder todos
     hoursField.style.display = 'none';
     daysField.style.display = 'none';
     amountField.style.display = 'none';
     rateField.style.display = 'none';
-    
+
     // Mostrar campos relevantes
     if (tipo === 'horas') {
         hoursField.style.display = 'block';
@@ -123,4 +123,3 @@ function updateFormFields() {
 }
 </script>
 {% endblock %}
-
