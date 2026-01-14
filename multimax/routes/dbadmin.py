@@ -68,7 +68,9 @@ def _can_write_to_git(git_dir):
     if skip_write_test:
         # Em Docker, assumir que pode estar somente leitura
         # Tentar operações Git mesmo assim (algumas funcionam em modo leitura)
-        current_app.logger.info(f"Ambiente Docker detectado. Pulando teste de escrita em {git_dir}")
+        current_app.logger.info(
+            f"Ambiente Docker detectado. Pulando teste de escrita em {git_dir}"
+        )
         return (False, None, is_docker)
 
     try:
