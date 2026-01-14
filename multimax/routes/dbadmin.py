@@ -2477,7 +2477,7 @@ def git_status():
                                             current_version = tag.lstrip("vV")
                                             msg = (
                                                 f"Versão atualizada (tag exata encontrada pelo commit): "
-                                                f"{current_version} (tag: {tag}, commit: {current_commit[:7]})"  # noqa: E501
+                                                f"{current_version} (tag: {tag}, commit: {current_commit[:7]})"
                                             )
                                             current_app.logger.info(msg)
                                             tag_found = True
@@ -2712,7 +2712,8 @@ def git_update():
             health_response = requests.get(health_url, timeout=5)
             if health_response.status_code == 200:
                 health_data = health_response.json()
-                current_app.logger.info(f'Deploy Agent está saudável: {health_data.get("service", "unknown")}')
+                service_status = health_data.get("service", "unknown")
+                current_app.logger.info(f"Deploy Agent está saudável: {service_status}")
             else:
                 current_app.logger.warning(
                     f"Deploy Agent health check retornou status {health_response.status_code}"

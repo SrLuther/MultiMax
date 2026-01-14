@@ -35,11 +35,9 @@ from ..models import CleaningTask as CleaningTaskModel
 from ..models import (
     Collaborator,
     Historico,
-    JornadaArchive,
     MeatCarrier,
     MeatPart,
     MeatReception,
-    MonthStatus,
     Produto,
     Recipe,
     RecipeIngredient,
