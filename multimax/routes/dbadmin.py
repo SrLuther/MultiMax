@@ -2477,7 +2477,7 @@ def git_status():
                                             current_version = tag.lstrip("vV")
                                             commit_short = current_commit[:7]
                                             msg = (
-                                                f"Versão atualizada (tag exata encontrada pelo commit): "
+                                                "Versão atualizada (tag exata encontrada pelo commit): "
                                                 f"{current_version} (tag: {tag}, commit: {commit_short})"
                                             )
                                             current_app.logger.info(msg)
