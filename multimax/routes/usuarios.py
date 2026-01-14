@@ -1723,9 +1723,8 @@ def gestao_colabs_horas_adicionar():
     except Exception:
         try:
             db.session.rollback()
-        except Exception:
-            pass
-        flash(f"Erro ao registrar horas: {ex}", "danger")
+        except Exception as e:
+            flash(f"Erro ao registrar horas: {e}", "danger")
     return redirect(url_for("usuarios.gestao", view="colaboradores"))
 
 
@@ -2011,9 +2010,8 @@ def gestao_colabs_horas_excluir(id: int):
     except Exception:
         try:
             db.session.rollback()
-        except Exception:
-            pass
-        flash(f"Erro ao excluir lançamento: {ex}", "danger")
+        except Exception as e:
+            flash(f"Erro ao excluir lançamento: {e}", "danger")
     return redirect(url_for("usuarios.gestao", view="colaboradores"))
 
 

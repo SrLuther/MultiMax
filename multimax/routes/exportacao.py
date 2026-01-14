@@ -26,6 +26,10 @@ from reportlab.platypus import (
 )
 from sqlalchemy import func, or_
 
+import matplotlib.pyplot as plt
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
 from ..models import CleaningHistory as CleaningHistoryModel
 from ..models import CleaningTask as CleaningTaskModel
 from ..models import (
@@ -45,9 +49,6 @@ from ..models import (
 from ..routes.jornada import _calculate_collaborator_balance, _get_collaborator_display_name
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 
 bp = Blueprint("exportacao", __name__)
 

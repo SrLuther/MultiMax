@@ -257,7 +257,6 @@ def create_app():
             db_version = "-"
             db_size = "-"
             tables_count = 0
-            uptime = "-"
             try:
                 db.session.execute(text("select 1"))
                 ok = True
@@ -701,7 +700,7 @@ def create_app():
             from urllib import error as urllib_error
             from urllib import request as urllib_request
 
-            from .models import AppSetting
+            from .models import AppSetting  # noqa: F811
 
             ver = app.config.get("APP_VERSION_RESOLVED", "dev")
             base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(__file__)))
@@ -815,7 +814,7 @@ def create_app():
             # Isso é crítico para que db.create_all() crie todas as tabelas automaticamente
             # Importação explícita garante que SQLAlchemy registre todas as tabelas
             try:
-                from .models import (
+                from .models import (  # noqa: F811
                     Alert,
                     AppSetting,
                     ArticleVote,
@@ -851,13 +850,13 @@ def create_app():
                     RecipeIngredient,
                     RegistroJornada,
                     RegistroJornadaChange,
-                    Shift,
+                    Shift,  # noqa: F811
                     Suggestion,
                     SuggestionVote,
                     SystemLog,
-                    TemporaryEntry,
+                    TemporaryEntry,  # noqa: F811
                     TimeOffRecord,
-                    User,
+                    User,  # noqa: F811
                     UserLogin,
                     Vacation,
                 )
@@ -1022,7 +1021,7 @@ def create_app():
                     pass
         if db_ok:
             try:
-                from .models import Produto
+                from .models import Produto  # noqa: F811
 
                 rows = Produto.query.filter(Produto.nome == "ciano").all()
                 for r in rows:
@@ -1484,7 +1483,7 @@ def create_app():
 
         # Migrar dados das tabelas antigas para TimeOffRecord (apenas uma vez)
         try:
-            from datetime import datetime as _dt
+            from datetime import datetime as _dt  # noqa: F811
 
             from sqlalchemy import inspect, text
 
@@ -1757,7 +1756,7 @@ def create_app():
                         wait = (next_midnight - now_dt).total_seconds()
                         time.sleep(max(1, int(wait)))
                         with app.app_context():
-                            ok = _make_backup(
+                            _make_backup(
                                 retain_count=20, min_interval_sec=0, update_daily_snapshot=False, force=True
                             )
                             bdir = str(app.config.get("BACKUP_DIR") or "").strip()
@@ -1794,11 +1793,11 @@ def create_app():
         def _start_tempdata_scheduler():
             try:
                 from datetime import date as _date
-                from datetime import datetime as _dt
+                from datetime import datetime as _dt  # noqa: F811
                 from datetime import timedelta as _td
                 from zoneinfo import ZoneInfo as _Zone
 
-                from .models import Shift, TemporaryEntry
+                from .models import Shift, TemporaryEntry  # noqa: F811
             except Exception:
                 return
 

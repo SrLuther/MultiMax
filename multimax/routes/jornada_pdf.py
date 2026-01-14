@@ -1,11 +1,11 @@
 """Rotas de PDF para o módulo Jornada usando WeasyPrint"""
-from datetime import date, datetime
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from flask import Blueprint, flash, make_response, redirect, render_template, url_for
 from flask_login import current_user, login_required
 
-from ..models import Collaborator, TimeOffRecord
+from ..models import TimeOffRecord
 from .jornada import _calculate_collaborator_balance, _get_all_collaborators, _get_collaborator_display_name
 
 try:

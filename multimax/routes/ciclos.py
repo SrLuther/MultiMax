@@ -4,12 +4,12 @@ from datetime import date, datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from flask import Blueprint, flash, jsonify, make_response, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, flash, jsonify, make_response, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import func
 
 from .. import db
-from ..models import AppSetting, Ciclo, CicloFechamento, Collaborator, Holiday, MedicalCertificate, SystemLog, Vacation
+from ..models import AppSetting, Ciclo, CicloFechamento, Collaborator, MedicalCertificate, SystemLog, Vacation
 
 try:
     from weasyprint import HTML
@@ -524,7 +524,6 @@ def excluir(ciclo_id):
         if ciclo.status_ciclo != "ativo":
             return jsonify({"ok": False, "error": "Apenas registros ativos podem ser excluídos."}), 400
 
-        collaborator_id = ciclo.collaborator_id
         colaborador_nome = ciclo.nome_colaborador
         horas_excluidas = float(ciclo.valor_horas)
 
@@ -853,7 +852,7 @@ def ferias_adicionar():
             cid = int(request.form.get("collaborator_id", 0))
             if cid:
                 return redirect(url_for("ciclos.index", collaborator_id=cid))
-        except:
+        except Exception:
             pass
     # Manter collaborator_id na URL para exibir os cards
     return redirect(url_for("ciclos.index", collaborator_id=cid))
@@ -954,7 +953,7 @@ def atestado_adicionar():
             cid = int(request.form.get("collaborator_id", 0))
             if cid:
                 return redirect(url_for("ciclos.index", collaborator_id=cid))
-        except:
+        except Exception:
             pass
     # Manter collaborator_id na URL para exibir os cards
     return redirect(url_for("ciclos.index", collaborator_id=cid))

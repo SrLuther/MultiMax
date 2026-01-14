@@ -6,7 +6,7 @@ import subprocess
 import time
 import urllib.error
 import urllib.request
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from flask import (
@@ -2519,7 +2519,7 @@ def git_status():
                 if os.path.exists(init_path):
                     with open(init_path, "r", encoding="utf-8") as f:
                         content = f.read()
-                        import re  # noqa: F401
+                        import re  # noqa: F811
 
                         match = re.search(r"return '([\d.]+)'", content)
                         if match:

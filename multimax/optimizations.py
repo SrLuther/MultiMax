@@ -1,7 +1,7 @@
 """
 Otimizações e utilitários de performance
 """
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from functools import lru_cache
 from zoneinfo import ZoneInfo
 
