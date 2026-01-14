@@ -293,7 +293,6 @@
             'backend': 'Backend',
             'nginx': 'Nginx',
             'port': 'Porta 5000 (Backend)',
-            'deploy_agent': 'Deploy Agent (Porta 9000)',
             'cpu': 'CPU',
             'memory': 'Memória',
             'disk': 'Disco'
@@ -314,7 +313,7 @@
             // Criar elementos DOM de forma segura ao invés de innerHTML
             grid.innerHTML = ''; // Limpar primeiro
 
-            var services = ['database', 'backend', 'nginx', 'port', 'deploy_agent', 'cpu', 'memory', 'disk'];
+            var services = ['database', 'backend', 'nginx', 'port', 'cpu', 'memory', 'disk'];
 
             services.forEach(function(service) {
                 var health = json.health[service];
@@ -342,11 +341,6 @@
                     item.appendChild(detail1);
                 }
 
-                if (service === 'deploy_agent' && health.port_9000_open !== undefined) {
-                    var detail2 = createElement('div', { className: 'db-health-detail' },
-                        'Porta 9000: ' + (health.port_9000_open ? 'Aberta' : 'Fechada'));
-                    item.appendChild(detail2);
-                }
 
                 if (health.usage_percent !== undefined && health.usage_percent !== null) {
                     var detail3 = createElement('div', { className: 'db-health-detail' },
