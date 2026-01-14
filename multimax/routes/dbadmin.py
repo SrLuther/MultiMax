@@ -156,12 +156,24 @@ def _check_backend_health():
     try:
         # Verifica se a aplicação Flask está respondendo
         start = time.time()
-        with current_app.test_client() as client:
-            response = client.get("/health")
+        try:
+            with current_app.test_client() as client:
+                # Tenta acessar a rota /home como teste de saúde
+                response = client.get("/home", follow_redirects=True)
+                response_time = (time.time() - start) * 1000
+        except Exception as client_error:
+            # Se falhar, tenta verificar se o servidor está rodando de outra forma
             response_time = (time.time() - start) * 1000
+            return {
+                "status": "warning",
+                "response_time_ms": round(response_time, 2),
+                "status_code": None,
+                "message": f"Backend em execução mas endpoint de teste não disponível: {str(client_error)}",
+                "checked_at": datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat(),
+            }
 
         status = "ok"
-        if response.status_code != 200:
+        if response.status_code not in (200, 302, 301):
             status = "error"
         elif response_time > 1000:
             status = "warning"
@@ -605,7 +617,6 @@ ALERT_THRESHOLDS = {
 def _check_and_create_alerts(health_checks):
     """Verifica métricas e cria alertas proativos"""
     try:
-
         # CPU
         if "cpu" in health_checks:
             cpu = health_checks["cpu"]
@@ -1472,9 +1483,20 @@ def _check_http_latency():
     """Verifica latência HTTP"""
     try:
         start = time.time()
-        with current_app.test_client() as client:
-            response = client.get("/health")
+        try:
+            with current_app.test_client() as client:
+                # Tenta acessar a rota /home como teste de latência
+                response = client.get("/home", follow_redirects=True)
+                latency_ms = (time.time() - start) * 1000
+        except Exception as client_error:
             latency_ms = (time.time() - start) * 1000
+            return {
+                "status": "warning",
+                "latency_ms": round(latency_ms, 2),
+                "status_code": None,
+                "error": str(client_error),
+                "checked_at": datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat(),
+            }
 
         status = "ok"
         if latency_ms > 2000:
@@ -1485,7 +1507,7 @@ def _check_http_latency():
         return {
             "status": status,
             "latency_ms": round(latency_ms, 2),
-            "status_code": response.status_code,
+            "status_code": response.status_code if hasattr(response, "status_code") else None,
             "checked_at": datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat(),
         }
     except Exception as e:
@@ -1546,71 +1568,85 @@ def _list_backups():
 @login_required
 def index():
     """Página principal - Acesso exclusivo para desenvolvedores"""
-    if not _check_dev_access():
-        _log_unauthorized_access()
-        flash("Acesso negado. Esta página é exclusiva para desenvolvedores.", "danger")
-        return redirect(url_for("home.index"))
-
-    uri = current_app.config.get("SQLALCHEMY_DATABASE_URI", "")
-    is_sqlite = isinstance(uri, str) and uri.startswith("sqlite:")
-    backups = _list_backups()
-    daily = None
     try:
-        daily = next((it for it in backups if it.get("name") == "backup-24h.sqlite"), None)
-    except Exception:
+        if not _check_dev_access():
+            _log_unauthorized_access()
+            flash("Acesso negado. Esta página é exclusiva para desenvolvedores.", "danger")
+            return redirect(url_for("home.index"))
+
+        uri = current_app.config.get("SQLALCHEMY_DATABASE_URI", "")
+        is_sqlite = isinstance(uri, str) and uri.startswith("sqlite:")
+        backups = _list_backups()
         daily = None
+        try:
+            daily = next((it for it in backups if it.get("name") == "backup-24h.sqlite"), None)
+        except Exception:
+            daily = None
 
-    # Paginação de backups
-    try:
-        page = int(request.args.get("page", "1"))
-    except Exception:
-        page = 1
-    if page < 1:
-        page = 1
-    per_page = 10
-    total = len(backups)
-    total_pages = max(1, (total + per_page - 1) // per_page)
-    if page > total_pages:
-        page = total_pages
-    start = (page - 1) * per_page
-    end = start + per_page
-    backups_page = backups[start:end]
+        # Paginação de backups
+        try:
+            page = int(request.args.get("page", "1"))
+        except Exception:
+            page = 1
+        if page < 1:
+            page = 1
+        per_page = 10
+        total = len(backups)
+        total_pages = max(1, (total + per_page - 1) // per_page)
+        if page > total_pages:
+            page = total_pages
+        start = (page - 1) * per_page
+        end = start + per_page
+        backups_page = backups[start:end]
 
-    # Paginação de logins
-    try:
-        login_page = int(request.args.get("login_page", "1"))
-    except Exception:
-        login_page = 1
-    if login_page < 1:
-        login_page = 1
-    try:
-        logins_pag = UserLogin.query.order_by(UserLogin.login_at.desc()).paginate(
-            page=login_page, per_page=10, error_out=False
+        # Paginação de logins
+        try:
+            login_page = int(request.args.get("login_page", "1"))
+        except Exception:
+            login_page = 1
+        if login_page < 1:
+            login_page = 1
+        try:
+            logins_pag = UserLogin.query.order_by(UserLogin.login_at.desc()).paginate(
+                page=login_page, per_page=10, error_out=False
+            )
+            logins = list(logins_pag.items or [])
+        except Exception as e:
+            current_app.logger.error(f"Erro ao buscar logins: {e}")
+            logins_pag = None
+            logins = []
+
+        # Health checks iniciais (necessários para o card de Monitoramento de Serviços)
+        try:
+            health_checks = _get_all_health_checks()
+        except Exception as e:
+            current_app.logger.error(f"Erro ao executar health checks: {e}", exc_info=True)
+            health_checks = {}
+
+        # Estatísticas do banco (pode ser útil para outros cards)
+        try:
+            db_stats = _get_database_stats()
+        except Exception as e:
+            current_app.logger.error(f"Erro ao obter estatísticas do banco: {e}", exc_info=True)
+            db_stats = {}
+
+        return render_template(
+            "db.html",
+            active_page="dbadmin",
+            is_sqlite=is_sqlite,
+            backups=backups_page,
+            page=page,
+            total_pages=total_pages,
+            daily_backup=daily,
+            logins=logins,
+            logins_pag=logins_pag,
+            health_checks=health_checks,
+            db_stats=db_stats,
         )
-        logins = list(logins_pag.items or [])
-    except Exception:
-        logins_pag = None
-        logins = []
-
-    # Health checks iniciais (necessários para o card de Monitoramento de Serviços)
-    health_checks = _get_all_health_checks()
-
-    # Estatísticas do banco (pode ser útil para outros cards)
-    db_stats = _get_database_stats()
-
-    return render_template(
-        "db.html",
-        active_page="dbadmin",
-        is_sqlite=is_sqlite,
-        backups=backups_page,
-        page=page,
-        total_pages=total_pages,
-        daily_backup=daily,
-        logins=logins,
-        logins_pag=logins_pag,
-        health_checks=health_checks,
-        db_stats=db_stats,
-    )
+    except Exception as e:
+        current_app.logger.error(f"Erro crítico na página de banco de dados: {e}", exc_info=True)
+        flash(f"Erro ao carregar página de banco de dados: {str(e)}", "danger")
+        return redirect(url_for("home.index"))
 
 
 @bp.route("/health", methods=["GET"], strict_slashes=False)
@@ -2461,6 +2497,7 @@ def git_status():
                 if result_tags.returncode == 0 and result_tags.stdout.strip():
                     all_tags = [tag.strip() for tag in result_tags.stdout.strip().split("\n") if tag.strip()]
                     if all_tags:
+
                         def version_key(tag):
                             import re
 
