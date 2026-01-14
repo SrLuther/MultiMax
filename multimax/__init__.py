@@ -147,22 +147,15 @@ def create_app():
     from .routes.api import bp as api_bp
     from .routes.auth import bp as auth_bp
     from .routes.carnes import bp as carnes_bp
+    from .routes.ciclos import bp as ciclos_bp
     from .routes.colaboradores import bp as colaboradores_bp
     from .routes.cronograma import bp as cronograma_bp
     from .routes.cronograma import setup_cleaning_tasks
     from .routes.estoque import bp as estoque_bp
     from .routes.exportacao import bp as exportacao_bp
     from .routes.home import bp as home_bp
-    from .routes.jornada import bp as jornada_bp
     from .routes.receitas import bp as receitas_bp
     from .routes.usuarios import bp as usuarios_bp
-
-    try:
-        from .routes.jornada_pdf import bp as jornada_pdf_bp
-    except Exception as e:
-        app.logger.warning(f"Blueprint jornada_pdf não pode ser importado (será desabilitado): {e}")
-        jornada_pdf_bp = None
-    from .routes.ciclos import bp as ciclos_bp
 
     notif_enabled = (os.getenv("NOTIFICACOES_ENABLED", "false") or "false").lower() == "true"
     notificacoes_bp = None
@@ -191,19 +184,12 @@ def create_app():
     app.register_blueprint(colaboradores_bp)
     app.register_blueprint(receitas_bp)
     app.register_blueprint(api_bp)
-    app.register_blueprint(jornada_bp)
-    if jornada_pdf_bp:
-        app.register_blueprint(jornada_pdf_bp)
     app.register_blueprint(ciclos_bp)
     if notificacoes_bp:
         app.register_blueprint(notificacoes_bp)
     if dbadmin_bp:
         app.register_blueprint(dbadmin_bp)
-        rotas = [
-            rule.rule
-            for rule in app.url_map.iter_rules()
-            if rule.endpoint.startswith("dbadmin.")
-        ]
+        rotas = [rule.rule for rule in app.url_map.iter_rules() if rule.endpoint.startswith("dbadmin.")]
         app.logger.info(f"Blueprint dbadmin registrado com sucesso. Rotas disponíveis: {rotas}")
     else:
         app.logger.warning("Blueprint dbadmin não foi registrado (dbadmin_bp é None)")
@@ -686,7 +672,7 @@ def create_app():
             # Log apenas se não for erro esperado (git não disponível)
             if "git" not in str(e).lower():
                 app.logger.debug(f"Erro ao obter versão: {e}")
-            return '2.6.5'
+            return "2.6.5"
 
     resolved_version = _get_version()
     app.config["APP_VERSION_RESOLVED"] = (
@@ -818,6 +804,9 @@ def create_app():
             # Isso é crítico para que db.create_all() crie todas as tabelas automaticamente
             # Importação explícita garante que SQLAlchemy registre todas as tabelas
             try:
+                from .models import Shift  # noqa: F811
+                from .models import TemporaryEntry  # noqa: F811
+                from .models import User  # noqa: F811
                 from .models import (  # noqa: F811
                     Alert,
                     AppSetting,
@@ -837,7 +826,6 @@ def create_app():
                     Incident,
                     IngredientCatalog,
                     JobRole,
-                    JornadaArchive,
                     MaintenanceLog,
                     MeatCarrier,
                     MeatPart,
@@ -852,15 +840,10 @@ def create_app():
                     QueryLog,
                     Recipe,
                     RecipeIngredient,
-                    RegistroJornada,
-                    RegistroJornadaChange,
-                    Shift,  # noqa: F811
                     Suggestion,
                     SuggestionVote,
                     SystemLog,
-                    TemporaryEntry,  # noqa: F811
                     TimeOffRecord,
-                    User,  # noqa: F811
                     UserLogin,
                     Vacation,
                 )
@@ -1338,27 +1321,6 @@ def create_app():
             except Exception:
                 pass
 
-        # Migração: Adicionar colunas payment_date e payment_amount em jornada_archive
-        try:
-            from sqlalchemy import inspect, text
-
-            insp = inspect(db.engine)
-            ja_cols = [c["name"] for c in insp.get_columns("jornada_archive")]
-            ja_changed = False
-            if "payment_date" not in ja_cols:
-                db.session.execute(text("ALTER TABLE jornada_archive ADD COLUMN payment_date DATE"))
-                ja_changed = True
-            if "payment_amount" not in ja_cols:
-                db.session.execute(text("ALTER TABLE jornada_archive ADD COLUMN payment_amount NUMERIC(10, 2)"))
-                ja_changed = True
-            if ja_changed:
-                db.session.commit()
-        except Exception:
-            try:
-                db.session.rollback()
-            except Exception:
-                pass
-
         try:
             from sqlalchemy import inspect, text
 
@@ -1392,20 +1354,6 @@ def create_app():
                 db.session.execute(text("ALTER TABLE medical_certificate ADD COLUMN foto_atestado TEXT"))
                 mc_changed = True
             if mc_changed:
-                db.session.commit()
-        except Exception:
-            try:
-                db.session.rollback()
-            except Exception:
-                pass
-
-        try:
-            from sqlalchemy import inspect, text
-
-            insp = inspect(db.engine)
-            rj_cols = [c["name"] for c in insp.get_columns("registro_jornada")]
-            if "observacao" not in rj_cols:
-                db.session.execute(text("ALTER TABLE registro_jornada ADD COLUMN observacao TEXT"))
                 db.session.commit()
         except Exception:
             try:
@@ -1768,9 +1716,7 @@ def create_app():
                         wait = (next_midnight - now_dt).total_seconds()
                         time.sleep(max(1, int(wait)))
                         with app.app_context():
-                            _make_backup(
-                                retain_count=20, min_interval_sec=0, update_daily_snapshot=False, force=True
-                            )
+                            _make_backup(retain_count=20, min_interval_sec=0, update_daily_snapshot=False, force=True)
                             bdir = str(app.config.get("BACKUP_DIR") or "").strip()
                             if bdir:
                                 try:

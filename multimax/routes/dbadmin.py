@@ -103,9 +103,7 @@ def _log_unauthorized_access():
         log = SystemLog()
         log.origem = "Segurança"
         log.evento = "acesso_negado"
-        user_info = (
-            current_user.username if current_user.is_authenticated else "Não autenticado"
-        )
+        user_info = current_user.username if current_user.is_authenticated else "Não autenticado"
         log.detalhes = f"Tentativa de acesso não autorizada à página Banco de Dados - Usuário: {user_info}"
         log.usuario = current_user.username if current_user.is_authenticated else "Sistema"
         db.session.add(log)
@@ -139,9 +137,11 @@ def _check_database_health():
         return {
             "status": status,
             "response_time_ms": round(response_time, 2),
-            "message": f"Banco de dados respondendo em {response_time:.2f}ms"
-            if status == "ok"
-            else f"Resposta lenta: {response_time:.2f}ms",
+            "message": (
+                f"Banco de dados respondendo em {response_time:.2f}ms"
+                if status == "ok"
+                else f"Resposta lenta: {response_time:.2f}ms"
+            ),
             "checked_at": datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat(),
         }
     except Exception as e:
@@ -185,9 +185,11 @@ def _check_backend_health():
             "status": status,
             "response_time_ms": round(response_time, 2),
             "status_code": response.status_code,
-            "message": f"Backend respondendo (HTTP {response.status_code})"
-            if status == "ok"
-            else f"Backend com problemas (HTTP {response.status_code})",
+            "message": (
+                f"Backend respondendo (HTTP {response.status_code})"
+                if status == "ok"
+                else f"Backend com problemas (HTTP {response.status_code})"
+            ),
             "checked_at": datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat(),
         }
     except Exception as e:
@@ -338,8 +340,6 @@ def _check_port_health(port=5000):
             "message": f"Erro ao verificar porta {port}: {str(e)}",
             "checked_at": datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat(),
         }
-
-
 
 
 def _check_cpu_health():
@@ -1061,8 +1061,7 @@ def _get_maintenance_recommendations():
                     "type": "cleanup_logs",
                     "priority": "low",
                     "message": (
-                        f'Considere limpar logs antigos: {logs_stats["old_estimated_size_mb"]:.1f} '
-                        "MB disponíveis"
+                        f'Considere limpar logs antigos: {logs_stats["old_estimated_size_mb"]:.1f} ' "MB disponíveis"
                     ),
                     "estimated_size_mb": logs_stats["old_estimated_size_mb"],
                 }
@@ -1111,8 +1110,7 @@ def _get_maintenance_recommendations():
                         "type": "verify_backups",
                         "priority": "medium" if days_since_verify > 14 else "low",
                         "message": (
-                            f"Recomenda-se verificação de backups: "
-                            f"última verificação há {days_since_verify} dias"
+                            f"Recomenda-se verificação de backups: " f"última verificação há {days_since_verify} dias"
                         ),
                         "days_since": days_since_verify,
                     }
@@ -1648,9 +1646,11 @@ def logs():
             for log in system_logs_query:
                 system_logs.append(
                     {
-                        "timestamp": log.data.isoformat()
-                        if log.data
-                        else datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat(),
+                        "timestamp": (
+                            log.data.isoformat()
+                            if log.data
+                            else datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat()
+                        ),
                         "type": "system",
                         "level": "INFO",
                         "origin": log.origem or "Sistema",
@@ -2258,14 +2258,10 @@ def git_status():
                 timeout=15,
             )
             if tags_fetch_result.returncode == 0:
-                output_preview = (
-                    tags_fetch_result.stdout[:200] if tags_fetch_result.stdout else "sem output"
-                )
+                output_preview = tags_fetch_result.stdout[:200] if tags_fetch_result.stdout else "sem output"
                 current_app.logger.info(f"Tags atualizadas com sucesso. Output: {output_preview}")
             else:
-                stderr_preview = (
-                    tags_fetch_result.stderr[:200] if tags_fetch_result.stderr else "sem erro"
-                )
+                stderr_preview = tags_fetch_result.stderr[:200] if tags_fetch_result.stderr else "sem erro"
                 current_app.logger.warning(f"Aviso ao buscar tags: {stderr_preview}")
 
             # Verificar se a referência remota existe após o fetch
@@ -2548,7 +2544,7 @@ def git_status():
 def git_update():
     """
     Endpoint desabilitado: Deploy Agent foi removido do sistema.
-    
+
     Esta funcionalidade foi completamente removida do MultiMax.
     """
     if not _check_dev_access():
@@ -2564,8 +2560,6 @@ def git_update():
         ),
         410,  # Gone
     )
-
-
 
 
 # ============================================================================
@@ -2818,10 +2812,7 @@ def maintenance_export_report():
         report_lines.append("-" * 80)
         for maint in last_maintenances:
             maint_date = maint.created_at.strftime("%d/%m/%Y %H:%M:%S")
-            maint_line = (
-                f"{maint_date} - {maint.maintenance_type} - {maint.status} - "
-                f"{maint.duration_seconds:.2f}s"
-            )
+            maint_line = f"{maint_date} - {maint.maintenance_type} - {maint.status} - " f"{maint.duration_seconds:.2f}s"
             report_lines.append(maint_line)
         report_lines.append("")
         report_lines.append("=" * 80)
@@ -2832,9 +2823,7 @@ def maintenance_export_report():
         response = make_response(report_text)
         response.headers["Content-Type"] = "text/plain; charset=utf-8"
         timestamp = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%Y%m%d_%H%M%S")
-        response.headers["Content-Disposition"] = (
-            f"attachment; filename=relatorio_manutencao_{timestamp}.txt"
-        )
+        response.headers["Content-Disposition"] = f"attachment; filename=relatorio_manutencao_{timestamp}.txt"
         return response
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500

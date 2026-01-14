@@ -896,7 +896,8 @@ def gerar_escala_automatica():
             f"Equipe {open_team} na abertura (2x Abertura 5h + 1x Abertura 6h), "
             f"Equipe {close_team} no turno Tarde (3 pessoas)."
         )
-        flash(msg,
+        flash(
+            msg,
             "success",
         )
     except Exception as e:

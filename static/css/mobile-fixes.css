@@ -163,7 +163,6 @@
 
   /* Containers específicos */
   .estoque-container,
-  .jornada-container,
   .relatorios-container {
     padding: var(--mobile-padding);
     padding-bottom: max(var(--mobile-padding), env(safe-area-inset-bottom));
@@ -171,7 +170,6 @@
 
   /* Hero headers mobile */
   .estoque-hero,
-  .jornada-hero,
   .relatorios-hero {
     padding: 1.5rem var(--mobile-padding);
     border-radius: var(--mobile-border-radius);
@@ -179,21 +177,18 @@
   }
 
   .estoque-title,
-  .jornada-title,
   .relatorios-title {
     font-size: 1.75rem !important;
     line-height: 1.2;
   }
 
   .estoque-subtitle,
-  .jornada-subtitle,
   .relatorios-subtitle {
     font-size: 0.875rem !important;
     margin-top: 0.5rem;
   }
 
   .estoque-hero-actions,
-  .jornada-hero-actions,
   .relatorios-hero-actions {
     width: 100%;
     margin-top: 1rem;
@@ -219,8 +214,6 @@
   .dicas-grid-modern,
   .actions-grid,
   .products-grid,
-  .stats-grid-jornada,
-  .stats-secondary-grid-jornada,
   .ferias-atestados-grid-modern {
     grid-template-columns: 1fr !important;
     gap: var(--mobile-gap);
@@ -268,22 +261,19 @@
   }
 
   /* KPI Cards mobile */
-  .kpi-card-relatorios,
-  .stat-card-jornada {
+  .kpi-card-relatorios {
     padding: 1.25rem;
     border-radius: var(--mobile-border-radius);
   }
 
-  .kpi-icon-relatorios,
-  .stat-icon-jornada {
+  .kpi-icon-relatorios {
     width: 48px;
     height: 48px;
     font-size: 1.5rem;
     margin-bottom: 0.75rem;
   }
 
-  .kpi-value-relatorios,
-  .stat-value-jornada {
+  .kpi-value-relatorios {
     font-size: 1.5rem !important;
   }
 }

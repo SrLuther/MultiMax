@@ -430,7 +430,8 @@ def salvar_cronograma():
                 f'Limpeza "{tarefa.nome_limpeza}" marcada como concluída e reagendada para '
                 f'{tarefa.proxima_data.strftime("%d/%m/%Y")}.'
             )
-            flash(msg,
+            flash(
+                msg,
                 "success",
             )
         except Exception as e:

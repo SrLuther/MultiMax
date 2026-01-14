@@ -181,9 +181,9 @@ def _validate_hours_format(value_str, allow_negative=False):
                 False,
                 None,
                 (
-                "Formato inválido. Use apenas números inteiros ou decimais com ponto "
-                "(ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos."
-            ),
+                    "Formato inválido. Use apenas números inteiros ou decimais com ponto "
+                    "(ex.: 1 ou 1.5). Apenas múltiplos de 0.5 são permitidos."
+                ),
             )
 
         return (True, valor, None)
@@ -1174,9 +1174,9 @@ def pdf_individual(collaborator_id):
 
         response = make_response(pdf)
         response.headers["Content-Type"] = "application/pdf"
-        response.headers[
-            "Content-Disposition"
-        ] = f'inline; filename=ciclo_individual_{collaborator.name.replace(" ", "_")}.pdf'
+        response.headers["Content-Disposition"] = (
+            f'inline; filename=ciclo_individual_{collaborator.name.replace(" ", "_")}.pdf'
+        )
 
         return response
 

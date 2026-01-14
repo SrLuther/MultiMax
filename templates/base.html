@@ -11,9 +11,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='multimax-estilo.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-fixes.css') }}">
-    {% if 'jornada' in request.endpoint %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/jornada-modern.css') }}">
-    {% endif %}
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon-180.png') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/logo-user.png') }}">
