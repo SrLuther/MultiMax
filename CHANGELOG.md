@@ -1,3 +1,15 @@
+## [2.6.5] - 2026-01-14
+
+### Atualizacao
+
+- Versao 2.6.5
+
+## [2.6.4] - 2026-01-14
+
+### Atualizacao
+
+- Versao 2.6.4 - df8161a chore: Atualiza versao para 2.6.3
+
 ## [2.6.3] - 2026-01-14
 
 ### Atualizacao
