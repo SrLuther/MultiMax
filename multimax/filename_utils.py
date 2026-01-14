@@ -4,7 +4,7 @@ import unicodedata
 _filename_strip_re = re.compile(r"[^A-Za-z0-9_.-]|")
 
 
-def secure_filename(filename: str) -> str:
+def secure_filename(filename: object) -> str:
     if not isinstance(filename, str):
         filename = str(filename or "")
     filename = unicodedata.normalize("NFKD", filename)

@@ -95,13 +95,14 @@ def create_app():
         os.makedirs(db_dir, exist_ok=True)
 
     # Definir data_dir para backups e outras funcionalidades
-    data_dir = os.getenv("DATA_DIR") or os.getenv("MULTIMAX_DATA_DIR") or None
+    data_dir: str | None = os.getenv("DATA_DIR") or os.getenv("MULTIMAX_DATA_DIR") or None
     if not data_dir:
         # Usar o mesmo diretório do banco de dados
         data_dir = (
             db_dir if db_dir else ("/multimax-data" if os.path.exists("/multimax-data") else "/opt/multimax-data")
         )
-    data_dir_str = cast(str, data_dir)
+    assert data_dir is not None
+    data_dir_str = data_dir
     os.makedirs(data_dir_str, exist_ok=True)
 
     uri_env = os.getenv("SQLALCHEMY_DATABASE_URI") or os.getenv("DATABASE_URL")
@@ -144,6 +145,8 @@ def create_app():
                 pass
             return None
 
+    from flask import Blueprint
+
     from .routes.api import bp as api_bp
     from .routes.auth import bp as auth_bp
     from .routes.carnes import bp as carnes_bp
@@ -158,7 +161,7 @@ def create_app():
     from .routes.usuarios import bp as usuarios_bp
 
     notif_enabled = (os.getenv("NOTIFICACOES_ENABLED", "false") or "false").lower() == "true"
-    notificacoes_bp = None
+    notificacoes_bp: Blueprint | None = None
     if notif_enabled:
         try:
             from .routes.notificacoes import bp as _notifs
@@ -166,9 +169,11 @@ def create_app():
             notificacoes_bp = _notifs
         except Exception:
             notificacoes_bp = None
+    dbadmin_bp: Blueprint | None = None
     try:
-        from .routes.dbadmin import bp as dbadmin_bp
+        from .routes.dbadmin import bp as _dbadmin
 
+        dbadmin_bp = _dbadmin
         app.logger.info(f"Blueprint dbadmin importado com sucesso. URL prefix: {dbadmin_bp.url_prefix}")
     except Exception as e:
         app.logger.error(f"Erro ao importar blueprint dbadmin: {e}", exc_info=True)
@@ -1366,8 +1371,8 @@ def create_app():
             from sqlalchemy import inspect, text
 
             insp = inspect(db.engine)
-            tables = set(insp.get_table_names())
-            if "time_off_record" not in tables:
+            table_names = set(insp.get_table_names())
+            if "time_off_record" not in table_names:
                 if is_sqlite:
                     db.session.execute(
                         text(
@@ -1440,25 +1445,25 @@ def create_app():
             from sqlalchemy import inspect, text
 
             insp = inspect(db.engine)
-            tables = set(insp.get_table_names())
+            table_names = set(insp.get_table_names())
 
             # Verificar se já foi migrado (verificando se há dados em time_off_record mas ainda há dados nas antigas)
-            if "time_off_record" in tables and (
-                "hour_bank_entry" in tables
-                or "leave_credit" in tables
-                or "leave_assignment" in tables
-                or "leave_conversion" in tables
+            if "time_off_record" in table_names and (
+                "hour_bank_entry" in table_names
+                or "leave_credit" in table_names
+                or "leave_assignment" in table_names
+                or "leave_conversion" in table_names
             ):
                 # Verificar se já migrou
                 count_unified = db.session.execute(text("SELECT COUNT(*) FROM time_off_record")).scalar() or 0
                 count_old = 0
-                if "hour_bank_entry" in tables:
+                if "hour_bank_entry" in table_names:
                     count_old += db.session.execute(text("SELECT COUNT(*) FROM hour_bank_entry")).scalar() or 0
-                if "leave_credit" in tables:
+                if "leave_credit" in table_names:
                     count_old += db.session.execute(text("SELECT COUNT(*) FROM leave_credit")).scalar() or 0
-                if "leave_assignment" in tables:
+                if "leave_assignment" in table_names:
                     count_old += db.session.execute(text("SELECT COUNT(*) FROM leave_assignment")).scalar() or 0
-                if "leave_conversion" in tables:
+                if "leave_conversion" in table_names:
                     count_old += db.session.execute(text("SELECT COUNT(*) FROM leave_conversion")).scalar() or 0
 
                 # Se há dados antigos mas não há na unificada, fazer migração
@@ -1466,7 +1471,7 @@ def create_app():
                     now_func = "datetime('now')" if is_sqlite else "NOW()"
 
                     # Migrar HourBankEntry
-                    if "hour_bank_entry" in tables:
+                    if "hour_bank_entry" in table_names:
                         db.session.execute(
                             text(
                                 f"""
@@ -1487,7 +1492,7 @@ def create_app():
                         )
 
                     # Migrar LeaveCredit
-                    if "leave_credit" in tables:
+                    if "leave_credit" in table_names:
                         db.session.execute(
                             text(
                                 f"""
@@ -1508,7 +1513,7 @@ def create_app():
                         )
 
                     # Migrar LeaveAssignment
-                    if "leave_assignment" in tables:
+                    if "leave_assignment" in table_names:
                         db.session.execute(
                             text(
                                 f"""
@@ -1529,7 +1534,7 @@ def create_app():
                         )
 
                     # Migrar LeaveConversion
-                    if "leave_conversion" in tables:
+                    if "leave_conversion" in table_names:
                         db.session.execute(
                             text(
                                 f"""
@@ -1553,13 +1558,13 @@ def create_app():
 
                     # Após migração bem-sucedida, excluir tabelas antigas
                     try:
-                        if "hour_bank_entry" in tables:
+                        if "hour_bank_entry" in table_names:
                             db.session.execute(text("DROP TABLE IF EXISTS hour_bank_entry"))
-                        if "leave_credit" in tables:
+                        if "leave_credit" in table_names:
                             db.session.execute(text("DROP TABLE IF EXISTS leave_credit"))
-                        if "leave_assignment" in tables:
+                        if "leave_assignment" in table_names:
                             db.session.execute(text("DROP TABLE IF EXISTS leave_assignment"))
-                        if "leave_conversion" in tables:
+                        if "leave_conversion" in table_names:
                             db.session.execute(text("DROP TABLE IF EXISTS leave_conversion"))
                         db.session.commit()
                     except Exception:
