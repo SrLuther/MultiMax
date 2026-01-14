@@ -30,7 +30,9 @@ bp = Blueprint("ciclos", __name__, url_prefix="/ciclos")
 
 def _get_all_collaborators():
     """Retorna todos os colaboradores ativos"""
-    return Collaborator.query.filter_by(active=True).order_by(Collaborator.name.asc()).all()
+    return (
+        Collaborator.query.filter_by(active=True).order_by(Collaborator.name.asc()).all()
+    )
 
 
 def _get_active_ciclos_query(collaborator_id):

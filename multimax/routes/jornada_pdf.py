@@ -68,9 +68,9 @@ def em_aberto():
 
         response = make_response(pdf)
         response.headers["Content-Type"] = "application/pdf"
-        response.headers[
-            "Content-Disposition"
-        ] = f'inline; filename=jornada_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf'
+        response.headers["Content-Disposition"] = (
+            f'inline; filename=jornada_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf'
+        )
         return response
     except Exception as e:
         flash(f"Erro ao gerar PDF: {str(e)}", "danger")

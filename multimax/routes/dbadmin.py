@@ -2734,7 +2734,7 @@ def git_update():
                 "2. Copie deploy_agent.py para /opt/multimax/\n"
                 "3. Instale Flask: pip3 install flask\n"
                 "4. Crie serviço systemd: /etc/systemd/system/deploy-agent.service\n"
-                "5. Execute: sudo systemctl daemon-reload && sudo systemctl enable deploy-agent && sudo systemctl start deploy-agent\n\n"  # noqa: E501  # noqa: E501
+                "5. Execute: sudo systemctl daemon-reload && sudo systemctl enable deploy-agent && sudo systemctl start deploy-agent\n\n"  # noqa: E501
                 "📚 Guias disponíveis:\n"
                 "  • DEPLOY_AGENT_QUICKSTART.md - Instalação rápida (5 minutos)\n"
                 "  • DEPLOY_AGENT_INSTALL.md - Instalação detalhada\n\n"
