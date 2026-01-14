@@ -1,0 +1,19 @@
+# Forçar finais de linha LF no repositório (CI roda em Linux).
+# Evita divergência Windows (CRLF) vs CI (LF) que faz o Black acusar "would reformat".
+
+* text=auto
+
+*.py text eol=lf
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+*.cfg text eol=lf
+*.md text eol=lf
+
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+
