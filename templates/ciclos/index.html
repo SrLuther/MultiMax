@@ -34,6 +34,10 @@
                     <span>Registrar Pagamento</span>
                 </button>
                 {% endif %}
+                <a href="{{ url_for('ciclos.pesquisa') }}" class="btn-action btn-action-secondary" style="text-decoration:none;">
+                    <i class="bi bi-search"></i>
+                    <span>Pesquisar Ciclos</span>
+                </a>
                 {% if can_edit %}
                 <a href="{{ url_for('ciclos.config') }}" class="btn-action btn-action-secondary">
                     <i class="bi bi-gear"></i>
@@ -71,6 +75,37 @@
             </div>
         </div>
     </div>
+
+    <!-- Ciclos Semanais do Mês (inclui semanas que cruzam meses) -->
+    {% if ciclos_semanas %}
+    <div class="resumo-geral-card" style="margin-top: 1.25rem;">
+        <div class="resumo-header">
+            <h3 class="resumo-title">
+                <i class="bi bi-calendar-week"></i>
+                Ciclos Semanais do Mês
+            </h3>
+        </div>
+        <div style="padding: 1rem;">
+            <div style="display: grid; gap: 0.75rem;">
+                {% for s in ciclos_semanas %}
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:0.75rem 1rem; border:1px solid rgba(0,0,0,0.06); border-radius:12px; background: rgba(255,255,255,0.7);">
+                    <div style="display:flex; flex-direction:column;">
+                        <strong>{{ s.label }}</strong>
+                        <small style="color:#6b7280;">{{ s.week_start.strftime('%d/%m/%Y') }} — {{ s.week_end.strftime('%d/%m/%Y') }}</small>
+                    </div>
+                    <a class="btn-card btn-card-secondary" href="{{ url_for('ciclos.pesquisa', q=s.label) }}" style="text-decoration:none;">
+                        <i class="bi bi-search"></i>
+                        Buscar no histórico
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            <div style="margin-top:0.75rem; color:#6b7280; font-size:0.875rem;">
+                A tabela de folgas é resetada apenas no fechamento mensal (Registrar Pagamento).
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Cards de Colaboradores -->
     <div class="colaboradores-grid">
@@ -317,6 +352,185 @@
             <div class="empty-state-small-modern">
                 <i class="bi bi-file-medical"></i>
                 <p>Nenhum atestado registrado</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Folgas (tabela resetada apenas no fechamento mensal com pagamento) -->
+    <div class="ferias-card-modern">
+        <div class="ferias-header-modern">
+            <h3 class="ferias-title">
+                <i class="bi bi-calendar2-week"></i>
+                Folgas (Ciclo)
+            </h3>
+        </div>
+        <div class="ferias-body-modern">
+            <form method="POST" action="{{ url_for('ciclos.folgas_adicionar') }}" class="ferias-form-modern">
+                <input type="hidden" name="collaborator_id" value="{{ selected_collaborator.id }}">
+                <div class="form-row-modern">
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-calendar3"></i>
+                            Data <span class="required">*</span>
+                        </label>
+                        <input type="date" name="data_folga" class="form-input-modern" required>
+                    </div>
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-tag"></i>
+                            Tipo <span class="required">*</span>
+                        </label>
+                        <select name="tipo" class="form-input-modern" required>
+                            <option value="adicional">Folga adicional</option>
+                            <option value="uso">Folga usada</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row-modern">
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-123"></i>
+                            Dias
+                        </label>
+                        <input type="number" name="dias" class="form-input-modern" min="1" value="1">
+                    </div>
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-chat-left-text"></i>
+                            Observação
+                        </label>
+                        <input type="text" name="observacao" class="form-input-modern" placeholder="Opcional">
+                    </div>
+                </div>
+                <div class="form-actions-modern">
+                    <button type="submit" class="btn-save-modern">
+                        <i class="bi bi-plus-circle"></i>
+                        Adicionar Folga
+                    </button>
+                </div>
+            </form>
+
+            {% if folgas %}
+            <div class="ferias-table-wrapper">
+                <table class="ferias-table-modern">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Tipo</th>
+                            <th class="text-center">Dias</th>
+                            <th>Obs</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for f in folgas %}
+                        <tr>
+                            <td>{{ f.data_folga.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ 'Folga adicional' if f.tipo == 'adicional' else 'Folga usada' }}</td>
+                            <td class="text-center"><span class="badge-dias-modern">{{ f.dias }}</span></td>
+                            <td>{{ f.observacao or '-' }}</td>
+                            <td class="text-center">
+                                <form method="POST" action="{{ url_for('ciclos.folgas_excluir', id=f.id) }}" style="display: inline;" onsubmit="return confirm('Excluir folga?');">
+                                    <button type="submit" class="btn-action-small btn-delete-small" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state-small-modern">
+                <i class="bi bi-calendar-x"></i>
+                <p>Nenhuma folga registrada</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Ocorrências -->
+    <div class="atestados-card-modern">
+        <div class="atestados-header-modern">
+            <h3 class="atestados-title">
+                <i class="bi bi-exclamation-circle"></i>
+                Ocorrências
+            </h3>
+        </div>
+        <div class="atestados-body-modern">
+            <form method="POST" action="{{ url_for('ciclos.ocorrencias_adicionar') }}" class="atestados-form-modern">
+                <input type="hidden" name="collaborator_id" value="{{ selected_collaborator.id }}">
+                <div class="form-row-modern">
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-calendar3"></i>
+                            Data <span class="required">*</span>
+                        </label>
+                        <input type="date" name="data_ocorrencia" class="form-input-modern" required>
+                    </div>
+                    <div class="form-group-modern">
+                        <label class="form-label-modern">
+                            <i class="bi bi-tag"></i>
+                            Tipo <span class="required">*</span>
+                        </label>
+                        <select name="tipo" class="form-input-modern" required>
+                            <option value="atraso">Atraso</option>
+                            <option value="falta">Falta</option>
+                            <option value="observacao">Observação</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group-modern">
+                    <label class="form-label-modern">
+                        <i class="bi bi-chat-left-text"></i>
+                        Descrição
+                    </label>
+                    <textarea name="descricao" class="form-textarea-modern" rows="2"></textarea>
+                </div>
+                <div class="form-actions-modern">
+                    <button type="submit" class="btn-save-modern">
+                        <i class="bi bi-plus-circle"></i>
+                        Adicionar Ocorrência
+                    </button>
+                </div>
+            </form>
+
+            {% if ocorrencias %}
+            <div class="atestados-table-wrapper">
+                <table class="atestados-table-modern">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Tipo</th>
+                            <th>Descrição</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in ocorrencias %}
+                        <tr>
+                            <td>{{ o.data_ocorrencia.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ o.tipo }}</td>
+                            <td>{{ o.descricao or '-' }}</td>
+                            <td class="text-center">
+                                <form method="POST" action="{{ url_for('ciclos.ocorrencias_excluir', id=o.id) }}" style="display: inline;" onsubmit="return confirm('Excluir ocorrência?');">
+                                    <button type="submit" class="btn-action-small btn-delete-small" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state-small-modern">
+                <i class="bi bi-exclamation-circle"></i>
+                <p>Nenhuma ocorrência registrada</p>
             </div>
             {% endif %}
         </div>

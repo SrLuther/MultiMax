@@ -91,6 +91,17 @@
             padding-bottom: 0.25rem;
             color: #1a73e8;
         }
+        .week-header {
+            font-size: 12px;
+            margin: 1rem 0 0.25rem 0;
+            color: #1a73e8;
+            font-weight: bold;
+        }
+        .subsection-title {
+            font-size: 11px;
+            margin: 0.5rem 0 0.25rem 0;
+            font-weight: bold;
+        }
         .historico-table {
             font-size: 10px;
         }
@@ -175,44 +186,104 @@
         </div>
     </div>
 
-    <!-- Detalhamento Histórico por Colaborador -->
+    <!-- Detalhamento Semanal por Colaborador -->
     {% for resumo in colaboradores_resumo %}
     <div class="colaborador-section">
-        <h3>{{ resumo.collaborator.name }} - Histórico Detalhado</h3>
-        {% if resumo.registros %}
-        <table class="historico-table">
-            <thead>
-                <tr>
-                    <th>Data</th>
-                    <th>Origem</th>
-                    <th>Descrição</th>
-                    <th>Horas</th>
-                    <th>Dias Fechados</th>
-                    <th>Horas Restantes</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for reg in resumo.registros %}
-                <tr>
-                    <td>{{ reg.data_lancamento.strftime('%d/%m/%Y') }}</td>
-                    <td>{{ reg.origem }}</td>
-                    <td>{{ reg.descricao or '-' }}</td>
-                    <td>{{ "%.1f"|format(reg.valor_horas) }}h</td>
-                    <td>{{ reg.dias_fechados or 0 }}</td>
-                    <td>{{ "%.1f"|format(reg.horas_restantes) if reg.horas_restantes else '0.0' }}h</td>
-                </tr>
-                {% endfor %}
-                <tr class="total-row">
-                    <td colspan="3"><strong>Subtotal</strong></td>
-                    <td><strong>{{ "%.1f"|format(resumo.balance.total_horas) }}h</strong></td>
-                    <td><strong>{{ resumo.balance.dias_completos }} dias</strong></td>
-                    <td><strong>{{ "%.1f"|format(resumo.balance.horas_restantes) }}h</strong></td>
-                </tr>
-            </tbody>
-        </table>
-        {% else %}
-        <p>Nenhum registro encontrado.</p>
-        {% endif %}
+        <h3>{{ resumo.collaborator.name }} — Ciclos Semanais</h3>
+
+        {% for semana in resumo.semanas %}
+            <div class="week-header">
+                {{ semana.label }} — {{ semana.week_start.strftime('%d/%m/%Y') }} a {{ semana.week_end.strftime('%d/%m/%Y') }}
+            </div>
+
+            <div class="subsection-title">Folgas</div>
+            {% if semana.folgas and (semana.folgas|length) > 0 %}
+            <table class="historico-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Dias</th>
+                        <th>Observação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in semana.folgas %}
+                    <tr>
+                        <td>{{ f.data_folga.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ 'Folga adicional' if f.tipo == 'adicional' else 'Folga usada' }}</td>
+                        <td>{{ f.dias }}</td>
+                        <td>{{ f.observacao or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>Sem folgas neste ciclo.</p>
+            {% endif %}
+
+            <div class="subsection-title">Horas Extras</div>
+            {% if semana.horas and (semana.horas|length) > 0 %}
+            <table class="historico-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Origem</th>
+                        <th>Descrição</th>
+                        <th>Horas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reg in semana.horas %}
+                    <tr>
+                        <td>{{ reg.data_lancamento.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ reg.origem }}</td>
+                        <td>{{ reg.descricao or '-' }}</td>
+                        <td>{{ "%.1f"|format(reg.valor_horas) }}h</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>Sem lançamentos de horas neste ciclo.</p>
+            {% endif %}
+
+            <div class="subsection-title">Ocorrências</div>
+            {% if semana.ocorrencias and (semana.ocorrencias|length) > 0 %}
+            <table class="historico-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Descrição</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for o in semana.ocorrencias %}
+                    <tr>
+                        <td>{{ o.data_ocorrencia.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ o.tipo }}</td>
+                        <td>{{ o.descricao or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>Sem ocorrências neste ciclo.</p>
+            {% endif %}
+        {% endfor %}
+
+        <div class="resumo" style="margin-top: 0.75rem;">
+            <div class="resumo-item">
+                <span class="resumo-label">Subtotal Horas:</span> {{ "%.1f"|format(resumo.balance.total_horas) }}h
+            </div>
+            <div class="resumo-item">
+                <span class="resumo-label">Dias Completos:</span> {{ resumo.balance.dias_completos }} dias
+            </div>
+            <div class="resumo-item">
+                <span class="resumo-label">Horas Restantes:</span> {{ "%.1f"|format(resumo.balance.horas_restantes) }}h
+            </div>
+        </div>
     </div>
     {% endfor %}
 

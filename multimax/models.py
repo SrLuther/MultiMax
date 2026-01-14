@@ -471,6 +471,55 @@ class Ciclo(db.Model):
         return f"<Ciclo {self.collaborator_id} - {self.data_lancamento} - {self.valor_horas}h>"
 
 
+class CicloFolga(db.Model):
+    """Folgas registradas dentro do sistema de Ciclos (resetadas apenas no fechamento mensal com pagamento)."""
+
+    __tablename__ = "ciclo_folga"
+    id = db.Column(db.Integer, primary_key=True)
+    collaborator_id = db.Column(db.Integer, db.ForeignKey("collaborator.id"), nullable=False, index=True)
+    nome_colaborador = db.Column(db.String(100), nullable=False)
+    data_folga = db.Column(db.Date, nullable=False, index=True)
+    tipo = db.Column(db.String(20), nullable=False, index=True)  # 'adicional' | 'uso'
+    dias = db.Column(db.Integer, nullable=False, default=1)
+    observacao = db.Column(db.String(500), nullable=True)
+    ciclo_id = db.Column(db.Integer, nullable=True, index=True)  # preenchido no fechamento mensal
+    status_ciclo = db.Column(db.String(20), nullable=False, default="ativo", index=True)  # 'ativo' | 'fechado'
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    created_by = db.Column(db.String(100), nullable=True)
+
+    collaborator = db.relationship("Collaborator", backref="ciclos_folgas", lazy=True)
+
+
+class CicloOcorrencia(db.Model):
+    """Ocorrências gerais (atrasos, faltas, observações) vinculadas ao ciclo mensal."""
+
+    __tablename__ = "ciclo_ocorrencia"
+    id = db.Column(db.Integer, primary_key=True)
+    collaborator_id = db.Column(db.Integer, db.ForeignKey("collaborator.id"), nullable=False, index=True)
+    nome_colaborador = db.Column(db.String(100), nullable=False)
+    data_ocorrencia = db.Column(db.Date, nullable=False, index=True)
+    tipo = db.Column(db.String(30), nullable=False, index=True)  # 'atraso' | 'falta' | 'observacao' | 'outro'
+    descricao = db.Column(db.String(800), nullable=True)
+    ciclo_id = db.Column(db.Integer, nullable=True, index=True)
+    status_ciclo = db.Column(db.String(20), nullable=False, default="ativo", index=True)  # 'ativo' | 'fechado'
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    created_by = db.Column(db.String(100), nullable=True)
+
+    collaborator = db.relationship("Collaborator", backref="ciclos_ocorrencias", lazy=True)
+
+
+class CicloSemana(db.Model):
+    """Arquivo de ciclos semanais (por ciclo mensal fechado) para pesquisa/histórico e PDFs."""
+
+    __tablename__ = "ciclo_semana"
+    id = db.Column(db.Integer, primary_key=True)
+    ciclo_id = db.Column(db.Integer, nullable=False, index=True)  # ciclo mensal (CicloFechamento.ciclo_id)
+    week_start = db.Column(db.Date, nullable=False, index=True)
+    week_end = db.Column(db.Date, nullable=False, index=True)
+    label = db.Column(db.String(50), nullable=False, index=True)  # "Ciclo 1 | Janeiro" / "Ciclo Dezembro | Janeiro"
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+
+
 class CicloFechamento(db.Model):
     """Tabela para armazenar fechamentos de ciclos"""
 

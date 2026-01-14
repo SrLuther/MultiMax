@@ -55,6 +55,15 @@
             border-bottom: 1px solid #ccc;
             padding-bottom: 0.25rem;
         }
+        .week-header {
+            font-size: 15px;
+            margin: 1.25rem 0 0.5rem 0;
+            color: #1a73e8;
+        }
+        .subsection-title {
+            font-size: 13px;
+            margin: 0.75rem 0 0.25rem 0;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -139,35 +148,88 @@
     </div>
 
     <div class="info-section">
-        <h3>Histórico de Lançamentos</h3>
-        {% if registros %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Data</th>
-                    <th>Origem</th>
-                    <th>Descrição</th>
-                    <th>Horas</th>
-                    <th>Dias Fechados</th>
-                    <th>Horas Restantes</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for reg in registros %}
-                <tr>
-                    <td>{{ reg.data_lancamento.strftime('%d/%m/%Y') }}</td>
-                    <td>{{ reg.origem }}</td>
-                    <td>{{ reg.descricao or '-' }}</td>
-                    <td>{{ "%.1f"|format(reg.valor_horas) }}h</td>
-                    <td>{{ reg.dias_fechados or 0 }}</td>
-                    <td>{{ "%.1f"|format(reg.horas_restantes) if reg.horas_restantes else '0.0' }}h</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <p>Nenhum registro encontrado.</p>
-        {% endif %}
+        <h3>Ciclos Semanais do Mês</h3>
+        {% for semana in semanas %}
+            <div class="week-header">
+                {{ semana.label }} — {{ semana.week_start.strftime('%d/%m/%Y') }} a {{ semana.week_end.strftime('%d/%m/%Y') }}
+            </div>
+
+            <div class="subsection-title">Tabela de Folgas</div>
+            {% if semana.folgas and (semana.folgas|length) > 0 %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Dias</th>
+                        <th>Observação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in semana.folgas %}
+                    <tr>
+                        <td>{{ f.data_folga.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ 'Folga adicional' if f.tipo == 'adicional' else 'Folga usada' }}</td>
+                        <td>{{ f.dias }}</td>
+                        <td>{{ f.observacao or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>Nenhuma folga registrada neste ciclo.</p>
+            {% endif %}
+
+            <div class="subsection-title">Horas Extras</div>
+            {% if semana.horas and (semana.horas|length) > 0 %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Origem</th>
+                        <th>Descrição</th>
+                        <th>Horas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reg in semana.horas %}
+                    <tr>
+                        <td>{{ reg.data_lancamento.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ reg.origem }}</td>
+                        <td>{{ reg.descricao or '-' }}</td>
+                        <td>{{ "%.1f"|format(reg.valor_horas) }}h</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>Nenhum lançamento de horas neste ciclo.</p>
+            {% endif %}
+
+            <div class="subsection-title">Ocorrências</div>
+            {% if semana.ocorrencias and (semana.ocorrencias|length) > 0 %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Descrição</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for o in semana.ocorrencias %}
+                    <tr>
+                        <td>{{ o.data_ocorrencia.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ o.tipo }}</td>
+                        <td>{{ o.descricao or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>Nenhuma ocorrência registrada neste ciclo.</p>
+            {% endif %}
+        {% endfor %}
     </div>
 
     <div class="footer">

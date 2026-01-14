@@ -1442,6 +1442,218 @@ def create_app():
             except Exception:
                 pass
 
+        # Criar tabelas do sistema de Ciclos (folgas/ocorrências/semanas) se não existirem
+        try:
+            from sqlalchemy import inspect, text
+
+            insp = inspect(db.engine)
+            table_names = set(insp.get_table_names())
+
+            if "ciclo_folga" not in table_names:
+                if is_sqlite:
+                    db.session.execute(
+                        text(
+                            """
+                        CREATE TABLE IF NOT EXISTS ciclo_folga (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            collaborator_id INTEGER NOT NULL,
+                            nome_colaborador TEXT NOT NULL,
+                            data_folga DATE NOT NULL,
+                            tipo TEXT NOT NULL,
+                            dias INTEGER NOT NULL DEFAULT 1,
+                            observacao TEXT,
+                            ciclo_id INTEGER,
+                            status_ciclo TEXT NOT NULL DEFAULT 'ativo',
+                            created_at TIMESTAMP,
+                            created_by TEXT,
+                            FOREIGN KEY (collaborator_id) REFERENCES collaborator(id)
+                        )
+                    """
+                        )
+                    )
+                    db.session.execute(
+                        text("CREATE INDEX IF NOT EXISTS idx_ciclo_folga_collab ON ciclo_folga (collaborator_id)")
+                    )
+                    db.session.execute(
+                        text("CREATE INDEX IF NOT EXISTS idx_ciclo_folga_data ON ciclo_folga (data_folga)")
+                    )
+                    db.session.execute(
+                        text("CREATE INDEX IF NOT EXISTS idx_ciclo_folga_status ON ciclo_folga (status_ciclo)")
+                    )
+                    db.session.execute(
+                        text("CREATE INDEX IF NOT EXISTS idx_ciclo_folga_ciclo ON ciclo_folga (ciclo_id)")
+                    )
+                else:
+                    db.session.execute(
+                        text(
+                            """
+                        CREATE TABLE IF NOT EXISTS ciclo_folga (
+                            id SERIAL PRIMARY KEY,
+                            collaborator_id INTEGER NOT NULL,
+                            nome_colaborador VARCHAR(100) NOT NULL,
+                            data_folga DATE NOT NULL,
+                            tipo VARCHAR(20) NOT NULL,
+                            dias INTEGER NOT NULL DEFAULT 1,
+                            observacao VARCHAR(500),
+                            ciclo_id INTEGER,
+                            status_ciclo VARCHAR(20) NOT NULL DEFAULT 'ativo',
+                            created_at TIMESTAMPTZ,
+                            created_by VARCHAR(100),
+                            FOREIGN KEY (collaborator_id) REFERENCES collaborator(id)
+                        )
+                    """
+                        )
+                    )
+                    db.session.execute(
+                        text("CREATE INDEX IF NOT EXISTS idx_ciclo_folga_collab ON ciclo_folga (collaborator_id)")
+                    )
+                    db.session.execute(
+                        text("CREATE INDEX IF NOT EXISTS idx_ciclo_folga_data ON ciclo_folga (data_folga)")
+                    )
+                    db.session.execute(
+                        text("CREATE INDEX IF NOT EXISTS idx_ciclo_folga_status ON ciclo_folga (status_ciclo)")
+                    )
+                    db.session.execute(
+                        text("CREATE INDEX IF NOT EXISTS idx_ciclo_folga_ciclo ON ciclo_folga (ciclo_id)")
+                    )
+
+            if "ciclo_ocorrencia" not in table_names:
+                if is_sqlite:
+                    db.session.execute(
+                        text(
+                            """
+                        CREATE TABLE IF NOT EXISTS ciclo_ocorrencia (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            collaborator_id INTEGER NOT NULL,
+                            nome_colaborador TEXT NOT NULL,
+                            data_ocorrencia DATE NOT NULL,
+                            tipo TEXT NOT NULL,
+                            descricao TEXT,
+                            ciclo_id INTEGER,
+                            status_ciclo TEXT NOT NULL DEFAULT 'ativo',
+                            created_at TIMESTAMP,
+                            created_by TEXT,
+                            FOREIGN KEY (collaborator_id) REFERENCES collaborator(id)
+                        )
+                    """
+                        )
+                    )
+                    db.session.execute(
+                        text(
+                            "CREATE INDEX IF NOT EXISTS idx_ciclo_ocorrencia_collab ON ciclo_ocorrencia "
+                            "(collaborator_id)"
+                        )
+                    )
+                    db.session.execute(
+                        text(
+                            "CREATE INDEX IF NOT EXISTS idx_ciclo_ocorrencia_data ON ciclo_ocorrencia (data_ocorrencia)"
+                        )
+                    )
+                    db.session.execute(
+                        text(
+                            "CREATE INDEX IF NOT EXISTS idx_ciclo_ocorrencia_status ON ciclo_ocorrencia (status_ciclo)"
+                        )
+                    )
+                    db.session.execute(
+                        text("CREATE INDEX IF NOT EXISTS idx_ciclo_ocorrencia_ciclo ON ciclo_ocorrencia (ciclo_id)")
+                    )
+                else:
+                    db.session.execute(
+                        text(
+                            """
+                        CREATE TABLE IF NOT EXISTS ciclo_ocorrencia (
+                            id SERIAL PRIMARY KEY,
+                            collaborator_id INTEGER NOT NULL,
+                            nome_colaborador VARCHAR(100) NOT NULL,
+                            data_ocorrencia DATE NOT NULL,
+                            tipo VARCHAR(30) NOT NULL,
+                            descricao VARCHAR(800),
+                            ciclo_id INTEGER,
+                            status_ciclo VARCHAR(20) NOT NULL DEFAULT 'ativo',
+                            created_at TIMESTAMPTZ,
+                            created_by VARCHAR(100),
+                            FOREIGN KEY (collaborator_id) REFERENCES collaborator(id)
+                        )
+                    """
+                        )
+                    )
+                    db.session.execute(
+                        text(
+                            "CREATE INDEX IF NOT EXISTS idx_ciclo_ocorrencia_collab ON ciclo_ocorrencia "
+                            "(collaborator_id)"
+                        )
+                    )
+                    db.session.execute(
+                        text(
+                            "CREATE INDEX IF NOT EXISTS idx_ciclo_ocorrencia_data ON ciclo_ocorrencia (data_ocorrencia)"
+                        )
+                    )
+                    db.session.execute(
+                        text(
+                            "CREATE INDEX IF NOT EXISTS idx_ciclo_ocorrencia_status ON ciclo_ocorrencia (status_ciclo)"
+                        )
+                    )
+                    db.session.execute(
+                        text("CREATE INDEX IF NOT EXISTS idx_ciclo_ocorrencia_ciclo ON ciclo_ocorrencia (ciclo_id)")
+                    )
+
+            if "ciclo_semana" not in table_names:
+                if is_sqlite:
+                    db.session.execute(
+                        text(
+                            """
+                        CREATE TABLE IF NOT EXISTS ciclo_semana (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            ciclo_id INTEGER NOT NULL,
+                            week_start DATE NOT NULL,
+                            week_end DATE NOT NULL,
+                            label TEXT NOT NULL,
+                            created_at TIMESTAMP
+                        )
+                    """
+                        )
+                    )
+                    db.session.execute(
+                        text("CREATE INDEX IF NOT EXISTS idx_ciclo_semana_ciclo ON ciclo_semana (ciclo_id)")
+                    )
+                    db.session.execute(
+                        text("CREATE INDEX IF NOT EXISTS idx_ciclo_semana_start ON ciclo_semana (week_start)")
+                    )
+                    db.session.execute(
+                        text("CREATE INDEX IF NOT EXISTS idx_ciclo_semana_label ON ciclo_semana (label)")
+                    )
+                else:
+                    db.session.execute(
+                        text(
+                            """
+                        CREATE TABLE IF NOT EXISTS ciclo_semana (
+                            id SERIAL PRIMARY KEY,
+                            ciclo_id INTEGER NOT NULL,
+                            week_start DATE NOT NULL,
+                            week_end DATE NOT NULL,
+                            label VARCHAR(50) NOT NULL,
+                            created_at TIMESTAMPTZ
+                        )
+                    """
+                        )
+                    )
+                    db.session.execute(
+                        text("CREATE INDEX IF NOT EXISTS idx_ciclo_semana_ciclo ON ciclo_semana (ciclo_id)")
+                    )
+                    db.session.execute(
+                        text("CREATE INDEX IF NOT EXISTS idx_ciclo_semana_start ON ciclo_semana (week_start)")
+                    )
+                    db.session.execute(
+                        text("CREATE INDEX IF NOT EXISTS idx_ciclo_semana_label ON ciclo_semana (label)")
+                    )
+
+            db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+
         # Migrar dados das tabelas antigas para TimeOffRecord (apenas uma vez)
         try:
             from datetime import datetime as _dt  # noqa: F811

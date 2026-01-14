@@ -1,6 +1,6 @@
 import math
 import os
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
@@ -9,7 +9,18 @@ from flask_login import current_user, login_required
 from sqlalchemy import func
 
 from .. import db
-from ..models import AppSetting, Ciclo, CicloFechamento, Collaborator, MedicalCertificate, SystemLog, Vacation
+from ..models import (
+    AppSetting,
+    Ciclo,
+    CicloFechamento,
+    CicloFolga,
+    CicloOcorrencia,
+    CicloSemana,
+    Collaborator,
+    MedicalCertificate,
+    SystemLog,
+    Vacation,
+)
 
 try:
     from weasyprint import HTML
@@ -101,35 +112,100 @@ def _get_nome_empresa():
     return "MultiMax | Controle inteligente"  # Valor padrão
 
 
+def _month_name_pt(month: int) -> str:
+    """Nome do mês em PT-BR com inicial maiúscula."""
+    month_names = [
+        "",
+        "Janeiro",
+        "Fevereiro",
+        "Março",
+        "Abril",
+        "Maio",
+        "Junho",
+        "Julho",
+        "Agosto",
+        "Setembro",
+        "Outubro",
+        "Novembro",
+        "Dezembro",
+    ]
+    if 1 <= month <= 12:
+        return month_names[month]
+    return ""
+
+
+def _month_start_end(anchor: date) -> tuple[date, date]:
+    """Retorna (primeiro_dia_do_mes, ultimo_dia_do_mes) para a data anchor."""
+    month_start = date(anchor.year, anchor.month, 1)
+    next_month = date(anchor.year + (1 if anchor.month == 12 else 0), (anchor.month % 12) + 1, 1)
+    month_end = next_month - timedelta(days=1)
+    return month_start, month_end
+
+
+def _get_open_cycle_anchor_date() -> date:
+    """Ancora do 'mês atual' do sistema: a menor data entre registros ativos (horas/folgas/ocorrências)."""
+    tz = ZoneInfo("America/Sao_Paulo")
+    try:
+        min_horas = db.session.query(func.min(Ciclo.data_lancamento)).filter(Ciclo.status_ciclo == "ativo").scalar()
+        min_folgas = (
+            db.session.query(func.min(CicloFolga.data_folga)).filter(CicloFolga.status_ciclo == "ativo").scalar()
+        )
+        min_oc = (
+            db.session.query(func.min(CicloOcorrencia.data_ocorrencia))
+            .filter(CicloOcorrencia.status_ciclo == "ativo")
+            .scalar()
+        )
+        candidates = [d for d in (min_horas, min_folgas, min_oc) if d]
+        if candidates:
+            return min(candidates)
+    except Exception:
+        pass
+    return datetime.now(tz).date()
+
+
+def _weekly_cycles_for_month(anchor: date) -> list[dict[str, object]]:
+    """
+    Gera os ciclos semanais do mês do anchor.
+    - Semanas inteiras dentro do mês: "Ciclo N | Mês"
+    - Semanas que cruzam meses: "Ciclo MêsAnterior | MêsAtual"
+    Inclui semanas que cruzam o mês (sobreposição) para manter consistência em PDFs e histórico.
+    """
+    month_start, month_end = _month_start_end(anchor)
+
+    # Semana começa na segunda (0) e termina no domingo (6)
+    first_week_start = month_start - timedelta(days=month_start.weekday())
+    weeks: list[tuple[date, date]] = []
+    cur = first_week_start
+    while cur <= month_end:
+        week_start = cur
+        week_end = cur + timedelta(days=6)
+        # incluir se sobrepõe ao mês
+        if week_end >= month_start:
+            weeks.append((week_start, week_end))
+        cur = cur + timedelta(days=7)
+
+    # Numeração só para semanas inteiras dentro do mês (start/end no mesmo mês do anchor)
+    n_intra = 0
+    out: list[dict[str, object]] = []
+    for week_start, week_end in weeks:
+        if week_start.month == anchor.month and week_end.month == anchor.month:
+            n_intra += 1
+            label = f"Ciclo {n_intra} | {_month_name_pt(anchor.month)}"
+        else:
+            label = f"Ciclo {_month_name_pt(week_start.month)} | {_month_name_pt(week_end.month)}"
+        out.append({"label": label, "week_start": week_start, "week_end": week_end})
+
+    return out
+
+
 def _get_ciclo_atual():
     """Calcula o ciclo atual (ciclo_id e mês de início)"""
     # Buscar primeiro ciclo_id disponível (próximo ciclo ou 1 se não houver fechamentos)
     ultimo_fechamento = CicloFechamento.query.order_by(CicloFechamento.ciclo_id.desc()).first()
     ciclo_id = (ultimo_fechamento.ciclo_id + 1) if ultimo_fechamento else 1
 
-    # Buscar primeira data de lançamento dos registros ativos para determinar mês de início
-    primeiro_registro = Ciclo.query.filter(Ciclo.status_ciclo == "ativo").order_by(Ciclo.data_lancamento.asc()).first()
-    if primeiro_registro:
-        mes_inicio = primeiro_registro.data_lancamento.strftime("%B")
-    else:
-        mes_inicio = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%B")
-
-    # Converter para português
-    meses_pt = {
-        "January": "Janeiro",
-        "February": "Fevereiro",
-        "March": "Março",
-        "April": "Abril",
-        "May": "Maio",
-        "June": "Junho",
-        "July": "Julho",
-        "August": "Agosto",
-        "September": "Setembro",
-        "October": "Outubro",
-        "November": "Novembro",
-        "December": "Dezembro",
-    }
-    mes_inicio = meses_pt.get(mes_inicio, mes_inicio)
+    anchor = _get_open_cycle_anchor_date()
+    mes_inicio = _month_name_pt(anchor.month)
 
     return {"ciclo_id": ciclo_id, "mes_inicio": mes_inicio}
 
@@ -227,6 +303,8 @@ def index():
 
         # Calcular ciclo atual
         ciclo_atual = _get_ciclo_atual()
+        anchor = _get_open_cycle_anchor_date()
+        ciclos_semanas = _weekly_cycles_for_month(anchor)
 
         # Totais gerais
         total_horas_geral = sum(s["balance"]["total_horas"] for s in colaboradores_stats)
@@ -242,6 +320,8 @@ def index():
         selected_collaborator = None
         ferias = []
         atestados = []
+        folgas = []
+        ocorrencias = []
 
         if selected_collaborator_id and current_user.nivel in ("admin", "DEV"):
             selected_collaborator = Collaborator.query.get(selected_collaborator_id)
@@ -254,6 +334,16 @@ def index():
                 atestados = (
                     MedicalCertificate.query.filter_by(collaborator_id=selected_collaborator.id)
                     .order_by(MedicalCertificate.data_inicio.desc())
+                    .all()
+                )
+                folgas = (
+                    CicloFolga.query.filter_by(collaborator_id=selected_collaborator.id, status_ciclo="ativo")
+                    .order_by(CicloFolga.data_folga.desc(), CicloFolga.id.desc())
+                    .all()
+                )
+                ocorrencias = (
+                    CicloOcorrencia.query.filter_by(collaborator_id=selected_collaborator.id, status_ciclo="ativo")
+                    .order_by(CicloOcorrencia.data_ocorrencia.desc(), CicloOcorrencia.id.desc())
                     .all()
                 )
 
@@ -270,9 +360,12 @@ def index():
             total_valor_geral=total_valor_geral,
             tem_registros_ativos=tem_registros_ativos,
             can_edit=current_user.nivel in ["admin", "DEV"],
+            ciclos_semanas=ciclos_semanas,
             selected_collaborator=selected_collaborator,
             ferias=ferias,
             atestados=atestados,
+            folgas=folgas,
+            ocorrencias=ocorrencias,
         )
     except Exception as e:
         try:
@@ -299,6 +392,7 @@ def index():
         ciclo_atual_default["mes_inicio"] = meses_pt.get(
             ciclo_atual_default["mes_inicio"], ciclo_atual_default["mes_inicio"]
         )
+        ciclos_semanas = _weekly_cycles_for_month(datetime.now(ZoneInfo("America/Sao_Paulo")).date())
         return render_template(
             "ciclos/index.html",
             active_page="ciclos",
@@ -312,10 +406,90 @@ def index():
             total_valor_geral=0.0,
             tem_registros_ativos=False,
             can_edit=current_user.nivel in ["admin", "DEV"],
+            ciclos_semanas=ciclos_semanas,
             selected_collaborator=None,
             ferias=[],
             atestados=[],
+            folgas=[],
+            ocorrencias=[],
         )
+
+
+@bp.route("/pesquisa", methods=["GET"], strict_slashes=False)
+@login_required
+def pesquisa():
+    """Pesquisa ciclos semanais arquivados (por label) e retorna detalhamento por colaborador."""
+    if current_user.nivel not in ["operador", "admin", "DEV"]:
+        flash("Acesso negado.", "danger")
+        return redirect(url_for("home.index"))
+
+    q = (request.args.get("q") or "").strip()
+    ciclo_id = request.args.get("ciclo_id", type=int)
+
+    query = CicloSemana.query
+    if ciclo_id:
+        query = query.filter(CicloSemana.ciclo_id == ciclo_id)
+    if q:
+        query = query.filter(CicloSemana.label.ilike(f"%{q}%"))
+
+    semanas = query.order_by(CicloSemana.ciclo_id.desc(), CicloSemana.week_start.asc()).limit(200).all()
+
+    # Montar visão detalhada por semana
+    semanas_detalhe = []
+    for s in semanas:
+        # Horas (fechadas) no intervalo
+        horas = (
+            Ciclo.query.filter(
+                Ciclo.status_ciclo == "fechado",
+                Ciclo.ciclo_id == s.ciclo_id,
+                Ciclo.data_lancamento >= s.week_start,
+                Ciclo.data_lancamento <= s.week_end,
+            )
+            .order_by(Ciclo.nome_colaborador.asc(), Ciclo.data_lancamento.asc(), Ciclo.id.asc())
+            .all()
+        )
+        folgas = (
+            CicloFolga.query.filter(
+                CicloFolga.status_ciclo == "fechado",
+                CicloFolga.ciclo_id == s.ciclo_id,
+                CicloFolga.data_folga >= s.week_start,
+                CicloFolga.data_folga <= s.week_end,
+            )
+            .order_by(CicloFolga.nome_colaborador.asc(), CicloFolga.data_folga.asc(), CicloFolga.id.asc())
+            .all()
+        )
+        ocorrencias = (
+            CicloOcorrencia.query.filter(
+                CicloOcorrencia.status_ciclo == "fechado",
+                CicloOcorrencia.ciclo_id == s.ciclo_id,
+                CicloOcorrencia.data_ocorrencia >= s.week_start,
+                CicloOcorrencia.data_ocorrencia <= s.week_end,
+            )
+            .order_by(
+                CicloOcorrencia.nome_colaborador.asc(), CicloOcorrencia.data_ocorrencia.asc(), CicloOcorrencia.id.asc()
+            )
+            .all()
+        )
+
+        semanas_detalhe.append(
+            {
+                "ciclo_id": s.ciclo_id,
+                "label": s.label,
+                "week_start": s.week_start,
+                "week_end": s.week_end,
+                "horas": horas,
+                "folgas": folgas,
+                "ocorrencias": ocorrencias,
+            }
+        )
+
+    return render_template(
+        "ciclos/pesquisa.html",
+        active_page="ciclos",
+        q=q,
+        filtro_ciclo_id=ciclo_id,
+        semanas=semanas_detalhe,
+    )
 
 
 @bp.route("/lançar", methods=["POST"], strict_slashes=False)
@@ -414,6 +588,140 @@ def lancar_horas():
         print(traceback.format_exc())
 
     return redirect(url_for("ciclos.index"))
+
+
+# ============================================================================
+# Folgas e Ocorrências (ciclo semanal/mensal)
+# ============================================================================
+
+
+@bp.route("/folgas/adicionar", methods=["POST"], strict_slashes=False)
+@login_required
+def folgas_adicionar():
+    """Adicionar folga (adicional/uso) no mês atual (resetada apenas no fechamento mensal)."""
+    if current_user.nivel not in ("admin", "DEV"):
+        flash("Acesso negado.", "danger")
+        return redirect(url_for("ciclos.index"))
+
+    try:
+        cid = int((request.form.get("collaborator_id") or "0").strip() or "0")
+        data_str = (request.form.get("data_folga") or "").strip()
+        tipo = (request.form.get("tipo") or "").strip().lower()
+        dias_str = (request.form.get("dias") or "1").strip()
+        obs = (request.form.get("observacao") or "").strip()
+
+        if not cid or not data_str or tipo not in ("adicional", "uso"):
+            flash("Dados obrigatórios ausentes/ inválidos.", "warning")
+            return redirect(url_for("ciclos.index", collaborator_id=cid if cid else None))
+
+        dias = int(dias_str) if dias_str else 1
+        if dias <= 0:
+            dias = 1
+
+        collaborator = Collaborator.query.get(cid)
+        if not collaborator:
+            flash("Colaborador não encontrado.", "warning")
+            return redirect(url_for("ciclos.index"))
+
+        data_folga = datetime.strptime(data_str, "%Y-%m-%d").date()
+
+        f = CicloFolga()
+        f.collaborator_id = cid
+        f.nome_colaborador = collaborator.name
+        f.data_folga = data_folga
+        f.tipo = tipo
+        f.dias = dias
+        f.observacao = obs if obs else None
+        f.status_ciclo = "ativo"
+        f.created_by = current_user.name or current_user.username
+        db.session.add(f)
+        db.session.commit()
+        flash("Folga registrada com sucesso!", "success")
+        return redirect(url_for("ciclos.index", collaborator_id=cid))
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Erro ao registrar folga: {e}", "danger")
+        return redirect(url_for("ciclos.index"))
+
+
+@bp.route("/folgas/<int:id>/excluir", methods=["POST"], strict_slashes=False)
+@login_required
+def folgas_excluir(id: int):
+    if current_user.nivel not in ("admin", "DEV"):
+        flash("Acesso negado.", "danger")
+        return redirect(url_for("ciclos.index"))
+    try:
+        f = CicloFolga.query.get_or_404(id)
+        cid = f.collaborator_id
+        db.session.delete(f)
+        db.session.commit()
+        flash("Folga excluída.", "success")
+        return redirect(url_for("ciclos.index", collaborator_id=cid))
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Erro ao excluir folga: {e}", "danger")
+        return redirect(url_for("ciclos.index"))
+
+
+@bp.route("/ocorrencias/adicionar", methods=["POST"], strict_slashes=False)
+@login_required
+def ocorrencias_adicionar():
+    """Adicionar ocorrência geral (atraso/falta/observação/outro)."""
+    if current_user.nivel not in ("admin", "DEV"):
+        flash("Acesso negado.", "danger")
+        return redirect(url_for("ciclos.index"))
+
+    try:
+        cid = int((request.form.get("collaborator_id") or "0").strip() or "0")
+        data_str = (request.form.get("data_ocorrencia") or "").strip()
+        tipo = (request.form.get("tipo") or "").strip().lower()
+        desc = (request.form.get("descricao") or "").strip()
+
+        if not cid or not data_str or not tipo:
+            flash("Dados obrigatórios ausentes.", "warning")
+            return redirect(url_for("ciclos.index", collaborator_id=cid if cid else None))
+
+        collaborator = Collaborator.query.get(cid)
+        if not collaborator:
+            flash("Colaborador não encontrado.", "warning")
+            return redirect(url_for("ciclos.index"))
+
+        data_oc = datetime.strptime(data_str, "%Y-%m-%d").date()
+        o = CicloOcorrencia()
+        o.collaborator_id = cid
+        o.nome_colaborador = collaborator.name
+        o.data_ocorrencia = data_oc
+        o.tipo = tipo
+        o.descricao = desc if desc else None
+        o.status_ciclo = "ativo"
+        o.created_by = current_user.name or current_user.username
+        db.session.add(o)
+        db.session.commit()
+        flash("Ocorrência registrada com sucesso!", "success")
+        return redirect(url_for("ciclos.index", collaborator_id=cid))
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Erro ao registrar ocorrência: {e}", "danger")
+        return redirect(url_for("ciclos.index"))
+
+
+@bp.route("/ocorrencias/<int:id>/excluir", methods=["POST"], strict_slashes=False)
+@login_required
+def ocorrencias_excluir(id: int):
+    if current_user.nivel not in ("admin", "DEV"):
+        flash("Acesso negado.", "danger")
+        return redirect(url_for("ciclos.index"))
+    try:
+        o = CicloOcorrencia.query.get_or_404(id)
+        cid = o.collaborator_id
+        db.session.delete(o)
+        db.session.commit()
+        flash("Ocorrência excluída.", "success")
+        return redirect(url_for("ciclos.index", collaborator_id=cid))
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Erro ao excluir ocorrência: {e}", "danger")
+        return redirect(url_for("ciclos.index"))
 
 
 @bp.route("/historico/<int:collaborator_id>", methods=["GET"], strict_slashes=False)
@@ -643,6 +951,9 @@ def confirmar_fechamento():
         return redirect(url_for("ciclos.index"))
 
     try:
+        # Ancora do mês atual (antes de fechar), para arquivar os ciclos semanais corretamente
+        anchor_before_close = _get_open_cycle_anchor_date()
+
         # Buscar próximo ciclo_id disponível
         ultimo_fechamento = CicloFechamento.query.order_by(CicloFechamento.ciclo_id.desc()).first()
         proximo_ciclo_id = (ultimo_fechamento.ciclo_id + 1) if ultimo_fechamento else 1
@@ -716,6 +1027,34 @@ def confirmar_fechamento():
                 reg.status_ciclo = "fechado"
                 reg.updated_at = datetime.now(ZoneInfo("America/Sao_Paulo"))
                 reg.updated_by = current_user.name or current_user.username
+
+        # Fechar folgas e ocorrências (reset só acontece aqui, no fechamento mensal com pagamento)
+        try:
+            folgas_ativas = CicloFolga.query.filter(CicloFolga.status_ciclo == "ativo").all()
+            for f in folgas_ativas:
+                f.ciclo_id = proximo_ciclo_id
+                f.status_ciclo = "fechado"
+            ocorr_ativas = CicloOcorrencia.query.filter(CicloOcorrencia.status_ciclo == "ativo").all()
+            for o in ocorr_ativas:
+                o.ciclo_id = proximo_ciclo_id
+                o.status_ciclo = "fechado"
+        except Exception:
+            # não bloquear fechamento por causa de algum item inválido
+            pass
+
+        # Arquivar ciclos semanais do mês (para pesquisa e PDFs históricos)
+        try:
+            CicloSemana.query.filter(CicloSemana.ciclo_id == proximo_ciclo_id).delete()
+            semanas = _weekly_cycles_for_month(anchor_before_close)
+            for s in semanas:
+                cs = CicloSemana()
+                cs.ciclo_id = proximo_ciclo_id
+                cs.week_start = s["week_start"]  # type: ignore[assignment]
+                cs.week_end = s["week_end"]  # type: ignore[assignment]
+                cs.label = s["label"]  # type: ignore[assignment]
+                db.session.add(cs)
+        except Exception:
+            pass
 
         # Criar registro de fechamento
         fechamento = CicloFechamento()
@@ -1087,10 +1426,50 @@ def pdf_individual(collaborator_id):
 
         collaborator = Collaborator.query.get_or_404(collaborator_id)
 
-        # Buscar todos os registros ativos do colaborador
-        registros = (
-            _get_active_ciclos_query(collaborator_id).order_by(Ciclo.data_lancamento.desc(), Ciclo.id.desc()).all()
-        )
+        # Ciclos semanais do "mês atual" do sistema (mesmo que cruzem meses)
+        anchor = _get_open_cycle_anchor_date()
+        semanas = _weekly_cycles_for_month(anchor)
+
+        semanas_detalhadas = []
+        for s in semanas:
+            week_start = s["week_start"]
+            week_end = s["week_end"]
+            horas = (
+                _get_active_ciclos_query(collaborator_id)
+                .filter(Ciclo.data_lancamento >= week_start, Ciclo.data_lancamento <= week_end)
+                .order_by(Ciclo.data_lancamento.asc(), Ciclo.id.asc())
+                .all()
+            )
+            folgas = (
+                CicloFolga.query.filter(
+                    CicloFolga.collaborator_id == collaborator_id,
+                    CicloFolga.status_ciclo == "ativo",
+                    CicloFolga.data_folga >= week_start,
+                    CicloFolga.data_folga <= week_end,
+                )
+                .order_by(CicloFolga.data_folga.asc(), CicloFolga.id.asc())
+                .all()
+            )
+            ocorrencias = (
+                CicloOcorrencia.query.filter(
+                    CicloOcorrencia.collaborator_id == collaborator_id,
+                    CicloOcorrencia.status_ciclo == "ativo",
+                    CicloOcorrencia.data_ocorrencia >= week_start,
+                    CicloOcorrencia.data_ocorrencia <= week_end,
+                )
+                .order_by(CicloOcorrencia.data_ocorrencia.asc(), CicloOcorrencia.id.asc())
+                .all()
+            )
+            semanas_detalhadas.append(
+                {
+                    "label": s["label"],
+                    "week_start": week_start,
+                    "week_end": week_end,
+                    "horas": horas,
+                    "folgas": folgas,
+                    "ocorrencias": ocorrencias,
+                }
+            )
 
         # Calcular saldo
         balance = _calculate_collaborator_balance(collaborator_id)
@@ -1099,47 +1478,10 @@ def pdf_individual(collaborator_id):
         nome_empresa = _get_nome_empresa()
         valor_dia = _get_valor_dia()
 
-        # Buscar primeiro ciclo_id disponível (próximo ciclo ou 1 se não houver fechamentos)
+        # Ciclo mensal (só fecha após Registrar Pagamento)
         ultimo_fechamento = CicloFechamento.query.order_by(CicloFechamento.ciclo_id.desc()).first()
         ciclo_id = (ultimo_fechamento.ciclo_id + 1) if ultimo_fechamento else 1
-
-        # Buscar primeira data de lançamento dos registros ativos para determinar mês de início
-        if registros:
-            primeira_data = min(reg.data_lancamento for reg in registros)
-            mes_inicio = primeira_data.strftime("%B")
-            # Converter para português
-            meses_pt = {
-                "January": "Janeiro",
-                "February": "Fevereiro",
-                "March": "Março",
-                "April": "Abril",
-                "May": "Maio",
-                "June": "Junho",
-                "July": "Julho",
-                "August": "Agosto",
-                "September": "Setembro",
-                "October": "Outubro",
-                "November": "Novembro",
-                "December": "Dezembro",
-            }
-            mes_inicio = meses_pt.get(mes_inicio, mes_inicio)
-        else:
-            mes_inicio = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%B")
-            meses_pt = {
-                "January": "Janeiro",
-                "February": "Fevereiro",
-                "March": "Março",
-                "April": "Abril",
-                "May": "Maio",
-                "June": "Junho",
-                "July": "Julho",
-                "August": "Agosto",
-                "September": "Setembro",
-                "October": "Outubro",
-                "November": "Novembro",
-                "December": "Dezembro",
-            }
-            mes_inicio = meses_pt.get(mes_inicio, mes_inicio)
+        mes_inicio = _month_name_pt(anchor.month)
 
         # Caminhos das logos - usar caminhos relativos ao base_dir
         logo_header_path = os.path.join(base_dir, "static", "icons", "logo black.png")
@@ -1154,7 +1496,7 @@ def pdf_individual(collaborator_id):
         html = render_template(
             "ciclos/pdf_individual.html",
             collaborator=collaborator,
-            registros=registros,
+            semanas=semanas_detalhadas,
             balance=balance,
             nome_empresa=nome_empresa,
             valor_dia=valor_dia,
@@ -1207,61 +1549,67 @@ def pdf_geral():
 
         valor_dia = _get_valor_dia()
 
-        # Buscar primeiro ciclo_id disponível (próximo ciclo ou 1 se não houver fechamentos)
+        # Ciclo mensal atual
         ultimo_fechamento = CicloFechamento.query.order_by(CicloFechamento.ciclo_id.desc()).first()
         ciclo_id = (ultimo_fechamento.ciclo_id + 1) if ultimo_fechamento else 1
 
-        # Buscar primeira data de lançamento dos registros ativos para determinar mês de início
-        primeira_data = Ciclo.query.filter(Ciclo.status_ciclo == "ativo").order_by(Ciclo.data_lancamento.asc()).first()
-        if primeira_data:
-            mes_inicio = primeira_data.data_lancamento.strftime("%B")
-            # Converter para português
-            meses_pt = {
-                "January": "Janeiro",
-                "February": "Fevereiro",
-                "March": "Março",
-                "April": "Abril",
-                "May": "Maio",
-                "June": "Junho",
-                "July": "Julho",
-                "August": "Agosto",
-                "September": "Setembro",
-                "October": "Outubro",
-                "November": "Novembro",
-                "December": "Dezembro",
-            }
-            mes_inicio = meses_pt.get(mes_inicio, mes_inicio)
-        else:
-            mes_inicio = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%B")
-            meses_pt = {
-                "January": "Janeiro",
-                "February": "Fevereiro",
-                "March": "Março",
-                "April": "Abril",
-                "May": "Maio",
-                "June": "Junho",
-                "July": "Julho",
-                "August": "Agosto",
-                "September": "Setembro",
-                "October": "Outubro",
-                "November": "Novembro",
-                "December": "Dezembro",
-            }
-            mes_inicio = meses_pt.get(mes_inicio, mes_inicio)
+        anchor = _get_open_cycle_anchor_date()
+        mes_inicio = _month_name_pt(anchor.month)
+        semanas = _weekly_cycles_for_month(anchor)
 
         for colab in colaboradores:
             balance = _calculate_collaborator_balance(colab.id)
 
-            # Buscar registros ativos usando helper (ordenados por data)
-            registros = _get_active_ciclos_query(colab.id).order_by(Ciclo.data_lancamento.asc(), Ciclo.id.asc()).all()
+            semanas_detalhadas = []
+            tem_algo = False
+            for s in semanas:
+                week_start = s["week_start"]
+                week_end = s["week_end"]
+                horas = (
+                    _get_active_ciclos_query(colab.id)
+                    .filter(Ciclo.data_lancamento >= week_start, Ciclo.data_lancamento <= week_end)
+                    .order_by(Ciclo.data_lancamento.asc(), Ciclo.id.asc())
+                    .all()
+                )
+                folgas = (
+                    CicloFolga.query.filter(
+                        CicloFolga.collaborator_id == colab.id,
+                        CicloFolga.status_ciclo == "ativo",
+                        CicloFolga.data_folga >= week_start,
+                        CicloFolga.data_folga <= week_end,
+                    )
+                    .order_by(CicloFolga.data_folga.asc(), CicloFolga.id.asc())
+                    .all()
+                )
+                ocorrencias = (
+                    CicloOcorrencia.query.filter(
+                        CicloOcorrencia.collaborator_id == colab.id,
+                        CicloOcorrencia.status_ciclo == "ativo",
+                        CicloOcorrencia.data_ocorrencia >= week_start,
+                        CicloOcorrencia.data_ocorrencia <= week_end,
+                    )
+                    .order_by(CicloOcorrencia.data_ocorrencia.asc(), CicloOcorrencia.id.asc())
+                    .all()
+                )
+                if horas or folgas or ocorrencias:
+                    tem_algo = True
+                semanas_detalhadas.append(
+                    {
+                        "label": s["label"],
+                        "week_start": week_start,
+                        "week_end": week_end,
+                        "horas": horas,
+                        "folgas": folgas,
+                        "ocorrencias": ocorrencias,
+                    }
+                )
 
-            if len(registros) > 0:  # Só incluir se tiver registros
+            if tem_algo:  # Só incluir se tiver algo no mês atual
                 colaboradores_resumo.append(
                     {
                         "collaborator": colab,
                         "balance": balance,
-                        "registros": registros,  # Incluir registros detalhados
-                        "registros_count": len(registros),
+                        "semanas": semanas_detalhadas,
                     }
                 )
 
