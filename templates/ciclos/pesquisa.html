@@ -32,7 +32,7 @@
             <form method="GET" action="{{ url_for('ciclos.pesquisa') }}" style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:end;">
                 <div style="min-width: 280px; flex: 1;">
                     <label class="form-label-modern" style="display:block; margin-bottom:0.25rem;">Buscar</label>
-                    <input type="text" name="q" value="{{ q }}" class="form-input-modern" placeholder="Ex.: Ciclo 1 | Janeiro">
+                    <input type="text" name="q" value="{{ q }}" class="form-input-modern" placeholder="Ex.: Janeiro ou Ciclo 1 | Janeiro">
                 </div>
                 <div style="min-width: 200px;">
                     <label class="form-label-modern" style="display:block; margin-bottom:0.25rem;">Ciclo mensal (opcional)</label>
@@ -47,6 +47,54 @@
     </div>
 
     {% if semanas and (semanas|length) > 0 %}
+        <div class="resumo-geral-card" style="margin-bottom: 1.25rem;">
+            <div class="resumo-header">
+                <h3 class="resumo-title">
+                    <i class="bi bi-file-earmark-pdf"></i>
+                    PDFs rápidos
+                </h3>
+            </div>
+            <div style="padding: 1rem; display:flex; gap: 0.75rem; flex-wrap: wrap; align-items: end;">
+                {% if ciclo_ids %}
+                    {% for cid in ciclo_ids %}
+                    <a class="btn-action btn-action-primary" href="{{ url_for('ciclos.pdf_geral_ciclo', ciclo_id=cid) }}">
+                        <i class="bi bi-file-earmark-pdf"></i>
+                        <span>PDF Geral (Ciclo {{ cid }})</span>
+                    </a>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="GET" action="#" onsubmit="return false;" style="display:flex; gap:0.5rem; align-items:end;">
+                    <div style="min-width: 160px;">
+                        <label class="form-label-modern" style="display:block; margin-bottom:0.25rem;">Ciclo</label>
+                        <select id="pdfCicloSelect" class="form-input-modern">
+                            {% for cid in ciclo_ids %}
+                            <option value="{{ cid }}">{{ cid }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div style="min-width: 260px;">
+                        <label class="form-label-modern" style="display:block; margin-bottom:0.25rem;">PDF Individual (por colaborador)</label>
+                        <select id="pdfIndSelect" class="form-input-modern">
+                            <option value="">Selecione...</option>
+                            {% for c in colaboradores %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="button" class="btn-action btn-action-secondary" onclick="openPdfIndividualCiclo()">
+                        <i class="bi bi-file-earmark-pdf"></i>
+                        <span>Gerar</span>
+                    </button>
+                </form>
+            </div>
+            {% if q_month_name %}
+            <div style="padding: 0 1rem 1rem 1rem; color:#6b7280; font-size:0.875rem;">
+                Busca por mês detectada: <strong>{{ q_month_name }}</strong> (inclui transições, ex.: "Dezembro | {{ q_month_name }}").
+            </div>
+            {% endif %}
+        </div>
+
         {% for s in semanas %}
         <div class="db-card-modern" style="margin-bottom: 1rem;">
             <div class="db-card-header-modern">
@@ -170,3 +218,23 @@
 </div>
 {% endblock %}
 
+{% block scripts %}
+<script>
+function openPdfIndividualCiclo() {
+    const cicloSel = document.getElementById('pdfCicloSelect');
+    const cicloId = cicloSel ? cicloSel.value : '';
+    if (!cicloId) {
+        alert('Selecione um ciclo.');
+        return;
+    }
+    const sel = document.getElementById('pdfIndSelect');
+    if (!sel || !sel.value) {
+        alert('Selecione um colaborador.');
+        return;
+    }
+    const collaboratorId = sel.value;
+    const url = `/ciclos/pdf/individual/${collaboratorId}/ciclo/${cicloId}`;
+    window.open(url, '_blank');
+}
+</script>
+{% endblock %}

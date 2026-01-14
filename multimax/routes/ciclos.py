@@ -1,5 +1,7 @@
 import math
 import os
+import re
+import unicodedata
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
@@ -134,6 +136,63 @@ def _month_name_pt(month: int) -> str:
     return ""
 
 
+def _normalize_text(s: str) -> str:
+    s = (s or "").strip().lower()
+    s = unicodedata.normalize("NFKD", s)
+    s = "".join(ch for ch in s if not unicodedata.combining(ch))
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def _parse_month_query(q: str) -> tuple[int | None, str | None]:
+    """
+    Se q representar um mês (ex.: 'Janeiro', 'jan', '1', '01'), retorna (month_number, month_name_pt).
+    Caso contrário, (None, None).
+    """
+    qn = _normalize_text(q)
+    if not qn:
+        return None, None
+
+    # suportar "1" / "01"
+    if qn.isdigit():
+        m = int(qn)
+        if 1 <= m <= 12:
+            return m, _month_name_pt(m)
+
+    # suportar nomes em PT (sem acentos)
+    month_map = {
+        "janeiro": 1,
+        "jan": 1,
+        "fevereiro": 2,
+        "fev": 2,
+        "marco": 3,
+        "mar": 3,
+        "abril": 4,
+        "abr": 4,
+        "maio": 5,
+        "mai": 5,
+        "junho": 6,
+        "jun": 6,
+        "julho": 7,
+        "jul": 7,
+        "agosto": 8,
+        "ago": 8,
+        "setembro": 9,
+        "set": 9,
+        "outubro": 10,
+        "out": 10,
+        "novembro": 11,
+        "nov": 11,
+        "dezembro": 12,
+        "dez": 12,
+    }
+    if qn in month_map:
+        m = month_map[qn]
+        return m, _month_name_pt(m)
+
+    return None, None
+
+
 def _month_start_end(anchor: date) -> tuple[date, date]:
     """Retorna (primeiro_dia_do_mes, ultimo_dia_do_mes) para a data anchor."""
     month_start = date(anchor.year, anchor.month, 1)
@@ -196,6 +255,48 @@ def _weekly_cycles_for_month(anchor: date) -> list[dict[str, object]]:
         out.append({"label": label, "week_start": week_start, "week_end": week_end})
 
     return out
+
+
+def _infer_reference_month_from_weeks(weeks: list[CicloSemana]) -> str:
+    """Tenta inferir mês de referência (PT) a partir das semanas arquivadas."""
+    if not weeks:
+        return _month_name_pt(datetime.now(ZoneInfo("America/Sao_Paulo")).date().month)
+
+    # Preferir o mês do week_end (tende a refletir o mês "atual" do ciclo)
+    counts: dict[int, int] = {}
+    for w in weeks:
+        m = w.week_end.month
+        counts[m] = counts.get(m, 0) + 1
+    best_month = max(counts.items(), key=lambda kv: kv[1])[0]
+    return _month_name_pt(best_month)
+
+
+def _calculate_collaborator_balance_for_cycle(collaborator_id: int, ciclo_id: int) -> dict[str, float | int]:
+    """Saldo por colaborador dentro de um ciclo mensal fechado (somente registros fechados desse ciclo_id)."""
+    total_horas_decimal = Ciclo.query.filter(
+        Ciclo.collaborator_id == collaborator_id,
+        Ciclo.status_ciclo == "fechado",
+        Ciclo.ciclo_id == ciclo_id,
+    ).with_entities(func.coalesce(func.sum(Ciclo.valor_horas), 0)).scalar() or Decimal("0.0")
+
+    total_horas = Decimal(str(total_horas_decimal))
+    total_horas_float = float(total_horas)
+    if total_horas_float < 0:
+        dias_completos = 0
+        horas_restantes = 0.0
+    else:
+        dias_completos = int(math.floor(total_horas_float / 8.0))
+        horas_restantes = total_horas_float % 8.0
+
+    valor_dia = Decimal(str(_get_valor_dia()))
+    valor_aproximado = Decimal(str(dias_completos)) * valor_dia
+
+    return {
+        "total_horas": float(total_horas),
+        "dias_completos": dias_completos,
+        "horas_restantes": round(horas_restantes, 1),
+        "valor_aproximado": float(valor_aproximado),
+    }
 
 
 def _get_ciclo_atual():
@@ -429,7 +530,13 @@ def pesquisa():
     query = CicloSemana.query
     if ciclo_id:
         query = query.filter(CicloSemana.ciclo_id == ciclo_id)
-    if q:
+
+    # Se o usuário pesquisar por um mês ("Janeiro"), retornar todas as semanas associadas
+    # incluindo transições (ex.: "Dezembro | Janeiro").
+    q_month_num, q_month_name = _parse_month_query(q)
+    if q_month_name:
+        query = query.filter(CicloSemana.label.ilike(f"%{q_month_name}%"))
+    elif q:
         query = query.filter(CicloSemana.label.ilike(f"%{q}%"))
 
     semanas = query.order_by(CicloSemana.ciclo_id.desc(), CicloSemana.week_start.asc()).limit(200).all()
@@ -483,12 +590,18 @@ def pesquisa():
             }
         )
 
+    colaboradores = _get_all_collaborators()
+    ciclo_ids = sorted({int(s["ciclo_id"]) for s in semanas_detalhe}, reverse=True)
+
     return render_template(
         "ciclos/pesquisa.html",
         active_page="ciclos",
         q=q,
+        q_month_name=q_month_name,
         filtro_ciclo_id=ciclo_id,
         semanas=semanas_detalhe,
+        colaboradores=colaboradores,
+        ciclo_ids=ciclo_ids,
     )
 
 
@@ -1527,6 +1640,115 @@ def pdf_individual(collaborator_id):
         return redirect(url_for("ciclos.index"))
 
 
+@bp.route("/pdf/individual/<int:collaborator_id>/ciclo/<int:ciclo_id>", methods=["GET"], strict_slashes=False)
+@login_required
+def pdf_individual_ciclo(collaborator_id: int, ciclo_id: int):
+    """Gera PDF individual de um ciclo mensal fechado (por ciclo_id), com ciclos semanais arquivados."""
+    if not WEASYPRINT_AVAILABLE:
+        flash("WeasyPrint não está disponível.", "danger")
+        return redirect(url_for("ciclos.index"))
+
+    if current_user.nivel not in ["operador", "admin", "DEV"]:
+        flash("Acesso negado.", "danger")
+        return redirect(url_for("ciclos.index"))
+
+    try:
+        import sys
+
+        base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        collaborator = Collaborator.query.get_or_404(collaborator_id)
+
+        weeks = CicloSemana.query.filter(CicloSemana.ciclo_id == ciclo_id).order_by(CicloSemana.week_start.asc()).all()
+        mes_inicio = _infer_reference_month_from_weeks(weeks)
+
+        semanas_detalhadas = []
+        for w in weeks:
+            horas = (
+                Ciclo.query.filter(
+                    Ciclo.status_ciclo == "fechado",
+                    Ciclo.ciclo_id == ciclo_id,
+                    Ciclo.collaborator_id == collaborator_id,
+                    Ciclo.data_lancamento >= w.week_start,
+                    Ciclo.data_lancamento <= w.week_end,
+                )
+                .order_by(Ciclo.data_lancamento.asc(), Ciclo.id.asc())
+                .all()
+            )
+            folgas = (
+                CicloFolga.query.filter(
+                    CicloFolga.status_ciclo == "fechado",
+                    CicloFolga.ciclo_id == ciclo_id,
+                    CicloFolga.collaborator_id == collaborator_id,
+                    CicloFolga.data_folga >= w.week_start,
+                    CicloFolga.data_folga <= w.week_end,
+                )
+                .order_by(CicloFolga.data_folga.asc(), CicloFolga.id.asc())
+                .all()
+            )
+            ocorrencias = (
+                CicloOcorrencia.query.filter(
+                    CicloOcorrencia.status_ciclo == "fechado",
+                    CicloOcorrencia.ciclo_id == ciclo_id,
+                    CicloOcorrencia.collaborator_id == collaborator_id,
+                    CicloOcorrencia.data_ocorrencia >= w.week_start,
+                    CicloOcorrencia.data_ocorrencia <= w.week_end,
+                )
+                .order_by(CicloOcorrencia.data_ocorrencia.asc(), CicloOcorrencia.id.asc())
+                .all()
+            )
+            semanas_detalhadas.append(
+                {
+                    "label": w.label,
+                    "week_start": w.week_start,
+                    "week_end": w.week_end,
+                    "horas": horas,
+                    "folgas": folgas,
+                    "ocorrencias": ocorrencias,
+                }
+            )
+
+        balance = _calculate_collaborator_balance_for_cycle(collaborator_id, ciclo_id)
+        nome_empresa = _get_nome_empresa()
+        valor_dia = _get_valor_dia()
+
+        logo_header_path = os.path.join(base_dir, "static", "icons", "logo black.png")
+        logo_header = (
+            os.path.relpath(logo_header_path, base_dir).replace("\\", "/") if os.path.exists(logo_header_path) else None
+        )
+        logo_footer = None
+
+        html = render_template(
+            "ciclos/pdf_individual.html",
+            collaborator=collaborator,
+            semanas=semanas_detalhadas,
+            balance=balance,
+            nome_empresa=nome_empresa,
+            valor_dia=valor_dia,
+            ciclo_id=ciclo_id,
+            mes_inicio=mes_inicio,
+            logo_header=logo_header,
+            logo_footer=logo_footer,
+            data_geracao=datetime.now(ZoneInfo("America/Sao_Paulo")),
+        )
+
+        if not WEASYPRINT_AVAILABLE or HTML is None:
+            flash("WeasyPrint não está disponível. Não é possível gerar PDF.", "danger")
+            return redirect(url_for("ciclos.index"))
+
+        base_url = str(base_dir) if base_dir else os.getcwd()
+        pdf = HTML(string=html, base_url=base_url).write_pdf()
+
+        response = make_response(pdf)
+        response.headers["Content-Type"] = "application/pdf"
+        response.headers["Content-Disposition"] = (
+            f'inline; filename=ciclo_{ciclo_id}_individual_{collaborator.name.replace(" ", "_")}.pdf'
+        )
+        return response
+    except Exception as e:
+        flash(f"Erro ao gerar PDF: {str(e)}", "danger")
+        return redirect(url_for("ciclos.pesquisa"))
+
+
 @bp.route("/pdf/geral", methods=["GET"], strict_slashes=False)
 @login_required
 def pdf_geral():
@@ -1664,3 +1886,124 @@ def pdf_geral():
     except Exception as e:
         flash(f"Erro ao gerar PDF: {str(e)}", "danger")
         return redirect(url_for("ciclos.index"))
+
+
+@bp.route("/pdf/geral/ciclo/<int:ciclo_id>", methods=["GET"], strict_slashes=False)
+@login_required
+def pdf_geral_ciclo(ciclo_id: int):
+    """Gera PDF geral de um ciclo mensal fechado (por ciclo_id) com ciclos semanais arquivados."""
+    if not WEASYPRINT_AVAILABLE:
+        flash("WeasyPrint não está disponível.", "danger")
+        return redirect(url_for("ciclos.index"))
+
+    if current_user.nivel not in ["operador", "admin", "DEV"]:
+        flash("Acesso negado.", "danger")
+        return redirect(url_for("ciclos.index"))
+
+    try:
+        import sys
+
+        base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        colaboradores = _get_all_collaborators()
+        valor_dia = _get_valor_dia()
+        nome_empresa = _get_nome_empresa()
+
+        weeks = CicloSemana.query.filter(CicloSemana.ciclo_id == ciclo_id).order_by(CicloSemana.week_start.asc()).all()
+        mes_inicio = _infer_reference_month_from_weeks(weeks)
+
+        colaboradores_resumo = []
+        for colab in colaboradores:
+            balance = _calculate_collaborator_balance_for_cycle(colab.id, ciclo_id)
+            semanas_detalhadas = []
+            tem_algo = False
+            for w in weeks:
+                horas = (
+                    Ciclo.query.filter(
+                        Ciclo.status_ciclo == "fechado",
+                        Ciclo.ciclo_id == ciclo_id,
+                        Ciclo.collaborator_id == colab.id,
+                        Ciclo.data_lancamento >= w.week_start,
+                        Ciclo.data_lancamento <= w.week_end,
+                    )
+                    .order_by(Ciclo.data_lancamento.asc(), Ciclo.id.asc())
+                    .all()
+                )
+                folgas = (
+                    CicloFolga.query.filter(
+                        CicloFolga.status_ciclo == "fechado",
+                        CicloFolga.ciclo_id == ciclo_id,
+                        CicloFolga.collaborator_id == colab.id,
+                        CicloFolga.data_folga >= w.week_start,
+                        CicloFolga.data_folga <= w.week_end,
+                    )
+                    .order_by(CicloFolga.data_folga.asc(), CicloFolga.id.asc())
+                    .all()
+                )
+                ocorrencias = (
+                    CicloOcorrencia.query.filter(
+                        CicloOcorrencia.status_ciclo == "fechado",
+                        CicloOcorrencia.ciclo_id == ciclo_id,
+                        CicloOcorrencia.collaborator_id == colab.id,
+                        CicloOcorrencia.data_ocorrencia >= w.week_start,
+                        CicloOcorrencia.data_ocorrencia <= w.week_end,
+                    )
+                    .order_by(CicloOcorrencia.data_ocorrencia.asc(), CicloOcorrencia.id.asc())
+                    .all()
+                )
+                if horas or folgas or ocorrencias:
+                    tem_algo = True
+                semanas_detalhadas.append(
+                    {
+                        "label": w.label,
+                        "week_start": w.week_start,
+                        "week_end": w.week_end,
+                        "horas": horas,
+                        "folgas": folgas,
+                        "ocorrencias": ocorrencias,
+                    }
+                )
+
+            if tem_algo:
+                colaboradores_resumo.append({"collaborator": colab, "balance": balance, "semanas": semanas_detalhadas})
+
+        total_horas_geral = sum(r["balance"]["total_horas"] for r in colaboradores_resumo)
+        total_dias_geral = sum(r["balance"]["dias_completos"] for r in colaboradores_resumo)
+        total_horas_restantes_geral = sum(r["balance"]["horas_restantes"] for r in colaboradores_resumo)
+        total_valor_geral = sum(r["balance"]["valor_aproximado"] for r in colaboradores_resumo)
+
+        logo_header_path = os.path.join(base_dir, "static", "icons", "logo black.png")
+        logo_header = (
+            os.path.relpath(logo_header_path, base_dir).replace("\\", "/") if os.path.exists(logo_header_path) else None
+        )
+        logo_footer = None
+
+        html = render_template(
+            "ciclos/pdf_geral.html",
+            colaboradores_resumo=colaboradores_resumo,
+            total_horas_geral=total_horas_geral,
+            total_dias_geral=total_dias_geral,
+            total_horas_restantes_geral=total_horas_restantes_geral,
+            total_valor_geral=total_valor_geral,
+            nome_empresa=nome_empresa,
+            valor_dia=valor_dia,
+            ciclo_id=ciclo_id,
+            mes_inicio=mes_inicio,
+            logo_header=logo_header,
+            logo_footer=logo_footer,
+            data_geracao=datetime.now(ZoneInfo("America/Sao_Paulo")),
+        )
+
+        if not WEASYPRINT_AVAILABLE or HTML is None:
+            flash("WeasyPrint não está disponível. Não é possível gerar PDF.", "danger")
+            return redirect(url_for("ciclos.index"))
+
+        base_url = str(base_dir) if base_dir else os.getcwd()
+        pdf = HTML(string=html, base_url=base_url).write_pdf()
+
+        response = make_response(pdf)
+        response.headers["Content-Type"] = "application/pdf"
+        response.headers["Content-Disposition"] = f"inline; filename=ciclo_{ciclo_id}_geral.pdf"
+        return response
+    except Exception as e:
+        flash(f"Erro ao gerar PDF: {str(e)}", "danger")
+        return redirect(url_for("ciclos.pesquisa"))
