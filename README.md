@@ -236,5 +236,6 @@ Consulte `tests/README.md` para informações detalhadas sobre como executar e a
 
 ### Cobertura
 
-- Meta mínima: **80%**
+- Meta mínima: **90% global**, **100% para funções críticas**
 - Relatórios gerados em: terminal, XML (CI/CD), HTML (visualização)
+- Cobertura de branches incluída para garantir testes de todos os caminhos de código

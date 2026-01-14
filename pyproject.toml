@@ -40,4 +40,9 @@ testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --cov=multimax --cov-report=term-missing --cov-report=xml --cov-report=html --cov-fail-under=80"
+addopts = "-v --cov=multimax --cov-report=term-missing --cov-report=xml --cov-report=html --cov-fail-under=90 --cov-branch"
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "slow: Slow running tests",
+]

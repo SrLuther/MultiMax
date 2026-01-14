@@ -13,7 +13,6 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from flask_login import current_user, login_required
 
 from .. import db
-from ..filename_utils import secure_filename
 from ..models import (
     AppSetting,
     Ciclo,

@@ -4,24 +4,13 @@ import os
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, send_file, session, url_for
+from flask import Blueprint, flash, jsonify, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
-from openpyxl import Workbook
 from sqlalchemy import func, or_
 
 from .. import db
 from ..filename_utils import secure_filename
-from ..models import (
-    AppSetting,
-    Collaborator,
-    Holiday,
-    JornadaArchive,
-    MedicalCertificate,
-    SystemLog,
-    TimeOffRecord,
-    User,
-    Vacation,
-)
+from ..models import AppSetting, Collaborator, MedicalCertificate, SystemLog, TimeOffRecord, User, Vacation
 
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp", "bmp"}
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB

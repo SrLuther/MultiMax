@@ -1,8 +1,7 @@
 import os
-from datetime import date, datetime
+from datetime import datetime
 from io import BytesIO
 from typing import Any
-from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
 import matplotlib

@@ -47,7 +47,6 @@ INSTALAÇÃO (como serviço systemd):
    sudo journalctl -u deploy-agent -f
 """
 
-import json
 import logging
 import os
 import subprocess
@@ -135,7 +134,7 @@ def execute_command(command, description, cwd=None, timeout=300):
             "duration": duration,
             "description": description,
         }
-    except subprocess.TimeoutExpired as e:
+    except subprocess.TimeoutExpired:
         duration = (datetime.now() - start_time).total_seconds()
         logger.error(f"{description} - Timeout após {duration:.2f}s")
         return {

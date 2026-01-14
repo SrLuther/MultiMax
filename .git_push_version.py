@@ -59,7 +59,7 @@ def git_commit_and_push(version: str):
 
         # Push
         subprocess.run(["git", "push"], check=True, capture_output=True)
-        print(f"Push realizado com sucesso!")
+        print("Push realizado com sucesso!")
 
     except subprocess.CalledProcessError as e:
         print(f"Erro no git: {e}")

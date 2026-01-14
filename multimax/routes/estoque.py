@@ -758,7 +758,7 @@ def gerenciar():
             db.session.add(hist)
             db.session.commit()
             flash(
-                f"{('Entrada' if op=='entrada' else 'Saída')} registrada para \"{produto.nome}\".",
+                f"{('Entrada' if op == 'entrada' else 'Saída')} registrada para \"{produto.nome}\".",
                 "success" if op == "entrada" else "warning",
             )
             if op == "saida" and produto.quantidade <= produto.estoque_minimo:

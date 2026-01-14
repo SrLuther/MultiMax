@@ -8,7 +8,6 @@ def main():
     app = create_app()
     if (os.getenv("NOTIFICACOES_ENABLED", "false") or "false").lower() != "true":
         return
-    hora = os.getenv("NOTIFICACOES_ENVIO_AUTOMATICO_HORA", "20").strip()
     with app.app_context():
         enviar_relatorio_diario("automatico", False)
 

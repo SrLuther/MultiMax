@@ -61,12 +61,21 @@ pytest -vv
 
 ## Cobertura de Código
 
-O projeto tem como meta **mínima de 80% de cobertura de código**.
+O projeto tem como meta **mínima de 90% de cobertura de código global**, com **100% para funções críticas** (autenticação, hash de senha, operações de banco de dados).
 
 ### Verificar cobertura
 
 ```bash
-pytest --cov=multimax --cov-report=html --cov-report=term-missing --cov-fail-under=80
+pytest --cov=multimax --cov-report=html --cov-report=term-missing --cov-fail-under=90 --cov-branch
+```
+
+### Cobertura por módulo
+
+Para verificar cobertura de módulos específicos:
+
+```bash
+pytest --cov=multimax.routes.auth --cov-report=term-missing
+pytest --cov=multimax.password_hash --cov-report=term-missing
 ```
 
 ### Visualizar relatório HTML
