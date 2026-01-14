@@ -2727,13 +2727,16 @@ def git_update():
             current_app.logger.error(error_msg)
             _log_git_update_error(error_msg, current_user.username)
             suggestion_text = (
-                "⚠️ O Deploy Agent precisa ser instalado e iniciado no servidor (HOST) antes de usar esta funcionalidade.\n\n"
+                (
+                    "⚠️ O Deploy Agent precisa ser instalado e iniciado no servidor (HOST) "
+                    "antes de usar esta funcionalidade.\n\n"
+                )
                 "📋 INSTALAÇÃO RÁPIDA:\n\n"
                 "1. Acesse o servidor via SSH\n"
                 "2. Copie deploy_agent.py para /opt/multimax/\n"
                 "3. Instale Flask: pip3 install flask\n"
                 "4. Crie serviço systemd: /etc/systemd/system/deploy-agent.service\n"
-                "5. Execute: sudo systemctl daemon-reload && sudo systemctl enable deploy-agent && sudo systemctl start deploy-agent\n\n"  # noqa: E501
+                "5. Execute: sudo systemctl daemon-reload && sudo systemctl enable deploy-agent && sudo systemctl start deploy-agent\n\n"  # noqa: E501  # noqa: E501
                 "📚 Guias disponíveis:\n"
                 "  • DEPLOY_AGENT_QUICKSTART.md - Instalação rápida (5 minutos)\n"
                 "  • DEPLOY_AGENT_INSTALL.md - Instalação detalhada\n\n"
@@ -2911,7 +2914,7 @@ def git_update():
             "2. Copie deploy_agent.py para /opt/multimax/\n"
             "3. Instale Flask: pip3 install flask\n"
             "4. Crie serviço systemd: /etc/systemd/system/deploy-agent.service\n"
-            "5. Execute: sudo systemctl daemon-reload && sudo systemctl enable deploy-agent && sudo systemctl start deploy-agent\n\n"
+            "5. Execute: sudo systemctl daemon-reload && sudo systemctl enable deploy-agent && sudo systemctl start deploy-agent\n\n"  # noqa: E501
             "📚 Guia completo: DEPLOY_AGENT_QUICKSTART.md ou DEPLOY_AGENT_INSTALL.md\n\n"
             "🔍 COMANDOS DE DIAGNÓSTICO:\n"
             "  • Status: sudo systemctl status deploy-agent\n"
