@@ -1,3 +1,23 @@
+# Python / tooling
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+bandit-report.json
+
+# Environments
+.venv/
+venv/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

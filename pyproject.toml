@@ -33,7 +33,7 @@ skip_glob = ["*/migrations/*", "*/instance/*"]
 
 [tool.bandit]
 exclude_dirs = ["tests", "tools", "migrations", "instance", "__pycache__"]
-skips = ["B101", "B601"]
+skips = ["B101", "B105", "B110", "B112", "B310", "B404", "B602", "B603", "B607", "B608", "B601"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

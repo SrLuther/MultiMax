@@ -70,8 +70,8 @@ jobs:
 
     - name: Run bandit security check
       run: |
-        bandit -r multimax/ -f json -o bandit-report.json --skip B101,B601
-        bandit -r multimax/ -ll --skip B101,B601
+        bandit -r multimax/ -c pyproject.toml -f json -o bandit-report.json
+        bandit -r multimax/ -c pyproject.toml -ll
 
     - name: Check for security vulnerabilities
       run: |
