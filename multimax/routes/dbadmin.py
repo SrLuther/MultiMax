@@ -2727,10 +2727,8 @@ def git_update():
             current_app.logger.error(error_msg)
             _log_git_update_error(error_msg, current_user.username)
             suggestion_text = (
-                (
-                    "⚠️ O Deploy Agent precisa ser instalado e iniciado no servidor (HOST) "
-                    "antes de usar esta funcionalidade.\n\n"
-                )
+                "⚠️ O Deploy Agent precisa ser instalado e iniciado no servidor (HOST) "
+                "antes de usar esta funcionalidade.\n\n"
                 "📋 INSTALAÇÃO RÁPIDA:\n\n"
                 "1. Acesse o servidor via SSH\n"
                 "2. Copie deploy_agent.py para /opt/multimax/\n"
