@@ -2048,7 +2048,6 @@ def exportar_jornada_todos_pdf():
             )
         from reportlab.platypus import Table as TableFlowable
 
-        avail_width = doc.width
         table_resumo = TableFlowable(
             data_resumo,
             colWidths=[1.8 * inch, 0.85 * inch, 0.85 * inch, 1.0 * inch, 1.0 * inch, 1.0 * inch, 0.8 * inch],

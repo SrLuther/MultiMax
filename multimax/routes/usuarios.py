@@ -1718,9 +1718,9 @@ def gestao_colabs_horas_adicionar():
                 )
             else:
                 flash("Horas registradas.", "success")
-        except Exception as ex:
+        except Exception:
             flash("Horas registradas.", "success")
-    except Exception as ex:
+    except Exception:
         try:
             db.session.rollback()
         except Exception:
@@ -2006,9 +2006,9 @@ def gestao_colabs_horas_excluir(id: int):
                 )
             else:
                 flash("Lançamento excluído.", "success")
-        except Exception as ex:
+        except Exception:
             flash("Lançamento excluído.", "success")
-    except Exception as ex:
+    except Exception:
         try:
             db.session.rollback()
         except Exception:

@@ -225,7 +225,7 @@ def _check_nginx_health():
                     if location.startswith("https://"):
                         return True, f"HTTP redireciona para HTTPS (código {e.code})"
                 return False, f"HTTP retornou código {e.code}"
-            except (urllib.error.URLError, socket.timeout, Exception) as e:
+            except (urllib.error.URLError, socket.timeout, Exception):
                 return False, None
 
         # Testa porta 80 (HTTP)
@@ -605,7 +605,6 @@ ALERT_THRESHOLDS = {
 def _check_and_create_alerts(health_checks):
     """Verifica métricas e cria alertas proativos"""
     try:
-        now = datetime.now(ZoneInfo("America/Sao_Paulo"))
 
         # CPU
         if "cpu" in health_checks:
@@ -829,7 +828,6 @@ def _predict_disk_full_date():
 
         disk = psutil.disk_usage("/")
         current_usage_percent = disk.percent
-        current_free_gb = disk.free / (1024**3)
 
         if current_usage_percent >= 95:
             return {"predicted_date": None, "message": "Disco quase cheio", "days_remaining": 0}

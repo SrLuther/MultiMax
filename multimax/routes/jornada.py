@@ -10,7 +10,7 @@ from sqlalchemy import func, or_
 
 from .. import db
 from ..filename_utils import secure_filename
-from ..models import AppSetting, Collaborator, MedicalCertificate, SystemLog, TimeOffRecord, User, Vacation
+from ..models import AppSetting, Collaborator, JornadaArchive, MedicalCertificate, SystemLog, TimeOffRecord, Vacation
 
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp", "bmp"}
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
@@ -519,7 +519,6 @@ def converter_horas():
 
     try:
         balance = _calculate_collaborator_balance(collaborator_id)
-        total_bruto_hours = balance["total_bruto_hours"]
         days_from_hours = balance["days_from_hours"]
 
         # Verificar quantos dias já foram convertidos
