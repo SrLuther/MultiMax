@@ -1,3 +1,15 @@
+## [2.6.3] - 2026-01-14
+
+### Atualizacao
+
+- Versao 2.6.3 - f3c23e8 fix: Remove eslint e prettier de requirements-dev.txt
+
+## [2.6.2] - 2026-01-14
+
+### 🔧 Atualização
+
+- Versao 2.6.2 - 3bd34a9 feat: Implementa sistema de versionamento automatico
+
 ## [2.6.1] - 2026-01-14
 
 ### 🔧 Atualização
