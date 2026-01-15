@@ -253,7 +253,7 @@
                                     <span class="badge-modern badge-blue-modern">Folga</span>
                                 </td>
                                 <td>{{ 'Folga adicional' if f.tipo == 'adicional' else 'Folga usada' }}</td>
-                                <td><strong>{{ f.dias }} dia(s)</strong></td>
+                                <td><strong>{% if f.tipo == 'uso' and hasattr(f, 'valor_horas') %}{{ "%.1f"|format(f.valor_horas) }}h{% else %}{{ f.dias }} dia(s){% endif %}</strong></td>
                                 <td>{{ f.observacao or '-' }}</td>
                             </tr>
                             {% endfor %}

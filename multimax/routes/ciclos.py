@@ -729,11 +729,14 @@ def pesquisa():
                     data_folga=h.data_lancamento,
                     tipo="uso",
                     dias=1,  # Folga utilizada sempre é 1 dia (8h)
+                    valor_horas=h.valor_horas,  # Incluir valor_horas para exibição
                     observacao=h.descricao or "Folga utilizada via lançamento de horas",
                     ciclo_id=h.ciclo_id,
                     status_ciclo=h.status_ciclo,
                 )
                 folgas = list(folgas) + [folga_ciclo]
+            # Remover "Folgas utilizadas" da lista de horas para evitar duplicação
+            horas = [h for h in horas if h.origem != "Folga utilizada"]
             # Reordenar por data após mesclar
             folgas = sorted(folgas, key=lambda f: (f.data_folga, getattr(f, "id", 0)))
             ocorrencias = (
@@ -816,11 +819,14 @@ def pesquisa():
                     data_folga=h.data_lancamento,
                     tipo="uso",
                     dias=1,  # Folga utilizada sempre é 1 dia (8h)
+                    valor_horas=h.valor_horas,  # Incluir valor_horas para exibição
                     observacao=h.descricao or "Folga utilizada via lançamento de horas",
                     ciclo_id=None,  # Pode ser None para ciclos ativos
                     status_ciclo=h.status_ciclo,
                 )
                 folgas = list(folgas) + [folga_ciclo]
+            # Remover "Folgas utilizadas" da lista de horas para evitar duplicação
+            horas = [h for h in horas if h.origem != "Folga utilizada"]
             # Reordenar por data após mesclar
             folgas = sorted(folgas, key=lambda f: (f.data_folga, getattr(f, "id", 0)))
             ocorrencias = (
@@ -1869,11 +1875,14 @@ def pdf_individual(collaborator_id):
                     data_folga=h.data_lancamento,
                     tipo="uso",
                     dias=1,  # Folga utilizada sempre é 1 dia (8h)
+                    valor_horas=h.valor_horas,  # Incluir valor_horas para exibição
                     observacao=h.descricao or "Folga utilizada via lançamento de horas",
                     ciclo_id=None,
                     status_ciclo=h.status_ciclo,
                 )
                 folgas = list(folgas) + [folga_ciclo]
+            # Remover "Folgas utilizadas" da lista de horas para evitar duplicação
+            horas = [h for h in horas if h.origem != "Folga utilizada"]
             # Reordenar por data após mesclar
             folgas = sorted(folgas, key=lambda f: (f.data_folga, getattr(f, "id", 0)))
             ocorrencias = (
