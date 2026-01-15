@@ -705,109 +705,109 @@ def pesquisa():
         semanas_detalhe: list[dict[str, object]] = []
 
         if semanas:
-        for s in semanas:
-            horas = (
-                Ciclo.query.filter(
-                    Ciclo.status_ciclo == "fechado",
-                    Ciclo.ciclo_id == s.ciclo_id,
-                    Ciclo.data_lancamento >= s.week_start,
-                    Ciclo.data_lancamento <= s.week_end,
+            for s in semanas:
+                horas = (
+                    Ciclo.query.filter(
+                        Ciclo.status_ciclo == "fechado",
+                        Ciclo.ciclo_id == s.ciclo_id,
+                        Ciclo.data_lancamento >= s.week_start,
+                        Ciclo.data_lancamento <= s.week_end,
+                    )
+                    .order_by(Ciclo.nome_colaborador.asc(), Ciclo.data_lancamento.asc(), Ciclo.id.asc())
+                    .all()
                 )
-                .order_by(Ciclo.nome_colaborador.asc(), Ciclo.data_lancamento.asc(), Ciclo.id.asc())
-                .all()
-            )
-            folgas = (
-                CicloFolga.query.filter(
-                    CicloFolga.status_ciclo == "fechado",
-                    CicloFolga.ciclo_id == s.ciclo_id,
-                    CicloFolga.data_folga >= s.week_start,
-                    CicloFolga.data_folga <= s.week_end,
+                folgas = (
+                    CicloFolga.query.filter(
+                        CicloFolga.status_ciclo == "fechado",
+                        CicloFolga.ciclo_id == s.ciclo_id,
+                        CicloFolga.data_folga >= s.week_start,
+                        CicloFolga.data_folga <= s.week_end,
+                    )
+                    .order_by(CicloFolga.nome_colaborador.asc(), CicloFolga.data_folga.asc(), CicloFolga.id.asc())
+                    .all()
                 )
-                .order_by(CicloFolga.nome_colaborador.asc(), CicloFolga.data_folga.asc(), CicloFolga.id.asc())
-                .all()
-            )
-            # Incluir "Folgas utilizadas" da tabela Ciclo como folgas
-            folgas_utilizadas_ciclo = [
-                h
-                for h in horas
-                if getattr(h, "origem", None) == "Folga utilizada"
-            ]
-            # Criar objetos similares a CicloFolga para mesclar
-            for h in folgas_utilizadas_ciclo:
-                try:
-                    valor_horas = float(h.valor_horas) if h.valor_horas is not None else -8.0
-                except (ValueError, TypeError):
-                    valor_horas = -8.0
-                folga_ciclo = SimpleNamespace(
-                    nome_colaborador=getattr(h, "nome_colaborador", "") or "",
-                    data_folga=getattr(h, "data_lancamento", None),
-                    tipo="uso",
-                    dias=1,  # Folga utilizada sempre é 1 dia (8h)
-                    valor_horas=valor_horas,  # Incluir valor_horas para exibição
-                    observacao=getattr(h, "descricao", None) or "Folga utilizada via lançamento de horas",
-                    ciclo_id=getattr(h, "ciclo_id", None),
-                    status_ciclo=getattr(h, "status_ciclo", "fechado"),
+                # Incluir "Folgas utilizadas" da tabela Ciclo como folgas
+                folgas_utilizadas_ciclo = [
+                    h
+                    for h in horas
+                    if getattr(h, "origem", None) == "Folga utilizada"
+                ]
+                # Criar objetos similares a CicloFolga para mesclar
+                for h in folgas_utilizadas_ciclo:
+                    try:
+                        valor_horas = float(h.valor_horas) if h.valor_horas is not None else -8.0
+                    except (ValueError, TypeError):
+                        valor_horas = -8.0
+                    folga_ciclo = SimpleNamespace(
+                        nome_colaborador=getattr(h, "nome_colaborador", "") or "",
+                        data_folga=getattr(h, "data_lancamento", None),
+                        tipo="uso",
+                        dias=1,  # Folga utilizada sempre é 1 dia (8h)
+                        valor_horas=valor_horas,  # Incluir valor_horas para exibição
+                        observacao=getattr(h, "descricao", None) or "Folga utilizada via lançamento de horas",
+                        ciclo_id=getattr(h, "ciclo_id", None),
+                        status_ciclo=getattr(h, "status_ciclo", "fechado"),
+                    )
+                    folgas = list(folgas) + [folga_ciclo]
+                # Remover "Folgas utilizadas" da lista de horas para evitar duplicação
+                horas = [h for h in horas if getattr(h, "origem", None) != "Folga utilizada"]
+                # Reordenar por data após mesclar (filtrar None)
+                folgas = sorted(
+                    [f for f in folgas if getattr(f, "data_folga", None) is not None],
+                    key=lambda f: (f.data_folga, getattr(f, "id", 0))
                 )
-                folgas = list(folgas) + [folga_ciclo]
-            # Remover "Folgas utilizadas" da lista de horas para evitar duplicação
-            horas = [h for h in horas if getattr(h, "origem", None) != "Folga utilizada"]
-            # Reordenar por data após mesclar (filtrar None)
-            folgas = sorted(
-                [f for f in folgas if getattr(f, "data_folga", None) is not None],
-                key=lambda f: (f.data_folga, getattr(f, "id", 0))
-            )
-            ocorrencias = (
-                CicloOcorrencia.query.filter(
-                    CicloOcorrencia.status_ciclo == "fechado",
-                    CicloOcorrencia.ciclo_id == s.ciclo_id,
-                    CicloOcorrencia.data_ocorrencia >= s.week_start,
-                    CicloOcorrencia.data_ocorrencia <= s.week_end,
+                ocorrencias = (
+                    CicloOcorrencia.query.filter(
+                        CicloOcorrencia.status_ciclo == "fechado",
+                        CicloOcorrencia.ciclo_id == s.ciclo_id,
+                        CicloOcorrencia.data_ocorrencia >= s.week_start,
+                        CicloOcorrencia.data_ocorrencia <= s.week_end,
+                    )
+                    .order_by(
+                        CicloOcorrencia.nome_colaborador.asc(),
+                        CicloOcorrencia.data_ocorrencia.asc(),
+                        CicloOcorrencia.id.asc(),
+                    )
+                    .all()
                 )
-                .order_by(
-                    CicloOcorrencia.nome_colaborador.asc(),
-                    CicloOcorrencia.data_ocorrencia.asc(),
-                    CicloOcorrencia.id.asc(),
+                # Calcular total de horas com tratamento de erros
+                total_horas = 0.0
+                if horas:
+                    try:
+                        total_horas = float(sum(
+                            float(h.valor_horas) if h.valor_horas is not None else 0.0
+                            for h in horas
+                        ))
+                    except (ValueError, TypeError, AttributeError):
+                        total_horas = 0.0
+                semanas_detalhe.append(
+                    {
+                        "ciclo_id": s.ciclo_id,
+                        "label": s.label,
+                        "week_start": s.week_start,
+                        "week_end": s.week_end,
+                        "horas": horas,
+                        "folgas": folgas,
+                        "ocorrencias": ocorrencias,
+                        "resumo": _summary_from_hours(total_horas),
+                    }
                 )
-                .all()
-            )
-            # Calcular total de horas com tratamento de erros
-            total_horas = 0.0
-            if horas:
-                try:
-                    total_horas = float(sum(
-                        float(h.valor_horas) if h.valor_horas is not None else 0.0
-                        for h in horas
-                    ))
-                except (ValueError, TypeError, AttributeError):
-                    total_horas = 0.0
-            semanas_detalhe.append(
-                {
-                    "ciclo_id": s.ciclo_id,
-                    "label": s.label,
-                    "week_start": s.week_start,
-                    "week_end": s.week_end,
-                    "horas": horas,
-                    "folgas": folgas,
-                    "ocorrencias": ocorrencias,
-                    "resumo": _summary_from_hours(total_horas),
-                }
-            )
 
         # 2) Se não houver arquivado (mês em aberto), gerar ciclos semanais do mês atual a partir dos registros ativos
         if not semanas_detalhe:
-        current_date = _get_open_cycle_current_date()
-        open_ciclo_id = _get_ciclo_atual()["ciclo_id"]
-        semanas_open = _weekly_cycles_for_open_month(current_date)
+            current_date = _get_open_cycle_current_date()
+            open_ciclo_id = _get_ciclo_atual()["ciclo_id"]
+            semanas_open = _weekly_cycles_for_open_month(current_date)
 
-        # filtrar por q (mês ou label), sem travar pelo ciclo_id (porque não existe "fechado" ainda)
-        def _matches(label: str) -> bool:
-            if not q:
-                return True
-            qn = _normalize_text(q)
-            ln = _normalize_text(label)
-            return qn in ln
+            # filtrar por q (mês ou label), sem travar pelo ciclo_id (porque não existe "fechado" ainda)
+            def _matches(label: str) -> bool:
+                if not q:
+                    return True
+                qn = _normalize_text(q)
+                ln = _normalize_text(label)
+                return qn in ln
 
-        for s in semanas_open:
+            for s in semanas_open:
             label = str(s["label"])
             if not _matches(label):
                 continue
