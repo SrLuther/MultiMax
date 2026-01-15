@@ -1,3 +1,9 @@
+## [2.6.16] - 2026-01-14
+
+### Atualizacao
+
+- Versao 2.6.16 - f90e514 design(ciclos): refinamento premium da seÃƒÂ§ÃƒÂ£o de PDFs e formulÃƒÂ¡rios de pesquisa
+
 ## [2.6.15] - 2026-01-14
 
 ### Atualizacao
