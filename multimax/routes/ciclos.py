@@ -656,14 +656,6 @@ def index():
 @login_required
 def pesquisa():
     """Pesquisa ciclos semanais arquivados (por label) e retorna detalhamento por colaborador."""
-    try:
-        if current_user.nivel not in ["operador", "admin", "DEV"]:
-            flash("Acesso negado.", "danger")
-            return redirect(url_for("home.index"))
-
-        q = (request.args.get("q") or "").strip()
-        ciclo_id = request.args.get("ciclo_id", type=int)
-
     def _summary_from_hours(total_horas_float: float) -> dict[str, float | int]:
         try:
             if total_horas_float < 0:
@@ -688,7 +680,15 @@ def pesquisa():
                 "valor_aproximado": 0.0,
             }
 
-    q_month_num, q_month_name = _parse_month_query(q)
+    try:
+        if current_user.nivel not in ["operador", "admin", "DEV"]:
+            flash("Acesso negado.", "danger")
+            return redirect(url_for("home.index"))
+
+        q = (request.args.get("q") or "").strip()
+        ciclo_id = request.args.get("ciclo_id", type=int)
+
+        q_month_num, q_month_name = _parse_month_query(q)
 
     # 1) Tentar buscar ciclos arquivados (fechados) em CicloSemana
     query = CicloSemana.query
