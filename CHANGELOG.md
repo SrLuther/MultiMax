@@ -1,3 +1,9 @@
+## [2.6.17] - 2026-01-14
+
+### Atualizacao
+
+- Versao 2.6.17 - 46805e4 fix(home): corrige exibiÃƒÂ§ÃƒÂ£o da versÃƒÂ£o no card Sobre o MultiMax
+
 ## [2.6.16] - 2026-01-14
 
 ### Atualizacao
