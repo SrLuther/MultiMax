@@ -1,3 +1,9 @@
+## [2.6.21] - 2026-01-15
+
+### Atualizacao
+
+- Versao 2.6.21 - 0ec0e5a fix(ciclos): adiciona tratamento robusto de erros na rota pesquisa
+
 ## [2.6.20] - 2026-01-15
 
 ### Atualizacao
