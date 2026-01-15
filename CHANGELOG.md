@@ -1,3 +1,9 @@
+## [2.6.13] - 2026-01-14
+
+### Atualizacao
+
+- Versao 2.6.13 - c0d5873 fix(ciclos): incluir Folgas utilizadas da tabela Ciclo na seÃƒÂ§ÃƒÂ£o Folgas
+
 ## [2.6.12] - 2026-01-14
 
 ### Atualizacao
