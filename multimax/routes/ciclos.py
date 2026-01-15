@@ -664,19 +664,28 @@ def pesquisa():
     ciclo_id = request.args.get("ciclo_id", type=int)
 
     def _summary_from_hours(total_horas_float: float) -> dict[str, float | int]:
-        if total_horas_float < 0:
-            dias = 0
-            hrs_rest = 0.0
-        else:
-            dias = int(math.floor(total_horas_float / 8.0))
-            hrs_rest = total_horas_float % 8.0
-        valor_dia = float(_get_valor_dia())
-        return {
-            "total_horas": round(total_horas_float, 1),
-            "dias_completos": dias,
-            "horas_restantes": round(hrs_rest, 1),
-            "valor_aproximado": round(dias * valor_dia, 2),
-        }
+        try:
+            if total_horas_float < 0:
+                dias = 0
+                hrs_rest = 0.0
+            else:
+                dias = int(math.floor(total_horas_float / 8.0))
+                hrs_rest = total_horas_float % 8.0
+            valor_dia = float(_get_valor_dia() or 0.0)
+            return {
+                "total_horas": round(total_horas_float, 1),
+                "dias_completos": dias,
+                "horas_restantes": round(hrs_rest, 1),
+                "valor_aproximado": round(dias * valor_dia, 2),
+            }
+        except Exception:
+            # Fallback em caso de erro
+            return {
+                "total_horas": round(total_horas_float, 1),
+                "dias_completos": 0,
+                "horas_restantes": round(total_horas_float, 1),
+                "valor_aproximado": 0.0,
+            }
 
     q_month_num, q_month_name = _parse_month_query(q)
 
@@ -857,7 +866,11 @@ def pesquisa():
             )
 
     colaboradores = _get_all_collaborators()
-    ciclo_ids = sorted({int(s["ciclo_id"]) for s in semanas_detalhe}, reverse=True)
+    # Extrair ciclo_ids válidos (não None)
+    ciclo_ids = sorted(
+        {int(s["ciclo_id"]) for s in semanas_detalhe if s.get("ciclo_id") is not None}, 
+        reverse=True
+    )
 
     return render_template(
         "ciclos/pesquisa.html",
