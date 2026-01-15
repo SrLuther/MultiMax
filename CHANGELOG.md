@@ -1,3 +1,9 @@
+## [2.6.18] - 2026-01-14
+
+### Atualizacao
+
+- Versao 2.6.18 - 0b5e7d2 fix(ciclos): remove duplicaÃƒÂ§ÃƒÂ£o de folgas utilizadas e exibe valor em horas
+
 ## [2.6.17] - 2026-01-14
 
 ### Atualizacao
