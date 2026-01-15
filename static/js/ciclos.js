@@ -241,9 +241,10 @@
                 // Preencher tabela (blocos por ciclo semanal)
                 const tbody = document.getElementById('historico_tbody');
                 tbody.innerHTML = '';
-                ciclos.forEach(ciclo => {
+                ciclos.forEach((ciclo, idx) => {
+                    const variant = idx % 2 === 0 ? 'ciclo-a' : 'ciclo-b';
                     const titleRow = document.createElement('tr');
-                    titleRow.className = 'table-primary';
+                    titleRow.className = `ciclo-header-row ${variant}`;
                     const titleCell = document.createElement('td');
                     titleCell.colSpan = state.canEdit ? 5 : 4;
                     titleCell.innerHTML = `<strong>${ciclo.label}</strong> — ${ciclo.week_start} até ${ciclo.week_end}`;
@@ -252,6 +253,7 @@
 
                     (ciclo.registros || []).forEach(reg => {
                         const row = tbody.insertRow();
+                        row.classList.add('ciclo-record-row', variant);
                         row.insertCell(0).textContent = reg.data;
                         row.insertCell(1).textContent = reg.origem;
                         row.insertCell(2).textContent = reg.descricao;
@@ -284,6 +286,7 @@
 
                     if (ciclo.resumo) {
                         const resumoRow = document.createElement('tr');
+                        resumoRow.className = `ciclo-summary-row ${variant}`;
                         const resumoCell = document.createElement('td');
                         resumoCell.colSpan = state.canEdit ? 5 : 4;
                         resumoCell.innerHTML =

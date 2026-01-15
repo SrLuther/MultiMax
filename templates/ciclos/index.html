@@ -1487,6 +1487,61 @@
     color: #f9fafb;
 }
 
+/* Destaque por ciclo semanal (modal Histórico) */
+.ciclo-header-row td {
+    font-weight: 800;
+    border-top: 1px solid rgba(0, 0, 0, 0.12);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.ciclo-header-row.ciclo-a td {
+    background: linear-gradient(90deg, #0ea5e9 0%, #2563eb 100%);
+    color: #ffffff;
+}
+
+.ciclo-header-row.ciclo-b td {
+    background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+}
+
+.ciclo-record-row.ciclo-a td {
+    background-color: rgba(37, 99, 235, 0.06);
+}
+
+.ciclo-record-row.ciclo-b td {
+    background-color: rgba(5, 150, 105, 0.06);
+}
+
+.ciclo-summary-row td {
+    background-color: rgba(0, 0, 0, 0.035);
+    font-style: italic;
+}
+
+.ciclo-summary-row.ciclo-a td {
+    border-left: 4px solid rgba(37, 99, 235, 0.6);
+}
+
+.ciclo-summary-row.ciclo-b td {
+    border-left: 4px solid rgba(5, 150, 105, 0.6);
+}
+
+[data-theme="dark"] .ciclo-header-row td {
+    border-top-color: rgba(255, 255, 255, 0.18);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .ciclo-record-row.ciclo-a td {
+    background-color: rgba(37, 99, 235, 0.12) !important;
+}
+
+[data-theme="dark"] .ciclo-record-row.ciclo-b td {
+    background-color: rgba(5, 150, 105, 0.12) !important;
+}
+
+[data-theme="dark"] .ciclo-summary-row td {
+    background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
 [data-theme="dark"] .form-label {
     color: #e5e7eb;
 }
