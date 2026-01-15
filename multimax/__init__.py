@@ -62,49 +62,30 @@ def _extract_driver_host(uri: str) -> tuple[str | None, str | None]:
         return None, None
 
 
-def create_app():
-    base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(__file__)))
-    _load_env(os.path.join(base_dir, ".env.txt"))
-
-    app = Flask(
-        __name__,
-        template_folder=os.path.join(base_dir, "templates"),
-        static_folder=os.path.join(base_dir, "static"),
-    )
-    # Definir caminho do banco de dados SQLite (caminho absoluto)
-    # Prioridade: DB_FILE_PATH > padrão /multimax-data/estoque.db
-    # (dentro do container) ou /opt/multimax-data/estoque.db (fora do container)
+def _get_db_path() -> str:
+    """Retorna o caminho do banco de dados SQLite."""
     db_file_path_env = os.getenv("DB_FILE_PATH")
     if db_file_path_env:
-        # Se DB_FILE_PATH foi definido, usar diretamente
-        db_path = os.path.abspath(db_file_path_env).replace("\\", "/")
-    else:
-        # Caminho padrão absoluto
-        # Dentro do Docker: /multimax-data/estoque.db (mapeado de /opt/multimax-data no host)
-        # Fora do Docker: /opt/multimax-data/estoque.db
-        if os.path.exists("/multimax-data"):
-            # Dentro do container Docker
-            db_path = "/multimax-data/estoque.db"
-        else:
-            # Fora do container (desenvolvimento local)
-            db_path = "/opt/multimax-data/estoque.db"
+        return os.path.abspath(db_file_path_env).replace("\\", "/")
+    if os.path.exists("/multimax-data"):
+        return "/multimax-data/estoque.db"
+    return "/opt/multimax-data/estoque.db"
 
-    # Garantir que o diretório do banco existe
-    db_dir = os.path.dirname(db_path)
-    if db_dir:
-        os.makedirs(db_dir, exist_ok=True)
 
-    # Definir data_dir para backups e outras funcionalidades
+def _get_data_dir(db_dir: str) -> str:
+    """Retorna o diretório de dados para backups."""
     data_dir: str | None = os.getenv("DATA_DIR") or os.getenv("MULTIMAX_DATA_DIR") or None
-    if not data_dir:
-        # Usar o mesmo diretório do banco de dados
-        data_dir = (
-            db_dir if db_dir else ("/multimax-data" if os.path.exists("/multimax-data") else "/opt/multimax-data")
-        )
-    assert data_dir is not None
-    data_dir_str = data_dir
-    os.makedirs(data_dir_str, exist_ok=True)
+    if data_dir:
+        return data_dir
+    if db_dir:
+        return db_dir
+    if os.path.exists("/multimax-data"):
+        return "/multimax-data"
+    return "/opt/multimax-data"
 
+
+def _configure_app_database(app: Flask, db_path: str, data_dir_str: str) -> None:
+    """Configura o banco de dados e diretórios no app."""
     uri_env = os.getenv("SQLALCHEMY_DATABASE_URI") or os.getenv("DATABASE_URL")
     uri_env = _normalize_db_uri(uri_env)
     selected_uri = uri_env if uri_env else ("sqlite:///" + db_path)
@@ -112,8 +93,6 @@ def create_app():
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "uma_chave_secreta_muito_forte_e_aleatoria")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    # Nos testes (SQLite em memória), evitar que objetos fiquem "expirados" após commit,
-    # o que causa DetachedInstanceError quando fixtures retornam instâncias.
     if (os.getenv("TESTING") or "").strip().lower() == "true":
         app.config["SQLALCHEMY_SESSION_OPTIONS"] = {"expire_on_commit": False}
     app.config["PER_PAGE"] = 10
@@ -130,25 +109,9 @@ def create_app():
         except Exception:
             app.config["DB_FILE_PATH"] = db_path
 
-    db.init_app(app)
-    login_manager.init_app(app)
-    setattr(login_manager, "login_view", "auth.login")
-    login_manager.login_message = "Por favor, faça login para acessar esta página."
-    login_manager.login_message_category = "warning"
 
-    from .models import AppSetting, CleaningTask, NotificationRead, Produto, User
-
-    @login_manager.user_loader
-    def load_user(user_id):
-        try:
-            return User.query.get(int(user_id))
-        except Exception:
-            try:
-                db.session.rollback()
-            except Exception:
-                pass
-            return None
-
+def _register_blueprints(app: Flask) -> tuple[bool, None]:
+    """Registra todos os blueprints no app. Retorna (notif_enabled, None)."""
     from flask import Blueprint
 
     from .routes.api import bp as api_bp
@@ -157,7 +120,6 @@ def create_app():
     from .routes.ciclos import bp as ciclos_bp
     from .routes.colaboradores import bp as colaboradores_bp
     from .routes.cronograma import bp as cronograma_bp
-    from .routes.cronograma import setup_cleaning_tasks
     from .routes.estoque import bp as estoque_bp
     from .routes.exportacao import bp as exportacao_bp
     from .routes.home import bp as home_bp
@@ -202,6 +164,56 @@ def create_app():
         app.logger.info(f"Blueprint dbadmin registrado com sucesso. Rotas disponíveis: {rotas}")
     else:
         app.logger.warning("Blueprint dbadmin não foi registrado (dbadmin_bp é None)")
+    
+    return notif_enabled, None
+
+
+def create_app():
+    base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(__file__)))
+    _load_env(os.path.join(base_dir, ".env.txt"))
+
+    app = Flask(
+        __name__,
+        template_folder=os.path.join(base_dir, "templates"),
+        static_folder=os.path.join(base_dir, "static"),
+    )
+
+    # Configurar paths do banco de dados
+    db_path = _get_db_path()
+    db_dir = os.path.dirname(db_path)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
+
+    # Configurar diretório de dados
+    data_dir_str = _get_data_dir(db_dir)
+    os.makedirs(data_dir_str, exist_ok=True)
+
+    # Configurar banco de dados no app
+    _configure_app_database(app, db_path, data_dir_str)
+
+    # Inicializar extensões
+    db.init_app(app)
+    login_manager.init_app(app)
+    setattr(login_manager, "login_view", "auth.login")
+    login_manager.login_message = "Por favor, faça login para acessar esta página."
+    login_manager.login_message_category = "warning"
+
+    # Configurar user loader
+    from .models import User
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        try:
+            return User.query.get(int(user_id))
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+            return None
+
+    # Registrar blueprints
+    notif_enabled, _ = _register_blueprints(app)
 
     @app.context_processor
     def _inject_version():
@@ -682,7 +694,7 @@ def create_app():
             if "git" not in str(e).lower():
                 app.logger.debug(f"Erro ao obter versão: {e}")
         # Fallback: usar versão do código
-        return '2.6.21'
+        return '2.6.22'
 
     resolved_version = _get_version()
     # Processar versão: remover "v" ou "V" do início se existir
@@ -691,20 +703,20 @@ def create_app():
         if processed_version:
             app.config["APP_VERSION_RESOLVED"] = processed_version
         else:
-            app.config["APP_VERSION_RESOLVED"] = '2.6.21'
+            app.config["APP_VERSION_RESOLVED"] = '2.6.22'
     else:
-        app.config["APP_VERSION_RESOLVED"] = '2.6.21'
+        app.config["APP_VERSION_RESOLVED"] = '2.6.22'
     
     # Garantir que sempre há um valor válido (nunca "dev" ou "None")
     if not app.config["APP_VERSION_RESOLVED"] or app.config["APP_VERSION_RESOLVED"] in ("dev", "None", ""):
-        app.config["APP_VERSION_RESOLVED"] = '2.6.21'
+        app.config["APP_VERSION_RESOLVED"] = '2.6.22'
 
     @app.context_processor
     def inject_version():
-        ver = app.config.get("APP_VERSION_RESOLVED", '2.6.21')
+        ver = app.config.get("APP_VERSION_RESOLVED", '2.6.22')
         # Garantir que nunca retorne None, vazio ou "dev"
         if not ver or ver in ("dev", "None", ""):
-            ver = '2.6.21'
+            ver = '2.6.22'
         return {"git_version": ver}
 
     with app.app_context():
@@ -1133,6 +1145,7 @@ def create_app():
                         db.session.rollback()
                     except Exception:
                         pass
+            from .routes.cronograma import setup_cleaning_tasks
             setup_cleaning_tasks()
         if is_sqlite:
             try:
