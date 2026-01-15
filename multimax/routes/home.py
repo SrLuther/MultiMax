@@ -5,12 +5,38 @@ from flask_login import current_user
 from sqlalchemy import func
 
 from .. import db
+from ..module_registry import get_active_module_labels
 from ..models import AppSetting as AppSettingModel
 from ..models import CleaningHistory, CleaningTask, Collaborator
 from ..models import Historico as HistoricoModel
 from ..models import Holiday, MeatReception, NotificationRead, Produto, SystemLog, TimeOffRecord
 
 bp = Blueprint("home", __name__, url_prefix="/home")
+
+
+def _get_last_update_date_from_changelog() -> str:
+    """
+    Retorna apenas a data (DD/MM/AAAA) do topo do CHANGELOG.md.
+    Não renderiza nem replica o conteúdo do changelog (apenas metadado).
+    """
+    try:
+        import re
+        from pathlib import Path
+
+        p = Path("CHANGELOG.md")
+        if not p.exists():
+            return datetime.now().strftime("%d/%m/%Y")
+        lines = p.read_text(encoding="utf-8", errors="ignore").splitlines()
+        if not lines:
+            return datetime.now().strftime("%d/%m/%Y")
+        first = (lines[0] or "").strip()
+        m = re.match(r"^##\s*\[[^\]]+\]\s*-\s*(\d{4}-\d{2}-\d{2})\s*$", first)
+        if m:
+            dt = datetime.strptime(m.group(1), "%Y-%m-%d").date()
+            return dt.strftime("%d/%m/%Y")
+    except Exception:
+        pass
+    return datetime.now().strftime("%d/%m/%Y")
 
 
 def get_dashboard_metrics():
@@ -146,6 +172,15 @@ def index():
     if not current_user.is_authenticated:
         return redirect(url_for("auth.login"))
     db_diag = None
+    modules_active: list[str] = []
+    last_update_date = datetime.now().strftime("%d/%m/%Y")
+    try:
+        from flask import current_app
+
+        modules_active = get_active_module_labels(current_app.blueprints.keys())
+        last_update_date = _get_last_update_date_from_changelog()
+    except Exception:
+        pass
     try:
         from flask import current_app
         from sqlalchemy import text
@@ -187,6 +222,8 @@ def index():
                 notifications=[],
                 next_holiday=None,
                 db_diag=db_diag,
+                modules_active=modules_active,
+                last_update_date=last_update_date,
             )
     except Exception:
         pass
@@ -644,6 +681,8 @@ def index():
         metrics=metrics,
         chart_data=chart_data,
         low_stock=low_stock,
+        modules_active=modules_active,
+        last_update_date=last_update_date,
     )
 
 

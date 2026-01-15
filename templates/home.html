@@ -263,7 +263,7 @@
                     Sobre o MultiMax
                 </h2>
                 <div class="system-info-version">
-                    <span class="version-badge">v2.5.5</span>
+                    <span class="version-badge">Versão atual: v{{ git_version }} • em evolução contínua</span>
                 </div>
             </div>
         </div>
@@ -271,121 +271,31 @@
         <div class="system-info-body">
             <div class="system-info-intro">
                 <p class="system-info-lead">
-                    O <strong>MultiMax | Controle inteligente</strong> é um sistema <strong>independente</strong> e <strong>não patrocinado</strong>, desenvolvido com dedicação para oferecer uma solução completa de gestão integrada. Este sistema encontra-se em <strong>constante evolução</strong>, sendo aprimorado continuamente para atender às necessidades operacionais com máxima eficiência e precisão.
+                    O Multi é um sistema independente de gestão integrada, desenvolvido com foco em clareza operacional, precisão nos controles e fluidez nos processos do dia a dia. Seu desenvolvimento conta com o apoio de ferramentas de inteligência artificial, utilizadas como suporte técnico e criativo ao longo da evolução do sistema, sempre sob direção humana e decisões de negócio bem definidas.
                 </p>
-                <div class="system-info-owner">
-                    <i class="bi bi-person-badge"></i>
-                    <div>
-                        <strong>Proprietário e Desenvolvedor:</strong>
-                        <span>Luciano Santos Costa</span>
-                    </div>
+                <p class="system-info-lead" style="margin-top: 0.75rem;">
+                    A arquitetura do Multi evolui continuamente para acompanhar necessidades reais da operação, preservando consistência, confiabilidade e simplicidade no uso.
+                </p>
+                <div class="system-info-note" style="margin-top: 1rem;">
+                    <i class="bi bi-check2-circle"></i>
+                    <p style="margin: 0;">Atualizado recentemente • {{ last_update_date }}</p>
                 </div>
             </div>
 
-            <div class="system-info-features">
-                <h3 class="features-title">
+            <div class="system-info-features" style="margin-top: 1.25rem;">
+                <h3 class="features-title" style="margin-bottom: 0.75rem;">
                     <i class="bi bi-grid-3x3-gap-fill"></i>
-                    Funcionalidades da Versão 2.5.5
+                    Módulos ativos
                 </h3>
-
-                <div class="features-grid">
-                    <div class="feature-item">
-                        <div class="feature-icon">
-                            <i class="bi bi-box-seam"></i>
-                        </div>
-                        <div class="feature-content">
-                            <h4>Gestão de Estoque</h4>
-                            <p>Controle completo de produtos com categorização, controle de quantidades mínimas e máximas, histórico detalhado de movimentações, alertas de estoque crítico, busca avançada por nome, categoria ou código, gráficos de movimentação e exportação de dados em múltiplos formatos.</p>
-                        </div>
-                    </div>
-
-                    <div class="feature-item">
-                        <div class="feature-icon">
-                            <i class="bi bi-calendar-check"></i>
-                        </div>
-                        <div class="feature-content">
-                            <h4>Cronograma de Limpeza</h4>
-                            <p>Sistema completo de gerenciamento de tarefas de limpeza com diferentes tipos de atividades, histórico completo de execuções, cálculo automático de próximas datas previstas, ajustes inteligentes de datas considerando feriados e fins de semana, KPIs de desempenho e visualização em calendário responsivo.</p>
-                        </div>
-                    </div>
-
-                    <div class="feature-item">
-                        <div class="feature-icon">
-                            <i class="bi bi-basket"></i>
-                        </div>
-                        <div class="feature-content">
-                            <h4>Recepção de Carnes</h4>
-                            <p>Gestão completa do recebimento de carnes bovinas, suínas e de frango, controle de lotes e referências, registro de transportadoras e fornecedores, controle de pesos líquidos e brutos com cálculo automático de tara, histórico detalhado de recepções e rastreabilidade completa dos produtos.</p>
-                        </div>
-                    </div>
-
-                    <div class="feature-item">
-                        <div class="feature-icon">
-                            <i class="bi bi-journal-text"></i>
-                        </div>
-                        <div class="feature-content">
-                            <h4>Receitas e Cardápio</h4>
-                            <p>Catálogo completo de receitas com ingredientes e quantidades, cálculo automático de custos baseado nos preços do estoque, gestão de cardápio e pratos disponíveis, busca e filtragem de receitas, controle de rendimento e porções, e integração completa com o sistema de estoque.</p>
-                        </div>
-                    </div>
-
-                    <div class="feature-item">
-                        <div class="feature-icon">
-                            <i class="bi bi-people"></i>
-                        </div>
-                        <div class="feature-content">
-                            <h4>Gestão de Colaboradores e Escalas</h4>
-                            <p>Cadastro completo de colaboradores com informações detalhadas, criação e gerenciamento de escalas semanais com visualização por colaborador ou por dia, detecção automática de conflitos de horários, contagem automática de horas trabalhadas, controle de turnos e atribuições, e visualização destacada do dia atual.</p>
-                        </div>
-                    </div>
-
-                    <div class="feature-item">
-                        <div class="feature-icon">
-                            <i class="bi bi-arrow-repeat"></i>
-                        </div>
-                        <div class="feature-content">
-                            <h4>Sistema de Ciclos e Pagamentos</h4>
-                            <p>Gestão inteligente de ciclos de pagamento com controle de horas trabalhadas por colaborador, conversão automática de horas em dias completos (8 horas = 1 dia), cálculo preciso de valores aproximados, transporte automático de horas restantes entre ciclos (carryover), fechamento de ciclos com registro completo, gestão de férias e atestados médicos com controle de períodos, e geração de PDFs individuais e gerais para documentação.</p>
-                        </div>
-                    </div>
-
-                    <div class="feature-item">
-                        <div class="feature-icon">
-                            <i class="bi bi-file-earmark-pdf"></i>
-                        </div>
-                        <div class="feature-content">
-                            <h4>Relatórios e Exportações</h4>
-                            <p>Geração de relatórios completos em PDF com layout profissional, exportação de dados em formatos CSV e Excel para análises externas, filtros avançados por período e colaborador, consolidação de informações de múltiplos módulos, gráficos e visualizações de dados, e histórico completo de todas as operações realizadas.</p>
-                        </div>
-                    </div>
-
-                    <div class="feature-item">
-                        <div class="feature-icon">
-                            <i class="bi bi-gear"></i>
-                        </div>
-                        <div class="feature-content">
-                            <h4>Administração e Gestão</h4>
-                            <p>Controle completo de usuários com diferentes níveis de acesso (visualizador, operador, admin, DEV), gestão de permissões e segurança, logs detalhados de todas as ações do sistema com mascaramento de dados sensíveis, configurações personalizáveis do sistema, backup automático e manual de dados, e interface administrativa completa para gerenciamento centralizado.</p>
-                        </div>
-                    </div>
-
-                    <div class="feature-item">
-                        <div class="feature-icon">
-                            <i class="bi bi-bell"></i>
-                        </div>
-                        <div class="feature-content">
-                            <h4>Sistema de Notificações</h4>
-                            <p>Central de notificações integrada com alertas importantes do sistema, notificações sobre estoque crítico, tarefas pendentes e próximas, avisos sobre prazos e vencimentos, controle de leitura de notificações, e integração com todos os módulos do sistema para uma experiência unificada.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="system-info-footer">
-                <div class="system-info-note">
-                    <i class="bi bi-lightbulb-fill"></i>
-                    <p>Este sistema é resultado de desenvolvimento contínuo e dedicado, focado em oferecer uma solução completa, intuitiva e eficiente para gestão empresarial. Todas as funcionalidades são desenvolvidas com atenção aos detalhes e compromisso com a excelência operacional.</p>
-                </div>
+                <ul style="margin: 0; padding-left: 1.25rem;">
+                    {% if modules_active %}
+                        {% for m in modules_active %}
+                        <li style="margin: 0.25rem 0;">{{ m }}</li>
+                        {% endfor %}
+                    {% else %}
+                        <li style="margin: 0.25rem 0;">—</li>
+                    {% endif %}
+                </ul>
             </div>
         </div>
     </div>
