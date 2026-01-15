@@ -92,6 +92,34 @@ def _calculate_collaborator_balance(collaborator_id):
     }
 
 
+def _calculate_collaborator_balance_range(
+    collaborator_id: int, start_date: date, end_date: date
+) -> dict[str, float | int]:
+    """Calcula saldo do colaborador apenas dentro de um período (ex.: ciclo semanal em andamento)."""
+    total_horas_decimal = _get_active_ciclos_query(collaborator_id).filter(
+        Ciclo.data_lancamento >= start_date, Ciclo.data_lancamento <= end_date
+    ).with_entities(func.coalesce(func.sum(Ciclo.valor_horas), 0)).scalar() or Decimal("0.0")
+
+    total_horas = Decimal(str(total_horas_decimal))
+    total_horas_float = float(total_horas)
+    if total_horas_float < 0:
+        dias_completos = 0
+        horas_restantes = 0.0
+    else:
+        dias_completos = int(math.floor(total_horas_float / 8.0))
+        horas_restantes = total_horas_float % 8.0
+
+    valor_dia = Decimal(str(_get_valor_dia()))
+    valor_aproximado = Decimal(str(dias_completos)) * valor_dia
+
+    return {
+        "total_horas": float(total_horas),
+        "dias_completos": dias_completos,
+        "horas_restantes": round(horas_restantes, 1),
+        "valor_aproximado": float(valor_aproximado),
+    }
+
+
 def _get_valor_dia():
     """Obtém valor de 1 dia (8h) em R$"""
     try:
@@ -222,17 +250,99 @@ def _get_open_cycle_anchor_date() -> date:
     return datetime.now(tz).date()
 
 
+def _get_open_cycle_current_date() -> date:
+    """Data corrente do ciclo em andamento: maior data entre registros ativos (horas/folgas/ocorrências)."""
+    tz = ZoneInfo("America/Sao_Paulo")
+    try:
+        max_horas = db.session.query(func.max(Ciclo.data_lancamento)).filter(Ciclo.status_ciclo == "ativo").scalar()
+        max_folgas = (
+            db.session.query(func.max(CicloFolga.data_folga)).filter(CicloFolga.status_ciclo == "ativo").scalar()
+        )
+        max_oc = (
+            db.session.query(func.max(CicloOcorrencia.data_ocorrencia))
+            .filter(CicloOcorrencia.status_ciclo == "ativo")
+            .scalar()
+        )
+        candidates = [d for d in (max_horas, max_folgas, max_oc) if d]
+        if candidates:
+            return max(candidates)
+    except Exception:
+        pass
+    return datetime.now(tz).date()
+
+
+def _week_start_sunday(d: date) -> date:
+    """Início da semana (Domingo) para uma data."""
+    # weekday(): segunda=0 ... domingo=6
+    days_since_sunday = (d.weekday() + 1) % 7
+    return d - timedelta(days=days_since_sunday)
+
+
+def _cycle_label_for_week(week_start: date, week_end: date, month_ref: int) -> str:
+    """
+    Regras de nomenclatura:
+    - Transição de mês: "Ciclo Dezembro-Janeiro"
+    - Semana inteira no mês: "Ciclo <n> Janeiro"
+    """
+    if week_start.month != week_end.month:
+        return f"Ciclo {_month_name_pt(week_start.month)}-{_month_name_pt(week_end.month)}"
+
+    # Numerar semanas completas dentro do mês de referência (Domingo->Sábado dentro do mês)
+    month_start = (
+        date(week_end.year, month_ref, 1) if week_end.month == month_ref else date(week_start.year, month_ref, 1)
+    )
+    _, month_end = _month_start_end(month_start)
+
+    # Primeiro domingo do mês
+    first_sunday = month_start + timedelta(days=(6 - month_start.weekday()) % 7)
+    # Se a semana não está completamente dentro do mês, cair para transição (por segurança)
+    if week_start < first_sunday or week_end > month_end:
+        return f"Ciclo {_month_name_pt(week_start.month)}-{_month_name_pt(week_end.month)}"
+
+    n = 1 + int((week_start - first_sunday).days // 7)
+    return f"Ciclo {n} {_month_name_pt(month_ref)}"
+
+
+def _weekly_cycles_for_open_month(current_date: date) -> list[dict[str, object]]:
+    """Ciclos semanais do mês corrente (até a data atual), sem prever semanas futuras."""
+    month_start, _month_end = _month_start_end(current_date)
+    first_week_start = _week_start_sunday(month_start)
+
+    out: list[dict[str, object]] = []
+    cur = first_week_start
+    while cur <= current_date:
+        week_start = cur
+        week_end = cur + timedelta(days=6)
+
+        period_start = max(week_start, month_start)
+        period_end = min(week_end, current_date)
+        label = _cycle_label_for_week(week_start, week_end, current_date.month)
+
+        out.append(
+            {
+                "label": label,
+                "week_start": period_start,
+                "week_end": period_end,
+                "week_start_raw": week_start,
+                "week_end_raw": week_end,
+            }
+        )
+        cur = cur + timedelta(days=7)
+
+    return out
+
+
 def _weekly_cycles_for_month(anchor: date) -> list[dict[str, object]]:
     """
     Gera os ciclos semanais do mês do anchor.
-    - Semanas inteiras dentro do mês: "Ciclo N | Mês"
-    - Semanas que cruzam meses: "Ciclo MêsAnterior | MêsAtual"
-    Inclui semanas que cruzam o mês (sobreposição) para manter consistência em PDFs e histórico.
+    - Semanas inteiras dentro do mês: "Ciclo N Mês"
+    - Semanas que cruzam meses: "Ciclo MêsAnterior-MêsAtual"
+    Inclui semanas que cruzam o mês (sobreposição) para manter consistência em PDFs/histórico após fechamento mensal.
     """
     month_start, month_end = _month_start_end(anchor)
 
-    # Semana começa na segunda (0) e termina no domingo (6)
-    first_week_start = month_start - timedelta(days=month_start.weekday())
+    # Semana começa no domingo e termina no sábado
+    first_week_start = _week_start_sunday(month_start)
     weeks: list[tuple[date, date]] = []
     cur = first_week_start
     while cur <= month_end:
@@ -243,15 +353,9 @@ def _weekly_cycles_for_month(anchor: date) -> list[dict[str, object]]:
             weeks.append((week_start, week_end))
         cur = cur + timedelta(days=7)
 
-    # Numeração só para semanas inteiras dentro do mês (start/end no mesmo mês do anchor)
-    n_intra = 0
     out: list[dict[str, object]] = []
     for week_start, week_end in weeks:
-        if week_start.month == anchor.month and week_end.month == anchor.month:
-            n_intra += 1
-            label = f"Ciclo {n_intra} | {_month_name_pt(anchor.month)}"
-        else:
-            label = f"Ciclo {_month_name_pt(week_start.month)} | {_month_name_pt(week_end.month)}"
+        label = _cycle_label_for_week(week_start, week_end, anchor.month)
         out.append({"label": label, "week_start": week_start, "week_end": week_end})
 
     return out
@@ -389,13 +493,26 @@ def index():
         return redirect(url_for("home.index"))
 
     try:
+        current_date = _get_open_cycle_current_date()
+        month_start, _month_end = _month_start_end(current_date)
+        week_start_raw = _week_start_sunday(current_date)
+        week_end_raw = week_start_raw + timedelta(days=6)
+        ciclo_semana_atual = {
+            "label": _cycle_label_for_week(week_start_raw, week_end_raw, current_date.month),
+            "week_start": max(week_start_raw, month_start),
+            "week_end": min(week_end_raw, current_date),
+        }
+
         # Buscar todos os colaboradores ativos
         colaboradores = _get_all_collaborators()
 
         # Calcular saldos para cada colaborador
         colaboradores_stats = []
         for colab in colaboradores:
-            balance = _calculate_collaborator_balance(colab.id)
+            # Na tela principal, mostrar apenas o ciclo semanal em andamento (não prever semanas futuras)
+            balance = _calculate_collaborator_balance_range(
+                colab.id, ciclo_semana_atual["week_start"], ciclo_semana_atual["week_end"]
+            )
             colaboradores_stats.append({"collaborator": colab, "balance": balance})
 
         # Buscar configurações
@@ -404,8 +521,6 @@ def index():
 
         # Calcular ciclo atual
         ciclo_atual = _get_ciclo_atual()
-        anchor = _get_open_cycle_anchor_date()
-        ciclos_semanas = _weekly_cycles_for_month(anchor)
 
         # Totais gerais
         total_horas_geral = sum(s["balance"]["total_horas"] for s in colaboradores_stats)
@@ -413,8 +528,10 @@ def index():
         total_horas_restantes_geral = sum(s["balance"]["horas_restantes"] for s in colaboradores_stats)
         total_valor_geral = sum(s["balance"]["valor_aproximado"] for s in colaboradores_stats)
 
-        # Verificar se há registros ativos para mostrar botão de fechamento
-        tem_registros_ativos = any(s["balance"]["total_horas"] > 0 for s in colaboradores_stats)
+        # Verificar se há registros ativos no mês (para mostrar botão de fechamento mensal)
+        tem_registros_ativos = (
+            db.session.query(Ciclo.id).filter(Ciclo.status_ciclo == "ativo").limit(1).scalar() is not None
+        )
 
         # Buscar colaborador selecionado (se houver) para exibir férias e atestados
         selected_collaborator_id = request.args.get("collaborator_id", type=int)
@@ -438,12 +555,22 @@ def index():
                     .all()
                 )
                 folgas = (
-                    CicloFolga.query.filter_by(collaborator_id=selected_collaborator.id, status_ciclo="ativo")
+                    CicloFolga.query.filter(
+                        CicloFolga.collaborator_id == selected_collaborator.id,
+                        CicloFolga.status_ciclo == "ativo",
+                        CicloFolga.data_folga >= ciclo_semana_atual["week_start"],
+                        CicloFolga.data_folga <= ciclo_semana_atual["week_end"],
+                    )
                     .order_by(CicloFolga.data_folga.desc(), CicloFolga.id.desc())
                     .all()
                 )
                 ocorrencias = (
-                    CicloOcorrencia.query.filter_by(collaborator_id=selected_collaborator.id, status_ciclo="ativo")
+                    CicloOcorrencia.query.filter(
+                        CicloOcorrencia.collaborator_id == selected_collaborator.id,
+                        CicloOcorrencia.status_ciclo == "ativo",
+                        CicloOcorrencia.data_ocorrencia >= ciclo_semana_atual["week_start"],
+                        CicloOcorrencia.data_ocorrencia <= ciclo_semana_atual["week_end"],
+                    )
                     .order_by(CicloOcorrencia.data_ocorrencia.desc(), CicloOcorrencia.id.desc())
                     .all()
                 )
@@ -461,7 +588,7 @@ def index():
             total_valor_geral=total_valor_geral,
             tem_registros_ativos=tem_registros_ativos,
             can_edit=current_user.nivel in ["admin", "DEV"],
-            ciclos_semanas=ciclos_semanas,
+            ciclo_semana_atual=ciclo_semana_atual,
             selected_collaborator=selected_collaborator,
             ferias=ferias,
             atestados=atestados,
@@ -493,7 +620,15 @@ def index():
         ciclo_atual_default["mes_inicio"] = meses_pt.get(
             ciclo_atual_default["mes_inicio"], ciclo_atual_default["mes_inicio"]
         )
-        ciclos_semanas = _weekly_cycles_for_month(datetime.now(ZoneInfo("America/Sao_Paulo")).date())
+        now_d = datetime.now(ZoneInfo("America/Sao_Paulo")).date()
+        month_start, _month_end = _month_start_end(now_d)
+        week_start_raw = _week_start_sunday(now_d)
+        week_end_raw = week_start_raw + timedelta(days=6)
+        ciclo_semana_atual = {
+            "label": _cycle_label_for_week(week_start_raw, week_end_raw, now_d.month),
+            "week_start": max(week_start_raw, month_start),
+            "week_end": min(week_end_raw, now_d),
+        }
         return render_template(
             "ciclos/index.html",
             active_page="ciclos",
@@ -507,7 +642,7 @@ def index():
             total_valor_geral=0.0,
             tem_registros_ativos=False,
             can_edit=current_user.nivel in ["admin", "DEV"],
-            ciclos_semanas=ciclos_semanas,
+            ciclo_semana_atual=ciclo_semana_atual,
             selected_collaborator=None,
             ferias=[],
             atestados=[],
@@ -1066,6 +1201,8 @@ def confirmar_fechamento():
     try:
         # Ancora do mês atual (antes de fechar), para arquivar os ciclos semanais corretamente
         anchor_before_close = _get_open_cycle_anchor_date()
+        month_start, month_end = _month_start_end(anchor_before_close)
+        next_month_start = month_end + timedelta(days=1)
 
         # Buscar próximo ciclo_id disponível
         ultimo_fechamento = CicloFechamento.query.order_by(CicloFechamento.ciclo_id.desc()).first()
@@ -1122,7 +1259,8 @@ def confirmar_fechamento():
                 novo_ciclo_carryover = Ciclo()
                 novo_ciclo_carryover.collaborator_id = cid
                 novo_ciclo_carryover.nome_colaborador = dados["nome"]
-                novo_ciclo_carryover.data_lancamento = date.today()
+                # O carryover deve cair no primeiro dia do próximo mês para entrar no ciclo de transição
+                novo_ciclo_carryover.data_lancamento = next_month_start
                 novo_ciclo_carryover.origem = "Carryover"  # Tipo específico para carryover
                 novo_ciclo_carryover.descricao = f"Horas restantes do ciclo {proximo_ciclo_id - 1} transportadas"
                 novo_ciclo_carryover.valor_horas = Decimal(str(round(horas_restantes_colab, 1)))
@@ -1539,9 +1677,9 @@ def pdf_individual(collaborator_id):
 
         collaborator = Collaborator.query.get_or_404(collaborator_id)
 
-        # Ciclos semanais do "mês atual" do sistema (mesmo que cruzem meses)
-        anchor = _get_open_cycle_anchor_date()
-        semanas = _weekly_cycles_for_month(anchor)
+        # Ciclos semanais do mês aberto (somente até a data atual, sem prever futuros)
+        current_date = _get_open_cycle_current_date()
+        semanas = _weekly_cycles_for_open_month(current_date)
 
         semanas_detalhadas = []
         for s in semanas:
@@ -1594,7 +1732,7 @@ def pdf_individual(collaborator_id):
         # Ciclo mensal (só fecha após Registrar Pagamento)
         ultimo_fechamento = CicloFechamento.query.order_by(CicloFechamento.ciclo_id.desc()).first()
         ciclo_id = (ultimo_fechamento.ciclo_id + 1) if ultimo_fechamento else 1
-        mes_inicio = _month_name_pt(anchor.month)
+        mes_inicio = _month_name_pt(current_date.month)
 
         # Caminhos das logos - usar caminhos relativos ao base_dir
         logo_header_path = os.path.join(base_dir, "static", "icons", "logo black.png")
@@ -1775,9 +1913,9 @@ def pdf_geral():
         ultimo_fechamento = CicloFechamento.query.order_by(CicloFechamento.ciclo_id.desc()).first()
         ciclo_id = (ultimo_fechamento.ciclo_id + 1) if ultimo_fechamento else 1
 
-        anchor = _get_open_cycle_anchor_date()
-        mes_inicio = _month_name_pt(anchor.month)
-        semanas = _weekly_cycles_for_month(anchor)
+        current_date = _get_open_cycle_current_date()
+        mes_inicio = _month_name_pt(current_date.month)
+        semanas = _weekly_cycles_for_open_month(current_date)
 
         for colab in colaboradores:
             balance = _calculate_collaborator_balance(colab.id)

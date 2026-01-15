@@ -48,12 +48,12 @@
         </div>
     </div>
 
-    <!-- Resumo Geral -->
+    <!-- Resumo do Ciclo Atual -->
     <div class="resumo-geral-card">
         <div class="resumo-header">
             <h3 class="resumo-title">
                 <i class="bi bi-bar-chart"></i>
-                Resumo Geral
+                Resumo do Ciclo Atual
             </h3>
         </div>
         <div class="resumo-grid">
@@ -76,29 +76,25 @@
         </div>
     </div>
 
-    <!-- Ciclos Semanais do Mês (inclui semanas que cruzam meses) -->
-    {% if ciclos_semanas %}
+    <!-- Ciclo Semanal em Andamento (não prever ciclos futuros) -->
+    {% if ciclo_semana_atual %}
     <div class="resumo-geral-card" style="margin-top: 1.25rem;">
         <div class="resumo-header">
             <h3 class="resumo-title">
                 <i class="bi bi-calendar-week"></i>
-                Ciclos Semanais do Mês
+                Ciclo Semanal em Andamento
             </h3>
         </div>
         <div style="padding: 1rem;">
-            <div style="display: grid; gap: 0.75rem;">
-                {% for s in ciclos_semanas %}
-                <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:0.75rem 1rem; border:1px solid rgba(0,0,0,0.06); border-radius:12px; background: rgba(255,255,255,0.7);">
-                    <div style="display:flex; flex-direction:column;">
-                        <strong>{{ s.label }}</strong>
-                        <small style="color:#6b7280;">{{ s.week_start.strftime('%d/%m/%Y') }} — {{ s.week_end.strftime('%d/%m/%Y') }}</small>
-                    </div>
-                    <a class="btn-card btn-card-secondary" href="{{ url_for('ciclos.pesquisa', q=s.label) }}" style="text-decoration:none;">
-                        <i class="bi bi-search"></i>
-                        Buscar no histórico
-                    </a>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:0.75rem 1rem; border:1px solid rgba(0,0,0,0.06); border-radius:12px; background: rgba(255,255,255,0.7);">
+                <div style="display:flex; flex-direction:column;">
+                    <strong>{{ ciclo_semana_atual.label }}</strong>
+                    <small style="color:#6b7280;">{{ ciclo_semana_atual.week_start.strftime('%d/%m/%Y') }} — {{ ciclo_semana_atual.week_end.strftime('%d/%m/%Y') }}</small>
                 </div>
-                {% endfor %}
+                <a class="btn-card btn-card-secondary" href="{{ url_for('ciclos.pesquisa', q=ciclo_semana_atual.label) }}" style="text-decoration:none;">
+                    <i class="bi bi-search"></i>
+                    Ver ciclos anteriores
+                </a>
             </div>
             <div style="margin-top:0.75rem; color:#6b7280; font-size:0.875rem;">
                 A tabela de folgas é resetada apenas no fechamento mensal (Registrar Pagamento).
