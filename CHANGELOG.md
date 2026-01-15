@@ -1,3 +1,9 @@
+## [2.6.12] - 2026-01-14
+
+### Atualizacao
+
+- Versao 2.6.12 - e89ee9b ui(ciclos): destacar blocos de ciclos no historico
+
 ## [2.6.11] - 2026-01-14
 
 ### Atualizacao
