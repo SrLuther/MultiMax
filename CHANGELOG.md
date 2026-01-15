@@ -1,3 +1,9 @@
+## [2.6.8] - 2026-01-14
+
+### Atualizacao
+
+- Versao 2.6.8 - 8930ae4 Ciclos: ajustar nomenclatura para 'Ciclo N | Mes'
+
 ## [2.6.7] - 2026-01-14
 
 ### Atualizacao
