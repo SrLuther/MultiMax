@@ -31,7 +31,11 @@ def _get_receitas_filtradas(q: str = "", page: int = 1, per_page: int = 10):
     query = Recipe.query
     if q:
         query = query.filter(Recipe.nome.contains(q))
-    query = query.order_by(Recipe.created_at.desc())
+    # Ordenar por created_at se existir, senão por id
+    if hasattr(Recipe, 'created_at'):
+        query = query.order_by(Recipe.created_at.desc())
+    else:
+        query = query.order_by(Recipe.id.desc())
     return query.paginate(page=page, per_page=per_page, error_out=False)
 
 
@@ -100,25 +104,31 @@ def index():
         flash("Receita cadastrada com sucesso.", "success")
         return redirect(url_for("receitas.index"))
 
-    rid = request.args.get("id", type=int)
-    q = (request.args.get("q") or "").strip()
-    page = request.args.get("page", 1, type=int)
+    try:
+        rid = request.args.get("id", type=int)
+        q = (request.args.get("q") or "").strip()
+        page = request.args.get("page", 1, type=int)
 
-    receitas_pag = _get_receitas_filtradas(q, page)
-    selecionada, ingredientes, custo_total = _get_receita_detalhes(rid) if rid else (None, [], 0.0)
-    produtos = Produto.query.order_by(Produto.nome.asc()).all()
+        receitas_pag = _get_receitas_filtradas(q, page)
+        selecionada, ingredientes, custo_total = _get_receita_detalhes(rid) if rid else (None, [], 0.0)
+        produtos = Produto.query.order_by(Produto.nome.asc()).all()
 
-    return render_template(
-        "receitas.html",
-        active_page="receitas",
-        receitas=receitas_pag.items,
-        receitas_pag=receitas_pag,
-        selecionada=selecionada,
-        ingredientes=ingredientes,
-        q=q,
-        produtos=produtos,
-        custo_total=custo_total,
-    )
+        return render_template(
+            "receitas.html",
+            active_page="receitas",
+            receitas=receitas_pag.items,
+            receitas_pag=receitas_pag,
+            selecionada=selecionada,
+            ingredientes=ingredientes,
+            q=q,
+            produtos=produtos,
+            custo_total=custo_total,
+        )
+    except Exception as e:
+        from flask import current_app
+        current_app.logger.error(f"Erro na rota receitas.index: {e}", exc_info=True)
+        flash(f"Erro ao carregar receitas: {str(e)}", "danger")
+        return redirect(url_for("receitas.index"))
 
 
 @bp.route("/editar/<int:id>", methods=["POST"], strict_slashes=False)
