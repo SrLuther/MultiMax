@@ -685,12 +685,17 @@ def create_app():
 
     resolved_version = _get_version()
     app.config["APP_VERSION_RESOLVED"] = (
-        resolved_version.lstrip("vV") if isinstance(resolved_version, str) else resolved_version
+        resolved_version.lstrip("vV") if isinstance(resolved_version, str) and resolved_version else "dev"
     )
+    # Garantir que sempre há um valor válido
+    if not app.config["APP_VERSION_RESOLVED"] or app.config["APP_VERSION_RESOLVED"] == "None":
+        app.config["APP_VERSION_RESOLVED"] = "dev"
 
     @app.context_processor
     def inject_version():
-        return {"git_version": app.config.get("APP_VERSION_RESOLVED", "dev")}
+        ver = app.config.get("APP_VERSION_RESOLVED", "dev")
+        # Garantir que nunca retorne None ou vazio
+        return {"git_version": ver if ver and ver != "None" else "dev"}
 
     with app.app_context():
         try:

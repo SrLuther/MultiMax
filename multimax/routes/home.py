@@ -174,11 +174,13 @@ def index():
     db_diag = None
     modules_active: list[str] = []
     last_update_date = datetime.now().strftime("%d/%m/%Y")
+    git_version = "dev"
     try:
         from flask import current_app
 
         modules_active = get_active_module_labels(current_app.blueprints.keys())
         last_update_date = _get_last_update_date_from_changelog()
+        git_version = current_app.config.get("APP_VERSION_RESOLVED", "dev")
     except Exception:
         pass
     try:
@@ -224,6 +226,7 @@ def index():
                 db_diag=db_diag,
                 modules_active=modules_active,
                 last_update_date=last_update_date,
+                git_version=git_version,
             )
     except Exception:
         pass
@@ -683,6 +686,7 @@ def index():
         low_stock=low_stock,
         modules_active=modules_active,
         last_update_date=last_update_date,
+        git_version=git_version,
     )
 
 
