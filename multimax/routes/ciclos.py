@@ -690,21 +690,21 @@ def pesquisa():
 
         q_month_num, q_month_name = _parse_month_query(q)
 
-    # 1) Tentar buscar ciclos arquivados (fechados) em CicloSemana
-    query = CicloSemana.query
-    if ciclo_id:
-        query = query.filter(CicloSemana.ciclo_id == ciclo_id)
+        # 1) Tentar buscar ciclos arquivados (fechados) em CicloSemana
+        query = CicloSemana.query
+        if ciclo_id:
+            query = query.filter(CicloSemana.ciclo_id == ciclo_id)
 
-    if q_month_name:
-        query = query.filter(CicloSemana.label.ilike(f"%{q_month_name}%"))
-    elif q:
-        query = query.filter(CicloSemana.label.ilike(f"%{q}%"))
+        if q_month_name:
+            query = query.filter(CicloSemana.label.ilike(f"%{q_month_name}%"))
+        elif q:
+            query = query.filter(CicloSemana.label.ilike(f"%{q}%"))
 
-    semanas = query.order_by(CicloSemana.ciclo_id.desc(), CicloSemana.week_start.asc()).limit(200).all()
+        semanas = query.order_by(CicloSemana.ciclo_id.desc(), CicloSemana.week_start.asc()).limit(200).all()
 
-    semanas_detalhe: list[dict[str, object]] = []
+        semanas_detalhe: list[dict[str, object]] = []
 
-    if semanas:
+        if semanas:
         for s in semanas:
             horas = (
                 Ciclo.query.filter(
@@ -793,8 +793,8 @@ def pesquisa():
                 }
             )
 
-    # 2) Se não houver arquivado (mês em aberto), gerar ciclos semanais do mês atual a partir dos registros ativos
-    if not semanas_detalhe:
+        # 2) Se não houver arquivado (mês em aberto), gerar ciclos semanais do mês atual a partir dos registros ativos
+        if not semanas_detalhe:
         current_date = _get_open_cycle_current_date()
         open_ciclo_id = _get_ciclo_atual()["ciclo_id"]
         semanas_open = _weekly_cycles_for_open_month(current_date)
