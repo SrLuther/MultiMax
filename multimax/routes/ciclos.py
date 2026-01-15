@@ -656,12 +656,13 @@ def index():
 @login_required
 def pesquisa():
     """Pesquisa ciclos semanais arquivados (por label) e retorna detalhamento por colaborador."""
-    if current_user.nivel not in ["operador", "admin", "DEV"]:
-        flash("Acesso negado.", "danger")
-        return redirect(url_for("home.index"))
+    try:
+        if current_user.nivel not in ["operador", "admin", "DEV"]:
+            flash("Acesso negado.", "danger")
+            return redirect(url_for("home.index"))
 
-    q = (request.args.get("q") or "").strip()
-    ciclo_id = request.args.get("ciclo_id", type=int)
+        q = (request.args.get("q") or "").strip()
+        ciclo_id = request.args.get("ciclo_id", type=int)
 
     def _summary_from_hours(total_horas_float: float) -> dict[str, float | int]:
         try:
@@ -729,25 +730,32 @@ def pesquisa():
             folgas_utilizadas_ciclo = [
                 h
                 for h in horas
-                if h.origem == "Folga utilizada"
+                if getattr(h, "origem", None) == "Folga utilizada"
             ]
             # Criar objetos similares a CicloFolga para mesclar
             for h in folgas_utilizadas_ciclo:
+                try:
+                    valor_horas = float(h.valor_horas) if h.valor_horas is not None else -8.0
+                except (ValueError, TypeError):
+                    valor_horas = -8.0
                 folga_ciclo = SimpleNamespace(
-                    nome_colaborador=h.nome_colaborador,
-                    data_folga=h.data_lancamento,
+                    nome_colaborador=getattr(h, "nome_colaborador", "") or "",
+                    data_folga=getattr(h, "data_lancamento", None),
                     tipo="uso",
                     dias=1,  # Folga utilizada sempre é 1 dia (8h)
-                    valor_horas=h.valor_horas,  # Incluir valor_horas para exibição
-                    observacao=h.descricao or "Folga utilizada via lançamento de horas",
-                    ciclo_id=h.ciclo_id,
-                    status_ciclo=h.status_ciclo,
+                    valor_horas=valor_horas,  # Incluir valor_horas para exibição
+                    observacao=getattr(h, "descricao", None) or "Folga utilizada via lançamento de horas",
+                    ciclo_id=getattr(h, "ciclo_id", None),
+                    status_ciclo=getattr(h, "status_ciclo", "fechado"),
                 )
                 folgas = list(folgas) + [folga_ciclo]
             # Remover "Folgas utilizadas" da lista de horas para evitar duplicação
-            horas = [h for h in horas if h.origem != "Folga utilizada"]
-            # Reordenar por data após mesclar
-            folgas = sorted(folgas, key=lambda f: (f.data_folga, getattr(f, "id", 0)))
+            horas = [h for h in horas if getattr(h, "origem", None) != "Folga utilizada"]
+            # Reordenar por data após mesclar (filtrar None)
+            folgas = sorted(
+                [f for f in folgas if getattr(f, "data_folga", None) is not None],
+                key=lambda f: (f.data_folga, getattr(f, "id", 0))
+            )
             ocorrencias = (
                 CicloOcorrencia.query.filter(
                     CicloOcorrencia.status_ciclo == "fechado",
@@ -762,7 +770,16 @@ def pesquisa():
                 )
                 .all()
             )
-            total_horas = float(sum(float(h.valor_horas) for h in horas)) if horas else 0.0
+            # Calcular total de horas com tratamento de erros
+            total_horas = 0.0
+            if horas:
+                try:
+                    total_horas = float(sum(
+                        float(h.valor_horas) if h.valor_horas is not None else 0.0
+                        for h in horas
+                    ))
+                except (ValueError, TypeError, AttributeError):
+                    total_horas = 0.0
             semanas_detalhe.append(
                 {
                     "ciclo_id": s.ciclo_id,
@@ -851,7 +868,16 @@ def pesquisa():
                 )
                 .all()
             )
-            total_horas = float(sum(float(h.valor_horas) for h in horas)) if horas else 0.0
+            # Calcular total de horas com tratamento de erros
+            total_horas = 0.0
+            if horas:
+                try:
+                    total_horas = float(sum(
+                        float(h.valor_horas) if h.valor_horas is not None else 0.0
+                        for h in horas
+                    ))
+                except (ValueError, TypeError, AttributeError):
+                    total_horas = 0.0
             semanas_detalhe.append(
                 {
                     "ciclo_id": open_ciclo_id,
@@ -865,23 +891,28 @@ def pesquisa():
                 }
             )
 
-    colaboradores = _get_all_collaborators()
-    # Extrair ciclo_ids válidos (não None)
-    ciclo_ids = sorted(
-        {int(s["ciclo_id"]) for s in semanas_detalhe if s.get("ciclo_id") is not None}, 
-        reverse=True
-    )
+        colaboradores = _get_all_collaborators()
+        # Extrair ciclo_ids válidos (não None)
+        ciclo_ids = sorted(
+            {int(s["ciclo_id"]) for s in semanas_detalhe if s.get("ciclo_id") is not None}, 
+            reverse=True
+        )
 
-    return render_template(
-        "ciclos/pesquisa.html",
-        active_page="ciclos",
-        q=q,
-        q_month_name=q_month_name,
-        filtro_ciclo_id=ciclo_id,
-        semanas=semanas_detalhe,
-        colaboradores=colaboradores,
-        ciclo_ids=ciclo_ids,
-    )
+        return render_template(
+            "ciclos/pesquisa.html",
+            active_page="ciclos",
+            q=q,
+            q_month_name=q_month_name,
+            filtro_ciclo_id=ciclo_id,
+            semanas=semanas_detalhe,
+            colaboradores=colaboradores,
+            ciclo_ids=ciclo_ids,
+        )
+    except Exception as e:
+        from flask import current_app
+        current_app.logger.error(f"Erro na rota pesquisa: {e}", exc_info=True)
+        flash(f"Erro ao carregar pesquisa de ciclos: {str(e)}", "danger")
+        return redirect(url_for("ciclos.index"))
 
 
 @bp.route("/lançar", methods=["POST"], strict_slashes=False)
