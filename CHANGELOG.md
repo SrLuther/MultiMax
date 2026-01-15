@@ -1,3 +1,9 @@
+## [2.6.10] - 2026-01-14
+
+### Atualizacao
+
+- Versao 2.6.10 - 9048752 Dashboard: refatorar card Sobre o Multi (dinamico)
+
 ## [2.6.9] - 2026-01-14
 
 ### Atualizacao

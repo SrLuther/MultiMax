@@ -1,6 +1,6 @@
 ==============================================
 MULTIMAX - Sistema de Gestão Integrada
-Versão 2.6.9 - Janeiro 2025
+Versão 2.6.10 - Janeiro 2025
 ==============================================
 
 DESCRIÇÃO:
@@ -72,7 +72,7 @@ NIVEIS DE ACESSO:
 - operador: Operador com acesso a funcionalidades operacionais
 - visualizador: Apenas visualização (sem permissão de edição)
 
-PRINCIPAIS FUNCIONALIDADES DA VERSÃO 2.6.9:
+PRINCIPAIS FUNCIONALIDADES DA VERSÃO 2.6.10:
 -------------------------------------------
 - Sistema de Arquivamento de Jornada: Arquivamento de dados por período
 - Histórico Completo: Visualização de histórico arquivado + atual
