@@ -196,80 +196,49 @@
                 {{ semana.label }} — {{ semana.week_start.strftime('%d/%m/%Y') }} a {{ semana.week_end.strftime('%d/%m/%Y') }}
             </div>
 
-            <div class="subsection-title">Folgas</div>
-            {% if semana.folgas and (semana.folgas|length) > 0 %}
+            {% if (semana.folgas and semana.folgas|length > 0) or (semana.horas and semana.horas|length > 0) or (semana.ocorrencias and semana.ocorrencias|length > 0) %}
             <table class="historico-table">
                 <thead>
                     <tr>
                         <th>Data</th>
                         <th>Tipo</th>
-                        <th>Dias</th>
+                        <th>Detalhes</th>
+                        <th>Valor</th>
                         <th>Observação</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for f in semana.folgas %}
+                    {% for f in (semana.folgas or []) %}
                     <tr>
                         <td>{{ f.data_folga.strftime('%d/%m/%Y') }}</td>
+                        <td>Folga</td>
                         <td>{{ 'Folga adicional' if f.tipo == 'adicional' else 'Folga usada' }}</td>
-                        <td>{{ f.dias }}</td>
+                        <td>{{ f.dias }} dia(s)</td>
                         <td>{{ f.observacao or '-' }}</td>
                     </tr>
                     {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <p>Sem folgas neste ciclo.</p>
-            {% endif %}
-
-            <div class="subsection-title">Horas Extras</div>
-            {% if semana.horas and (semana.horas|length) > 0 %}
-            <table class="historico-table">
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Origem</th>
-                        <th>Descrição</th>
-                        <th>Horas</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for reg in semana.horas %}
+                    {% for reg in (semana.horas or []) %}
                     <tr>
                         <td>{{ reg.data_lancamento.strftime('%d/%m/%Y') }}</td>
+                        <td>Horas Extras</td>
                         <td>{{ reg.origem }}</td>
-                        <td>{{ reg.descricao or '-' }}</td>
                         <td>{{ "%.1f"|format(reg.valor_horas) }}h</td>
+                        <td>{{ reg.descricao or '-' }}</td>
                     </tr>
                     {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <p>Sem lançamentos de horas neste ciclo.</p>
-            {% endif %}
-
-            <div class="subsection-title">Ocorrências</div>
-            {% if semana.ocorrencias and (semana.ocorrencias|length) > 0 %}
-            <table class="historico-table">
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Tipo</th>
-                        <th>Descrição</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for o in semana.ocorrencias %}
+                    {% for o in (semana.ocorrencias or []) %}
                     <tr>
                         <td>{{ o.data_ocorrencia.strftime('%d/%m/%Y') }}</td>
+                        <td>Ocorrência</td>
                         <td>{{ o.tipo }}</td>
+                        <td>-</td>
                         <td>{{ o.descricao or '-' }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
             {% else %}
-            <p>Sem ocorrências neste ciclo.</p>
+            <p>Sem registros neste ciclo.</p>
             {% endif %}
         {% endfor %}
 

@@ -123,104 +123,57 @@
                     </div>
                 </div>
                 {% endif %}
-                <div style="display:grid; gap: 1rem;">
-                    <div>
-                        <strong>Folgas</strong>
-                        {% if s.folgas and (s.folgas|length) > 0 %}
-                        <table class="ferias-table-modern" style="margin-top: 0.5rem;">
-                            <thead>
-                                <tr>
-                                    <th>Colaborador</th>
-                                    <th>Data</th>
-                                    <th>Tipo</th>
-                                    <th>Dias</th>
-                                    <th>Obs</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for f in s.folgas %}
-                                <tr>
-                                    <td>{{ f.nome_colaborador }}</td>
-                                    <td>{{ f.data_folga.strftime('%d/%m/%Y') }}</td>
-                                    <td>{{ 'Folga adicional' if f.tipo == 'adicional' else 'Folga usada' }}</td>
-                                    <td>{{ f.dias }}</td>
-                                    <td>{{ f.observacao or '-' }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                        {% else %}
-                        <div class="empty-state-small-modern" style="margin-top:0.5rem;">
-                            <i class="bi bi-calendar-x"></i>
-                            <p>Nenhuma folga registrada</p>
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <div>
-                        <strong>Horas extras</strong>
-                        {% if s.horas and (s.horas|length) > 0 %}
-                        <table class="ferias-table-modern" style="margin-top: 0.5rem;">
-                            <thead>
-                                <tr>
-                                    <th>Colaborador</th>
-                                    <th>Data</th>
-                                    <th>Origem</th>
-                                    <th>Descrição</th>
-                                    <th>Horas</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for h in s.horas %}
-                                <tr>
-                                    <td>{{ h.nome_colaborador }}</td>
-                                    <td>{{ h.data_lancamento.strftime('%d/%m/%Y') }}</td>
-                                    <td>{{ h.origem }}</td>
-                                    <td>{{ h.descricao or '-' }}</td>
-                                    <td>{{ "%.1f"|format(h.valor_horas) }}h</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                        {% else %}
-                        <div class="empty-state-small-modern" style="margin-top:0.5rem;">
-                            <i class="bi bi-clock"></i>
-                            <p>Nenhuma hora registrada</p>
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <div>
-                        <strong>Ocorrências</strong>
-                        {% if s.ocorrencias and (s.ocorrencias|length) > 0 %}
-                        <table class="ferias-table-modern" style="margin-top: 0.5rem;">
-                            <thead>
-                                <tr>
-                                    <th>Colaborador</th>
-                                    <th>Data</th>
-                                    <th>Tipo</th>
-                                    <th>Descrição</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for o in s.ocorrencias %}
-                                <tr>
-                                    <td>{{ o.nome_colaborador }}</td>
-                                    <td>{{ o.data_ocorrencia.strftime('%d/%m/%Y') }}</td>
-                                    <td>{{ o.tipo }}</td>
-                                    <td>{{ o.descricao or '-' }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                        {% else %}
-                        <div class="empty-state-small-modern" style="margin-top:0.5rem;">
-                            <i class="bi bi-exclamation-circle"></i>
-                            <p>Nenhuma ocorrência registrada</p>
-                        </div>
-                        {% endif %}
-                    </div>
+                {% if (s.folgas and s.folgas|length > 0) or (s.horas and s.horas|length > 0) or (s.ocorrencias and s.ocorrencias|length > 0) %}
+                <table class="ferias-table-modern" style="margin-top: 0.5rem;">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Colaborador</th>
+                            <th>Tipo</th>
+                            <th>Detalhes</th>
+                            <th>Valor</th>
+                            <th>Observação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for f in (s.folgas or []) %}
+                        <tr>
+                            <td>{{ f.data_folga.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ f.nome_colaborador }}</td>
+                            <td>Folga</td>
+                            <td>{{ 'Folga adicional' if f.tipo == 'adicional' else 'Folga usada' }}</td>
+                            <td>{{ f.dias }} dia(s)</td>
+                            <td>{{ f.observacao or '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% for h in (s.horas or []) %}
+                        <tr>
+                            <td>{{ h.data_lancamento.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ h.nome_colaborador }}</td>
+                            <td>Horas Extras</td>
+                            <td>{{ h.origem }}</td>
+                            <td>{{ "%.1f"|format(h.valor_horas) }}h</td>
+                            <td>{{ h.descricao or '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% for o in (s.ocorrencias or []) %}
+                        <tr>
+                            <td>{{ o.data_ocorrencia.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ o.nome_colaborador }}</td>
+                            <td>Ocorrência</td>
+                            <td>{{ o.tipo }}</td>
+                            <td>-</td>
+                            <td>{{ o.descricao or '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-state-small-modern" style="margin-top:0.5rem;">
+                    <i class="bi bi-inbox"></i>
+                    <p>Nenhum registro neste ciclo</p>
                 </div>
+                {% endif %}
             </div>
         </div>
         {% endfor %}
