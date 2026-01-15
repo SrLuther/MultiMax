@@ -1,3 +1,9 @@
+## [2.6.15] - 2026-01-14
+
+### Atualizacao
+
+- Versao 2.6.15 - f44130a design(ciclos): redesenh completa da pagina de pesquisa com layout profissional
+
 ## [2.6.14] - 2026-01-14
 
 ### Atualizacao
