@@ -1,3 +1,9 @@
+## [2.6.7] - 2026-01-14
+
+### Atualizacao
+
+- Versao 2.6.7 - 44e151c Ciclos: mostrar apenas ciclo semanal em andamento
+
 ## [2.6.6] - 2026-01-14
 
 ### Atualizacao
