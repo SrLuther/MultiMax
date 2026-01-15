@@ -1,3 +1,15 @@
+## [2.6.23] - 2026-01-15
+
+### Atualizacao
+
+- Versao 2.6.23 - dc27d94 refactor(init): reduz complexidade de create_app extraindo funÃƒÂ§ÃƒÂµes auxiliares
+
+## [2.6.22] - 2026-01-15
+
+### Atualizacao
+
+- Versao 2.6.22
+
 ## [2.6.21] - 2026-01-15
 
 ### Atualizacao
