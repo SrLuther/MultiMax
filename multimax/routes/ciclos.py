@@ -4,6 +4,7 @@ import re
 import unicodedata
 from datetime import date, datetime, timedelta
 from decimal import Decimal
+from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
 from flask import Blueprint, flash, jsonify, make_response, redirect, render_template, request, url_for
@@ -715,6 +716,26 @@ def pesquisa():
                 .order_by(CicloFolga.nome_colaborador.asc(), CicloFolga.data_folga.asc(), CicloFolga.id.asc())
                 .all()
             )
+            # Incluir "Folgas utilizadas" da tabela Ciclo como folgas
+            folgas_utilizadas_ciclo = [
+                h
+                for h in horas
+                if h.origem == "Folga utilizada"
+            ]
+            # Criar objetos similares a CicloFolga para mesclar
+            for h in folgas_utilizadas_ciclo:
+                folga_ciclo = SimpleNamespace(
+                    nome_colaborador=h.nome_colaborador,
+                    data_folga=h.data_lancamento,
+                    tipo="uso",
+                    dias=1,  # Folga utilizada sempre é 1 dia (8h)
+                    observacao=h.descricao or "Folga utilizada via lançamento de horas",
+                    ciclo_id=h.ciclo_id,
+                    status_ciclo=h.status_ciclo,
+                )
+                folgas = list(folgas) + [folga_ciclo]
+            # Reordenar por data após mesclar
+            folgas = sorted(folgas, key=lambda f: (f.data_folga, getattr(f, "id", 0)))
             ocorrencias = (
                 CicloOcorrencia.query.filter(
                     CicloOcorrencia.status_ciclo == "fechado",
@@ -782,6 +803,26 @@ def pesquisa():
                 .order_by(CicloFolga.nome_colaborador.asc(), CicloFolga.data_folga.asc(), CicloFolga.id.asc())
                 .all()
             )
+            # Incluir "Folgas utilizadas" da tabela Ciclo como folgas
+            folgas_utilizadas_ciclo = [
+                h
+                for h in horas
+                if h.origem == "Folga utilizada"
+            ]
+            # Criar objetos similares a CicloFolga para mesclar
+            for h in folgas_utilizadas_ciclo:
+                folga_ciclo = SimpleNamespace(
+                    nome_colaborador=h.nome_colaborador,
+                    data_folga=h.data_lancamento,
+                    tipo="uso",
+                    dias=1,  # Folga utilizada sempre é 1 dia (8h)
+                    observacao=h.descricao or "Folga utilizada via lançamento de horas",
+                    ciclo_id=None,  # Pode ser None para ciclos ativos
+                    status_ciclo=h.status_ciclo,
+                )
+                folgas = list(folgas) + [folga_ciclo]
+            # Reordenar por data após mesclar
+            folgas = sorted(folgas, key=lambda f: (f.data_folga, getattr(f, "id", 0)))
             ocorrencias = (
                 CicloOcorrencia.query.filter(
                     CicloOcorrencia.status_ciclo == "ativo",
@@ -1815,6 +1856,26 @@ def pdf_individual(collaborator_id):
                 .order_by(CicloFolga.data_folga.asc(), CicloFolga.id.asc())
                 .all()
             )
+            # Incluir "Folgas utilizadas" da tabela Ciclo como folgas
+            folgas_utilizadas_ciclo = [
+                h
+                for h in horas
+                if h.origem == "Folga utilizada"
+            ]
+            # Criar objetos similares a CicloFolga para mesclar
+            for h in folgas_utilizadas_ciclo:
+                folga_ciclo = SimpleNamespace(
+                    nome_colaborador=h.nome_colaborador,
+                    data_folga=h.data_lancamento,
+                    tipo="uso",
+                    dias=1,  # Folga utilizada sempre é 1 dia (8h)
+                    observacao=h.descricao or "Folga utilizada via lançamento de horas",
+                    ciclo_id=None,
+                    status_ciclo=h.status_ciclo,
+                )
+                folgas = list(folgas) + [folga_ciclo]
+            # Reordenar por data após mesclar
+            folgas = sorted(folgas, key=lambda f: (f.data_folga, getattr(f, "id", 0)))
             ocorrencias = (
                 CicloOcorrencia.query.filter(
                     CicloOcorrencia.collaborator_id == collaborator_id,
@@ -1937,6 +1998,27 @@ def pdf_individual_ciclo(collaborator_id: int, ciclo_id: int):
                 .order_by(CicloFolga.data_folga.asc(), CicloFolga.id.asc())
                 .all()
             )
+            # Incluir "Folgas utilizadas" da tabela Ciclo como folgas
+            folgas_utilizadas_ciclo = [
+                h
+                for h in horas
+                if h.origem == "Folga utilizada"
+            ]
+            # Criar objetos similares a CicloFolga para mesclar
+            for h in folgas_utilizadas_ciclo:
+                folga_ciclo = SimpleNamespace(
+                    nome_colaborador=h.nome_colaborador,
+                    data_folga=h.data_lancamento,
+                    tipo="uso",
+                    dias=1,  # Folga utilizada sempre é 1 dia (8h)
+                    observacao=h.descricao or "Folga utilizada via lançamento de horas",
+                    ciclo_id=h.ciclo_id,
+                    status_ciclo=h.status_ciclo,
+                )
+                folgas = list(folgas) + [folga_ciclo]
+            # Reordenar por data após mesclar
+            folgas = sorted(folgas, key=lambda f: (f.data_folga, getattr(f, "id", 0)))
+
             ocorrencias = (
                 CicloOcorrencia.query.filter(
                     CicloOcorrencia.status_ciclo == "fechado",
@@ -2055,6 +2137,26 @@ def pdf_geral():
                     .order_by(CicloFolga.data_folga.asc(), CicloFolga.id.asc())
                     .all()
                 )
+                # Incluir "Folgas utilizadas" da tabela Ciclo como folgas
+                folgas_utilizadas_ciclo = [
+                    h
+                    for h in horas
+                    if h.origem == "Folga utilizada"
+                ]
+                # Criar objetos similares a CicloFolga para mesclar
+                for h in folgas_utilizadas_ciclo:
+                    folga_ciclo = SimpleNamespace(
+                        nome_colaborador=h.nome_colaborador,
+                        data_folga=h.data_lancamento,
+                        tipo="uso",
+                        dias=1,  # Folga utilizada sempre é 1 dia (8h)
+                        observacao=h.descricao or "Folga utilizada via lançamento de horas",
+                        ciclo_id=None,
+                        status_ciclo=h.status_ciclo,
+                    )
+                    folgas = list(folgas) + [folga_ciclo]
+                # Reordenar por data após mesclar
+                folgas = sorted(folgas, key=lambda f: (f.data_folga, getattr(f, "id", 0)))
                 ocorrencias = (
                     CicloOcorrencia.query.filter(
                         CicloOcorrencia.collaborator_id == colab.id,
@@ -2191,6 +2293,26 @@ def pdf_geral_ciclo(ciclo_id: int):
                     .order_by(CicloFolga.data_folga.asc(), CicloFolga.id.asc())
                     .all()
                 )
+                # Incluir "Folgas utilizadas" da tabela Ciclo como folgas
+                folgas_utilizadas_ciclo = [
+                    h
+                    for h in horas
+                    if h.origem == "Folga utilizada"
+                ]
+                # Criar objetos similares a CicloFolga para mesclar
+                for h in folgas_utilizadas_ciclo:
+                    folga_ciclo = SimpleNamespace(
+                        nome_colaborador=h.nome_colaborador,
+                        data_folga=h.data_lancamento,
+                        tipo="uso",
+                        dias=1,  # Folga utilizada sempre é 1 dia (8h)
+                        observacao=h.descricao or "Folga utilizada via lançamento de horas",
+                        ciclo_id=h.ciclo_id,
+                        status_ciclo=h.status_ciclo,
+                    )
+                    folgas = list(folgas) + [folga_ciclo]
+                # Reordenar por data após mesclar
+                folgas = sorted(folgas, key=lambda f: (f.data_folga, getattr(f, "id", 0)))
                 ocorrencias = (
                     CicloOcorrencia.query.filter(
                         CicloOcorrencia.status_ciclo == "fechado",
