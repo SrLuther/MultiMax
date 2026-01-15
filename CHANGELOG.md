@@ -1,3 +1,9 @@
+## [2.6.14] - 2026-01-14
+
+### Atualizacao
+
+- Versao 2.6.14 - 01d4e5f refactor(ciclos): unificar tabelas por ciclo semanal (folgas + horas + ocorrÃƒÂªncias)
+
 ## [2.6.13] - 2026-01-14
 
 ### Atualizacao
