@@ -1,3 +1,9 @@
+## [2.6.9] - 2026-01-14
+
+### Atualizacao
+
+- Versao 2.6.9 - 5feb6a5 Ciclos: pesquisa e historico por ciclos semanais
+
 ## [2.6.8] - 2026-01-14
 
 ### Atualizacao
