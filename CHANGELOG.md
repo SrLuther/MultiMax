@@ -1,3 +1,9 @@
+## [2.6.11] - 2026-01-14
+
+### Atualizacao
+
+- Versao 2.6.11 - caaa651 Tests: cobrir module_registry para passar coverage
+
 ## [2.6.10] - 2026-01-14
 
 ### Atualizacao
