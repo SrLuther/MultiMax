@@ -1,3 +1,9 @@
+## [2.6.19] - 2026-01-14
+
+### Atualizacao
+
+- Versao 2.6.19 - a608b58 fix(init): corrige resoluÃƒÂ§ÃƒÂ£o de versÃƒÂ£o para nÃƒÂ£o retornar 'dev'
+
 ## [2.6.18] - 2026-01-14
 
 ### Atualizacao
