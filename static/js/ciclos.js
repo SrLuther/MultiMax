@@ -228,7 +228,8 @@
                     return;
                 }
 
-                if (data.registros.length === 0) {
+                const ciclos = data.ciclos || [];
+                if (ciclos.length === 0) {
                     document.getElementById('historico_empty').style.display = 'block';
                     return;
                 }
@@ -237,40 +238,62 @@
                 document.getElementById('btnAjustarHistorico').style.display = 'inline-block';
                 document.getElementById('btnPDFIndividual').style.display = 'inline-block';
 
-                // Preencher tabela
+                // Preencher tabela (blocos por ciclo semanal)
                 const tbody = document.getElementById('historico_tbody');
                 tbody.innerHTML = '';
-                data.registros.forEach(reg => {
-                    const row = tbody.insertRow();
-                    row.insertCell(0).textContent = reg.data;
-                    row.insertCell(1).textContent = reg.origem;
-                    row.insertCell(2).textContent = reg.descricao;
-                    row.insertCell(3).textContent = reg.horas + 'h';
-                    if (state.canEdit) {
-                        const cellAcoes = row.insertCell(4);
-                        cellAcoes.style.textAlign = 'center';
+                ciclos.forEach(ciclo => {
+                    const titleRow = document.createElement('tr');
+                    titleRow.className = 'table-primary';
+                    const titleCell = document.createElement('td');
+                    titleCell.colSpan = state.canEdit ? 5 : 4;
+                    titleCell.innerHTML = `<strong>${ciclo.label}</strong> — ${ciclo.week_start} até ${ciclo.week_end}`;
+                    titleRow.appendChild(titleCell);
+                    tbody.appendChild(titleRow);
 
-                        // Botão Ajustar
-                        const btnAjustar = document.createElement('button');
-                        btnAjustar.className = 'btn btn-sm btn-warning me-1';
-                        btnAjustar.innerHTML = '<i class="bi bi-pencil"></i>';
-                        btnAjustar.title = 'Ajustar';
-                        btnAjustar.addEventListener('click', function() {
-                            abrirAjuste(reg.id, reg.horas, reg.descricao);
-                        });
-                        cellAcoes.appendChild(btnAjustar);
+                    (ciclo.registros || []).forEach(reg => {
+                        const row = tbody.insertRow();
+                        row.insertCell(0).textContent = reg.data;
+                        row.insertCell(1).textContent = reg.origem;
+                        row.insertCell(2).textContent = reg.descricao;
+                        row.insertCell(3).textContent = reg.horas + 'h';
+                        if (state.canEdit) {
+                            const cellAcoes = row.insertCell(4);
+                            cellAcoes.style.textAlign = 'center';
 
-                        // Botão Excluir
-                        const btnExcluir = document.createElement('button');
-                        btnExcluir.className = 'btn btn-sm btn-danger';
-                        btnExcluir.innerHTML = '<i class="bi bi-trash"></i>';
-                        btnExcluir.title = 'Excluir';
-                        btnExcluir.addEventListener('click', function() {
-                            excluirRegistro(reg.id, collaboratorId);
-                        });
-                        cellAcoes.appendChild(btnExcluir);
-                    } else {
-                        row.insertCell(4).textContent = '';
+                            const btnAjustar = document.createElement('button');
+                            btnAjustar.className = 'btn btn-sm btn-warning me-1';
+                            btnAjustar.innerHTML = '<i class="bi bi-pencil"></i>';
+                            btnAjustar.title = 'Ajustar';
+                            btnAjustar.addEventListener('click', function() {
+                                abrirAjuste(reg.id, reg.horas, reg.descricao);
+                            });
+                            cellAcoes.appendChild(btnAjustar);
+
+                            const btnExcluir = document.createElement('button');
+                            btnExcluir.className = 'btn btn-sm btn-danger';
+                            btnExcluir.innerHTML = '<i class="bi bi-trash"></i>';
+                            btnExcluir.title = 'Excluir';
+                            btnExcluir.addEventListener('click', function() {
+                                excluirRegistro(reg.id, collaboratorId);
+                            });
+                            cellAcoes.appendChild(btnExcluir);
+                        } else {
+                            row.insertCell(4).textContent = '';
+                        }
+                    });
+
+                    if (ciclo.resumo) {
+                        const resumoRow = document.createElement('tr');
+                        const resumoCell = document.createElement('td');
+                        resumoCell.colSpan = state.canEdit ? 5 : 4;
+                        resumoCell.innerHTML =
+                            `<small><strong>Resumo do ciclo:</strong> ` +
+                            `Horas: ${ciclo.resumo.total_horas.toFixed(1)}h • ` +
+                            `Dias: ${ciclo.resumo.dias_completos} • ` +
+                            `Restantes: ${ciclo.resumo.horas_restantes.toFixed(1)}h • ` +
+                            `Valor: R$ ${ciclo.resumo.valor_aproximado.toFixed(2)}</small>`;
+                        resumoRow.appendChild(resumoCell);
+                        tbody.appendChild(resumoRow);
                     }
                 });
 

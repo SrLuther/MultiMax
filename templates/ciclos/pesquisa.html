@@ -107,6 +107,22 @@
                 </div>
             </div>
             <div class="db-card-body-modern">
+                {% if s.resumo %}
+                <div class="resumo" style="margin-bottom: 1rem;">
+                    <div class="resumo-item">
+                        <span class="resumo-label">Horas Totais:</span> {{ "%.1f"|format(s.resumo.total_horas) }}h
+                    </div>
+                    <div class="resumo-item">
+                        <span class="resumo-label">Dias Fechados:</span> {{ s.resumo.dias_completos }}
+                    </div>
+                    <div class="resumo-item">
+                        <span class="resumo-label">Horas Restantes:</span> {{ "%.1f"|format(s.resumo.horas_restantes) }}h
+                    </div>
+                    <div class="resumo-item">
+                        <span class="resumo-label">Valor Aproximado:</span> R$ {{ "%.2f"|format(s.resumo.valor_aproximado) }}
+                    </div>
+                </div>
+                {% endif %}
                 <div style="display:grid; gap: 1rem;">
                     <div>
                         <strong>Folgas</strong>

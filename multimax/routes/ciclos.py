@@ -662,13 +662,28 @@ def pesquisa():
     q = (request.args.get("q") or "").strip()
     ciclo_id = request.args.get("ciclo_id", type=int)
 
+    def _summary_from_hours(total_horas_float: float) -> dict[str, float | int]:
+        if total_horas_float < 0:
+            dias = 0
+            hrs_rest = 0.0
+        else:
+            dias = int(math.floor(total_horas_float / 8.0))
+            hrs_rest = total_horas_float % 8.0
+        valor_dia = float(_get_valor_dia())
+        return {
+            "total_horas": round(total_horas_float, 1),
+            "dias_completos": dias,
+            "horas_restantes": round(hrs_rest, 1),
+            "valor_aproximado": round(dias * valor_dia, 2),
+        }
+
+    q_month_num, q_month_name = _parse_month_query(q)
+
+    # 1) Tentar buscar ciclos arquivados (fechados) em CicloSemana
     query = CicloSemana.query
     if ciclo_id:
         query = query.filter(CicloSemana.ciclo_id == ciclo_id)
 
-    # Se o usuário pesquisar por um mês ("Janeiro"), retornar todas as semanas associadas
-    # incluindo transições (ex.: "Dezembro | Janeiro").
-    q_month_num, q_month_name = _parse_month_query(q)
     if q_month_name:
         query = query.filter(CicloSemana.label.ilike(f"%{q_month_name}%"))
     elif q:
@@ -676,54 +691,123 @@ def pesquisa():
 
     semanas = query.order_by(CicloSemana.ciclo_id.desc(), CicloSemana.week_start.asc()).limit(200).all()
 
-    # Montar visão detalhada por semana
-    semanas_detalhe = []
-    for s in semanas:
-        # Horas (fechadas) no intervalo
-        horas = (
-            Ciclo.query.filter(
-                Ciclo.status_ciclo == "fechado",
-                Ciclo.ciclo_id == s.ciclo_id,
-                Ciclo.data_lancamento >= s.week_start,
-                Ciclo.data_lancamento <= s.week_end,
-            )
-            .order_by(Ciclo.nome_colaborador.asc(), Ciclo.data_lancamento.asc(), Ciclo.id.asc())
-            .all()
-        )
-        folgas = (
-            CicloFolga.query.filter(
-                CicloFolga.status_ciclo == "fechado",
-                CicloFolga.ciclo_id == s.ciclo_id,
-                CicloFolga.data_folga >= s.week_start,
-                CicloFolga.data_folga <= s.week_end,
-            )
-            .order_by(CicloFolga.nome_colaborador.asc(), CicloFolga.data_folga.asc(), CicloFolga.id.asc())
-            .all()
-        )
-        ocorrencias = (
-            CicloOcorrencia.query.filter(
-                CicloOcorrencia.status_ciclo == "fechado",
-                CicloOcorrencia.ciclo_id == s.ciclo_id,
-                CicloOcorrencia.data_ocorrencia >= s.week_start,
-                CicloOcorrencia.data_ocorrencia <= s.week_end,
-            )
-            .order_by(
-                CicloOcorrencia.nome_colaborador.asc(), CicloOcorrencia.data_ocorrencia.asc(), CicloOcorrencia.id.asc()
-            )
-            .all()
-        )
+    semanas_detalhe: list[dict[str, object]] = []
 
-        semanas_detalhe.append(
-            {
-                "ciclo_id": s.ciclo_id,
-                "label": s.label,
-                "week_start": s.week_start,
-                "week_end": s.week_end,
-                "horas": horas,
-                "folgas": folgas,
-                "ocorrencias": ocorrencias,
-            }
-        )
+    if semanas:
+        for s in semanas:
+            horas = (
+                Ciclo.query.filter(
+                    Ciclo.status_ciclo == "fechado",
+                    Ciclo.ciclo_id == s.ciclo_id,
+                    Ciclo.data_lancamento >= s.week_start,
+                    Ciclo.data_lancamento <= s.week_end,
+                )
+                .order_by(Ciclo.nome_colaborador.asc(), Ciclo.data_lancamento.asc(), Ciclo.id.asc())
+                .all()
+            )
+            folgas = (
+                CicloFolga.query.filter(
+                    CicloFolga.status_ciclo == "fechado",
+                    CicloFolga.ciclo_id == s.ciclo_id,
+                    CicloFolga.data_folga >= s.week_start,
+                    CicloFolga.data_folga <= s.week_end,
+                )
+                .order_by(CicloFolga.nome_colaborador.asc(), CicloFolga.data_folga.asc(), CicloFolga.id.asc())
+                .all()
+            )
+            ocorrencias = (
+                CicloOcorrencia.query.filter(
+                    CicloOcorrencia.status_ciclo == "fechado",
+                    CicloOcorrencia.ciclo_id == s.ciclo_id,
+                    CicloOcorrencia.data_ocorrencia >= s.week_start,
+                    CicloOcorrencia.data_ocorrencia <= s.week_end,
+                )
+                .order_by(
+                    CicloOcorrencia.nome_colaborador.asc(),
+                    CicloOcorrencia.data_ocorrencia.asc(),
+                    CicloOcorrencia.id.asc(),
+                )
+                .all()
+            )
+            total_horas = float(sum(float(h.valor_horas) for h in horas)) if horas else 0.0
+            semanas_detalhe.append(
+                {
+                    "ciclo_id": s.ciclo_id,
+                    "label": s.label,
+                    "week_start": s.week_start,
+                    "week_end": s.week_end,
+                    "horas": horas,
+                    "folgas": folgas,
+                    "ocorrencias": ocorrencias,
+                    "resumo": _summary_from_hours(total_horas),
+                }
+            )
+
+    # 2) Se não houver arquivado (mês em aberto), gerar ciclos semanais do mês atual a partir dos registros ativos
+    if not semanas_detalhe:
+        current_date = _get_open_cycle_current_date()
+        open_ciclo_id = _get_ciclo_atual()["ciclo_id"]
+        semanas_open = _weekly_cycles_for_open_month(current_date)
+
+        # filtrar por q (mês ou label), sem travar pelo ciclo_id (porque não existe "fechado" ainda)
+        def _matches(label: str) -> bool:
+            if not q:
+                return True
+            qn = _normalize_text(q)
+            ln = _normalize_text(label)
+            return qn in ln
+
+        for s in semanas_open:
+            label = str(s["label"])
+            if not _matches(label):
+                continue
+
+            week_start = s["week_start"]  # type: ignore[assignment]
+            week_end = s["week_end"]  # type: ignore[assignment]
+            horas = (
+                Ciclo.query.filter(
+                    Ciclo.status_ciclo == "ativo",
+                    Ciclo.data_lancamento >= week_start,
+                    Ciclo.data_lancamento <= week_end,
+                )
+                .order_by(Ciclo.nome_colaborador.asc(), Ciclo.data_lancamento.asc(), Ciclo.id.asc())
+                .all()
+            )
+            folgas = (
+                CicloFolga.query.filter(
+                    CicloFolga.status_ciclo == "ativo",
+                    CicloFolga.data_folga >= week_start,
+                    CicloFolga.data_folga <= week_end,
+                )
+                .order_by(CicloFolga.nome_colaborador.asc(), CicloFolga.data_folga.asc(), CicloFolga.id.asc())
+                .all()
+            )
+            ocorrencias = (
+                CicloOcorrencia.query.filter(
+                    CicloOcorrencia.status_ciclo == "ativo",
+                    CicloOcorrencia.data_ocorrencia >= week_start,
+                    CicloOcorrencia.data_ocorrencia <= week_end,
+                )
+                .order_by(
+                    CicloOcorrencia.nome_colaborador.asc(),
+                    CicloOcorrencia.data_ocorrencia.asc(),
+                    CicloOcorrencia.id.asc(),
+                )
+                .all()
+            )
+            total_horas = float(sum(float(h.valor_horas) for h in horas)) if horas else 0.0
+            semanas_detalhe.append(
+                {
+                    "ciclo_id": open_ciclo_id,
+                    "label": label,
+                    "week_start": week_start,
+                    "week_end": week_end,
+                    "horas": horas,
+                    "folgas": folgas,
+                    "ocorrencias": ocorrencias,
+                    "resumo": _summary_from_hours(total_horas),
+                }
+            )
 
     colaboradores = _get_all_collaborators()
     ciclo_ids = sorted({int(s["ciclo_id"]) for s in semanas_detalhe}, reverse=True)
@@ -975,53 +1059,83 @@ def ocorrencias_excluir(id: int):
 @bp.route("/historico/<int:collaborator_id>", methods=["GET"], strict_slashes=False)
 @login_required
 def historico(collaborator_id):
-    """Retorna histórico paginado de um colaborador (JSON)"""
+    """Retorna histórico por ciclos semanais (JSON)"""
     if current_user.nivel not in ["operador", "admin", "DEV"]:
         return jsonify({"ok": False, "error": "Acesso negado"}), 403
 
     try:
         page = int(request.args.get("page", 1))
-        per_page = 5  # 5 linhas por página
+        per_page = 2  # 2 ciclos por página (blocos)
 
         # Buscar colaborador
         collaborator = Collaborator.query.get_or_404(collaborator_id)
 
-        # Buscar registros ativos do colaborador
-        query = _get_active_ciclos_query(collaborator_id).order_by(Ciclo.data_lancamento.desc(), Ciclo.id.desc())
+        current_date = _get_open_cycle_current_date()
+        semanas = _weekly_cycles_for_open_month(current_date)
 
-        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-        registros = pagination.items
+        total_ciclos = len(semanas)
+        pages = max(1, int(math.ceil(total_ciclos / float(per_page)))) if total_ciclos else 1
+        if page < 1:
+            page = 1
+        if page > pages:
+            page = pages
 
-        # Calcular saldo atual
-        balance = _calculate_collaborator_balance(collaborator_id)
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        semanas_page = semanas[start_idx:end_idx]
 
-        # Formatar registros
-        registros_data = []
-        for reg in registros:
-            registros_data.append(
+        ciclos_payload = []
+        for s in semanas_page:
+            week_start = s["week_start"]  # type: ignore[assignment]
+            week_end = s["week_end"]  # type: ignore[assignment]
+            label = str(s["label"])
+
+            regs = (
+                _get_active_ciclos_query(collaborator_id)
+                .filter(Ciclo.data_lancamento >= week_start, Ciclo.data_lancamento <= week_end)
+                .order_by(Ciclo.data_lancamento.desc(), Ciclo.id.desc())
+                .all()
+            )
+
+            registros_data = []
+            for reg in regs:
+                registros_data.append(
+                    {
+                        "id": reg.id,
+                        "data": reg.data_lancamento.strftime("%d/%m/%Y"),
+                        "origem": reg.origem,
+                        "descricao": reg.descricao or "-",
+                        "horas": float(reg.valor_horas),
+                    }
+                )
+
+            resumo = _calculate_collaborator_balance_range(collaborator_id, week_start, week_end)
+
+            ciclos_payload.append(
                 {
-                    "id": reg.id,
-                    "data": reg.data_lancamento.strftime("%d/%m/%Y"),
-                    "origem": reg.origem,
-                    "descricao": reg.descricao or "-",
-                    "horas": float(reg.valor_horas),
-                    "dias_fechados": reg.dias_fechados or 0,
-                    "horas_restantes": float(reg.horas_restantes) if reg.horas_restantes else 0.0,
+                    "label": label,
+                    "week_start": week_start.strftime("%d/%m/%Y"),
+                    "week_end": week_end.strftime("%d/%m/%Y"),
+                    "registros": registros_data,
+                    "resumo": resumo,
                 }
             )
+
+        # Saldo atual (total do mês aberto)
+        balance = _calculate_collaborator_balance(collaborator_id)
 
         return jsonify(
             {
                 "ok": True,
                 "collaborator_name": collaborator.name,
-                "registros": registros_data,
+                "ciclos": ciclos_payload,
                 "pagination": {
                     "page": page,
                     "per_page": per_page,
-                    "total": pagination.total,
-                    "pages": pagination.pages,
-                    "has_next": pagination.has_next,
-                    "has_prev": pagination.has_prev,
+                    "total": total_ciclos,
+                    "pages": pages,
+                    "has_next": page < pages,
+                    "has_prev": page > 1,
                 },
                 "balance": balance,
             }
