@@ -681,21 +681,31 @@ def create_app():
             # Log apenas se não for erro esperado (git não disponível)
             if "git" not in str(e).lower():
                 app.logger.debug(f"Erro ao obter versão: {e}")
-            return '2.6.18'
+        # Fallback: usar versão do código
+        return '2.6.18'
 
     resolved_version = _get_version()
-    app.config["APP_VERSION_RESOLVED"] = (
-        resolved_version.lstrip("vV") if isinstance(resolved_version, str) and resolved_version else "dev"
-    )
-    # Garantir que sempre há um valor válido
-    if not app.config["APP_VERSION_RESOLVED"] or app.config["APP_VERSION_RESOLVED"] == "None":
-        app.config["APP_VERSION_RESOLVED"] = "dev"
+    # Processar versão: remover "v" ou "V" do início se existir
+    if isinstance(resolved_version, str) and resolved_version:
+        processed_version = resolved_version.lstrip("vV").strip()
+        if processed_version:
+            app.config["APP_VERSION_RESOLVED"] = processed_version
+        else:
+            app.config["APP_VERSION_RESOLVED"] = "2.6.18"
+    else:
+        app.config["APP_VERSION_RESOLVED"] = "2.6.18"
+    
+    # Garantir que sempre há um valor válido (nunca "dev" ou "None")
+    if not app.config["APP_VERSION_RESOLVED"] or app.config["APP_VERSION_RESOLVED"] in ("dev", "None", ""):
+        app.config["APP_VERSION_RESOLVED"] = "2.6.18"
 
     @app.context_processor
     def inject_version():
-        ver = app.config.get("APP_VERSION_RESOLVED", "dev")
-        # Garantir que nunca retorne None ou vazio
-        return {"git_version": ver if ver and ver != "None" else "dev"}
+        ver = app.config.get("APP_VERSION_RESOLVED", "2.6.18")
+        # Garantir que nunca retorne None, vazio ou "dev"
+        if not ver or ver in ("dev", "None", ""):
+            ver = "2.6.18"
+        return {"git_version": ver}
 
     with app.app_context():
         try:
