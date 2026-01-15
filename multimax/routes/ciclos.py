@@ -281,11 +281,11 @@ def _week_start_sunday(d: date) -> date:
 def _cycle_label_for_week(week_start: date, week_end: date, month_ref: int) -> str:
     """
     Regras de nomenclatura:
-    - Transição de mês: "Ciclo Dezembro-Janeiro"
-    - Semana inteira no mês: "Ciclo <n> Janeiro"
+    - Transição de mês: "Ciclo Dezembro | Janeiro"
+    - Semana inteira no mês: "Ciclo <n> | Janeiro"
     """
     if week_start.month != week_end.month:
-        return f"Ciclo {_month_name_pt(week_start.month)}-{_month_name_pt(week_end.month)}"
+        return f"Ciclo {_month_name_pt(week_start.month)} | {_month_name_pt(week_end.month)}"
 
     # Numerar semanas completas dentro do mês de referência (Domingo->Sábado dentro do mês)
     month_start = (
@@ -297,10 +297,10 @@ def _cycle_label_for_week(week_start: date, week_end: date, month_ref: int) -> s
     first_sunday = month_start + timedelta(days=(6 - month_start.weekday()) % 7)
     # Se a semana não está completamente dentro do mês, cair para transição (por segurança)
     if week_start < first_sunday or week_end > month_end:
-        return f"Ciclo {_month_name_pt(week_start.month)}-{_month_name_pt(week_end.month)}"
+        return f"Ciclo {_month_name_pt(week_start.month)} | {_month_name_pt(week_end.month)}"
 
     n = 1 + int((week_start - first_sunday).days // 7)
-    return f"Ciclo {n} {_month_name_pt(month_ref)}"
+    return f"Ciclo {n} | {_month_name_pt(month_ref)}"
 
 
 def _weekly_cycles_for_open_month(current_date: date) -> list[dict[str, object]]:
@@ -335,8 +335,8 @@ def _weekly_cycles_for_open_month(current_date: date) -> list[dict[str, object]]
 def _weekly_cycles_for_month(anchor: date) -> list[dict[str, object]]:
     """
     Gera os ciclos semanais do mês do anchor.
-    - Semanas inteiras dentro do mês: "Ciclo N Mês"
-    - Semanas que cruzam meses: "Ciclo MêsAnterior-MêsAtual"
+    - Semanas inteiras dentro do mês: "Ciclo N | Mês"
+    - Semanas que cruzam meses: "Ciclo MêsAnterior | MêsAtual"
     Inclui semanas que cruzam o mês (sobreposição) para manter consistência em PDFs/histórico após fechamento mensal.
     """
     month_start, month_end = _month_start_end(anchor)
