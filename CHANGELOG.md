@@ -1,3 +1,9 @@
+## [2.6.20] - 2026-01-15
+
+### Atualizacao
+
+- Versao 2.6.20 - 5208b8d fix(ciclos): corrige erro 500 na rota pesquisa com tratamento de None e exceÃƒÂ§ÃƒÂµes
+
 ## [2.6.19] - 2026-01-14
 
 ### Atualizacao
