@@ -731,7 +731,7 @@ def changelog_versoes():
         
         changelog_path = Path("CHANGELOG.md")
         if not changelog_path.exists():
-            return render_template("changelog.html", 
+            return render_template("changelog_versoes.html", 
                                  changelog_content=None, 
                                  error="Arquivo CHANGELOG.md não encontrado")
         
