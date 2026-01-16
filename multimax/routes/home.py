@@ -716,6 +716,12 @@ def update_mural():
     return redirect(url_for("home.index"))
 
 
+@bp.route("/changelog", methods=["GET"])
+def changelog_redirect():
+    """Redireciona /changelog para /changelog/versoes para manter compatibilidade"""
+    return redirect(url_for('home.changelog_versoes'))
+
+
 @bp.route("/changelog/versoes", methods=["GET"])
 def changelog_versoes():
     """Exibe página de changelog formatada baseada no arquivo CHANGELOG.md"""
