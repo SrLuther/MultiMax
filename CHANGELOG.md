@@ -1,3 +1,9 @@
+## [2.6.25] - 2026-01-15
+
+### Correções
+
+- fix(receitas): adiciona colunas faltantes no modelo RecipeIngredient (produto_id, nome, quantidade, quantidade_kg, custo_unitario) para corrigir erro "'RecipeIngredient' object has no attribute 'produto_id'"
+
 ## [2.6.24] - 2026-01-15
 
 ### Atualizacao
