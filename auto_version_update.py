@@ -226,7 +226,13 @@ def get_descriptive_commit_message(new_version: str) -> str:
                         relevant_commits.append(commit)
                 
                 if relevant_commits:
-                    return f"Versao {new_version} - {relevant_commits[0]}"
+                    # Extrai descrição do commit (remove hash e tipo)
+                    commit_desc = relevant_commits[0]
+                    # Remove hash no início (ex: "abc1234 feat(adiciona): descrição")
+                    if ' ' in commit_desc:
+                        commit_desc = ' '.join(commit_desc.split(' ')[1:])
+                    
+                    return f"v{new_version} - {commit_desc}"
     except Exception:
         pass
     
@@ -254,7 +260,7 @@ def get_descriptive_commit_message(new_version: str) -> str:
                     changes.append("melhorias de código")
             
             if changes:
-                return f"Versao {new_version} - {', '.join(changes[:2])}"
+                return f"v{new_version} - {', '.join(changes[:2])}"
     except Exception:
         pass
     
@@ -278,12 +284,12 @@ def get_descriptive_commit_message(new_version: str) -> str:
                     changes.append("ajustes de interface")
             
             if changes:
-                return f"Versao {new_version} - {', '.join(changes[:2])}"
+                return f"v{new_version} - {', '.join(changes[:2])}"
     except Exception:
         pass
     
-    # 4. Fallback genérico
-    return f"Versao {new_version}"
+    # 4. Fallback genérico com versão
+    return f"v{new_version} - Atualização do sistema"
 
 
 def main():
