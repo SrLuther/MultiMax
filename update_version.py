@@ -45,10 +45,11 @@ def update_changelog(version, date_str="2025-01-04"):
 
     # Substitui a primeira linha de versão
     pattern = r"^## \[[\d.]+\] - \d{4}-\d{2}-\d{2}"
+    match = re.search(pattern, content)
     content = re.sub(
         pattern,
-        new_entry.rstrip() + "\n\n" + re.search(pattern, content).group(0)
-        if re.search(pattern, content)
+        new_entry.rstrip() + "\n\n" + match.group(0)
+        if match
         else new_entry + content,
         content,
         count=1,
