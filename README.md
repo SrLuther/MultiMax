@@ -20,6 +20,10 @@
 
 # 🚀 MultiMax — Plataforma Corporativa de Gestão Integrada
 
+<div align="center">
+  <img src="docs/assets/dashboard.png" alt="MultiMax Dashboard" width="800"/>
+</div>
+
 **MultiMax** é uma solução web completa e moderna para gestão operacional de açougues e negócios similares. Desenvolvida com arquitetura robusta, foca em **previsibilidade**, **manutenibilidade** e **segurança**, oferecendo controle total sobre todas as operações do negócio.
 
 ---
