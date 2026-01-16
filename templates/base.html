@@ -76,7 +76,7 @@
             {% if current_user.is_authenticated and current_user.nivel in ('admin', 'DEV') %}
             <div class="mm-nav-section">
                 <div class="mm-nav-section-title">Administração</div>
-                <a href="{{ url_for('home.changelog') }}" class="mm-nav-item {% if request.endpoint == 'home.changelog' %}active{% endif %}">
+                <a href="{{ url_for('home.changelog_versoes') }}" class="mm-nav-item {% if request.endpoint == 'home.changelog_versoes' %}active{% endif %}">
                     <i class="bi bi-journal-code mm-nav-icon"></i>
                     <span class="mm-nav-text">Changelog</span>
                 </a>

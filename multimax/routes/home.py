@@ -716,8 +716,8 @@ def update_mural():
     return redirect(url_for("home.index"))
 
 
-@bp.route("/changelog", methods=["GET"])
-def changelog():
+@bp.route("/changelog/versoes", methods=["GET"])
+def changelog_versoes():
     """Exibe página de changelog formatada baseada no arquivo CHANGELOG.md"""
     try:
         from pathlib import Path
