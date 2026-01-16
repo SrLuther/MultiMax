@@ -1,38 +1,213 @@
 ==============================================
 MULTIMAX - Sistema de Gestão Integrada
-Versão 2.6.24 - Janeiro 2025
+Versão 2.6.32 - Janeiro 2025
+==============================================
+MULTIMAX - SISTEMA DE GESTÃO COMPLETO
 ==============================================
 
 DESCRIÇÃO:
-MultiMax é um sistema completo de gestão para açougue, incluindo:
-- Gestão de Estoque e Produtos
-- Controle de Jornada de Trabalho (Horas e Folgas)
-- Gestão de Colaboradores e Usuários
-- Recepção de Carnes e Controle de Lotes
-- Controle de Temperatura e Câmara Fria
-- Receitas e Cardápio
-- Relatórios e Exportações (PDF, CSV, Excel)
-- Sistema de Notificações
-- Cronograma de Limpeza
+MultiMax é um sistema completo de gestão para açougue e negócios similares, incluindo:
+
+📦 GESTÃO DE ESTOQUE E PRODUTOS
+- Controle completo de produtos com código, nome, quantidade
+- Gestão de preços (custo e venda)
+- Controle de validade e lotes
+- Estoque mínimo com alertas automáticos
+- Localização de produtos e categorização
+- Geração de QR codes para produtos
+
+👥 GESTÃO DE COLABORADORES
+- Cadastro completo de funcionários
+- Controle de jornada de trabalho (horas extras e folgas)
+- Sistema de ciclos de pagamento
+- Gestão de férias e atestados
+- Escalas de trabalho semanais
+- Cálculo automático de horas e conversões
+
+🥩 CONTROLE DE CARNES
+- Recepção de carnes com controle de peso
+- Gestão de fornecedores
+- Controle de temperatura e validade
+- Relatórios diários e semanais
+- Rastreabilidade completa do produto
+
+🍽 RECEITAS E CARDÁPIO
+- Sistema completo de receitas
+- Gestão de ingredientes e catálogo
+- Cálculo automático de custos
+- Controle de rendimento e preparo
+- Embalagem e tempo de preparo
+
+🧹 CRONOGRAMA DE LIMPEZA
+- Gestão de tarefas de limpeza
+- Frequência automática de notificações
+- Controle de conclusão com fotos
+- Checklist de verificação
+- Histórico completo de limpezas
+
+📊 RELATÓRIOS E EXPORTAÇÕES
+- PDFs personalizáveis para todos os módulos
+- Exportação CSV e Excel
+- Gráficos e análises de dados
+- Relatórios de produtividade
+- Histórico completo de operações
+
+🔔 SISTEMA DE NOTIFICAÇÕES
+- Alertas de estoque baixo
+- Notificações de limpeza
+- Avisos de validade próxima
+- Sistema de notificações diárias personalizadas
+- Controle de leitura de notificações
+
+🏠 ADMINISTRAÇÃO DO SISTEMA
+- Gestão de usuários e permissões
+- Controle de acesso por níveis (Visualizador, Operador, Admin, DEV)
+- Backup e restauração do banco
+- Monitoramento do sistema
+- Changelog de versões completo
+
+🔧 FUNCIONALIDADES TÉCNICAS
+- Deploy automático com versionamento
+- Sistema de logs completo
+- API REST para integrações
+- Design responsivo (mobile-first)
+- Sistema de busca global
+- Tema claro/escuro
 
 REQUISITOS:
 - Python 3.11+
-- PostgreSQL (opcional, SQLite por padrão)
+- PostgreSQL (produção) ou SQLite (desenvolvimento)
+- Navegador moderno (Chrome, Firefox, Safari, Edge)
 
-INSTALACAO:
-1. Copie todos os arquivos para sua VPS
-2. Crie um ambiente virtual:
+DEPENDÊNCIAS PRINCIPAIS:
+- Flask 2.3+ (framework web)
+- SQLAlchemy 2.0+ (ORM)
+- ReportLab (geração de PDFs)
+- WeasyPrint (HTML para PDF)
+- Matplotlib (gráficos)
+- Pillow (processamento de imagens)
+- QRCode (geração de códigos)
+- Waitress (servidor WSGI)
+
+INSTALAÇÃO:
+
+1. CLONE DO REPOSITÓRIO:
+   git clone https://github.com/SrLuther/MultiMax.git
+   cd MultiMax
+
+2. AMBIENTE VIRTUAL:
    python3 -m venv venv
-   source venv/bin/activate  (Linux/Mac)
-   venv\Scripts\activate     (Windows)
+   # Windows:
+   venv\Scripts\activate
+   # Linux/Mac:
+   source venv/bin/activate
 
-3. Instale as dependencias:
+3. INSTALAÇÃO DE DEPENDÊNCIAS:
    pip install -r requirements.txt
 
-4. Configure as variaveis de ambiente (opcional):
+4. CONFIGURAÇÃO DO BANCO:
+   # Desenvolvimento (SQLite padrão):
+   # Funciona automaticamente
+   
+   # Produção (PostgreSQL):
+   export SQLALCHEMY_DATABASE_URI=postgresql://usuario:senha@host:5432/database
+
+5. VARIÁVEIS DE AMBIENTE (OPCIONAL):
    export SENHA_ADMIN=sua_senha_admin
    export SENHA_OPERADOR=sua_senha_operador
-   export SQLALCHEMY_DATABASE_URI=postgresql://user:pass@host/db
+   export FLASK_ENV=production
+   export SECRET_KEY=sua_chave_secreta
+
+6. EXECUÇÃO:
+   # Desenvolvimento:
+   python app.py
+   
+   # Produção:
+   waitress-serve --host=0.0.0.0 --port=8000 app:app
+
+ESTRUTURA DO PROJETO:
+├── multimax/                 # Aplicação principal
+│   ├── __init__.py          # Configuração e factory
+│   ├── models.py            # Modelos de dados
+│   ├── routes/             # Rotas da aplicação
+│   │   ├── auth.py         # Autenticação
+│   │   ├── home.py         # Dashboard
+│   │   ├── estoque.py      # Gestão de estoque
+│   │   ├── colaboradores.py # Gestão de pessoas
+│   │   ├── carnes.py       # Controle de carnes
+│   │   ├── receitas.py     # Receitas
+│   │   ├── ciclos.py       # Sistema de ciclos
+│   │   ├── cronograma.py   # Limpeza
+│   │   ├── usuarios.py     # Admin
+│   │   ├── exportacao.py   # Relatórios
+│   │   ├── api.py          # API REST
+│   │   └── dbadmin.py     # Admin do DB
+│   └── static/             # Arquivos estáticos
+├── templates/              # Templates HTML
+├── static/                 # CSS, JS, imagens
+├── documentacao/           # Documentação
+├── requirements.txt        # Dependências Python
+├── app.py                # Ponto de entrada
+└── CHANGELOG.md           # Histórico de versões
+
+NÍVEIS DE ACESSO:
+🔵 VISUALIZADOR:
+- Visualizar todas as informações
+- Gerar relatórios
+- Acesso apenas leitura
+
+🟢 OPERADOR:
+- Todas as funções do visualizador
+- Editar informações
+- Cadastrar novos dados
+- Executar operações do dia a dia
+
+🔴 ADMIN:
+- Todas as funções do operador
+- Gerenciar usuários
+- Configurar sistema
+- Acesso a administração
+
+🟣 DEV:
+- Todas as funções do admin
+- Acesso ao banco de dados
+- Debug e monitoramento
+- Deploy e manutenção
+
+DEPLOY E VERSIONAMENTO:
+O sistema possui deploy automático com controle de versões:
+
+1. NUNCA use `git push` diretamente
+2. SEMPRE use os scripts de versionamento:
+   - Windows: .\git-push-with-version.ps1
+   - Linux/Mac: ./git-push-with-version.sh
+
+3. O sistema automaticamente:
+   - Incrementa versão (patch/minor/major)
+   - Atualiza CHANGELOG.md
+   - Cria tags Git
+   - Faz push seguro
+
+MONITORAMENTO E MANUTENÇÃO:
+- Logs detalhados de todas as operações
+- Monitoramento de performance
+- Sistema de health checks
+- Backup automático configurável
+- Controle de métricas do sistema
+
+SUPORTE E DOCUMENTAÇÃO:
+- CHANGELOG.md completo com histórico
+- Documentação de API
+- Guia de instalação detalhado
+- Sistema de tickets integrado
+- Wiki com tutoriais
+
+VERSÃO ATUAL: 2.6.32
+ÚLTIMA ATUALIZAÇÃO: 15/01/2026
+
+==============================================
+DESENVOLVIDO COM ❤️ PARA O SEU NEGÓCIO
+==============================================
 
 5. Execute a aplicacao:
    python app.py
@@ -72,7 +247,7 @@ NIVEIS DE ACESSO:
 - operador: Operador com acesso a funcionalidades operacionais
 - visualizador: Apenas visualização (sem permissão de edição)
 
-PRINCIPAIS FUNCIONALIDADES DA VERSÃO 2.6.24:
+PRINCIPAIS FUNCIONALIDADES DA VERSÃO 2.6.32:
 -------------------------------------------
 - Sistema de Arquivamento de Jornada: Arquivamento de dados por período
 - Histórico Completo: Visualização de histórico arquivado + atual
