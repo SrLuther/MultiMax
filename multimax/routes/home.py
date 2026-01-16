@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
-from flask_login import current_user
+from flask_login import current_user, login_required
 from sqlalchemy import func
 
 from .. import db
@@ -169,8 +169,77 @@ def _home_no_cache(response):
 
 @bp.route("/", strict_slashes=False)
 def index():
-    if not current_user.is_authenticated:
-        return redirect(url_for("auth.login"))
+    """Redireciona para o dashboard público"""
+    return redirect(url_for("home.dashboard_public"))
+
+
+@bp.route("/dashboard", strict_slashes=False)
+def dashboard_public():
+    """Dashboard público acessível sem login"""
+    # Se já está autenticado, redireciona para o dashboard completo
+    if current_user.is_authenticated:
+        return redirect(url_for("home.dashboard_authenticated"))
+    
+    db_diag = None
+    modules_active: list[str] = []
+    last_update_date = datetime.now().strftime("%d/%m/%Y")
+    git_version = "dev"
+    try:
+        from flask import current_app
+
+        modules_active = get_active_module_labels(current_app.blueprints.keys())
+        last_update_date = _get_last_update_date_from_changelog()
+        git_version = current_app.config.get("APP_VERSION_RESOLVED", "dev")
+    except Exception:
+        pass
+    try:
+        from flask import current_app
+        from sqlalchemy import text
+
+        uri = current_app.config.get("SQLALCHEMY_DATABASE_URI", "")
+        host = None
+        try:
+            if "://" in uri:
+                after = uri.split("://", 1)[1]
+                hostpart = after.split("@", 1)[1] if "@" in after else after
+                host = hostpart.split("/", 1)[0]
+        except Exception:
+            host = None
+        ok = True
+        err = ""
+        try:
+            db.session.execute(text("select 1"))
+        except Exception as e:
+            ok = False
+            err = str(e)
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+        db_diag = {"ok": ok, "uri": uri, "host": host, "err": err}
+    except Exception:
+        db_diag = {"ok": False, "uri": "", "host": None, "err": ""}
+    
+    # Dashboard público mostra apenas informações básicas
+    return render_template(
+        "dashboard_public.html",
+        active_page="dashboard",
+        events=[],
+        mural_html="",
+        mural_text="",
+        notifications=[],
+        next_holiday=None,
+        db_diag=db_diag,
+        modules_active=modules_active,
+        last_update_date=last_update_date,
+        git_version=git_version,
+    )
+
+
+@bp.route("/dashboard/full", strict_slashes=False)
+@login_required
+def dashboard_authenticated():
+    """Dashboard completo para usuários autenticados"""
     db_diag = None
     modules_active: list[str] = []
     last_update_date = datetime.now().strftime("%d/%m/%Y")

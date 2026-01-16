@@ -35,17 +35,20 @@
         <nav class="mm-sidebar-nav" aria-label="Navegação do sistema">
             <div class="mm-nav-section">
                 <div class="mm-nav-section-title">Principal</div>
+                {% if current_user.is_authenticated %}
                 <a href="{{ url_for('home.index') }}" class="mm-nav-item {% if request.endpoint == 'home.index' %}active{% endif %}">
                     <i class="bi bi-house-door mm-nav-icon"></i>
                     <span class="mm-nav-text">Dashboard</span>
                 </a>
-                <a href="{{ url_for('estoque.index') }}" class="mm-nav-item {% if 'estoque' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-box-seam mm-nav-icon"></i>
-                    <span class="mm-nav-text">Estoque</span>
+                {% else %}
+                <a href="{{ url_for('home.dashboard_public') }}" class="mm-nav-item {% if request.endpoint == 'home.dashboard_public' %}active{% endif %}">
+                    <i class="bi bi-house-door mm-nav-icon"></i>
+                    <span class="mm-nav-text">Dashboard</span>
                 </a>
+                {% endif %}
             </div>
 
-            {% if current_user.is_authenticated and current_user.nivel in ('visualizador','operador','admin','DEV') %}
+            {% if current_user.is_authenticated %}
             <div class="mm-nav-section">
                 <div class="mm-nav-section-title">Operações</div>
                 <a href="{{ url_for('cronograma.cronograma') }}" class="mm-nav-item {% if 'cronograma' in request.endpoint %}active{% endif %}">

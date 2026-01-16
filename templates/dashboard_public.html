@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}MultiMax - Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+.dashboard-public {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: white;
+}
+.dashboard-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+.feature-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+.login-prompt {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-public">
+    <div class="container-fluid py-5">
+        <div class="row">
+            <div class="col-12 text-center mb-5">
+                <h1 class="display-3 fw-bold mb-4">
+                    🚀 MultiMax
+                </h1>
+                <p class="lead fs-3">
+                    Plataforma Corporativa de Gestão Integrada
+                </p>
+                <p class="fs-5 mb-4">
+                    Sistema completo para gestão de açougues e negócios similares
+                </p>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="dashboard-card text-center">
+                    <div class="feature-icon">📦</div>
+                    <h3>Gestão de Estoque</h3>
+                    <p>Controle completo de produtos, entradas e saídas com alertas automáticos</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="dashboard-card text-center">
+                    <div class="feature-icon">👥</div>
+                    <h3>Recursos Humanos</h3>
+                    <p>Gestão de colaboradores, escalas, férias e ponto eletrônico</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="dashboard-card text-center">
+                    <div class="feature-icon">🧪</div>
+                    <h3>Controle de Qualidade</h3>
+                    <p>Monitoramento de temperaturas, limpeza e boas práticas</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="dashboard-card text-center">
+                    <div class="feature-icon">📊</div>
+                    <h3>Relatórios</h3>
+                    <p>Análises detalhadas e dashboards em tempo real</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="dashboard-card text-center">
+                    <div class="feature-icon">🍖</div>
+                    <h3>Recebimento de Carnes</h3>
+                    <p>Controle de qualidade e rastreabilidade de produtos</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="dashboard-card text-center">
+                    <div class="feature-icon">📱</div>
+                    <h3>Acesso Móvel</h3>
+                    <p>Interface responsiva para acesso em qualquer dispositivo</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="login-prompt text-center">
+                    <h4 class="mb-3">🔐 Acesso Restrito</h4>
+                    <p class="mb-4">
+                        Para acessar todas as funcionalidades do sistema, 
+                        including gestão completa, relatórios detalhados e configurações,
+                        faça login com suas credenciais.
+                    </p>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-light btn-lg px-5">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>
+                        Fazer Login
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-12 text-center">
+                <p class="mb-2">
+                    <strong>Versão:</strong> {{ git_version }} | 
+                    <strong>Última Atualização:</strong> {{ last_update_date }}
+                </p>
+                <p class="small text-muted">
+                    © 2024 MultiMax - Plataforma de Gestão Integrada
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
