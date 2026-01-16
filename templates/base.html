@@ -76,6 +76,10 @@
             {% if current_user.is_authenticated and current_user.nivel in ('admin', 'DEV') %}
             <div class="mm-nav-section">
                 <div class="mm-nav-section-title">Administração</div>
+                <a href="{{ url_for('home.changelog') }}" class="mm-nav-item {% if request.endpoint == 'home.changelog' %}active{% endif %}">
+                    <i class="bi bi-journal-code mm-nav-icon"></i>
+                    <span class="mm-nav-text">Changelog</span>
+                </a>
                 <a href="{{ url_for('usuarios.gestao') }}" class="mm-nav-item {% if 'usuarios' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-gear mm-nav-icon"></i>
                     <span class="mm-nav-text">Gestão</span>

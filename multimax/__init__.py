@@ -241,6 +241,20 @@ def create_app():
                     ver = ""
         return {"git_version": ver or "dev"}
 
+    @app.template_filter('format_date_br')
+    def format_date_br(date_str):
+        """Formata data ISO para formato brasileiro DD/MM/YYYY"""
+        if not date_str:
+            return ""
+        try:
+            from datetime import datetime
+            if isinstance(date_str, str):
+                dt = datetime.strptime(date_str, '%Y-%m-%d')
+                return dt.strftime('%d/%m/%Y')
+            return date_str
+        except Exception:
+            return date_str
+
     @app.route("/", strict_slashes=False)
     def _root_redirect():
         from flask import redirect, url_for
@@ -694,7 +708,7 @@ def create_app():
             if "git" not in str(e).lower():
                 app.logger.debug(f"Erro ao obter versão: {e}")
         # Fallback: usar versão do código
-        return '2.6.24'
+        return '2.6.26'
 
     resolved_version = _get_version()
     # Processar versão: remover "v" ou "V" do início se existir
@@ -703,20 +717,20 @@ def create_app():
         if processed_version:
             app.config["APP_VERSION_RESOLVED"] = processed_version
         else:
-            app.config["APP_VERSION_RESOLVED"] = '2.6.24'
+            app.config["APP_VERSION_RESOLVED"] = '2.6.26'
     else:
-        app.config["APP_VERSION_RESOLVED"] = '2.6.24'
+        app.config["APP_VERSION_RESOLVED"] = '2.6.26'
     
     # Garantir que sempre há um valor válido (nunca "dev" ou "None")
     if not app.config["APP_VERSION_RESOLVED"] or app.config["APP_VERSION_RESOLVED"] in ("dev", "None", ""):
-        app.config["APP_VERSION_RESOLVED"] = '2.6.24'
+        app.config["APP_VERSION_RESOLVED"] = '2.6.26'
 
     @app.context_processor
     def inject_version():
-        ver = app.config.get("APP_VERSION_RESOLVED", '2.6.24')
+        ver = app.config.get("APP_VERSION_RESOLVED", '2.6.26')
         # Garantir que nunca retorne None, vazio ou "dev"
         if not ver or ver in ("dev", "None", ""):
-            ver = '2.6.24'
+            ver = '2.6.26'
         return {"git_version": ver}
 
     with app.app_context():
