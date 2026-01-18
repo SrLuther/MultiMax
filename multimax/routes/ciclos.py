@@ -21,6 +21,7 @@ from ..models import (
     CicloSemana,
     Collaborator,
     MedicalCertificate,
+    Setor,
     SystemLog,
     Vacation,
 )
@@ -2434,3 +2435,174 @@ def pdf_geral_ciclo(ciclo_id: int):
     except Exception as e:
         flash(f"Erro ao gerar PDF: {str(e)}", "danger")
         return redirect(url_for("ciclos.pesquisa"))
+
+
+# ============================================================================
+# Rotas de Gestão de Setores
+# ============================================================================
+
+
+@bp.route("/setores", methods=["GET"])
+@login_required
+def setores_index():
+    """Página principal de gestão de setores"""
+    if current_user.nivel not in ("admin", "DEV"):
+        flash("Acesso negado. Apenas Administradores.", "danger")
+        return redirect(url_for("home.index"))
+    
+    setores = Setor.query.order_by(Setor.nome.asc()).all()
+    return render_template("ciclos/setores.html", setores=setores)
+
+
+@bp.route("/setores/novo", methods=["POST"])
+@login_required
+def setores_novo():
+    """Criar novo setor"""
+    if current_user.nivel not in ("admin", "DEV"):
+        return jsonify({"ok": False, "error": "forbidden"}), 403
+    
+    try:
+        nome = request.form.get("nome", "").strip()
+        descricao = request.form.get("descricao", "").strip()
+        
+        if not nome:
+            return jsonify({"ok": False, "error": "Nome do setor é obrigatório"}), 400
+        
+        # Verificar se já existe
+        existente = Setor.query.filter_by(nome=nome).first()
+        if existente:
+            return jsonify({"ok": False, "error": "Já existe um setor com este nome"}), 400
+        
+        # Criar novo setor
+        setor = Setor()
+        setor.nome = nome
+        setor.descricao = descricao
+        setor.created_by = current_user.username if current_user else "system"
+        db.session.add(setor)
+        db.session.commit()
+        
+        return jsonify({
+            "ok": True,
+            "setor": setor.to_dict(),
+            "message": "Setor criado com sucesso"
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp.route("/setores/<int:setor_id>/editar", methods=["POST"])
+@login_required
+def setores_editar(setor_id):
+    """Editar setor existente"""
+    if current_user.nivel not in ("admin", "DEV"):
+        return jsonify({"ok": False, "error": "forbidden"}), 403
+    
+    try:
+        setor = Setor.query.get_or_404(setor_id)
+        
+        nome = request.form.get("nome", "").strip()
+        descricao = request.form.get("descricao", "").strip()
+        
+        if not nome:
+            return jsonify({"ok": False, "error": "Nome do setor é obrigatório"}), 400
+        
+        # Verificar se já existe outro setor com este nome
+        existente = Setor.query.filter(Setor.nome == nome, Setor.id != setor_id).first()
+        if existente:
+            return jsonify({"ok": False, "error": "Já existe outro setor com este nome"}), 400
+        
+        # Atualizar setor
+        setor.nome = nome
+        setor.descricao = descricao
+        setor.updated_by = current_user.username if current_user else "system"
+        setor.updated_at = datetime.now(ZoneInfo("America/Sao_Paulo"))
+        
+        db.session.commit()
+        
+        return jsonify({
+            "ok": True,
+            "setor": setor.to_dict(),
+            "message": "Setor atualizado com sucesso"
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp.route("/setores/<int:setor_id>/toggle", methods=["POST"])
+@login_required
+def setores_toggle(setor_id):
+    """Ativar/desativar setor"""
+    if current_user.nivel not in ("admin", "DEV"):
+        return jsonify({"ok": False, "error": "forbidden"}), 403
+    
+    try:
+        setor = Setor.query.get_or_404(setor_id)
+        
+        # Verificar se há ciclos ativos vinculados
+        ciclos_ativos = Ciclo.query.filter_by(setor_id=setor_id, status_ciclo="ativo").count()
+        if ciclos_ativos > 0 and setor.ativo:
+            return jsonify({
+                "ok": False, 
+                "error": f"Não é possível desativar este setor. Existem {ciclos_ativos} ciclos ativos vinculados."
+            }), 400
+        
+        setor.ativo = not setor.ativo
+        setor.updated_by = current_user.username if current_user else "system"
+        setor.updated_at = datetime.now(ZoneInfo("America/Sao_Paulo"))
+        
+        db.session.commit()
+        
+        status = "ativado" if setor.ativo else "desativado"
+        return jsonify({
+            "ok": True,
+            "setor": setor.to_dict(),
+            "message": f"Setor {status} com sucesso"
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp.route("/setores/<int:setor_id>/excluir", methods=["POST"])
+@login_required
+def setores_excluir(setor_id):
+    """Excluir setor"""
+    if current_user.nivel not in ("admin", "DEV"):
+        return jsonify({"ok": False, "error": "forbidden"}), 403
+    
+    try:
+        setor = Setor.query.get_or_404(setor_id)
+        
+        # Verificar se há ciclos vinculados
+        ciclos_vinculados = Ciclo.query.filter_by(setor_id=setor_id).count()
+        if ciclos_vinculados > 0:
+            return jsonify({
+                "ok": False, 
+                "error": f"Não é possível excluir este setor. Existem {ciclos_vinculados} ciclos vinculados."
+            }), 400
+        
+        # Excluir setor
+        db.session.delete(setor)
+        db.session.commit()
+        
+        return jsonify({
+            "ok": True,
+            "message": "Setor excluído com sucesso"
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp.route("/setores/api", methods=["GET"])
+@login_required
+def setores_api():
+    """API para obter lista de setores ativos"""
+    setores = Setor.query.filter_by(ativo=True).order_by(Setor.nome.asc()).all()
+    return jsonify([setor.to_dict() for setor in setores])

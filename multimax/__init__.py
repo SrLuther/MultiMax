@@ -948,6 +948,40 @@ def create_app():
                 db.create_all()
                 db.session.commit()
                 app.logger.info("Tabelas criadas com sucesso (fallback final)")
+                
+                # Criar setores iniciais se não existirem
+                try:
+                    from .models import Setor
+                    
+                    setores_existentes = Setor.query.count()
+                    if setores_existentes == 0:
+                        app.logger.info("Criando setores iniciais...")
+                        setores_iniciais_data = [
+                            {"nome": "Açougue", "descricao": "Setor de manipulação e venda de carnes"},
+                            {"nome": "Padaria", "descricao": "Setor de produção e venda de pães e doces"},
+                            {"nome": "Mercearia", "descricao": "Setor de venda de produtos secos e enlatados"},
+                            {"nome": "HortiFruti", "descricao": "Setor de venda de frutas, legumes e verduras"},
+                            {"nome": "Administrativo", "descricao": "Setor de gestão e administração"},
+                        ]
+                        
+                        for setor_data in setores_iniciais_data:
+                            setor = Setor()
+                            setor.nome = setor_data["nome"]
+                            setor.descricao = setor_data["descricao"]
+                            setor.created_by = "system"
+                            db.session.add(setor)
+                        
+                        db.session.commit()
+                        app.logger.info(f"Criados {len(setores_iniciais_data)} setores iniciais")
+                    else:
+                        app.logger.debug(f"Setores já existentes: {setores_existentes}")
+                        
+                except Exception as setor_err:
+                    app.logger.error(f"Erro ao criar setores iniciais: {setor_err}", exc_info=True)
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
             except Exception as create_error:
                 app.logger.error(f"Erro ao criar tabelas (fallback final): {create_error}", exc_info=True)
                 try:

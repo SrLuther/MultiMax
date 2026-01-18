@@ -71,6 +71,10 @@
                     <i class="bi bi-arrow-repeat mm-nav-icon"></i>
                     <span class="mm-nav-text">Ciclos</span>
                 </a>
+                <a href="{{ url_for('ciclos.setores_index') }}" class="mm-nav-item {% if request.endpoint == 'ciclos.setores_index' %}active{% endif %}">
+                    <i class="bi bi-building mm-nav-icon"></i>
+                    <span class="mm-nav-text">Setores</span>
+                </a>
             </div>
 
             {% endif %}

@@ -1,0 +1,475 @@
+{% extends "base.html" %}
+
+{% block title %}MultiMax - Gestão de Setores{% endblock %}
+
+{% block extra_css %}
+<style>
+.setores-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.setores-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.setores-title {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--mm-text-primary);
+}
+
+.setor-card {
+    background: var(--mm-surface);
+    border: 1px solid var(--mm-border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.setor-card:hover {
+    border-color: var(--mm-primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.setor-card.inactive {
+    opacity: 0.6;
+    background: var(--mm-surface-dim);
+}
+
+.setor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 1rem;
+}
+
+.setor-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--mm-text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.setor-description {
+    color: var(--mm-text-secondary);
+    margin-bottom: 1rem;
+}
+
+.setor-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.setor-btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.setor-btn-primary {
+    background: var(--mm-primary);
+    color: white;
+}
+
+.setor-btn-primary:hover {
+    background: var(--mm-primary-dark);
+}
+
+.setor-btn-secondary {
+    background: var(--mm-surface);
+    color: var(--mm-text-primary);
+    border: 1px solid var(--mm-border);
+}
+
+.setor-btn-secondary:hover {
+    background: var(--mm-surface-dim);
+}
+
+.setor-btn-danger {
+    background: var(--mm-danger);
+    color: white;
+}
+
+.setor-btn-danger:hover {
+    background: var(--mm-danger-dark);
+}
+
+.setor-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.setor-status.active {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--mm-success);
+}
+
+.setor-status.inactive {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--mm-danger);
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--mm-surface);
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 500px;
+    margin: 10% auto;
+    position: relative;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.modal-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--mm-text-primary);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--mm-text-secondary);
+}
+
+.modal-close:hover {
+    color: var(--mm-text-primary);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--mm-text-primary);
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--mm-border);
+    border-radius: 6px;
+    background: var(--mm-background);
+    color: var(--mm-text-primary);
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--mm-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--mm-text-secondary);
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--mm-text-primary);
+}
+
+.empty-state-text {
+    margin-bottom: 2rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="setores-container">
+    <div class="setores-header">
+        <h1 class="setores-title">🏢 Gestão de Setores</h1>
+        <button class="setor-btn setor-btn-primary" onclick="abrirModalNovoSetor()">
+            <i class="bi bi-plus-lg me-2"></i>Novo Setor
+        </button>
+    </div>
+
+    {% if setores %}
+        {% for setor in setores %}
+        <div class="setor-card {% if not setor.ativo %}inactive{% endif %}">
+            <div class="setor-header">
+                <div>
+                    <h3 class="setor-name">{{ setor.nome }}</h3>
+                    {% if setor.descricao %}
+                    <p class="setor-description">{{ setor.descricao }}</p>
+                    {% endif %}
+                    <span class="setor-status {% if setor.ativo %}active{% else %}inactive{% endif %}">
+                        <i class="bi bi-{% if setor.ativo %}check-circle{% else %}x-circle{% endif %}"></i>
+                        {% if setor.ativo %}Ativo{% else %}Inativo{% endif %}
+                    </span>
+                </div>
+                <div class="setor-actions">
+                    <button class="setor-btn setor-btn-secondary" onclick="abrirModalEditarSetor({{ setor.id }}, '{{ setor.nome }}', '{{ setor.descricao or '' }}')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="setor-btn setor-btn-{% if setor.ativo %}secondary{% else %}primary{% endif %}" 
+                            onclick="toggleSetor({{ setor.id }}, {{ setor.ativo|lower }})">
+                        <i class="bi bi-{% if setor.ativo %}pause{% else %}play{% endif %}"></i>
+                        {% if setor.ativo %}Desativar{% else %}Ativar{% endif %}
+                    </button>
+                    <button class="setor-btn setor-btn-danger" onclick="excluirSetor({{ setor.id }}, '{{ setor.nome }}')">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">🏢</div>
+            <h2 class="empty-state-title">Nenhum setor cadastrado</h2>
+            <p class="empty-state-text">Clique no botão "Novo Setor" para começar a gerenciar os setores da sua empresa.</p>
+            <button class="setor-btn setor-btn-primary" onclick="abrirModalNovoSetor()">
+                <i class="bi bi-plus-lg me-2"></i>Novo Setor
+            </button>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Modal Novo Setor -->
+<div id="modalNovoSetor" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">Novo Setor</h2>
+            <button class="modal-close" onclick="fecharModal('modalNovoSetor')">&times;</button>
+        </div>
+        <form id="formNovoSetor">
+            <div class="form-group">
+                <label class="form-label" for="nomeSetor">Nome do Setor *</label>
+                <input type="text" id="nomeSetor" name="nome" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="descricaoSetor">Descrição</label>
+                <textarea id="descricaoSetor" name="descricao" class="form-input form-textarea" placeholder="Descreva as atividades deste setor..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="setor-btn setor-btn-secondary" onclick="fecharModal('modalNovoSetor')">Cancelar</button>
+                <button type="submit" class="setor-btn setor-btn-primary">Criar Setor</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Editar Setor -->
+<div id="modalEditarSetor" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">Editar Setor</h2>
+            <button class="modal-close" onclick="fecharModal('modalEditarSetor')">&times;</button>
+        </div>
+        <form id="formEditarSetor">
+            <input type="hidden" id="editarSetorId" name="setor_id">
+            <div class="form-group">
+                <label class="form-label" for="editarNomeSetor">Nome do Setor *</label>
+                <input type="text" id="editarNomeSetor" name="nome" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="editarDescricaoSetor">Descrição</label>
+                <textarea id="editarDescricaoSetor" name="descricao" class="form-input form-textarea"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="setor-btn setor-btn-secondary" onclick="fecharModal('modalEditarSetor')">Cancelar</button>
+                <button type="submit" class="setor-btn setor-btn-primary">Salvar Alterações</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function abrirModalNovoSetor() {
+    document.getElementById('modalNovoSetor').style.display = 'block';
+    document.getElementById('formNovoSetor').reset();
+}
+
+function abrirModalEditarSetor(id, nome, descricao) {
+    document.getElementById('editarSetorId').value = id;
+    document.getElementById('editarNomeSetor').value = nome;
+    document.getElementById('editarDescricaoSetor').value = descricao;
+    document.getElementById('modalEditarSetor').style.display = 'block';
+}
+
+function fecharModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+
+function toggleSetor(id, ativo) {
+    const action = ativo ? 'desativar' : 'ativar';
+    if (confirm(`Tem certeza que deseja ${action} este setor?`)) {
+        fetch(`/ciclos/setores/${id}/toggle`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrf_token')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.ok) {
+                location.reload();
+            } else {
+                alert(data.error || 'Erro ao ' + action + ' setor');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erro ao ' + action + ' setor');
+        });
+    }
+}
+
+function excluirSetor(id, nome) {
+    if (confirm(`Tem certeza que deseja excluir o setor "${nome}"? Esta ação não pode ser desfeita.`)) {
+        fetch(`/ciclos/setores/${id}/excluir`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrf_token')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.ok) {
+                location.reload();
+            } else {
+                alert(data.error || 'Erro ao excluir setor');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erro ao excluir setor');
+        });
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Fechar modais ao clicar fora
+window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+        event.target.style.display = 'none';
+    }
+}
+
+// Form submit handlers
+document.getElementById('formNovoSetor').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    fetch('/ciclos/setores/novo', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': getCookie('csrf_token')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.ok) {
+            location.reload();
+        } else {
+            alert(data.error || 'Erro ao criar setor');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erro ao criar setor');
+    });
+});
+
+document.getElementById('formEditarSetor').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    fetch(`/ciclos/setores/${formData.get('setor_id')}/editar`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': getCookie('csrf_token')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.ok) {
+            location.reload();
+        } else {
+            alert(data.error || 'Erro ao editar setor');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erro ao editar setor');
+    });
+});
+</script>
+{% endblock %}
