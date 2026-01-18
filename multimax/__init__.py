@@ -251,6 +251,23 @@ def _setup_context_processors(app: Flask) -> None:
         return {"git_version": ver or "dev"}
 
 
+def _create_format_date_filter(app: Flask) -> None:
+    """Cria e registra o filtro de formatação de data."""
+    @app.template_filter('format_date_br')
+    def format_date_br(date_str):
+        """Formata data ISO para formato brasileiro DD/MM/YYYY"""
+        if not date_str:
+            return ""
+        try:
+            from datetime import datetime
+            if isinstance(date_str, str):
+                dt = datetime.strptime(date_str, '%Y-%m-%d')
+                return dt.strftime('%d/%m/%Y')
+            return date_str
+        except Exception:
+            return date_str
+
+
 def create_app():
     """Função principal de criação da aplicação Flask."""
     base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(__file__)))
@@ -274,20 +291,7 @@ def create_app():
 
     # Configurar context processors e filtros
     _setup_context_processors(app)
-
-    @app.template_filter('format_date_br')
-    def format_date_br(date_str):
-        """Formata data ISO para formato brasileiro DD/MM/YYYY"""
-        if not date_str:
-            return ""
-        try:
-            from datetime import datetime
-            if isinstance(date_str, str):
-                dt = datetime.strptime(date_str, '%Y-%m-%d')
-                return dt.strftime('%d/%m/%Y')
-            return date_str
-        except Exception:
-            return date_str
+    _create_format_date_filter(app)
 
     @app.route("/", strict_slashes=False)
     def _root_redirect():
