@@ -227,6 +227,30 @@ def _get_version_from_git() -> str:
     return ""
 
 
+def _setup_extensions(app: Flask) -> None:
+    """Configura extensões da aplicação."""
+    db.init_app(app)
+    _setup_login_manager(app)
+
+
+def _setup_context_processors(app: Flask) -> None:
+    """Configura context processors da aplicação."""
+    @app.context_processor
+    def _inject_version():
+        ver = (os.getenv("APP_VERSION") or "").strip()
+        if not ver:
+            ver = _get_version_from_git()
+        if not ver:
+            try:
+                from .models import AppSetting
+                s = AppSetting.query.filter_by(key="app_version").first()
+                ver = (s.value or "").strip() if s else ""
+            except Exception as e:
+                app.logger.warning(f"Erro ao obter versão do banco: {e}")
+                ver = ""
+        return {"git_version": ver or "dev"}
+
+
 def create_app():
     """Função principal de criação da aplicação Flask."""
     base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(__file__)))
@@ -243,25 +267,13 @@ def create_app():
     _configure_app_database(app, db_path, data_dir_str)
 
     # Inicializar extensões
-    db.init_app(app)
-    _setup_login_manager(app)
+    _setup_extensions(app)
 
     # Registrar blueprints
     notif_enabled, _ = _register_blueprints(app)
 
-    @app.context_processor
-    def _inject_version():
-        ver = (os.getenv("APP_VERSION") or "").strip()
-        if not ver:
-            ver = _get_version_from_git()
-        if not ver:
-            try:
-                s = AppSetting.query.filter_by(key="app_version").first()
-                ver = (s.value or "").strip() if s else ""
-            except Exception as e:
-                app.logger.warning(f"Erro ao obter versão do banco: {e}")
-                ver = ""
-        return {"git_version": ver or "dev"}
+    # Configurar context processors e filtros
+    _setup_context_processors(app)
 
     @app.template_filter('format_date_br')
     def format_date_br(date_str):
