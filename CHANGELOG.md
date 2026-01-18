@@ -1,3 +1,9 @@
+## [2.6.56] - 2026-01-18
+
+### Correções
+
+- v2.6.56 - fix: corrigir problemas de linting e imports
+
 ## [2.6.55] - 2026-01-18
 
 ### Correções
