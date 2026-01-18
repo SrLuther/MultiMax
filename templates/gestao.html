@@ -258,6 +258,7 @@
                 <form method="get" action="{{ url_for('usuarios.gestao') }}" class="gestao-search-form">
                     <input type="hidden" name="u_page" value="1">
                     <input type="hidden" name="l_page" value="{{ l_page }}">
+                    <input type="hidden" name="view" value="{{ view }}">
                     <input type="text" name="q" class="gestao-input-modern gestao-search-input" placeholder="Buscar por nome" value="{{ q }}">
                     <button type="submit" class="gestao-btn-modern gestao-btn-search">
                         <i class="bi bi-search"></i>
@@ -371,10 +372,10 @@
             <div class="gestao-pagination-modern">
                 <span class="gestao-pagination-info">Página {{ u_page }} de {{ u_total_pages }}</span>
                 <div class="gestao-pagination-btns">
-                    <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page-1 if u_page>1 else 1 }}&l_page={{ l_page }}&q={{ q }}">
+                    <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page-1 if u_page>1 else 1 }}&l_page={{ l_page }}&q={{ q }}&view={{ view }}">
                         <i class="bi bi-chevron-left"></i>
                     </a>
-                    <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page+1 if u_page<u_total_pages else u_total_pages }}&l_page={{ l_page }}&q={{ q }}">
+                    <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page+1 if u_page<u_total_pages else u_total_pages }}&l_page={{ l_page }}&q={{ q }}&view={{ view }}">
                         <i class="bi bi-chevron-right"></i>
                     </a>
                 </div>
