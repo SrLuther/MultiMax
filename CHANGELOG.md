@@ -1,3 +1,9 @@
+## [2.6.39] - 2026-01-18
+
+### Correções
+
+- fixfix(pendencias): resolve arquivos modificados e corrige CHANGELOG.md
+
 ## [2.6.38] - 2026-01-18
 
 ### Correções

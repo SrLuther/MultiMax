@@ -708,7 +708,7 @@ def create_app():
             if "git" not in str(e).lower():
                 app.logger.debug(f"Erro ao obter versão: {e}")
         # Fallback: usar versão do código
-        return '2.6.38'
+        return '2.6.39'
 
     resolved_version = _get_version()
     # Processar versão: remover "v" ou "V" do início se existir
@@ -717,20 +717,20 @@ def create_app():
         if processed_version:
             app.config["APP_VERSION_RESOLVED"] = processed_version
         else:
-            app.config["APP_VERSION_RESOLVED"] = '2.6.38'
+            app.config["APP_VERSION_RESOLVED"] = '2.6.39'
     else:
-        app.config["APP_VERSION_RESOLVED"] = '2.6.38'
+        app.config["APP_VERSION_RESOLVED"] = '2.6.39'
     
     # Garantir que sempre há um valor válido (nunca "dev" ou "None")
     if not app.config["APP_VERSION_RESOLVED"] or app.config["APP_VERSION_RESOLVED"] in ("dev", "None", ""):
-        app.config["APP_VERSION_RESOLVED"] = '2.6.38'
+        app.config["APP_VERSION_RESOLVED"] = '2.6.39'
 
     @app.context_processor
     def inject_version():
-        ver = app.config.get("APP_VERSION_RESOLVED", '2.6.38')
+        ver = app.config.get("APP_VERSION_RESOLVED", '2.6.39')
         # Garantir que nunca retorne None, vazio ou "dev"
         if not ver or ver in ("dev", "None", ""):
-            ver = '2.6.38'
+            ver = '2.6.39'
         return {"git_version": ver}
 
     with app.app_context():
