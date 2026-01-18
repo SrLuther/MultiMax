@@ -1,3 +1,9 @@
+## [2.6.56] - 2026-01-18
+
+### Correções
+
+- fixfix(architecture): refatoraÃ§Ã£o final para eliminar complexidade
+
 ## [2.6.55] - 2026-01-18
 
 ### Correções
