@@ -437,6 +437,11 @@ class RecipeIngredient(db.Model):
     __tablename__ = "recipe_ingredient"
     id = db.Column(db.Integer, primary_key=True)
     recipe_id = db.Column(db.Integer, db.ForeignKey("recipe.id"))
+    produto_id = db.Column(db.Integer, db.ForeignKey("produto.id"), nullable=True)
+    nome = db.Column(db.String(100), nullable=False)
+    quantidade = db.Column(db.String(50), nullable=True)
+    quantidade_kg = db.Column(db.Float, nullable=True)
+    custo_unitario = db.Column(db.Float, nullable=True)
 
 
 # ============================================================================

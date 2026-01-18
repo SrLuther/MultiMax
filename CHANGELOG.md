@@ -1,3 +1,81 @@
+## [2.6.38] - 2026-01-18
+
+### Correções
+
+- fix(gestao): corrige paginação do card de colaboradores
+
+## [2.6.37] - 2026-01-16
+
+### Novidades
+
+- feat(auth): refatora mecânica de login para dashboard público
+
+## [2.6.36] - 2026-01-15
+
+### Novidades
+
+- feat(readme): adiciona imagem do dashboard ao README.md
+
+## [2.6.35] - 2026-01-15
+
+### Correções
+
+- fix(readme): remove link da imagem quebrado no README.md
+
+## [2.6.34] - 2026-01-15
+
+### Atualização
+
+- docs: refatora README.md para documento profissional e completo
+
+## [2.6.33] - 2026-01-15
+
+### Atualização
+
+- docs: atualiza LEIA-ME.txt com documentação completa do sistema
+
+## [2.6.32] - 2026-01-15
+
+### Atualização
+
+- atualização de modelos e dados
+
+## [2.6.31] - 2026-01-15
+
+### Atualização
+
+- atualização de modelos e dados
+
+## [2.6.30] - 2026-01-15
+
+### Correções
+
+- fix(changelog): corrige template renderizado em caso de erro
+
+## [2.6.29] - 2026-01-15
+
+### Correções
+
+- fix(changelog): adiciona rota GET /changelog que redireciona para /changelog/versoes
+
+## [2.6.28] - 2026-01-15
+
+### Correções
+
+- fix(changelog): corrige conflito de rotas e renomeia para /changelog/versoes
+
+## [2.6.27] - 2026-01-15
+
+### Novidades
+
+- feat(changelog): cria página de changelog de versões
+
+## [2.6.26] - 2026-01-15
+
+### Atualização
+
+- atualização de modelos de dados
+
 ## [2.6.25] - 2026-01-15
 
 ### Correções
