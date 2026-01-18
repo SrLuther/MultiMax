@@ -1213,17 +1213,32 @@ def historico(collaborator_id):
 
             registros_data = []
             for reg in regs:
+                data_formatada = (
+                    reg.data_lancamento.strftime("%d/%m/%Y") 
+                    if reg.data_lancamento else "-"
+                )
                 registros_data.append(
                     {
                         "id": reg.id,
-                        "data": reg.data_lancamento.strftime("%d/%m/%Y") if reg.data_lancamento else "-",
+                        "data": data_formatada,
                         "origem": reg.origem,
                         "descricao": reg.descricao or "-",
                         "horas": float(reg.valor_horas or 0),
                     }
                 )
 
-            resumo = _calculate_collaborator_balance_range(collaborator_id, week_start, week_end) if week_start and week_end else {"total_horas": 0.0, "dias_completos": 0, "horas_restantes": 0.0, "valor_aproximado": 0.0}  # type: ignore
+            # Calcular resumo com fallback seguro
+            if week_start and week_end:
+                resumo = _calculate_collaborator_balance_range(
+                    collaborator_id, week_start, week_end
+                )  # type: ignore[arg-type]
+            else:
+                resumo = {
+                    "total_horas": 0.0, 
+                    "dias_completos": 0, 
+                    "horas_restantes": 0.0, 
+                    "valor_aproximado": 0.0
+                }
 
             # Formatar datas com segurança
             def safe_format_date(date_obj):
@@ -2538,9 +2553,15 @@ def setores_editar(setor_id):
             return jsonify({"ok": False, "error": "Nome do setor é obrigatório"}), 400
         
         # Verificar se já existe outro setor com este nome
-        existente = Setor.query.filter(Setor.nome == nome, Setor.id != setor_id).first()
+        existente = Setor.query.filter(
+            Setor.nome == nome, 
+            Setor.id != setor_id
+        ).first()
         if existente:
-            return jsonify({"ok": False, "error": "Já existe outro setor com este nome"}), 400
+            return jsonify({
+                "ok": False, 
+                "error": "Já existe outro setor com este nome"
+            }), 400
         
         # Atualizar setor
         setor.nome = nome

@@ -1,3 +1,9 @@
+## [2.6.44] - 2026-01-18
+
+### Correções
+
+- fixfix(lint): corrige problemas finais de tipo e template
+
 ## [2.6.43] - 2026-01-18
 
 ### Correções
