@@ -1,3 +1,9 @@
+## [2.6.55] - 2026-01-18
+
+### Correções
+
+- fixfix(security): corrigir todos os problemas de seguranÃ§a identificados
+
 ## [2.6.54] - 2026-01-18
 
 ### Melhorias
