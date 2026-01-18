@@ -2552,7 +2552,7 @@ def setores_editar(setor_id):
         if not nome:
             return jsonify({"ok": False, "error": "Nome do setor é obrigatório"}), 400
 
-        # Verificar se já existe outro setor com este nome
+        # Verificar se já existe outro setor com este mesmo nome
         existente = Setor.query.filter(
             Setor.nome == nome,
             Setor.id != setor_id
