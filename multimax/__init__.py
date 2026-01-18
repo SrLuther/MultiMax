@@ -268,6 +268,31 @@ def _create_format_date_filter(app: Flask) -> None:
             return date_str
 
 
+def _setup_main_routes(app: Flask) -> None:
+    """Configura rotas principais da aplicação."""
+    from flask import Blueprint, jsonify, redirect, url_for
+    from flask_login import current_user
+    
+    @app.route("/", strict_slashes=False)
+    def _root_redirect():
+        if not current_user.is_authenticated:
+            return redirect(url_for("auth.login"))
+        return redirect(url_for("usuarios.perfil"))
+
+    @app.route("/health", strict_slashes=False)
+    def _health():
+        return "ok", 200
+
+    @app.route("/dbstatus", strict_slashes=False)
+    def _dbstatus():
+        try:
+            from .models import User
+            user_count = User.query.count()
+            return jsonify({"database": "connected", "users": user_count})
+        except Exception as e:
+            return jsonify({"database": "error", "message": str(e)}), 500
+
+
 def create_app():
     """Função principal de criação da aplicação Flask."""
     base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(__file__)))
@@ -283,44 +308,47 @@ def create_app():
     # Configurar banco de dados
     _configure_app_database(app, db_path, data_dir_str)
 
-    # Inicializar extensões
+    # Configurar componentes
     _setup_extensions(app)
-
-    # Registrar blueprints
-    notif_enabled, _ = _register_blueprints(app)
-
-    # Configurar context processors e filtros
+    _register_blueprints(app)
     _setup_context_processors(app)
+    _setup_template_filters(app)
+    _setup_main_routes(app)
+
+    return app
+
+
+def _setup_template_filters(app: Flask) -> None:
+    """Configura filtros de template da aplicação."""
     _create_format_date_filter(app)
 
-    @app.route("/", strict_slashes=False)
-    def _root_redirect():
-        from flask import redirect, url_for
-        from flask_login import current_user
 
-        if not current_user.is_authenticated:
-            return redirect(url_for("auth.login"))
-        return redirect(url_for("usuarios.perfil"))
+def _extract_driver_host(uri: str) -> tuple[str, str]:
+    """Extrai driver e host de uma URI."""
+    from urllib.parse import urlparse
+    parsed_uri = urlparse(uri)
+    driver = parsed_uri.scheme
+    host = parsed_uri.netloc
+    return driver, host
 
-    @app.route("/health", strict_slashes=False)
-    def _health():
-        return "ok", 200
 
-    @app.route("/dbstatus", strict_slashes=False)
-    def _dbstatus():
+def _dbstatus():
+    try:
+        from datetime import datetime
+
+        from flask import url_for
+        from sqlalchemy import text
+
+        uri = app.config.get("SQLALCHEMY_DATABASE_URI", "")
+        ok = False
+        err = ""
+        db_version = "-"
+        db_size = "-"
+        tables_count = 0
         try:
-            from datetime import datetime
-
-            from flask import url_for
-            from sqlalchemy import text
-
-            uri = app.config.get("SQLALCHEMY_DATABASE_URI", "")
-            ok = False
-            err = ""
-            db_version = "-"
-            db_size = "-"
-            tables_count = 0
-            try:
+            db.session.execute(text("select 1"))
+            ok = True
+            if "postgresql" in uri.lower():
                 db.session.execute(text("select 1"))
                 ok = True
                 if "postgresql" in uri.lower():
