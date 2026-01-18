@@ -910,10 +910,17 @@ def pesquisa():
 
         colaboradores = _get_all_collaborators()
         # Extrair ciclo_ids válidos (não None)
-        ciclo_ids = sorted(
-            {int(s["ciclo_id"]) for s in semanas_detalhe if s.get("ciclo_id") is not None and isinstance(s.get("ciclo_id"), (int, str))}, 
-            reverse=True
-        )
+        ciclo_ids = []
+        for s in semanas_detalhe:
+            ciclo_id = s.get("ciclo_id")
+            if ciclo_id is not None:
+                try:
+                    # Type hint para ajudar o analisador
+                    ciclo_id_int: int = int(ciclo_id)  # type: ignore
+                    ciclo_ids.append(ciclo_id_int)
+                except (ValueError, TypeError):
+                    continue
+        ciclo_ids = sorted(ciclo_ids, reverse=True)
 
         return render_template(
             "ciclos/pesquisa.html",
@@ -1216,13 +1223,22 @@ def historico(collaborator_id):
                     }
                 )
 
-            resumo = _calculate_collaborator_balance_range(collaborator_id, week_start, week_end) if week_start and week_end else {"total_horas": 0.0, "dias_completos": 0, "horas_restantes": 0.0, "valor_aproximado": 0.0}
+            resumo = _calculate_collaborator_balance_range(collaborator_id, week_start, week_end) if week_start and week_end else {"total_horas": 0.0, "dias_completos": 0, "horas_restantes": 0.0, "valor_aproximado": 0.0}  # type: ignore
+
+            # Formatar datas com segurança
+            def safe_format_date(date_obj):
+                if date_obj and hasattr(date_obj, 'strftime'):
+                    try:
+                        return date_obj.strftime("%d/%m/%Y")
+                    except (AttributeError, TypeError):
+                        return "-"
+                return "-"
 
             ciclos_payload.append(
                 {
                     "label": label,
-                    "week_start": week_start.strftime("%d/%m/%Y") if week_start else "-",
-                    "week_end": week_end.strftime("%d/%m/%Y") if week_end else "-",
+                    "week_start": safe_format_date(week_start),
+                    "week_end": safe_format_date(week_end),
                     "registros": registros_data,
                     "resumo": resumo,
                 }
