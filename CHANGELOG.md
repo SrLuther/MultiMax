@@ -1,3 +1,9 @@
+## [2.6.54] - 2026-01-18
+
+### Melhorias
+
+- v2.6.54 - refactor(__init__): abordagem proativa para complexidade
+
 ## [2.6.53] - 2026-01-18
 
 ### Atualização
