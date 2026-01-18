@@ -1,3 +1,9 @@
+## [2.6.49] - 2026-01-18
+
+### Correções
+
+- fixfix(ide): corrigir problemas finais de tipo e complexidade
+
 ## [2.6.48] - 2026-01-18
 
 ### Correções

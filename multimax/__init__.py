@@ -209,6 +209,24 @@ def _setup_login_manager(app: Flask) -> None:
             return None
 
 
+def _get_version_from_git() -> str:
+    """Obtém versão do git."""
+    try:
+        import subprocess
+        base_dir = os.path.dirname(os.path.dirname(__file__))
+        r = subprocess.run(
+            ["git", "describe", "--tags", "--abbrev=0"],
+            cwd=base_dir, capture_output=True, text=True, timeout=2
+        )
+        if r.returncode == 0 and r.stdout.strip():
+            return r.stdout.strip()
+    except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError):
+        pass
+    except Exception:
+        pass
+    return ""
+
+
 def create_app():
     """Função principal de criação da aplicação Flask."""
     base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(__file__)))
@@ -235,26 +253,14 @@ def create_app():
     def _inject_version():
         ver = (os.getenv("APP_VERSION") or "").strip()
         if not ver:
+            ver = _get_version_from_git()
+        if not ver:
             try:
-                import subprocess
-
-                base_dir = os.path.dirname(os.path.dirname(__file__))
-                r = subprocess.run(
-                    ["git", "describe", "--tags", "--abbrev=0"], cwd=base_dir, capture_output=True, text=True, timeout=2
-                )
-                if r.returncode == 0 and r.stdout.strip():
-                    ver = r.stdout.strip()
-            except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError):
-                pass
+                s = AppSetting.query.filter_by(key="app_version").first()
+                ver = (s.value or "").strip() if s else ""
             except Exception as e:
-                app.logger.warning(f"Erro ao obter versão do git: {e}")
-            if not ver:
-                try:
-                    s = AppSetting.query.filter_by(key="app_version").first()
-                    ver = (s.value or "").strip() if s else ""
-                except Exception as e:
-                    app.logger.warning(f"Erro ao obter versão do banco: {e}")
-                    ver = ""
+                app.logger.warning(f"Erro ao obter versão do banco: {e}")
+                ver = ""
         return {"git_version": ver or "dev"}
 
     @app.template_filter('format_date_br')
