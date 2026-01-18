@@ -1,3 +1,9 @@
+## [2.6.50] - 2026-01-18
+
+### Melhorias
+
+- v2.6.50 - refactor(__init__): reduzir complexidade da create_app
+
 ## [2.6.49] - 2026-01-18
 
 ### Correções
