@@ -168,38 +168,34 @@ def _register_blueprints(app: Flask) -> tuple[bool, None]:
     return notif_enabled, None
 
 
-def create_app():
-    base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(__file__)))
-    _load_env(os.path.join(base_dir, ".env.txt"))
-
-    app = Flask(
+def _create_flask_app(base_dir: str) -> Flask:
+    """Cria e configura a instância do Flask."""
+    return Flask(
         __name__,
         template_folder=os.path.join(base_dir, "templates"),
         static_folder=os.path.join(base_dir, "static"),
     )
 
-    # Configurar paths do banco de dados
-    db_path = _get_db_path()
+
+def _setup_directories(db_path: str) -> str:
+    """Configura e cria diretórios necessários."""
     db_dir = os.path.dirname(db_path)
     if db_dir:
         os.makedirs(db_dir, exist_ok=True)
 
-    # Configurar diretório de dados
     data_dir_str = _get_data_dir(db_dir)
     os.makedirs(data_dir_str, exist_ok=True)
+    return data_dir_str
 
-    # Configurar banco de dados no app
-    _configure_app_database(app, db_path, data_dir_str)
 
-    # Inicializar extensões
-    db.init_app(app)
+def _setup_login_manager(app: Flask) -> None:
+    """Configura o LoginManager."""
+    from .models import User
+
     login_manager.init_app(app)
     setattr(login_manager, "login_view", "auth.login")
     login_manager.login_message = "Por favor, faça login para acessar esta página."
     login_manager.login_message_category = "warning"
-
-    # Configurar user loader
-    from .models import User
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -211,6 +207,26 @@ def create_app():
             except Exception:
                 pass
             return None
+
+
+def create_app():
+    """Função principal de criação da aplicação Flask."""
+    base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(__file__)))
+    _load_env(os.path.join(base_dir, ".env.txt"))
+
+    # Criar app Flask
+    app = _create_flask_app(base_dir)
+
+    # Configurar paths e diretórios
+    db_path = _get_db_path()
+    data_dir_str = _setup_directories(db_path)
+
+    # Configurar banco de dados
+    _configure_app_database(app, db_path, data_dir_str)
+
+    # Inicializar extensões
+    db.init_app(app)
+    _setup_login_manager(app)
 
     # Registrar blueprints
     notif_enabled, _ = _register_blueprints(app)
@@ -708,7 +724,7 @@ def create_app():
             if "git" not in str(e).lower():
                 app.logger.debug(f"Erro ao obter versão: {e}")
         # Fallback: usar versão do código
-        return '2.6.47'
+        return '2.6.48'
 
     resolved_version = _get_version()
     # Processar versão: remover "v" ou "V" do início se existir
@@ -717,20 +733,20 @@ def create_app():
         if processed_version:
             app.config["APP_VERSION_RESOLVED"] = processed_version
         else:
-            app.config["APP_VERSION_RESOLVED"] = '2.6.47'
+            app.config["APP_VERSION_RESOLVED"] = '2.6.48'
     else:
-        app.config["APP_VERSION_RESOLVED"] = '2.6.47'
+        app.config["APP_VERSION_RESOLVED"] = '2.6.48'
 
     # Garantir que sempre há um valor válido (nunca "dev" ou "None")
     if not app.config["APP_VERSION_RESOLVED"] or app.config["APP_VERSION_RESOLVED"] in ("dev", "None", ""):
-        app.config["APP_VERSION_RESOLVED"] = '2.6.47'
+        app.config["APP_VERSION_RESOLVED"] = '2.6.48'
 
     @app.context_processor
     def inject_version():
-        ver = app.config.get("APP_VERSION_RESOLVED", '2.6.47')
+        ver = app.config.get("APP_VERSION_RESOLVED", '2.6.48')
         # Garantir que nunca retorne None, vazio ou "dev"
         if not ver or ver in ("dev", "None", ""):
-            ver = '2.6.47'
+            ver = '2.6.48'
         return {"git_version": ver}
 
     with app.app_context():

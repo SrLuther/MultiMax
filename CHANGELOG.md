@@ -1,3 +1,9 @@
+## [2.6.48] - 2026-01-18
+
+### Correções
+
+- fixfix(flake8): corrigir linha longa do comentÃ¡rio
+
 ## [2.6.47] - 2026-01-18
 
 ### Correções

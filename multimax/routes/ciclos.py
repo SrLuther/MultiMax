@@ -1229,9 +1229,14 @@ def historico(collaborator_id):
 
             # Calcular resumo com fallback seguro
             if week_start and week_end:
+                # Type hints explícitos para corrigir problemas de tipo
+                from datetime import date
+                week_start_typed: date = week_start  # type: ignore
+                week_end_typed: date = week_end  # type: ignore
+
                 resumo = _calculate_collaborator_balance_range(
-                    collaborator_id, week_start, week_end
-                )  # type: ignore[arg-type]
+                    collaborator_id, week_start_typed, week_end_typed
+                )
             else:
                 resumo = {
                     "total_horas": 0.0,
