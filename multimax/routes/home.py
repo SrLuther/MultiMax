@@ -179,7 +179,7 @@ def dashboard_public():
     # Se já está autenticado, redireciona para o dashboard completo
     if current_user.is_authenticated:
         return redirect(url_for("home.dashboard_authenticated"))
-    
+
     db_diag = None
     modules_active: list[str] = []
     last_update_date = datetime.now().strftime("%d/%m/%Y")
@@ -219,7 +219,7 @@ def dashboard_public():
         db_diag = {"ok": ok, "uri": uri, "host": host, "err": err}
     except Exception:
         db_diag = {"ok": False, "uri": "", "host": None, "err": ""}
-    
+
     # Dashboard público mostra apenas informações básicas
     return render_template(
         "dashboard_public.html",
@@ -797,36 +797,38 @@ def changelog_versoes():
     try:
         from pathlib import Path
         import re
-        
+
         changelog_path = Path("CHANGELOG.md")
         if not changelog_path.exists():
-            return render_template("changelog_versoes.html", 
-                                 changelog_content=None, 
-                                 error="Arquivo CHANGELOG.md não encontrado")
-        
+            return render_template(
+                "changelog_versoes.html",
+                changelog_content=None,
+                error="Arquivo CHANGELOG.md não encontrado"
+            )
+
         content = changelog_path.read_text(encoding="utf-8", errors="ignore")
-        
+
         # Processa o conteúdo para facilitar a renderização
         versions = []
         current_version = None
-        
+
         lines = content.split('\n')
         for line in lines:
             line = line.strip()
-            
+
             # Detecta início de versão ## [X.Y.Z] - data
             version_match = re.match(r'^## \[([\d.]+)\] - (\d{4}-\d{2}-\d{2})', line)
             if version_match:
                 if current_version:
                     versions.append(current_version)
-                
+
                 current_version = {
                     'version': version_match.group(1),
                     'date': version_match.group(2),
                     'sections': []
                 }
                 continue
-            
+
             # Detecta seção ### Nome
             section_match = re.match(r'^### (.+)', line)
             if section_match and current_version:
@@ -835,24 +837,28 @@ def changelog_versoes():
                     'items': []
                 })
                 continue
-            
+
             # Detecta item da lista - texto
             if line.startswith('- ') and current_version and current_version['sections']:
                 item_text = line[2:].strip()
                 current_version['sections'][-1]['items'].append(item_text)
-        
+
         # Adiciona a última versão se existir
         if current_version:
             versions.append(current_version)
-        
-        return render_template("changelog_versoes.html", 
-                             changelog_content=versions,
-                             total_versions=len(versions))
-                             
+
+        return render_template(
+            "changelog_versoes.html",
+            changelog_content=versions,
+            total_versions=len(versions)
+        )
+
     except Exception as e:
-        return render_template("changelog_versoes.html", 
-                             changelog_content=None, 
-                             error=f"Erro ao ler changelog: {str(e)}")
+        return render_template(
+            "changelog_versoes.html",
+            changelog_content=None,
+            error=f"Erro ao ler changelog: {str(e)}"
+        )
 
 
 @bp.route("/changelog", methods=["POST"], strict_slashes=False)

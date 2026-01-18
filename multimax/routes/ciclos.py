@@ -74,12 +74,12 @@ def _calculate_collaborator_balance(collaborator_id):
     # Apenas dias completos entram na conversão para R$
     # Lógica correta: considerar saldo total, mesmo que venha de dívidas quitadas
     total_horas_float = float(total_horas)
-    
+
     # Debug: log para verificar o cálculo
     import logging
     logger = logging.getLogger(__name__)
     logger.debug(f"Colaborador {collaborator_id}: total_horas = {total_horas_float}")
-    
+
     # Se total de horas é negativo, não há dias completos nem horas restantes
     if total_horas_float < 0:
         dias_completos = 0
@@ -114,7 +114,7 @@ def _calculate_collaborator_balance_range(
 
     total_horas = Decimal(str(total_horas_decimal))
     total_horas_float = float(total_horas)
-    
+
     # Lógica correta: considerar saldo total, mesmo que venha de dívidas quitadas
     if total_horas_float < 0:
         dias_completos = 0
@@ -400,7 +400,7 @@ def _calculate_collaborator_balance_for_cycle(collaborator_id: int, ciclo_id: in
 
     total_horas = Decimal(str(total_horas_decimal))
     total_horas_float = float(total_horas)
-    
+
     # Lógica correta: considerar saldo total, mesmo que venha de dívidas quitadas
     if total_horas_float < 0:
         dias_completos = 0
@@ -1214,7 +1214,7 @@ def historico(collaborator_id):
             registros_data = []
             for reg in regs:
                 data_formatada = (
-                    reg.data_lancamento.strftime("%d/%m/%Y") 
+                    reg.data_lancamento.strftime("%d/%m/%Y")
                     if reg.data_lancamento else "-"
                 )
                 registros_data.append(
@@ -1234,9 +1234,9 @@ def historico(collaborator_id):
                 )  # type: ignore[arg-type]
             else:
                 resumo = {
-                    "total_horas": 0.0, 
-                    "dias_completos": 0, 
-                    "horas_restantes": 0.0, 
+                    "total_horas": 0.0,
+                    "dias_completos": 0,
+                    "horas_restantes": 0.0,
                     "valor_aproximado": 0.0
                 }
 
@@ -2493,7 +2493,7 @@ def setores_index():
     if current_user.nivel not in ("admin", "DEV"):
         flash("Acesso negado. Apenas Administradores.", "danger")
         return redirect(url_for("home.index"))
-    
+
     setores = Setor.query.order_by(Setor.nome.asc()).all()
     return render_template("ciclos/setores.html", setores=setores)
 
@@ -2504,19 +2504,19 @@ def setores_novo():
     """Criar novo setor"""
     if current_user.nivel not in ("admin", "DEV"):
         return jsonify({"ok": False, "error": "forbidden"}), 403
-    
+
     try:
         nome = request.form.get("nome", "").strip()
         descricao = request.form.get("descricao", "").strip()
-        
+
         if not nome:
             return jsonify({"ok": False, "error": "Nome do setor é obrigatório"}), 400
-        
+
         # Verificar se já existe
         existente = Setor.query.filter_by(nome=nome).first()
         if existente:
             return jsonify({"ok": False, "error": "Já existe um setor com este nome"}), 400
-        
+
         # Criar novo setor
         setor = Setor()
         setor.nome = nome
@@ -2524,13 +2524,13 @@ def setores_novo():
         setor.created_by = current_user.username if current_user else "system"
         db.session.add(setor)
         db.session.commit()
-        
+
         return jsonify({
             "ok": True,
             "setor": setor.to_dict(),
             "message": "Setor criado com sucesso"
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -2542,41 +2542,41 @@ def setores_editar(setor_id):
     """Editar setor existente"""
     if current_user.nivel not in ("admin", "DEV"):
         return jsonify({"ok": False, "error": "forbidden"}), 403
-    
+
     try:
         setor = Setor.query.get_or_404(setor_id)
-        
+
         nome = request.form.get("nome", "").strip()
         descricao = request.form.get("descricao", "").strip()
-        
+
         if not nome:
             return jsonify({"ok": False, "error": "Nome do setor é obrigatório"}), 400
-        
+
         # Verificar se já existe outro setor com este nome
         existente = Setor.query.filter(
-            Setor.nome == nome, 
+            Setor.nome == nome,
             Setor.id != setor_id
         ).first()
         if existente:
             return jsonify({
-                "ok": False, 
+                "ok": False,
                 "error": "Já existe outro setor com este nome"
             }), 400
-        
+
         # Atualizar setor
         setor.nome = nome
         setor.descricao = descricao
         setor.updated_by = current_user.username if current_user else "system"
         setor.updated_at = datetime.now(ZoneInfo("America/Sao_Paulo"))
-        
+
         db.session.commit()
-        
+
         return jsonify({
             "ok": True,
             "setor": setor.to_dict(),
             "message": "Setor atualizado com sucesso"
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -2588,31 +2588,31 @@ def setores_toggle(setor_id):
     """Ativar/desativar setor"""
     if current_user.nivel not in ("admin", "DEV"):
         return jsonify({"ok": False, "error": "forbidden"}), 403
-    
+
     try:
         setor = Setor.query.get_or_404(setor_id)
-        
+
         # Verificar se há ciclos ativos vinculados
         ciclos_ativos = Ciclo.query.filter_by(setor_id=setor_id, status_ciclo="ativo").count()
         if ciclos_ativos > 0 and setor.ativo:
             return jsonify({
-                "ok": False, 
+                "ok": False,
                 "error": f"Não é possível desativar este setor. Existem {ciclos_ativos} ciclos ativos vinculados."
             }), 400
-        
+
         setor.ativo = not setor.ativo
         setor.updated_by = current_user.username if current_user else "system"
         setor.updated_at = datetime.now(ZoneInfo("America/Sao_Paulo"))
-        
+
         db.session.commit()
-        
+
         status = "ativado" if setor.ativo else "desativado"
         return jsonify({
             "ok": True,
             "setor": setor.to_dict(),
             "message": f"Setor {status} com sucesso"
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -2624,27 +2624,27 @@ def setores_excluir(setor_id):
     """Excluir setor"""
     if current_user.nivel not in ("admin", "DEV"):
         return jsonify({"ok": False, "error": "forbidden"}), 403
-    
+
     try:
         setor = Setor.query.get_or_404(setor_id)
-        
+
         # Verificar se há ciclos vinculados
         ciclos_vinculados = Ciclo.query.filter_by(setor_id=setor_id).count()
         if ciclos_vinculados > 0:
             return jsonify({
-                "ok": False, 
+                "ok": False,
                 "error": f"Não é possível excluir este setor. Existem {ciclos_vinculados} ciclos vinculados."
             }), 400
-        
+
         # Excluir setor
         db.session.delete(setor)
         db.session.commit()
-        
+
         return jsonify({
             "ok": True,
             "message": "Setor excluído com sucesso"
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 500

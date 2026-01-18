@@ -164,7 +164,7 @@ def _register_blueprints(app: Flask) -> tuple[bool, None]:
         app.logger.info(f"Blueprint dbadmin registrado com sucesso. Rotas disponíveis: {rotas}")
     else:
         app.logger.warning("Blueprint dbadmin não foi registrado (dbadmin_bp é None)")
-    
+
     return notif_enabled, None
 
 
@@ -708,7 +708,7 @@ def create_app():
             if "git" not in str(e).lower():
                 app.logger.debug(f"Erro ao obter versão: {e}")
         # Fallback: usar versão do código
-        return '2.6.45'
+        return '2.6.46'
 
     resolved_version = _get_version()
     # Processar versão: remover "v" ou "V" do início se existir
@@ -717,20 +717,20 @@ def create_app():
         if processed_version:
             app.config["APP_VERSION_RESOLVED"] = processed_version
         else:
-            app.config["APP_VERSION_RESOLVED"] = '2.6.45'
+            app.config["APP_VERSION_RESOLVED"] = '2.6.46'
     else:
-        app.config["APP_VERSION_RESOLVED"] = '2.6.45'
-    
+        app.config["APP_VERSION_RESOLVED"] = '2.6.46'
+
     # Garantir que sempre há um valor válido (nunca "dev" ou "None")
     if not app.config["APP_VERSION_RESOLVED"] or app.config["APP_VERSION_RESOLVED"] in ("dev", "None", ""):
-        app.config["APP_VERSION_RESOLVED"] = '2.6.45'
+        app.config["APP_VERSION_RESOLVED"] = '2.6.46'
 
     @app.context_processor
     def inject_version():
-        ver = app.config.get("APP_VERSION_RESOLVED", '2.6.45')
+        ver = app.config.get("APP_VERSION_RESOLVED", '2.6.46')
         # Garantir que nunca retorne None, vazio ou "dev"
         if not ver or ver in ("dev", "None", ""):
-            ver = '2.6.45'
+            ver = '2.6.46'
         return {"git_version": ver}
 
     with app.app_context():
@@ -948,11 +948,11 @@ def create_app():
                 db.create_all()
                 db.session.commit()
                 app.logger.info("Tabelas criadas com sucesso (fallback final)")
-                
+
                 # Criar setores iniciais se não existirem
                 try:
                     from .models import Setor
-                    
+
                     setores_existentes = Setor.query.count()
                     if setores_existentes == 0:
                         app.logger.info("Criando setores iniciais...")
@@ -963,19 +963,19 @@ def create_app():
                             {"nome": "HortiFruti", "descricao": "Setor de venda de frutas, legumes e verduras"},
                             {"nome": "Administrativo", "descricao": "Setor de gestão e administração"},
                         ]
-                        
+
                         for setor_data in setores_iniciais_data:
                             setor = Setor()
                             setor.nome = setor_data["nome"]
                             setor.descricao = setor_data["descricao"]
                             setor.created_by = "system"
                             db.session.add(setor)
-                        
+
                         db.session.commit()
                         app.logger.info(f"Criados {len(setores_iniciais_data)} setores iniciais")
                     else:
                         app.logger.debug(f"Setores já existentes: {setores_existentes}")
-                        
+
                 except Exception as setor_err:
                     app.logger.error(f"Erro ao criar setores iniciais: {setor_err}", exc_info=True)
                     try:

@@ -1,3 +1,9 @@
+## [2.6.46] - 2026-01-18
+
+### Correções
+
+- fixfix(flake8): corrige todas as linhas longas nos modelos
+
 ## [2.6.45] - 2026-01-18
 
 ### Correções

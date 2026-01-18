@@ -119,8 +119,12 @@ def gestao_vps_restart():
         flash("Senha inválida para reiniciar a VPS.", "danger")
         return redirect(url_for("usuarios.gestao"))
     try:
-        cmd = (os.getenv("VPS_REBOOT_CMD") or "sudo reboot").strip()
-        subprocess.Popen(cmd, shell=True)
+        cmd = (os.getenv("VPS_REBOOT_CMD") or "sudo").strip()
+        args = cmd.split()
+        if args[-1] == "reboot":
+            subprocess.Popen(["sudo", "reboot"])
+        else:
+            subprocess.Popen(args)
         flash("Reinício da VPS iniciado.", "warning")
     except Exception as e:
         flash(f"Falha ao reiniciar VPS: {e}", "danger")
@@ -172,8 +176,12 @@ def gestao_vps_upload():
             except Exception:
                 pass
         try:
-            cmd = (os.getenv("VPS_REBOOT_CMD") or "sudo reboot").strip()
-            subprocess.Popen(cmd, shell=True)
+            cmd = (os.getenv("VPS_REBOOT_CMD") or "sudo").strip()
+            args = cmd.split()
+            if args[-1] == "reboot":
+                subprocess.Popen(["sudo", "reboot"])
+            else:
+                subprocess.Popen(args)
         except Exception:
             pass
         flash(f"Atualização aplicada ({copied} arquivos). VPS será reiniciada.", "success")
@@ -202,7 +210,8 @@ def gestao_restart():
         cmd = (os.getenv("RESTART_CMD") or "").strip()
         if cmd:
             try:
-                subprocess.Popen(cmd, shell=True)
+                args = cmd.split()
+                subprocess.Popen(args)
             except Exception:
                 pass
 
@@ -1328,8 +1337,13 @@ def gestao():
             uptime_str = f"{days}d {hours}h {minutes}m"
         except Exception:
             try:
-                out = subprocess.check_output(["uptime", "-p"], timeout=2)
-                uptime_str = (out.decode("utf-8", errors="ignore") or "").strip()
+                # Usar caminho completo para evitar B607
+                uptime_cmd = "/usr/bin/uptime"
+                if os.path.exists(uptime_cmd):
+                    out = subprocess.check_output([uptime_cmd, "-p"], timeout=2)
+                    uptime_str = (out.decode("utf-8", errors="ignore") or "").strip()
+                else:
+                    uptime_str = None
             except Exception:
                 uptime_str = None
         load_str = None

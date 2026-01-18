@@ -451,7 +451,7 @@ class RecipeIngredient(db.Model):
 
 class Setor(db.Model):
     """Tabela para gerenciar setores da empresa"""
-    
+
     __tablename__ = "setor"
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False, unique=True, index=True)
@@ -461,10 +461,10 @@ class Setor(db.Model):
     created_by = db.Column(db.String(100), nullable=True)
     updated_at = db.Column(db.DateTime(timezone=True), nullable=True)
     updated_by = db.Column(db.String(100), nullable=True)
-    
+
     def __repr__(self):
         return f"<Setor {self.nome}>"
-    
+
     def to_dict(self):
         return {
             'id': self.id,
