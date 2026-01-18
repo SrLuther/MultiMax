@@ -72,14 +72,24 @@ def _calculate_collaborator_balance(collaborator_id):
 
     # Calcular dias completos (floor de total_horas / 8)
     # Apenas dias completos entram na conversão para R$
-    # Se horas totais são negativas (folgas utilizadas), dias = 0
+    # Lógica correta: considerar saldo total, mesmo que venha de dívidas quitadas
     total_horas_float = float(total_horas)
+    
+    # Debug: log para verificar o cálculo
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.debug(f"Colaborador {collaborator_id}: total_horas = {total_horas_float}")
+    
+    # Se total de horas é negativo, não há dias completos nem horas restantes
     if total_horas_float < 0:
         dias_completos = 0
-        horas_restantes = 0.0  # Horas negativas não geram horas restantes
+        horas_restantes = 0.0
+        logger.debug(f"Saldo negativo: {dias_completos} dias, {horas_restantes} horas")
     else:
+        # Total positivo: calcular dias e horas restantes normalmente
         dias_completos = int(math.floor(total_horas_float / 8.0))
         horas_restantes = total_horas_float % 8.0
+        logger.debug(f"Saldo positivo: {dias_completos} dias, {horas_restantes} horas")
 
     # Valor aproximado (dias_completos * valor_dia)
     # Apenas dias completos têm valor em R$
@@ -104,10 +114,13 @@ def _calculate_collaborator_balance_range(
 
     total_horas = Decimal(str(total_horas_decimal))
     total_horas_float = float(total_horas)
+    
+    # Lógica correta: considerar saldo total, mesmo que venha de dívidas quitadas
     if total_horas_float < 0:
         dias_completos = 0
         horas_restantes = 0.0
     else:
+        # Total positivo: calcular dias e horas restantes normalmente
         dias_completos = int(math.floor(total_horas_float / 8.0))
         horas_restantes = total_horas_float % 8.0
 
@@ -387,10 +400,13 @@ def _calculate_collaborator_balance_for_cycle(collaborator_id: int, ciclo_id: in
 
     total_horas = Decimal(str(total_horas_decimal))
     total_horas_float = float(total_horas)
+    
+    # Lógica correta: considerar saldo total, mesmo que venha de dívidas quitadas
     if total_horas_float < 0:
         dias_completos = 0
         horas_restantes = 0.0
     else:
+        # Total positivo: calcular dias e horas restantes normalmente
         dias_completos = int(math.floor(total_horas_float / 8.0))
         horas_restantes = total_horas_float % 8.0
 
@@ -659,10 +675,12 @@ def pesquisa():
     """Pesquisa ciclos semanais arquivados (por label) e retorna detalhamento por colaborador."""
     def _summary_from_hours(total_horas_float: float) -> dict[str, float | int]:
         try:
+            # Lógica correta: considerar saldo total, mesmo que venha de dívidas quitadas
             if total_horas_float < 0:
                 dias = 0
                 hrs_rest = 0.0
             else:
+                # Total positivo: calcular dias e horas restantes normalmente
                 dias = int(math.floor(total_horas_float / 8.0))
                 hrs_rest = total_horas_float % 8.0
             valor_dia = float(_get_valor_dia() or 0.0)
