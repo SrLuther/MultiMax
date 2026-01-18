@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Sequence, cast
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for, jsonify
+from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from .. import db
@@ -114,7 +114,7 @@ def gestao_vps_restart():
         flash("Apenas Administradores podem reiniciar a VPS.", "danger")
         return redirect(url_for("usuarios.gestao"))
     secret_in = (request.form.get("secret_key") or "").strip()
-    secret_cfg = str(current_current_current_app.config.get("SECRET_KEY") or "").strip()
+    secret_cfg = str(current_app.config.get("SECRET_KEY") or "").strip()
     if not secret_in or secret_in != secret_cfg:
         flash("Senha inválida para reiniciar a VPS.", "danger")
         return redirect(url_for("usuarios.gestao"))
@@ -138,7 +138,7 @@ def gestao_vps_upload():
         flash("Apenas Administradores podem atualizar a VPS.", "danger")
         return redirect(url_for("usuarios.gestao"))
     secret_in = (request.form.get("secret_key") or "").strip()
-    secret_cfg = str(current_current_current_app.config.get("SECRET_KEY") or "").strip()
+    secret_cfg = str(current_app.config.get("SECRET_KEY") or "").strip()
     if not secret_in or secret_in != secret_cfg:
         flash("Senha inválida para atualizar a VPS.", "danger")
         return redirect(url_for("usuarios.gestao"))
@@ -152,7 +152,7 @@ def gestao_vps_upload():
         file.save(zip_path)
         with zipfile.ZipFile(zip_path, "r") as zf:
             zf.extractall(tmp_dir)
-        root = Path(current_current_current_app.root_path).resolve()
+        root = Path(current_app.root_path).resolve()
         extracted_root = Path(tmp_dir).resolve()
         copied = 0
         for p in extracted_root.rglob("*"):
@@ -202,7 +202,7 @@ def gestao_restart():
         flash("Apenas Administradores podem reiniciar.", "danger")
         return redirect(url_for("usuarios.gestao"))
     secret_in = (request.form.get("secret_key") or "").strip()
-    secret_cfg = str(current_current_current_app.config.get("SECRET_KEY") or "").strip()
+    secret_cfg = str(current_app.config.get("SECRET_KEY") or "").strip()
     if not secret_in or secret_in != secret_cfg:
         flash("Senha inválida para reinício do sistema.", "danger")
         return redirect(url_for("usuarios.gestao"))
@@ -563,7 +563,7 @@ def perfil():
                 "value_total_individual": balance_data["valor_aproximado"],
             }
         except Exception as e:
-            current_current_current_app.logger.error(f"Erro ao calcular valores do colaborador: {e}")
+            current_app.logger.error(f"Erro ao calcular valores do colaborador: {e}")
             collaborator_values = None
             day_value = 0.0
 
@@ -787,9 +787,9 @@ def gestao():
                 except Exception as e:
                     try:
                         db.session.rollback()
-                        current_current_current_app.logger.warning(f"Database rollback error in balance calculation: {e}")
+                        current_app.logger.warning(f"Database rollback error in balance calculation: {e}")
                     except Exception as rollback_error:
-                        current_current_current_app.logger.error(f"Failed to rollback database: {rollback_error}")
+                        current_app.logger.error(f"Failed to rollback database: {rollback_error}")
 
             # leave_credit: origin, notes (tabela antiga, pode não existir)
             if "leave_credit" in tables:
@@ -807,9 +807,9 @@ def gestao():
                 except Exception as e:
                     try:
                         db.session.rollback()
-                        current_current_current_app.logger.warning(f"Database rollback error in balance calculation: {e}")
+                        current_app.logger.warning(f"Database rollback error in balance calculation: {e}")
                     except Exception as rollback_error:
-                        current_current_current_app.logger.error(f"Failed to rollback database: {rollback_error}")
+                        current_app.logger.error(f"Failed to rollback database: {rollback_error}")
 
             # hour_bank_entry: reason (tabela antiga, pode não existir)
             if "hour_bank_entry" in tables:
@@ -824,15 +824,15 @@ def gestao():
                 except Exception as e:
                     try:
                         db.session.rollback()
-                        current_current_current_app.logger.warning(f"Database rollback error: {e}")
+                        current_app.logger.warning(f"Database rollback error: {e}")
                     except Exception as rollback_error:
-                        current_current_current_app.logger.error(f"Failed to rollback database: {rollback_error}")
+                        current_app.logger.error(f"Failed to rollback database: {rollback_error}")
         except Exception as e:
             try:
                 db.session.rollback()
-                current_current_current_app.logger.warning(f"Database rollback error: {e}")
+                current_app.logger.warning(f"Database rollback error: {e}")
             except Exception as rollback_error:
-                current_current_current_app.logger.error(f"Failed to rollback database: {rollback_error}")
+                current_app.logger.error(f"Failed to rollback database: {rollback_error}")
             # vacation: observacao
             if "vacation" in tables:
                 try:
@@ -846,9 +846,9 @@ def gestao():
                 except Exception as e:
                     try:
                         db.session.rollback()
-                        current_current_current_app.logger.warning(f"Database rollback error in balance calculation: {e}")
+                        current_app.logger.warning(f"Database rollback error in balance calculation: {e}")
                     except Exception as rollback_error:
-                        current_current_current_app.logger.error(f"Failed to rollback database: {rollback_error}")
+                        current_app.logger.error(f"Failed to rollback database: {rollback_error}")
 
             # medical_certificate: motivo, cid, medico, foto_atestado
             if "medical_certificate" in tables:
@@ -872,15 +872,15 @@ def gestao():
                 except Exception as e:
                     try:
                         db.session.rollback()
-                        current_current_current_app.logger.warning(f"Database rollback error in balance calculation: {e}")
+                        current_app.logger.warning(f"Database rollback error in balance calculation: {e}")
                     except Exception as rollback_error:
-                        current_current_current_app.logger.error(f"Failed to rollback database: {rollback_error}")
+                        current_app.logger.error(f"Failed to rollback database: {rollback_error}")
     except Exception as e:
         try:
             db.session.rollback()
-            current_current_current_app.logger.warning(f"Database rollback error in table migration: {e}")
+            current_app.logger.warning(f"Database rollback error in table migration: {e}")
         except Exception as rollback_error:
-            current_current_current_app.logger.error(f"Failed to rollback database: {rollback_error}")
+            current_app.logger.error(f"Failed to rollback database: {rollback_error}")
     try:
         u_page = int(request.args.get("u_page", "1"))
     except Exception:
@@ -976,7 +976,7 @@ def gestao():
                     if q.lower() in nome_busca:
                         colaboradores_filtrados.append(c)
                 except Exception as e:
-                    current_current_current_app.logger.warning(f"Error filtering collaborator {c.id}: {e}")
+                    current_app.logger.warning(f"Error filtering collaborator {c.id}: {e}")
                     continue
         except Exception:
             colaboradores_filtrados = colaboradores
@@ -1119,9 +1119,9 @@ def gestao():
                 except Exception as e:
                     try:
                         db.session.rollback()
-                        current_current_current_app.logger.warning(f"Database rollback error in balance calculation: {e}")
+                        current_app.logger.warning(f"Database rollback error in balance calculation: {e}")
                     except Exception as rollback_error:
-                        current_current_current_app.logger.error(f"Failed to rollback database: {rollback_error}")
+                        current_app.logger.error(f"Failed to rollback database: {rollback_error}")
                 # Calcular total bruto de horas (somando apenas horas positivas, sem considerar conversões negativas)
                 total_bruto_hours = float(
                     db.session.query(
@@ -1333,7 +1333,7 @@ def gestao():
     # VPS Storage
     vps_storage = None
     try:
-        root = str(current_current_current_app.root_path or os.getcwd())
+        root = str(current_app.root_path or os.getcwd())
         du = shutil.disk_usage(root)
         uptime_str = None
         try:
