@@ -911,7 +911,7 @@ def pesquisa():
         colaboradores = _get_all_collaborators()
         # Extrair ciclo_ids válidos (não None)
         ciclo_ids = sorted(
-            {int(s["ciclo_id"]) for s in semanas_detalhe if s.get("ciclo_id") is not None}, 
+            {int(s["ciclo_id"]) for s in semanas_detalhe if s.get("ciclo_id") is not None and isinstance(s.get("ciclo_id"), (int, str))}, 
             reverse=True
         )
 
@@ -1216,13 +1216,13 @@ def historico(collaborator_id):
                     }
                 )
 
-            resumo = _calculate_collaborator_balance_range(collaborator_id, week_start, week_end)
+            resumo = _calculate_collaborator_balance_range(collaborator_id, week_start, week_end) if week_start and week_end else {"total_horas": 0.0, "dias_completos": 0, "horas_restantes": 0.0, "valor_aproximado": 0.0}
 
             ciclos_payload.append(
                 {
                     "label": label,
-                    "week_start": week_start.strftime("%d/%m/%Y"),
-                    "week_end": week_end.strftime("%d/%m/%Y"),
+                    "week_start": week_start.strftime("%d/%m/%Y") if week_start else "-",
+                    "week_end": week_end.strftime("%d/%m/%Y") if week_end else "-",
                     "registros": registros_data,
                     "resumo": resumo,
                 }

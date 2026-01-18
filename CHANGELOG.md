@@ -1,3 +1,9 @@
+## [2.6.42] - 2026-01-18
+
+### Correções
+
+- fixfix(lint): corrige erros de lint e problemas de cÃ³digo
+
 ## [2.6.41] - 2026-01-18
 
 ### Correções
