@@ -487,7 +487,9 @@ class Ciclo(db.Model):
     __tablename__ = "ciclo"
     id = db.Column(db.Integer, primary_key=True)
     collaborator_id = db.Column(db.Integer, db.ForeignKey("collaborator.id"), nullable=False, index=True)
-    setor_id = db.Column(db.Integer, db.ForeignKey("setor.id"), nullable=False, index=True)  # Novo campo para divisão por setor
+    setor_id = db.Column(
+        db.Integer, db.ForeignKey("setor.id"), nullable=False, index=True
+    )  # Novo campo para divisão por setor
     nome_colaborador = db.Column(db.String(100), nullable=False)  # Cópia do nome para histórico
     data_lancamento = db.Column(db.Date, nullable=False, index=True)
     origem = db.Column(db.String(50), nullable=False)  # 'Domingo', 'Feriado', 'Horas adicionais', 'Outro'
@@ -516,7 +518,9 @@ class CicloFolga(db.Model):
     __tablename__ = "ciclo_folga"
     id = db.Column(db.Integer, primary_key=True)
     collaborator_id = db.Column(db.Integer, db.ForeignKey("collaborator.id"), nullable=False, index=True)
-    setor_id = db.Column(db.Integer, db.ForeignKey("setor.id"), nullable=False, index=True)  # Novo campo para divisão por setor
+    setor_id = db.Column(
+        db.Integer, db.ForeignKey("setor.id"), nullable=False, index=True
+    )  # Novo campo para divisão por setor
     nome_colaborador = db.Column(db.String(100), nullable=False)
     data_folga = db.Column(db.Date, nullable=False, index=True)
     tipo = db.Column(db.String(20), nullable=False)  # 'folga', 'folga_adicional', 'feriado'
@@ -536,7 +540,9 @@ class CicloOcorrencia(db.Model):
     __tablename__ = "ciclo_ocorrencia"
     id = db.Column(db.Integer, primary_key=True)
     collaborator_id = db.Column(db.Integer, db.ForeignKey("collaborator.id"), nullable=False, index=True)
-    setor_id = db.Column(db.Integer, db.ForeignKey("setor.id"), nullable=False, index=True)  # Novo campo para divisão por setor
+    setor_id = db.Column(
+        db.Integer, db.ForeignKey("setor.id"), nullable=False, index=True
+    )  # Novo campo para divisão por setor
     nome_colaborador = db.Column(db.String(100), nullable=False)
     data_ocorrencia = db.Column(db.Date, nullable=False, index=True)
     tipo = db.Column(db.String(30), nullable=False, index=True)  # 'atraso' | 'falta' | 'observacao' | 'outro'
@@ -556,7 +562,9 @@ class CicloSemana(db.Model):
     __tablename__ = "ciclo_semana"
     id = db.Column(db.Integer, primary_key=True)
     ciclo_id = db.Column(db.Integer, nullable=False, index=True)  # ciclo mensal (CicloFechamento.ciclo_id)
-    setor_id = db.Column(db.Integer, db.ForeignKey("setor.id"), nullable=False, index=True)  # Novo campo para divisão por setor
+    setor_id = db.Column(
+        db.Integer, db.ForeignKey("setor.id"), nullable=False, index=True
+    )  # Novo campo para divisão por setor
     week_start = db.Column(db.Date, nullable=False, index=True)
     week_end = db.Column(db.Date, nullable=False, index=True)
     label = db.Column(db.String(50), nullable=False, index=True)  # "Ciclo 1 | Janeiro" / "Ciclo Dezembro | Janeiro"
@@ -571,7 +579,9 @@ class CicloFechamento(db.Model):
     __tablename__ = "ciclo_fechamento"
     id = db.Column(db.Integer, primary_key=True)
     ciclo_id = db.Column(db.Integer, nullable=False, unique=True, index=True)  # ID do ciclo fechado
-    setor_id = db.Column(db.Integer, db.ForeignKey("setor.id"), nullable=False, index=True)  # Novo campo para divisão por setor
+    setor_id = db.Column(
+        db.Integer, db.ForeignKey("setor.id"), nullable=False, index=True
+    )  # Novo campo para divisão por setor
     data_fechamento = db.Column(
         db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")), nullable=False
     )

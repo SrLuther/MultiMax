@@ -1,3 +1,9 @@
+## [2.6.45] - 2026-01-18
+
+### Correções
+
+- fixfix(flake8): corrige linhas longas e problemas de formataÃ§Ã£o
+
 ## [2.6.44] - 2026-01-18
 
 ### Correções
