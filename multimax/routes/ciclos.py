@@ -794,8 +794,7 @@ def pesquisa():
                 if horas:
                     try:
                         total_horas = float(sum(
-                            float(h.valor_horas) if h.valor_horas is not None else 0.0
-                            for h in horas
+                            float(h.valor_horas or 0) for h in horas
                         ))
                     except (ValueError, TypeError, AttributeError):
                         total_horas = 0.0
@@ -892,8 +891,7 @@ def pesquisa():
                 if horas:
                     try:
                         total_horas = float(sum(
-                            float(h.valor_horas) if h.valor_horas is not None else 0.0
-                            for h in horas
+                            float(h.valor_horas or 0) for h in horas
                         ))
                     except (ValueError, TypeError, AttributeError):
                         total_horas = 0.0
@@ -1075,7 +1073,6 @@ def folgas_adicionar():
         f.dias = dias
         f.observacao = obs if obs else None
         f.status_ciclo = "ativo"
-        f.created_by = current_user.name or current_user.username
         db.session.add(f)
         db.session.commit()
         flash("Folga registrada com sucesso!", "success")
@@ -1212,10 +1209,10 @@ def historico(collaborator_id):
                 registros_data.append(
                     {
                         "id": reg.id,
-                        "data": reg.data_lancamento.strftime("%d/%m/%Y"),
+                        "data": reg.data_lancamento.strftime("%d/%m/%Y") if reg.data_lancamento else "-",
                         "origem": reg.origem,
                         "descricao": reg.descricao or "-",
-                        "horas": float(reg.valor_horas),
+                        "horas": float(reg.valor_horas or 0),
                     }
                 )
 
@@ -1534,8 +1531,6 @@ def confirmar_fechamento():
         # Criar registro de fechamento
         fechamento = CicloFechamento()
         fechamento.ciclo_id = proximo_ciclo_id
-        fechamento.fechado_por = current_user.name or current_user.username
-        fechamento.valor_total = total_valor_geral
         fechamento.total_horas = Decimal(str(round(float(total_horas_geral), 1)))
         fechamento.total_dias = total_dias_geral
         fechamento.colaboradores_envolvidos = len(colaboradores_totais)

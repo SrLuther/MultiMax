@@ -1,3 +1,15 @@
+## [2.6.41] - 2026-01-18
+
+### Correções
+
+- fixfix(ciclos): corrige cÃ¡lculo de horas com dÃ­vidas quitadas
+
+## [2.6.40] - 2026-01-18
+
+### Novidades
+
+- featfeat(ciclos): adiciona sistema de divisÃ£o por setores
+
 ## [2.6.39] - 2026-01-18
 
 ### Correções
