@@ -272,7 +272,7 @@ def _setup_main_routes(app: Flask) -> None:
     """Configura rotas principais da aplicação."""
     from flask import Blueprint, jsonify, redirect, url_for
     from flask_login import current_user
-    
+
     @app.route("/", strict_slashes=False)
     def _root_redirect():
         if not current_user.is_authenticated:
@@ -774,7 +774,7 @@ def _dbstatus():
             if "git" not in str(e).lower():
                 app.logger.debug(f"Erro ao obter versão: {e}")
         # Fallback: usar versão do código
-        return '2.6.57'
+        return '2.6.58'
 
     resolved_version = _get_version()
     # Processar versão: remover "v" ou "V" do início se existir
@@ -783,20 +783,20 @@ def _dbstatus():
         if processed_version:
             app.config["APP_VERSION_RESOLVED"] = processed_version
         else:
-            app.config["APP_VERSION_RESOLVED"] = '2.6.57'
+            app.config["APP_VERSION_RESOLVED"] = '2.6.58'
     else:
-        app.config["APP_VERSION_RESOLVED"] = '2.6.57'
+        app.config["APP_VERSION_RESOLVED"] = '2.6.58'
 
     # Garantir que sempre há um valor válido (nunca "dev" ou "None")
     if not app.config["APP_VERSION_RESOLVED"] or app.config["APP_VERSION_RESOLVED"] in ("dev", "None", ""):
-        app.config["APP_VERSION_RESOLVED"] = '2.6.57'
+        app.config["APP_VERSION_RESOLVED"] = '2.6.58'
 
     @app.context_processor
     def inject_version():
-        ver = app.config.get("APP_VERSION_RESOLVED", '2.6.57')
+        ver = app.config.get("APP_VERSION_RESOLVED", '2.6.58')
         # Garantir que nunca retorne None, vazio ou "dev"
         if not ver or ver in ("dev", "None", ""):
-            ver = '2.6.57'
+            ver = '2.6.58'
         return {"git_version": ver}
 
     with app.app_context():
