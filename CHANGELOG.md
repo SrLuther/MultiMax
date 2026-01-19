@@ -1,3 +1,9 @@
+## [2.6.61] - 2026-01-19
+
+### Correções
+
+- v2.6.61 - correções de rotas, correções de rotas
+
 ## [2.6.60] - 2026-01-19
 
 ### Correções

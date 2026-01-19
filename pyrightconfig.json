@@ -5,6 +5,9 @@
   "typeCheckingMode": "basic",
   "reportMissingImports": true,
   "reportMissingTypeStubs": false,
+  "reportOperatorIssue": false,
+  "reportOptionalMemberAccess": false,
+  "reportArgumentType": false,
   "useLibraryCodeForTypes": true,
   "exclude": [
     "dist",

@@ -77,6 +77,7 @@ def _calculate_collaborator_balance(collaborator_id):
 
     # Debug: log para verificar o cálculo
     import logging
+
     logger = logging.getLogger(__name__)
     logger.debug(f"Colaborador {collaborator_id}: total_horas = {total_horas_float}")
 
@@ -671,34 +672,125 @@ def index():
 
 @bp.route("/pesquisa", methods=["GET"], strict_slashes=False)
 @login_required
+def _summary_from_hours(total_horas_float: float) -> dict[str, float | int]:
+    """Calcula resumo a partir de horas totais."""
+    try:
+        # Lógica correta: considerar saldo total, mesmo que venha de dívidas quitadas
+        if total_horas_float < 0:
+            dias = 0
+            hrs_rest = 0.0
+        else:
+            # Total positivo: calcular dias e horas restantes normalmente
+            dias = int(math.floor(total_horas_float / 8.0))
+            hrs_rest = total_horas_float % 8.0
+        valor_dia = float(_get_valor_dia() or 0.0)
+        return {
+            "total_horas": round(total_horas_float, 1),
+            "dias_completos": dias,
+            "horas_restantes": round(hrs_rest, 1),
+            "valor_aproximado": round(dias * valor_dia, 2),
+        }
+    except Exception:
+        # Fallback em caso de erro
+        return {
+            "total_horas": round(total_horas_float, 1),
+            "dias_completos": 0,
+            "horas_restantes": round(total_horas_float, 1),
+            "valor_aproximado": 0.0,
+        }
+
+
+def _process_week_details(s: dict[str, object], ciclo_id: int | None, status: str) -> dict[str, object]:
+    """Processa detalhes de uma semana (horas, folgas, ocorrências)."""
+    week_start = s["week_start"]  # type: ignore[assignment]
+    week_end = s["week_end"]  # type: ignore[assignment]
+
+    horas = (
+        Ciclo.query.filter(
+            Ciclo.status_ciclo == status,
+            Ciclo.ciclo_id == ciclo_id if status == "fechado" else True,
+            Ciclo.data_lancamento >= week_start,
+            Ciclo.data_lancamento <= week_end,
+        )
+        .order_by(Ciclo.nome_colaborador.asc(), Ciclo.data_lancamento.asc(), Ciclo.id.asc())
+        .all()
+    )
+
+    folgas = (
+        CicloFolga.query.filter(
+            CicloFolga.status_ciclo == status,
+            CicloFolga.ciclo_id == ciclo_id if status == "fechado" else True,
+            CicloFolga.data_folga >= week_start,
+            CicloFolga.data_folga <= week_end,
+        )
+        .order_by(CicloFolga.nome_colaborador.asc(), CicloFolga.data_folga.asc(), CicloFolga.id.asc())
+        .all()
+    )
+
+    # Incluir "Folgas utilizadas" da tabela Ciclo como folgas
+    folgas_utilizadas_ciclo = [h for h in horas if getattr(h, "origem", None) == "Folga utilizada"]
+
+    for h in folgas_utilizadas_ciclo:
+        try:
+            valor_horas = float(h.valor_horas) if h.valor_horas is not None else -8.0
+        except (ValueError, TypeError):
+            valor_horas = -8.0
+        folga_ciclo = SimpleNamespace(
+            nome_colaborador=getattr(h, "nome_colaborador", "") or "",
+            data_folga=getattr(h, "data_lancamento", None),
+            tipo="uso",
+            dias=1,
+            valor_horas=valor_horas,
+            observacao=getattr(h, "descricao", None) or "Folga utilizada via lançamento de horas",
+            ciclo_id=getattr(h, "ciclo_id", None),
+            status_ciclo=getattr(h, "status_ciclo", "fechado"),
+        )
+        folgas = list(folgas) + [folga_ciclo]
+
+    horas = [h for h in horas if getattr(h, "origem", None) != "Folga utilizada"]
+    folgas = sorted(
+        [f for f in folgas if getattr(f, "data_folga", None) is not None],
+        key=lambda f: (f.data_folga, getattr(f, "id", 0)),
+    )
+
+    ocorrencias = (
+        CicloOcorrencia.query.filter(
+            CicloOcorrencia.status_ciclo == status,
+            CicloOcorrencia.ciclo_id == ciclo_id if status == "fechado" else True,
+            CicloOcorrencia.data_ocorrencia >= week_start,
+            CicloOcorrencia.data_ocorrencia <= week_end,
+        )
+        .order_by(
+            CicloOcorrencia.nome_colaborador.asc(),
+            CicloOcorrencia.data_ocorrencia.asc(),
+            CicloOcorrencia.id.asc(),
+        )
+        .all()
+    )
+
+    total_horas = 0.0
+    if horas:
+        try:
+            total_horas = float(sum(float(h.valor_horas or 0) for h in horas))
+        except (ValueError, TypeError, AttributeError):
+            total_horas = 0.0
+
+    return {
+        "ciclo_id": ciclo_id,
+        "label": str(s.get("label", "")),
+        "week_start": week_start,
+        "week_end": week_end,
+        "horas": horas,
+        "folgas": folgas,
+        "ocorrencias": ocorrencias,
+        "resumo": _summary_from_hours(total_horas),
+    }
+
+
+@bp.route("/pesquisa", methods=["GET"], strict_slashes=False)
+@login_required
 def pesquisa():
     """Pesquisa ciclos semanais arquivados (por label) e retorna detalhamento por colaborador."""
-    def _summary_from_hours(total_horas_float: float) -> dict[str, float | int]:
-        try:
-            # Lógica correta: considerar saldo total, mesmo que venha de dívidas quitadas
-            if total_horas_float < 0:
-                dias = 0
-                hrs_rest = 0.0
-            else:
-                # Total positivo: calcular dias e horas restantes normalmente
-                dias = int(math.floor(total_horas_float / 8.0))
-                hrs_rest = total_horas_float % 8.0
-            valor_dia = float(_get_valor_dia() or 0.0)
-            return {
-                "total_horas": round(total_horas_float, 1),
-                "dias_completos": dias,
-                "horas_restantes": round(hrs_rest, 1),
-                "valor_aproximado": round(dias * valor_dia, 2),
-            }
-        except Exception:
-            # Fallback em caso de erro
-            return {
-                "total_horas": round(total_horas_float, 1),
-                "dias_completos": 0,
-                "horas_restantes": round(total_horas_float, 1),
-                "valor_aproximado": 0.0,
-            }
-
     try:
         if current_user.nivel not in ["operador", "admin", "DEV"]:
             flash("Acesso negado.", "danger")
@@ -746,11 +838,7 @@ def pesquisa():
                     .all()
                 )
                 # Incluir "Folgas utilizadas" da tabela Ciclo como folgas
-                folgas_utilizadas_ciclo = [
-                    h
-                    for h in horas
-                    if getattr(h, "origem", None) == "Folga utilizada"
-                ]
+                folgas_utilizadas_ciclo = [h for h in horas if getattr(h, "origem", None) == "Folga utilizada"]
                 # Criar objetos similares a CicloFolga para mesclar
                 for h in folgas_utilizadas_ciclo:
                     try:
@@ -773,7 +861,7 @@ def pesquisa():
                 # Reordenar por data após mesclar (filtrar None)
                 folgas = sorted(
                     [f for f in folgas if getattr(f, "data_folga", None) is not None],
-                    key=lambda f: (f.data_folga, getattr(f, "id", 0))
+                    key=lambda f: (f.data_folga, getattr(f, "id", 0)),
                 )
                 ocorrencias = (
                     CicloOcorrencia.query.filter(
@@ -793,9 +881,7 @@ def pesquisa():
                 total_horas = 0.0
                 if horas:
                     try:
-                        total_horas = float(sum(
-                            float(h.valor_horas or 0) for h in horas
-                        ))
+                        total_horas = float(sum(float(h.valor_horas or 0) for h in horas))
                     except (ValueError, TypeError, AttributeError):
                         total_horas = 0.0
                 semanas_detalhe.append(
@@ -851,11 +937,7 @@ def pesquisa():
                     .all()
                 )
                 # Incluir "Folgas utilizadas" da tabela Ciclo como folgas
-                folgas_utilizadas_ciclo = [
-                    h
-                    for h in horas
-                    if h.origem == "Folga utilizada"
-                ]
+                folgas_utilizadas_ciclo = [h for h in horas if h.origem == "Folga utilizada"]
                 # Criar objetos similares a CicloFolga para mesclar
                 for h in folgas_utilizadas_ciclo:
                     folga_ciclo = SimpleNamespace(
@@ -890,9 +972,7 @@ def pesquisa():
                 total_horas = 0.0
                 if horas:
                     try:
-                        total_horas = float(sum(
-                            float(h.valor_horas or 0) for h in horas
-                        ))
+                        total_horas = float(sum(float(h.valor_horas or 0) for h in horas))
                     except (ValueError, TypeError, AttributeError):
                         total_horas = 0.0
                 semanas_detalhe.append(
@@ -934,6 +1014,7 @@ def pesquisa():
         )
     except Exception as e:
         from flask import current_app
+
         current_app.logger.error(f"Erro na rota pesquisa: {e}", exc_info=True)
         flash(f"Erro ao carregar pesquisa de ciclos: {str(e)}", "danger")
         return redirect(url_for("ciclos.index"))
@@ -1213,10 +1294,7 @@ def historico(collaborator_id):
 
             registros_data = []
             for reg in regs:
-                data_formatada = (
-                    reg.data_lancamento.strftime("%d/%m/%Y")
-                    if reg.data_lancamento else "-"
-                )
+                data_formatada = reg.data_lancamento.strftime("%d/%m/%Y") if reg.data_lancamento else "-"
                 registros_data.append(
                     {
                         "id": reg.id,
@@ -1231,23 +1309,17 @@ def historico(collaborator_id):
             if week_start and week_end:
                 # Type hints explícitos para corrigir problemas de tipo
                 from datetime import date
+
                 week_start_typed: date = week_start  # type: ignore
                 week_end_typed: date = week_end  # type: ignore
 
-                resumo = _calculate_collaborator_balance_range(
-                    collaborator_id, week_start_typed, week_end_typed
-                )
+                resumo = _calculate_collaborator_balance_range(collaborator_id, week_start_typed, week_end_typed)
             else:
-                resumo = {
-                    "total_horas": 0.0,
-                    "dias_completos": 0,
-                    "horas_restantes": 0.0,
-                    "valor_aproximado": 0.0
-                }
+                resumo = {"total_horas": 0.0, "dias_completos": 0, "horas_restantes": 0.0, "valor_aproximado": 0.0}
 
             # Formatar datas com segurança
             def safe_format_date(date_obj):
-                if date_obj and hasattr(date_obj, 'strftime'):
+                if date_obj and hasattr(date_obj, "strftime"):
                     try:
                         return date_obj.strftime("%d/%m/%Y")
                     except (AttributeError, TypeError):
@@ -1957,11 +2029,7 @@ def pdf_individual(collaborator_id):
                 .all()
             )
             # Incluir "Folgas utilizadas" da tabela Ciclo como folgas
-            folgas_utilizadas_ciclo = [
-                h
-                for h in horas
-                if h.origem == "Folga utilizada"
-            ]
+            folgas_utilizadas_ciclo = [h for h in horas if h.origem == "Folga utilizada"]
             # Criar objetos similares a CicloFolga para mesclar
             for h in folgas_utilizadas_ciclo:
                 folga_ciclo = SimpleNamespace(
@@ -2102,11 +2170,7 @@ def pdf_individual_ciclo(collaborator_id: int, ciclo_id: int):
                 .all()
             )
             # Incluir "Folgas utilizadas" da tabela Ciclo como folgas
-            folgas_utilizadas_ciclo = [
-                h
-                for h in horas
-                if h.origem == "Folga utilizada"
-            ]
+            folgas_utilizadas_ciclo = [h for h in horas if h.origem == "Folga utilizada"]
             # Criar objetos similares a CicloFolga para mesclar
             for h in folgas_utilizadas_ciclo:
                 folga_ciclo = SimpleNamespace(
@@ -2241,11 +2305,7 @@ def pdf_geral():
                     .all()
                 )
                 # Incluir "Folgas utilizadas" da tabela Ciclo como folgas
-                folgas_utilizadas_ciclo = [
-                    h
-                    for h in horas
-                    if h.origem == "Folga utilizada"
-                ]
+                folgas_utilizadas_ciclo = [h for h in horas if h.origem == "Folga utilizada"]
                 # Criar objetos similares a CicloFolga para mesclar
                 for h in folgas_utilizadas_ciclo:
                     folga_ciclo = SimpleNamespace(
@@ -2397,11 +2457,7 @@ def pdf_geral_ciclo(ciclo_id: int):
                     .all()
                 )
                 # Incluir "Folgas utilizadas" da tabela Ciclo como folgas
-                folgas_utilizadas_ciclo = [
-                    h
-                    for h in horas
-                    if h.origem == "Folga utilizada"
-                ]
+                folgas_utilizadas_ciclo = [h for h in horas if h.origem == "Folga utilizada"]
                 # Criar objetos similares a CicloFolga para mesclar
                 for h in folgas_utilizadas_ciclo:
                     folga_ciclo = SimpleNamespace(
@@ -2530,11 +2586,7 @@ def setores_novo():
         db.session.add(setor)
         db.session.commit()
 
-        return jsonify({
-            "ok": True,
-            "setor": setor.to_dict(),
-            "message": "Setor criado com sucesso"
-        })
+        return jsonify({"ok": True, "setor": setor.to_dict(), "message": "Setor criado com sucesso"})
 
     except Exception as e:
         db.session.rollback()
@@ -2558,15 +2610,9 @@ def setores_editar(setor_id):
             return jsonify({"ok": False, "error": "Nome do setor é obrigatório"}), 400
 
         # Verificar se já existe outro setor com este mesmo nome
-        existente = Setor.query.filter(
-            Setor.nome == nome,
-            Setor.id != setor_id
-        ).first()
+        existente = Setor.query.filter(Setor.nome == nome, Setor.id != setor_id).first()
         if existente:
-            return jsonify({
-                "ok": False,
-                "error": "Já existe outro setor com este nome"
-            }), 400
+            return jsonify({"ok": False, "error": "Já existe outro setor com este nome"}), 400
 
         # Atualizar setor
         setor.nome = nome
@@ -2576,11 +2622,7 @@ def setores_editar(setor_id):
 
         db.session.commit()
 
-        return jsonify({
-            "ok": True,
-            "setor": setor.to_dict(),
-            "message": "Setor atualizado com sucesso"
-        })
+        return jsonify({"ok": True, "setor": setor.to_dict(), "message": "Setor atualizado com sucesso"})
 
     except Exception as e:
         db.session.rollback()
@@ -2600,10 +2642,15 @@ def setores_toggle(setor_id):
         # Verificar se há ciclos ativos vinculados
         ciclos_ativos = Ciclo.query.filter_by(setor_id=setor_id, status_ciclo="ativo").count()
         if ciclos_ativos > 0 and setor.ativo:
-            return jsonify({
-                "ok": False,
-                "error": f"Não é possível desativar este setor. Existem {ciclos_ativos} ciclos ativos vinculados."
-            }), 400
+            return (
+                jsonify(
+                    {
+                        "ok": False,
+                        "error": f"Não é possível desativar este setor. Existem {ciclos_ativos} ciclos ativos vinculados.",
+                    }
+                ),
+                400,
+            )
 
         setor.ativo = not setor.ativo
         setor.updated_by = current_user.username if current_user else "system"
@@ -2612,11 +2659,7 @@ def setores_toggle(setor_id):
         db.session.commit()
 
         status = "ativado" if setor.ativo else "desativado"
-        return jsonify({
-            "ok": True,
-            "setor": setor.to_dict(),
-            "message": f"Setor {status} com sucesso"
-        })
+        return jsonify({"ok": True, "setor": setor.to_dict(), "message": f"Setor {status} com sucesso"})
 
     except Exception as e:
         db.session.rollback()
@@ -2636,19 +2679,21 @@ def setores_excluir(setor_id):
         # Verificar se há ciclos vinculados
         ciclos_vinculados = Ciclo.query.filter_by(setor_id=setor_id).count()
         if ciclos_vinculados > 0:
-            return jsonify({
-                "ok": False,
-                "error": f"Não é possível excluir este setor. Existem {ciclos_vinculados} ciclos vinculados."
-            }), 400
+            return (
+                jsonify(
+                    {
+                        "ok": False,
+                        "error": f"Não é possível excluir este setor. Existem {ciclos_vinculados} ciclos vinculados.",
+                    }
+                ),
+                400,
+            )
 
         # Excluir setor
         db.session.delete(setor)
         db.session.commit()
 
-        return jsonify({
-            "ok": True,
-            "message": "Setor excluído com sucesso"
-        })
+        return jsonify({"ok": True, "message": "Setor excluído com sucesso"})
 
     except Exception as e:
         db.session.rollback()

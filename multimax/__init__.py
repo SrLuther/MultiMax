@@ -51,7 +51,7 @@ def _normalize_db_uri(uri: str | None) -> str | None:
 
 def _extract_driver_host(uri: str | None) -> tuple[str | None, str | None]:
     try:
-        if "://" not in uri:
+        if not uri or "://" not in uri:
             return None, None
         driver = uri.split("://", 1)[0]
         after = uri.split("://", 1)[1]
@@ -131,6 +131,7 @@ def _register_blueprints(app: Flask) -> tuple[bool, None]:
     if notif_enabled:
         try:
             from .routes.notificacoes import bp as _notifs
+
             notificacoes_bp = _notifs
         except Exception:
             notificacoes_bp = None
@@ -138,6 +139,7 @@ def _register_blueprints(app: Flask) -> tuple[bool, None]:
     dbadmin_bp: Blueprint | None = None
     try:
         from .routes.dbadmin import bp as _dbadmin
+
         dbadmin_bp = _dbadmin
         app.logger.info(f"Blueprint dbadmin importado com sucesso. URL prefix: {dbadmin_bp.url_prefix}")
     except Exception as e:
@@ -211,10 +213,10 @@ def _get_version_from_git() -> str:
     """Obtém versão do git."""
     try:
         import subprocess
+
         base_dir = os.path.dirname(os.path.dirname(__file__))
         r = subprocess.run(
-            ["git", "describe", "--tags", "--abbrev=0"],
-            cwd=base_dir, capture_output=True, text=True, timeout=2
+            ["git", "describe", "--tags", "--abbrev=0"], cwd=base_dir, capture_output=True, text=True, timeout=2
         )
         if r.returncode == 0 and r.stdout.strip():
             return r.stdout.strip()
@@ -233,6 +235,7 @@ def _setup_extensions(app: Flask) -> None:
 
 def _setup_context_processors(app: Flask) -> None:
     """Configura context processors da aplicação."""
+
     @app.context_processor
     def _inject_version():
         ver = (os.getenv("APP_VERSION") or "").strip()
@@ -241,6 +244,7 @@ def _setup_context_processors(app: Flask) -> None:
         if not ver:
             try:
                 from .models import AppSetting
+
                 s = AppSetting.query.filter_by(key="app_version").first()
                 ver = (s.value or "").strip() if s else ""
             except Exception as e:
@@ -251,16 +255,18 @@ def _setup_context_processors(app: Flask) -> None:
 
 def _create_format_date_filter(app: Flask) -> None:
     """Cria e registra o filtro de formatação de data."""
-    @app.template_filter('format_date_br')
+
+    @app.template_filter("format_date_br")
     def format_date_br(date_str):
         """Formata data ISO para formato brasileiro DD/MM/YYYY"""
         if not date_str:
             return ""
         try:
             from datetime import datetime
+
             if isinstance(date_str, str):
-                dt = datetime.strptime(date_str, '%Y-%m-%d')
-                return dt.strftime('%d/%m/%Y')
+                dt = datetime.strptime(date_str, "%Y-%m-%d")
+                return dt.strftime("%d/%m/%Y")
             return date_str
         except Exception:
             return date_str
@@ -290,6 +296,7 @@ def _setup_main_routes(app: Flask) -> None:
     def _dbstatus():
         try:
             from .models import User
+
             user_count = User.query.count()
             return jsonify({"database": "connected", "users": user_count})
         except Exception as e:
