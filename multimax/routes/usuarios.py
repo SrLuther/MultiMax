@@ -165,16 +165,16 @@ def gestao_vps_upload():
                     target.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(str(p), str(target))
                     copied += 1
-            except Exception:
-                pass
+            except Exception as e:
+                current_app.logger.warning(f"Falha ao copiar arquivo do update: {e}")
         setup_script = root / "vps_setup.sh"
         alt_setup_script = root / "scripts" / "vps_setup.sh"
         run_script = setup_script if setup_script.exists() else alt_setup_script
         if run_script.exists():
             try:
                 subprocess.Popen(["bash", str(run_script)], cwd=str(root))
-            except Exception:
-                pass
+            except Exception as e:
+                current_app.logger.warning(f"Falha ao executar script de setup da VPS: {e}")
         try:
             cmd = (os.getenv("VPS_REBOOT_CMD") or "sudo").strip()
             args = cmd.split()
@@ -182,16 +182,16 @@ def gestao_vps_upload():
                 subprocess.Popen(["sudo", "reboot"])
             else:
                 subprocess.Popen(args)
-        except Exception:
-            pass
+        except Exception as e:
+            current_app.logger.warning(f"Falha ao iniciar reboot da VPS: {e}")
         flash(f"Atualização aplicada ({copied} arquivos). VPS será reiniciada.", "success")
     except Exception as e:
         flash(f"Falha ao aplicar atualização: {e}", "danger")
     finally:
         try:
             shutil.rmtree(tmp_dir, ignore_errors=True)
-        except Exception:
-            pass
+        except Exception as e:
+            current_app.logger.warning(f"Falha ao limpar diretório temporário: {e}")
     return redirect(url_for("usuarios.gestao"))
 
 
@@ -212,15 +212,15 @@ def gestao_restart():
             try:
                 args = cmd.split()
                 subprocess.Popen(args)
-            except Exception:
-                pass
+            except Exception as e:
+                current_app.logger.warning(f"Falha ao executar RESTART_CMD: {e}")
 
         def _do_exit():
             time.sleep(1.0)
             try:
                 os._exit(0)
-            except Exception:
-                pass
+            except Exception as e:
+                current_app.logger.error(f"Falha ao encerrar processo: {e}")
 
         threading.Thread(target=_do_exit, daemon=True).start()
         flash("Reiniciando MultiMax na VPS...", "warning")
@@ -446,8 +446,8 @@ def notifications_read_all():
     except Exception:
         try:
             db.session.rollback()
-        except Exception:
-            pass
+        except Exception as e:
+            current_app.logger.warning(f"Falha ao executar rollback em notificações de limpeza: {e}")
     return redirect(nxt)
 
 
@@ -500,8 +500,8 @@ def perfil():
     except Exception:
         try:
             db.session.rollback()
-        except Exception:
-            pass
+        except Exception as e:
+            current_app.logger.warning(f"Falha ao executar rollback em ajuste de schema (collaborator.user_id): {e}")
     # User e Collaborator são uma coisa só - buscar colaborador vinculado ao usuário
     collab = None
     balance_data = None
@@ -594,8 +594,8 @@ def perfil():
                 is_on_break = True
                 end_dt = _dt.combine(today, _dt.min.time().replace(hour=23, minute=59, second=59))
                 break_end_timestamp = int(end_dt.timestamp())
-        except Exception:
-            pass
+        except Exception as e:
+            current_app.logger.debug(f"Falha ao calcular status de folga do dia: {e}")
         try:
             ns = (
                 Shift.query.filter(Shift.collaborator_id == collab.id, Shift.date >= today, Shift.shift_type != "folga")
@@ -616,8 +616,8 @@ def perfil():
                         next_shift_hour = "05:00"
                     else:
                         next_shift_hour = "05:00"
-        except Exception:
-            pass
+        except Exception as e:
+            current_app.logger.debug(f"Falha ao calcular próximo turno: {e}")
         # Folgas utilizadas agora são registradas no sistema de Ciclos com origem 'Folga utilizada'
         # Não precisamos mais verificar TimeOffRecord para folgas
 
@@ -645,7 +645,8 @@ def perfil():
                         if next_shift.start_dt:
                             try:
                                 vacation_return_hour = next_shift.start_dt.strftime("%H:%M")
-                            except Exception:
+                            except Exception as e:
+                                current_app.logger.debug(f"Falha ao formatar horário de retorno de férias: {e}")
                                 vacation_return_hour = "05:00"
                         else:
                             st = (next_shift.shift_type or "").lower()
@@ -657,8 +658,8 @@ def perfil():
                                 vacation_return_hour = "05:00"
                             else:
                                 vacation_return_hour = "05:00"
-                except Exception:
-                    pass
+                except Exception as e:
+                    current_app.logger.debug(f"Falha ao calcular data/hora de retorno de férias: {e}")
 
                 try:
                     hour_parts = vacation_return_hour.split(":")
@@ -669,8 +670,8 @@ def perfil():
 
                 return_datetime = _dt.combine(return_date, _dt.min.time().replace(hour=return_hour, minute=return_min))
                 vacation_end_timestamp = int(return_datetime.timestamp())
-        except Exception:
-            pass
+        except Exception as e:
+            current_app.logger.debug(f"Falha ao calcular status de férias: {e}")
 
         try:
             mc = (
@@ -687,8 +688,8 @@ def perfil():
                 medical_end_date = mc.data_fim.strftime("%d/%m/%Y")
                 med_end_dt = _dt.combine(mc.data_fim, _dt.min.time().replace(hour=23, minute=59, second=59))
                 medical_end_timestamp = int(med_end_dt.timestamp())
-        except Exception:
-            pass
+        except Exception as e:
+            current_app.logger.debug(f"Falha ao calcular status de atestado: {e}")
 
     return render_template(
         "perfil.html",
@@ -760,13 +761,13 @@ def gestao():
             if "nome" in cols_meta:
                 try:
                     db.session.execute(text("UPDATE collaborator SET name = nome WHERE name IS NULL"))
-                except Exception:
-                    pass
+                except Exception as e:
+                    current_app.logger.warning(f"Falha ao migrar collaborator.nome -> name: {e}")
             else:
                 try:
                     db.session.execute(text("UPDATE collaborator SET name = '' WHERE name IS NULL"))
-                except Exception:
-                    pass
+                except Exception as e:
+                    current_app.logger.warning(f"Falha ao preencher collaborator.name vazio: {e}")
         if changed:
             db.session.commit()
         # Garantir colunas necessárias em tabelas de gestão
@@ -1256,7 +1257,8 @@ def gestao():
                     or 0
                 )
                 folgas.append({"collab": c, "balance": int(credits_sum) - int(assigned_sum) - int(converted_sum)})
-            except Exception:
+            except Exception as e:
+                current_app.logger.warning(f"Erro ao calcular folgas do colaborador {getattr(c, 'id', '?')}: {e}")
                 continue
     except Exception as e:
         import logging
@@ -1344,17 +1346,9 @@ def gestao():
             hours = int(rem // 3600)
             minutes = int((rem % 3600) // 60)
             uptime_str = f"{days}d {hours}h {minutes}m"
-        except Exception:
-            try:
-                # Usar caminho completo para evitar B607
-                uptime_cmd = "/usr/bin/uptime"
-                if os.path.exists(uptime_cmd):
-                    out = subprocess.check_output([uptime_cmd, "-p"], timeout=2)
-                    uptime_str = (out.decode("utf-8", errors="ignore") or "").strip()
-                else:
-                    uptime_str = None
-            except Exception:
-                uptime_str = None
+        except Exception as e:
+            current_app.logger.debug(f"Falha ao ler /proc/uptime: {e}")
+            uptime_str = None
         load_str = None
         try:
             import os as _os

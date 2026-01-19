@@ -213,10 +213,10 @@ def _get_version_from_git() -> str:
     """Obtém versão do git."""
     try:
         import subprocess
+
         base_dir = os.path.dirname(os.path.dirname(__file__))
         r = subprocess.run(
-            ["git", "describe", "--tags", "--abbrev=0"],
-            cwd=base_dir, capture_output=True, text=True, timeout=2
+            ["git", "describe", "--tags", "--abbrev=0"], cwd=base_dir, capture_output=True, text=True, timeout=2
         )
         if r.returncode == 0 and r.stdout.strip():
             return r.stdout.strip()
@@ -235,6 +235,7 @@ def _setup_extensions(app: Flask) -> None:
 
 def _setup_context_processors(app: Flask) -> None:
     """Configura context processors da aplicação."""
+
     @app.context_processor
     def _inject_version():
         ver = (os.getenv("APP_VERSION") or "").strip()
@@ -243,6 +244,7 @@ def _setup_context_processors(app: Flask) -> None:
         if not ver:
             try:
                 from .models import AppSetting
+
                 s = AppSetting.query.filter_by(key="app_version").first()
                 ver = (s.value or "").strip() if s else ""
             except Exception as e:
@@ -253,16 +255,18 @@ def _setup_context_processors(app: Flask) -> None:
 
 def _create_format_date_filter(app: Flask) -> None:
     """Cria e registra o filtro de formatação de data."""
-    @app.template_filter('format_date_br')
+
+    @app.template_filter("format_date_br")
     def format_date_br(date_str):
         """Formata data ISO para formato brasileiro DD/MM/YYYY"""
         if not date_str:
             return ""
         try:
             from datetime import datetime
+
             if isinstance(date_str, str):
-                dt = datetime.strptime(date_str, '%Y-%m-%d')
-                return dt.strftime('%d/%m/%Y')
+                dt = datetime.strptime(date_str, "%Y-%m-%d")
+                return dt.strftime("%d/%m/%Y")
             return date_str
         except Exception:
             return date_str
@@ -746,7 +750,7 @@ def create_app():
             if "git" not in str(e).lower():
                 app.logger.debug(f"Erro ao obter versão: {e}")
         # Fallback: usar versão do código
-        return '2.6.56'
+        return "2.6.57"
 
     resolved_version = _get_version()
     # Processar versão: remover "v" ou "V" do início se existir
@@ -755,28 +759,25 @@ def create_app():
         if processed_version:
             app.config["APP_VERSION_RESOLVED"] = processed_version
         else:
-            app.config["APP_VERSION_RESOLVED"] = '2.6.56'
+            app.config["APP_VERSION_RESOLVED"] = "2.6.57"
     else:
-        app.config["APP_VERSION_RESOLVED"] = '2.6.56'
+        app.config["APP_VERSION_RESOLVED"] = "2.6.57"
 
     # Garantir que sempre há um valor válido (nunca "dev" ou "None")
     if not app.config["APP_VERSION_RESOLVED"] or app.config["APP_VERSION_RESOLVED"] in ("dev", "None", ""):
-        app.config["APP_VERSION_RESOLVED"] = '2.6.56'
+        app.config["APP_VERSION_RESOLVED"] = "2.6.57"
 
     @app.context_processor
     def inject_version():
-        ver = app.config.get("APP_VERSION_RESOLVED", '2.6.56')
+        ver = app.config.get("APP_VERSION_RESOLVED", "2.6.57")
         # Garantir que nunca retorne None, vazio ou "dev"
         if not ver or ver in ("dev", "None", ""):
-            ver = '2.6.56'
+            ver = "2.6.57"
         return {"git_version": ver}
 
     with app.app_context():
         try:
-            import json
             import subprocess
-            from urllib import error as urllib_error
-            from urllib import request as urllib_request
 
             from .models import AppSetting  # noqa: F811
 
@@ -811,22 +812,7 @@ def create_app():
                     if rlog2.returncode == 0:
                         commits = [line.strip() for line in rlog2.stdout.splitlines() if line.strip()]
             except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError):
-                try:
-                    req = urllib_request.Request("https://api.github.com/repos/SrLuther/MultiMax/commits?sha=main")
-                    req.add_header("User-Agent", "MultiMax-App")
-                    with urllib_request.urlopen(req, timeout=5) as resp:
-                        raw = resp.read().decode("utf-8")
-                        arr = json.loads(raw)
-                        for it in arr[:20]:
-                            h = (it.get("sha") or "")[:7]
-                            msg = ((it.get("commit") or {}).get("message") or "").split("\n", 1)[0]
-                            if msg:
-                                commits.append(f"{h} {msg}")
-                except (urllib_error.URLError, urllib_error.HTTPError, TimeoutError, json.JSONDecodeError):
-                    commits = []
-                except Exception as e:
-                    app.logger.warning(f"Erro ao buscar commits do GitHub: {e}")
-                    commits = []
+                commits = []
             curated = [
                 "Segurança: ajuste de permissões para Visualizador",
                 "Escala: Domingos/Feriados restritos a Administrador",
@@ -1232,6 +1218,7 @@ def create_app():
                     except Exception:
                         pass
             from .routes.cronograma import setup_cleaning_tasks
+
             setup_cleaning_tasks()
         if is_sqlite:
             try:
