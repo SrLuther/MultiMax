@@ -349,68 +349,65 @@ def _dbstatus():
             db.session.execute(text("select 1"))
             ok = True
             if "postgresql" in uri.lower():
-                db.session.execute(text("select 1"))
-                ok = True
-                if "postgresql" in uri.lower():
-                    try:
-                        result = db.session.execute(text("SELECT version()")).fetchone()
-                        if result:
-                            ver = str(result[0])
-                            db_version = ver.split(",")[0] if "," in ver else ver[:50]
-                    except Exception:
-                        pass
-                    try:
-                        result = db.session.execute(text("SELECT pg_database_size(current_database())")).fetchone()
-                        if result:
-                            size_bytes = result[0]
-                            if size_bytes > 1024 * 1024 * 1024:
-                                db_size = f"{size_bytes/1024/1024/1024:.2f} GB"
-                            elif size_bytes > 1024 * 1024:
-                                db_size = f"{size_bytes/1024/1024:.2f} MB"
-                            else:
-                                db_size = f"{size_bytes/1024:.2f} KB"
-                    except Exception:
-                        pass
-                    try:
-                        result = db.session.execute(
-                            text("SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public'")
-                        ).fetchone()
-                        if result:
-                            tables_count = result[0]
-                    except Exception:
-                        pass
-                elif "sqlite" in uri.lower():
-                    db_version = "SQLite 3"
-                    try:
-                        import os
-
-                        db_path = uri.replace("sqlite:///", "")
-                        if os.path.exists(db_path):
-                            size_bytes = os.path.getsize(db_path)
-                            if size_bytes > 1024 * 1024:
-                                db_size = f"{size_bytes/1024/1024:.2f} MB"
-                            else:
-                                db_size = f"{size_bytes/1024:.2f} KB"
-                    except Exception:
-                        pass
-                    try:
-                        result = db.session.execute(
-                            text("SELECT count(*) FROM sqlite_master WHERE type='table'")
-                        ).fetchone()
-                        if result:
-                            tables_count = result[0]
-                    except Exception:
-                        pass
-            except Exception as e:
-                err = str(e)
                 try:
-                    db.session.rollback()
+                    result = db.session.execute(text("SELECT version()")).fetchone()
+                    if result:
+                        ver = str(result[0])
+                        db_version = ver.split(",")[0] if "," in ver else ver[:50]
                 except Exception:
                     pass
-            driver, host = _extract_driver_host(uri)
-            status_code = 200 if ok else 503
-            pulse_animation = "@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }" if ok else ""
-            html = f"""<!DOCTYPE html>
+                try:
+                    result = db.session.execute(text("SELECT pg_database_size(current_database())")).fetchone()
+                    if result:
+                        size_bytes = result[0]
+                        if size_bytes > 1024 * 1024 * 1024:
+                            db_size = f"{size_bytes/1024/1024/1024:.2f} GB"
+                        elif size_bytes > 1024 * 1024:
+                            db_size = f"{size_bytes/1024/1024:.2f} MB"
+                        else:
+                            db_size = f"{size_bytes/1024:.2f} KB"
+                except Exception:
+                    pass
+                try:
+                    result = db.session.execute(
+                        text("SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public'")
+                    ).fetchone()
+                    if result:
+                        tables_count = result[0]
+                except Exception:
+                    pass
+            elif "sqlite" in uri.lower():
+                db_version = "SQLite 3"
+                try:
+                    import os
+
+                    db_path = uri.replace("sqlite:///", "")
+                    if os.path.exists(db_path):
+                        size_bytes = os.path.getsize(db_path)
+                        if size_bytes > 1024 * 1024:
+                            db_size = f"{size_bytes/1024/1024:.2f} MB"
+                        else:
+                            db_size = f"{size_bytes/1024:.2f} KB"
+                except Exception:
+                    pass
+                try:
+                    result = db.session.execute(
+                        text("SELECT count(*) FROM sqlite_master WHERE type='table'")
+                    ).fetchone()
+                    if result:
+                        tables_count = result[0]
+                except Exception:
+                    pass
+        except Exception as e:
+            err = str(e)
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+        driver, host = _extract_driver_host(uri)
+        status_code = 200 if ok else 503
+        pulse_animation = "@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }" if ok else ""
+        html = f"""<!DOCTYPE html>
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
@@ -658,9 +655,9 @@ def _dbstatus():
   </div>
 </body>
 </html>"""
-            return html, status_code
-        except Exception as e:
-            return f"erro={e}", 500
+        return html, status_code
+    except Exception as e:
+        return f"erro={e}", 500
 
     @app.context_processor
     def inject_notifications():
