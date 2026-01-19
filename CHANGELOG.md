@@ -1,3 +1,9 @@
+## [2.6.57] - 2026-01-19
+
+### Atualização
+
+- v2.6.57 - Atualização do sistema
+
 ## [2.6.56] - 2026-01-18
 
 ### Correções
