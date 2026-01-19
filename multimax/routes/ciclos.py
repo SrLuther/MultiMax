@@ -2646,7 +2646,10 @@ def setores_toggle(setor_id):
                 jsonify(
                     {
                         "ok": False,
-                        "error": f"Não é possível desativar este setor. Existem {ciclos_ativos} ciclos ativos vinculados.",
+                        "error": (
+                            f"Não é possível desativar este setor. "
+                            f"Existem {ciclos_ativos} ciclos ativos vinculados."
+                        ),
                     }
                 ),
                 400,
