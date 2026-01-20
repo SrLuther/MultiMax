@@ -515,6 +515,18 @@
                             Cargo
                         </label>
                         <input type="text" name="role" class="gestao-input-modern" value="{{ c.role or '' }}">
+                                        </div>
+                                        <div class="gestao-form-group-modern">
+                                            <label class="gestao-label-modern">
+                                                <i class="bi bi-building"></i>
+                                                Setor
+                                            </label>
+                                            <select name="setor_id" class="gestao-select-modern">
+                                                <option value="">Nenhum</option>
+                                                {% for setor in setores %}
+                                                <option value="{{ setor.id }}" {% if c.setor_id == setor.id %}selected{% endif %}>{{ setor.nome }}</option>
+                                                {% endfor %}
+                                            </select>
                     </div>
                     {% if c.user %}
                     <div class="gestao-form-group-modern">
@@ -641,6 +653,18 @@
                             Cargo
                         </label>
                         <input type="text" name="role" class="gestao-input-modern">
+                                        </div>
+                                        <div class="gestao-form-group-modern">
+                                            <label class="gestao-label-modern">
+                                                <i class="bi bi-building"></i>
+                                                Setor
+                                            </label>
+                                            <select name="setor_id" class="gestao-select-modern">
+                                                <option value="">Nenhum</option>
+                                                {% for setor in setores %}
+                                                <option value="{{ setor.id }}">{{ setor.nome }}</option>
+                                                {% endfor %}
+                                            </select>
                     </div>
                     <div class="gestao-form-group-modern">
                         <label class="gestao-label-modern">

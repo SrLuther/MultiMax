@@ -1,3 +1,14 @@
+## [2.6.73] - 2026-01-21
+
+### Funcionalidades
+
+- feat(colaboradores): adiciona setor fixo para cada colaborador
+  - Campo `setor_id` no modelo Collaborator com ForeignKey para Setor
+  - Dropdown de seleção de setor nos formulários de criar/editar colaborador
+  - Lançamentos de horas herdam automaticamente o setor do colaborador
+  - Carryover de horas preserva o setor do colaborador
+  - Script de migração SQL: tools/migrate_add_setor_to_collaborator.sql
+
 ## [2.6.72] - 2026-01-20
 
 ### Correções

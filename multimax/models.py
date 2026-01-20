@@ -187,9 +187,11 @@ class Collaborator(db.Model):
     data_admissao = db.Column(db.Date, nullable=True)
     matricula = db.Column(db.String(30), nullable=True)
     departamento = db.Column(db.String(50), nullable=True)
+    setor_id = db.Column(db.Integer, db.ForeignKey("setor.id"), nullable=True, index=True)
 
     user = db.relationship("User", backref="collaborator", lazy=True)
     shifts = db.relationship("Shift", backref="collaborator", lazy=True)
+    setor = db.relationship("Setor", backref="colaboradores", lazy=True)
     # Relacionamentos antigos removidos - usar time_off_records
 
 
@@ -467,12 +469,12 @@ class Setor(db.Model):
 
     def to_dict(self):
         return {
-            'id': self.id,
-            'nome': self.nome,
-            'descricao': self.descricao,
-            'ativo': self.ativo,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            "id": self.id,
+            "nome": self.nome,
+            "descricao": self.descricao,
+            "ativo": self.ativo,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 

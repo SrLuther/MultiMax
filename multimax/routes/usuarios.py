@@ -23,6 +23,7 @@ from ..models import (
     MedicalCertificate,
     NotificationRead,
     Produto,
+    Setor,
     Shift,
     SystemLog,
     TimeOffRecord,
@@ -860,6 +861,8 @@ def _update_collaborator_basic_fields(collab):
     collab.regular_team = _team_value(request.form.get("regular_team"), collab.regular_team)
     collab.sunday_team = _team_value(request.form.get("sunday_team"), collab.sunday_team)
     collab.special_team = _team_value(request.form.get("special_team"), collab.special_team)
+    setor_id = request.form.get("setor_id", type=int)
+    collab.setor_id = setor_id
 
 
 def _team_value(value, current):
@@ -1373,6 +1376,7 @@ def gestao():
 
     senha_sugestao = "123456"
     roles = JobRole.query.order_by(JobRole.name.asc()).all()
+    setores = Setor.query.filter_by(ativo=True).order_by(Setor.nome.asc()).all()
     bank_ctx = _gestao_bank_context(colaboradores, per_page=10)
     vps_storage = _vps_storage_info()
 
@@ -1389,6 +1393,7 @@ def gestao():
         view=view,
         senha_sugestao=senha_sugestao,
         roles=roles,
+            setores=setores,
         colaboradores=colaboradores,
         folgas=bank_ctx["folgas"],
         users=all_users,
@@ -1424,6 +1429,7 @@ def gestao():
 @login_required
 def gestao_colabs_criar():
     """Cria colaborador e usuário juntos (são uma coisa só)"""
+        setor_id = request.form.get("setor_id", type=int)
     if current_user.nivel not in ("admin", "DEV"):
         flash("Você não tem permissão para criar colaboradores.", "danger")
         return redirect(url_for("usuarios.gestao"))
@@ -1446,6 +1452,7 @@ def gestao_colabs_criar():
         c.active = True
         c.regular_team = request.form.get("regular_team", "").strip() or None
         c.sunday_team = request.form.get("sunday_team", "").strip() or None
+        c.setor_id = setor_id
         c.special_team = request.form.get("special_team", "").strip() or None
 
         # Se username foi fornecido, criar usuário também

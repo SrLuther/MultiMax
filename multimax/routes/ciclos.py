@@ -1075,6 +1075,7 @@ def _agrupar_e_calcular_totais(registros_ativos):
 def _criar_carryover_e_fechar_registros(colaboradores_totais, next_month_start, proximo_ciclo_id):
     usuario = current_user.name or current_user.username
     for cid, dados in colaboradores_totais.items():
+        colaborador = Collaborator.query.get(cid)
         horas_restantes_colab = dados["horas_restantes"]
 
         if 0 < horas_restantes_colab < 8.0:
@@ -1082,6 +1083,7 @@ def _criar_carryover_e_fechar_registros(colaboradores_totais, next_month_start, 
             novo_ciclo_carryover.collaborator_id = cid
             novo_ciclo_carryover.nome_colaborador = dados["nome"]
             novo_ciclo_carryover.data_lancamento = next_month_start
+            novo_ciclo_carryover.setor_id = colaborador.setor_id if colaborador else None
             novo_ciclo_carryover.origem = "Carryover"
             novo_ciclo_carryover.descricao = f"Horas restantes do ciclo {proximo_ciclo_id - 1} transportadas"
             novo_ciclo_carryover.valor_horas = Decimal(str(round(horas_restantes_colab, 1)))
@@ -1215,6 +1217,7 @@ def lancar_horas():
         ciclo.collaborator_id = collaborator_id
         ciclo.nome_colaborador = collaborator.name  # Cópia do nome
         ciclo.data_lancamento = data_lancamento
+        ciclo.setor_id = collaborator.setor_id  # Usar setor padrão do colaborador
         ciclo.origem = origem
         ciclo.descricao = descricao if descricao else None
         ciclo.valor_horas = valor_horas_decimal
