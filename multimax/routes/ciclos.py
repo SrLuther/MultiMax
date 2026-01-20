@@ -49,25 +49,11 @@ def _get_all_collaborators():
 
 
 def _get_collaborators_by_setor(setor_id: int | None) -> list[Collaborator]:
-    """Retorna colaboradores ativos, opcionalmente filtrados por setor (via registros em Ciclo)."""
-    if not setor_id:
-        return _get_all_collaborators()
-
-    # Buscar IDs de colaboradores que possuem registros ativos no setor informado
-    ids = (
-        db.session.query(Ciclo.collaborator_id)
-        .filter(Ciclo.status_ciclo == "ativo", Ciclo.setor_id == setor_id)
-        .distinct()
-        .all()
-    )
-    ids_list = [i[0] for i in ids]
-    if not ids_list:
-        return []
-    return (
-        Collaborator.query.filter(Collaborator.active.is_(True), Collaborator.id.in_(ids_list))
-        .order_by(Collaborator.name.asc())
-        .all()
-    )
+    """Retorna colaboradores ativos, sempre retornando todos (filtro por setor é apenas visual)."""
+    # Sempre retorna TODOS os colaboradores ativos, independente do setor
+    # O filtro por setor é apenas visual - calcula dados separados por setor
+    # Isso evita confusão do usuário ao nao ver colaboradores sem registros no setor
+    return _get_all_collaborators()
 
 
 def _get_active_ciclos_query(collaborator_id):
@@ -1606,7 +1592,7 @@ def resumo_fechamento():
         valor_dia = _get_valor_dia()
 
         for colab in colaboradores:
-            # Calcular saldos apenas do setor selecionado, se houver
+            # Calcular saldos apenas do setor selecionado, se houver (CORREÇÃO PROBLEMA 1 E 2)
             if selected_setor_id:
                 # Total por setor usando a janela completa (todos registros ativos no setor)
                 total_horas_decimal = _get_active_ciclos_query(colab.id).filter(
@@ -1620,6 +1606,13 @@ def resumo_fechamento():
                     dias_completos = int(math.floor(total_horas / 8.0))
                     horas_restantes = round(total_horas % 8.0, 1)
                 valor_total = float(Decimal(str(dias_completos)) * Decimal(str(_get_valor_dia())))
+                # CORREÇÃO: Inicializa balance dict para evitar UnboundLocalError
+                balance = {
+                    "total_horas": total_horas,
+                    "dias_completos": dias_completos,
+                    "horas_restantes": horas_restantes,
+                    "valor_aproximado": valor_total,
+                }
             else:
                 balance = _calculate_collaborator_balance(colab.id)
                 total_horas = balance["total_horas"]
@@ -1627,14 +1620,13 @@ def resumo_fechamento():
                 horas_restantes = balance["horas_restantes"]
                 valor_total = balance["valor_aproximado"]
 
-            # Buscar registros ativos
-            registros = _get_active_ciclos_query(colab.id).all()
+            # Buscar registros ativos (CORREÇÃO: agora filtra por setor se selecionado)
+            registros_query = _get_active_ciclos_query(colab.id)
+            if selected_setor_id:
+                registros_query = registros_query.filter(Ciclo.setor_id == selected_setor_id)
+            registros = registros_query.all()
 
-            # Calcular totais usando balance (já calculado acima, mais eficiente)
-            total_horas = balance["total_horas"]
-            dias_completos = balance["dias_completos"]
-            horas_restantes = balance["horas_restantes"]
-            valor_total = balance["valor_aproximado"]
+            # Os valores já estão corretos em balance, não sobrescreve mais
 
             if total_horas > 0:  # Só incluir se tiver horas
                 colaboradores_resumo.append(

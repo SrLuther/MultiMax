@@ -1,129 +1,485 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 
-{% block title %}MultiMax - Gestão de Setores{% endblock %}
+{% block title %}Setores — MultiMax{% endblock %}
+
+{% block content %}
+<div class="setores-container">
+    <!-- Hero Header -->
+    <div class="setores-hero">
+        <div class="setores-hero-content">
+            <div>
+                <h1 class="setores-title">
+                    <i class="bi bi-building setores-title-icon"></i>
+                    Gestão de Setores
+                </h1>
+                <p class="setores-subtitle">Organize e controle os setores da sua empresa</p>
+            </div>
+            <button class="btn-action btn-action-primary" onclick="abrirModalNovoSetor()" id="btnNovoSetor">
+                <i class="bi bi-plus-lg"></i>
+                <span>Novo Setor</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Card de Informação -->
+    {% if not setores %}
+    <div class="setores-empty-state">
+        <div class="empty-icon">🏢</div>
+        <h2 class="empty-title">Nenhum setor cadastrado</h2>
+        <p class="empty-text">Comece a organizar sua empresa criando o primeiro setor</p>
+        <button class="btn-action btn-action-primary" onclick="abrirModalNovoSetor()">
+            <i class="bi bi-plus-lg"></i>
+            Criar Primeiro Setor
+        </button>
+    </div>
+    {% else %}
+    <!-- Grid de Setores -->
+    <div class="setores-grid">
+        {% for setor in setores %}
+        <div class="setor-card {% if not setor.ativo %}setor-inactive{% endif %}">
+            <!-- Card Header com Status -->
+            <div class="setor-card-header">
+                <div class="setor-header-content">
+                    <h3 class="setor-card-title">{{ setor.nome }}</h3>
+                    <span class="setor-status-badge {% if setor.ativo %}status-active{% else %}status-inactive{% endif %}">
+                        <span class="status-dot"></span>
+                        {% if setor.ativo %}Ativo{% else %}Inativo{% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Card Description -->
+            {% if setor.descricao %}
+            <div class="setor-card-description">
+                {{ setor.descricao }}
+            </div>
+            {% endif %}
+
+            <!-- Card Footer com Meta Info -->
+            <div class="setor-card-meta">
+                {% if setor.created_by %}
+                <div class="meta-item">
+                    <i class="bi bi-person"></i>
+                    <span class="meta-label">Criado por: <strong>{{ setor.created_by }}</strong></span>
+                </div>
+                {% endif %}
+                {% if setor.created_at %}
+                <div class="meta-item">
+                    <i class="bi bi-calendar"></i>
+                    <span class="meta-label">{{ setor.created_at.strftime('%d/%m/%Y') }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Card Actions -->
+            <div class="setor-card-actions">
+                <button class="btn-card btn-card-secondary btn-editar"
+                        data-setor-id="{{ setor.id }}"
+                        data-setor-nome="{{ setor.nome }}"
+                        data-setor-descricao="{{ setor.descricao or '' }}"
+                        title="Editar setor">
+                    <i class="bi bi-pencil"></i>
+                    Editar
+                </button>
+                <button class="btn-card {% if setor.ativo %}btn-card-secondary{% else %}btn-card-primary{% endif %} btn-toggle"
+                        data-setor-id="{{ setor.id }}"
+                        data-setor-ativo="{{ setor.ativo|lower }}"
+                        title="{% if setor.ativo %}Desativar setor{% else %}Ativar setor{% endif %}">
+                    <i class="bi bi-{% if setor.ativo %}pause{% else %}play{% endif %}"></i>
+                    {% if setor.ativo %}Desativar{% else %}Ativar{% endif %}
+                </button>
+                <button class="btn-card btn-card-danger btn-excluir"
+                        data-setor-id="{{ setor.id }}"
+                        data-setor-nome="{{ setor.nome }}"
+                        title="Excluir setor">
+                    <i class="bi bi-trash"></i>
+                    Excluir
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal Novo Setor -->
+<div id="modalNovoSetor" class="mm-modal">
+    <div class="mm-modal-content">
+        <div class="mm-modal-header">
+            <h2 class="mm-modal-title">
+                <i class="bi bi-plus-circle"></i>
+                Novo Setor
+            </h2>
+            <button class="mm-modal-close" onclick="fecharModal('modalNovoSetor')" aria-label="Fechar modal">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+        <form id="formNovoSetor" class="mm-form">
+            <div class="mm-form-group">
+                <label class="mm-form-label" for="nomeSetor">
+                    <i class="bi bi-tags"></i>
+                    Nome do Setor <span class="required">*</span>
+                </label>
+                <input
+                    type="text"
+                    id="nomeSetor"
+                    name="nome"
+                    class="mm-form-input"
+                    placeholder="Ex: Produção, Gestão, Estoque..."
+                    required
+                    maxlength="100">
+                <small class="form-text-muted">Máximo de 100 caracteres</small>
+            </div>
+            <div class="mm-form-group">
+                <label class="mm-form-label" for="descricaoSetor">
+                    <i class="bi bi-chat-left-text"></i>
+                    Descrição
+                </label>
+                <textarea
+                    id="descricaoSetor"
+                    name="descricao"
+                    class="mm-form-input mm-form-textarea"
+                    placeholder="Descreva as atividades deste setor..."
+                    maxlength="500"></textarea>
+                <small class="form-text-muted">Opcional - Máximo de 500 caracteres</small>
+            </div>
+            <div class="mm-modal-footer">
+                <button type="button" class="btn-action btn-action-secondary" onclick="fecharModal('modalNovoSetor')">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn-action btn-action-primary">
+                    <i class="bi bi-check-lg"></i>
+                    Criar Setor
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Editar Setor -->
+<div id="modalEditarSetor" class="mm-modal">
+    <div class="mm-modal-content">
+        <div class="mm-modal-header">
+            <h2 class="mm-modal-title">
+                <i class="bi bi-pencil-square"></i>
+                Editar Setor
+            </h2>
+            <button class="mm-modal-close" onclick="fecharModal('modalEditarSetor')" aria-label="Fechar modal">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+        <form id="formEditarSetor" class="mm-form">
+            <input type="hidden" id="editarSetorId" name="setor_id">
+            <div class="mm-form-group">
+                <label class="mm-form-label" for="editarNomeSetor">
+                    <i class="bi bi-tags"></i>
+                    Nome do Setor <span class="required">*</span>
+                </label>
+                <input
+                    type="text"
+                    id="editarNomeSetor"
+                    name="nome"
+                    class="mm-form-input"
+                    placeholder="Ex: Produção, Gestão, Estoque..."
+                    required
+                    maxlength="100">
+            </div>
+            <div class="mm-form-group">
+                <label class="mm-form-label" for="editarDescricaoSetor">
+                    <i class="bi bi-chat-left-text"></i>
+                    Descrição
+                </label>
+                <textarea
+                    id="editarDescricaoSetor"
+                    name="descricao"
+                    class="mm-form-input mm-form-textarea"
+                    maxlength="500"></textarea>
+            </div>
+            <div class="mm-modal-footer">
+                <button type="button" class="btn-action btn-action-secondary" onclick="fecharModal('modalEditarSetor')">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn-action btn-action-primary">
+                    <i class="bi bi-check-lg"></i>
+                    Salvar Alterações
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
 
 {% block extra_css %}
 <style>
-.setores-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem;
+/* ============================================================================
+   SETORES - LAYOUT E DESIGN SYSTEM INTEGRADO
+   ============================================================================ */
+
+:root {
+    --setor-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --setor-card-shadow-hover: 0 8px 16px rgba(0, 0, 0, 0.12);
 }
 
-.setores-header {
+/* Contêiner Principal */
+.setores-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--mm-space-8);
+    padding-top: var(--mm-space-6);
+}
+
+/* Hero Section */
+.setores-hero {
+    background: linear-gradient(135deg, var(--mm-bg-card) 0%, rgba(var(--mm-primary-rgb), 0.02) 100%);
+    border: 1px solid var(--mm-border);
+    border-radius: var(--mm-radius-lg);
+    padding: var(--mm-space-8);
+    margin-bottom: var(--mm-space-8);
+    box-shadow: var(--mm-shadow);
+}
+
+.setores-hero-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2rem;
+    gap: var(--mm-space-8);
 }
 
 .setores-title {
-    font-size: 2rem;
-    font-weight: 600;
+    font-size: var(--mm-text-3xl);
+    font-weight: var(--mm-font-bold);
     color: var(--mm-text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--mm-space-3);
 }
 
+.setores-title-icon {
+    color: var(--mm-primary);
+    font-size: var(--mm-text-4xl);
+}
+
+.setores-subtitle {
+    color: var(--mm-text-secondary);
+    font-size: var(--mm-text-lg);
+    margin: var(--mm-space-2) 0 0 0;
+}
+
+/* Grid de Setores */
+.setores-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: var(--mm-space-6);
+    margin-bottom: var(--mm-space-8);
+}
+
+/* Card de Setor */
 .setor-card {
-    background: var(--mm-surface);
+    background: var(--mm-bg-card);
     border: 1px solid var(--mm-border);
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
-    transition: all 0.3s ease;
+    border-radius: var(--mm-radius-lg);
+    padding: var(--mm-space-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--mm-space-4);
+    box-shadow: var(--setor-card-shadow);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .setor-card:hover {
+    box-shadow: var(--setor-card-shadow-hover);
     border-color: var(--mm-primary);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
 }
 
-.setor-card.inactive {
-    opacity: 0.6;
-    background: var(--mm-surface-dim);
+.setor-card.setor-inactive {
+    opacity: 0.7;
+    background: rgba(var(--mm-text-muted), 0.02);
 }
 
-.setor-header {
+/* Card Header */
+.setor-card-header {
+    border-bottom: 1px solid var(--mm-border);
+    padding-bottom: var(--mm-space-4);
+}
+
+.setor-header-content {
     display: flex;
     justify-content: space-between;
-    align-items: start;
-    margin-bottom: 1rem;
+    align-items: flex-start;
+    gap: var(--mm-space-4);
 }
 
-.setor-name {
-    font-size: 1.25rem;
-    font-weight: 600;
+.setor-card-title {
+    font-size: var(--mm-text-xl);
+    font-weight: var(--mm-font-semibold);
     color: var(--mm-text-primary);
-    margin-bottom: 0.25rem;
+    margin: 0;
+    flex: 1;
 }
 
-.setor-description {
+/* Status Badge */
+.setor-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--mm-space-2);
+    padding: var(--mm-space-2) var(--mm-space-3);
+    border-radius: 999px;
+    font-size: var(--mm-text-xs);
+    font-weight: var(--mm-font-medium);
+    white-space: nowrap;
+}
+
+.status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.setor-status-badge.status-active {
+    background: rgba(var(--mm-success), 0.1);
+    color: var(--mm-success);
+}
+
+.setor-status-badge.status-active .status-dot {
+    background: var(--mm-success);
+    animation: pulse 2s infinite;
+}
+
+.setor-status-badge.status-inactive {
+    background: rgba(var(--mm-danger), 0.1);
+    color: var(--mm-danger);
+}
+
+.setor-status-badge.status-inactive .status-dot {
+    background: var(--mm-danger);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Card Description */
+.setor-card-description {
     color: var(--mm-text-secondary);
-    margin-bottom: 1rem;
+    font-size: var(--mm-text-sm);
+    line-height: var(--mm-leading-normal);
+    flex: 1;
 }
 
-.setor-actions {
+/* Card Meta */
+.setor-card-meta {
+    border-top: 1px solid var(--mm-border);
+    padding-top: var(--mm-space-3);
+    font-size: var(--mm-text-xs);
     display: flex;
-    gap: 0.5rem;
+    flex-direction: column;
+    gap: var(--mm-space-2);
 }
 
-.setor-btn {
-    padding: 0.5rem 1rem;
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: var(--mm-space-2);
+    color: var(--mm-text-muted);
+}
+
+.meta-item i {
+    color: var(--mm-primary);
+    font-size: var(--mm-text-sm);
+}
+
+.meta-label {
+    font-size: var(--mm-text-xs);
+}
+
+/* Card Actions */
+.setor-card-actions {
+    display: flex;
+    gap: var(--mm-space-2);
+    flex-wrap: wrap;
+}
+
+.btn-card {
+    flex: 1;
+    min-width: 100px;
+    padding: var(--mm-space-2) var(--mm-space-3);
     border: none;
-    border-radius: 6px;
-    font-size: 0.875rem;
+    border-radius: var(--mm-radius-md);
+    font-size: var(--mm-text-sm);
+    font-weight: var(--mm-font-medium);
     cursor: pointer;
     transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--mm-space-2);
 }
 
-.setor-btn-primary {
+.btn-card-primary {
     background: var(--mm-primary);
-    color: white;
+    color: var(--mm-text-primary);
 }
 
-.setor-btn-primary:hover {
+.btn-card-primary:hover {
     background: var(--mm-primary-dark);
+    box-shadow: 0 4px 12px rgba(var(--mm-primary-rgb), 0.3);
 }
 
-.setor-btn-secondary {
-    background: var(--mm-surface);
+.btn-card-secondary {
+    background: var(--mm-bg-secondary);
     color: var(--mm-text-primary);
     border: 1px solid var(--mm-border);
 }
 
-.setor-btn-secondary:hover {
-    background: var(--mm-surface-dim);
+.btn-card-secondary:hover {
+    background: var(--mm-border);
+    border-color: var(--mm-primary);
 }
 
-.setor-btn-danger {
+.btn-card-danger {
+    background: rgba(var(--mm-danger), 0.1);
+    color: var(--mm-danger);
+}
+
+.btn-card-danger:hover {
     background: var(--mm-danger);
     color: white;
 }
 
-.setor-btn-danger:hover {
-    background: var(--mm-danger-dark);
+/* Empty State */
+.setores-empty-state {
+    text-align: center;
+    padding: var(--mm-space-16);
+    background: rgba(var(--mm-primary-rgb), 0.02);
+    border: 2px dashed var(--mm-border);
+    border-radius: var(--mm-radius-lg);
 }
 
-.setor-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 500;
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: var(--mm-space-4);
 }
 
-.setor-status.active {
-    background: rgba(16, 185, 129, 0.1);
-    color: var(--mm-success);
+.empty-title {
+    font-size: var(--mm-text-2xl);
+    font-weight: var(--mm-font-bold);
+    color: var(--mm-text-primary);
+    margin-bottom: var(--mm-space-2);
 }
 
-.setor-status.inactive {
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--mm-danger);
+.empty-text {
+    font-size: var(--mm-text-base);
+    color: var(--mm-text-secondary);
+    margin-bottom: var(--mm-space-6);
 }
 
-.modal {
+/* Modais */
+.mm-modal {
     display: none;
     position: fixed;
     top: 0;
@@ -132,224 +488,380 @@
     height: 100%;
     background: rgba(0, 0, 0, 0.5);
     z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
 }
 
-.modal-content {
-    background: var(--mm-surface);
-    border-radius: 12px;
-    padding: 2rem;
+.mm-modal.active {
+    display: flex;
+}
+
+.mm-modal-content {
+    background: var(--mm-bg-card);
+    border-radius: var(--mm-radius-lg);
+    box-shadow: var(--mm-shadow-xl);
+    width: 90%;
     max-width: 500px;
-    margin: 10% auto;
-    position: relative;
+    overflow: hidden;
+    animation: slideUp 0.3s ease;
 }
 
-.modal-header {
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.mm-modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
+    padding: var(--mm-space-6);
+    border-bottom: 1px solid var(--mm-border);
+    gap: var(--mm-space-4);
 }
 
-.modal-title {
-    font-size: 1.5rem;
-    font-weight: 600;
+.mm-modal-title {
+    font-size: var(--mm-text-xl);
+    font-weight: var(--mm-font-bold);
     color: var(--mm-text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--mm-space-3);
+    flex: 1;
 }
 
-.modal-close {
+.mm-modal-close {
     background: none;
     border: none;
-    font-size: 1.5rem;
+    font-size: var(--mm-text-xl);
     cursor: pointer;
-    color: var(--mm-text-secondary);
+    color: var(--mm-text-muted);
+    padding: var(--mm-space-1);
+    transition: all 0.2s ease;
 }
 
-.modal-close:hover {
+.mm-modal-close:hover {
     color: var(--mm-text-primary);
+    transform: rotate(90deg);
 }
 
-.form-group {
-    margin-bottom: 1.5rem;
+/* Forms */
+.mm-form {
+    padding: var(--mm-space-6);
 }
 
-.form-label {
+.mm-form-group {
+    margin-bottom: var(--mm-space-5);
+}
+
+.mm-form-label {
     display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
+    margin-bottom: var(--mm-space-2);
+    font-weight: var(--mm-font-medium);
     color: var(--mm-text-primary);
+    font-size: var(--mm-text-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--mm-space-2);
 }
 
-.form-input {
+.mm-form-label i {
+    color: var(--mm-primary);
+}
+
+.mm-form-label .required {
+    color: var(--mm-danger);
+}
+
+.mm-form-input {
     width: 100%;
-    padding: 0.75rem;
+    padding: var(--mm-space-3) var(--mm-space-4);
     border: 1px solid var(--mm-border);
-    border-radius: 6px;
-    background: var(--mm-background);
+    border-radius: var(--mm-radius-md);
+    background: var(--mm-bg-card);
     color: var(--mm-text-primary);
+    font-family: var(--mm-font-sans);
+    font-size: var(--mm-text-sm);
+    transition: all 0.2s ease;
 }
 
-.form-input:focus {
+.mm-form-input:focus {
     outline: none;
     border-color: var(--mm-primary);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 3px rgba(var(--mm-primary-rgb), 0.1);
+    background: var(--mm-bg-card);
 }
 
-.form-textarea {
+.mm-form-textarea {
     resize: vertical;
-    min-height: 100px;
+    min-height: 120px;
 }
 
-.modal-footer {
+.form-text-muted {
+    display: block;
+    font-size: var(--mm-text-xs);
+    color: var(--mm-text-muted);
+    margin-top: var(--mm-space-1);
+}
+
+.mm-modal-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 1rem;
-    margin-top: 2rem;
+    gap: var(--mm-space-3);
+    padding: var(--mm-space-6);
+    border-top: 1px solid var(--mm-border);
+    background: rgba(var(--mm-primary-rgb), 0.01);
 }
 
-.empty-state {
-    text-align: center;
-    padding: 3rem;
-    color: var(--mm-text-secondary);
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--mm-space-2);
+    padding: var(--mm-space-3) var(--mm-space-5);
+    border: none;
+    border-radius: var(--mm-radius-md);
+    font-size: var(--mm-text-sm);
+    font-weight: var(--mm-font-medium);
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-.empty-state-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-    opacity: 0.5;
-}
-
-.empty-state-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
+.btn-action-primary {
+    background: var(--mm-primary);
     color: var(--mm-text-primary);
 }
 
-.empty-state-text {
-    margin-bottom: 2rem;
+.btn-action-primary:hover {
+    background: var(--mm-primary-dark);
+    box-shadow: 0 4px 12px rgba(var(--mm-primary-rgb), 0.3);
+    transform: translateY(-2px);
+}
+
+.btn-action-secondary {
+    background: var(--mm-bg-secondary);
+    color: var(--mm-text-primary);
+    border: 1px solid var(--mm-border);
+}
+
+.btn-action-secondary:hover {
+    background: var(--mm-border);
+    border-color: var(--mm-primary);
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .setores-container {
+        padding: var(--mm-space-4);
+    }
+
+    .setores-hero {
+        padding: var(--mm-space-4);
+    }
+
+    .setores-hero-content {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .setores-title {
+        font-size: var(--mm-text-2xl);
+    }
+
+    .setores-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #btnNovoSetor {
+        width: 100%;
+    }
+
+    .setor-header-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .setor-card-actions {
+        gap: var(--mm-space-2);
+    }
+
+    .btn-card {
+        min-width: auto;
+        flex-basis: calc(50% - var(--mm-space-1));
+    }
+
+    .mm-modal-content {
+        width: 95%;
+    }
+
+    .mm-modal-footer {
+        flex-direction: column;
+    }
+
+    .btn-action {
+        width: 100%;
+    }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+    .setor-card:hover {
+        background: rgba(var(--mm-primary-rgb), 0.05);
+    }
+
+    .setor-card.setor-inactive {
+        background: rgba(var(--mm-text-muted), 0.05);
+    }
+
+    .setores-empty-state {
+        background: rgba(var(--mm-primary-rgb), 0.05);
+    }
 }
 </style>
 {% endblock %}
 
-{% block content %}
-<div class="setores-container">
-    <div class="setores-header">
-        <h1 class="setores-title">🏢 Gestão de Setores</h1>
-        <button class="setor-btn setor-btn-primary" onclick="abrirModalNovoSetor()">
-            <i class="bi bi-plus-lg me-2"></i>Novo Setor
-        </button>
-    </div>
-
-    {% if setores %}
-        {% for setor in setores %}
-        <div class="setor-card {% if not setor.ativo %}inactive{% endif %}">
-            <div class="setor-header">
-                <div>
-                    <h3 class="setor-name">{{ setor.nome }}</h3>
-                    {% if setor.descricao %}
-                    <p class="setor-description">{{ setor.descricao }}</p>
-                    {% endif %}
-                    <span class="setor-status {% if setor.ativo %}active{% else %}inactive{% endif %}">
-                        <i class="bi bi-{% if setor.ativo %}check-circle{% else %}x-circle{% endif %}"></i>
-                        {% if setor.ativo %}Ativo{% else %}Inativo{% endif %}
-                    </span>
-                </div>
-                <div class="setor-actions">
-                    <button class="setor-btn setor-btn-secondary" onclick="abrirModalEditarSetor({{ setor.id }}, '{{ setor.nome|replace(chr(39), chr(92) + chr(39)) }}', '{{ setor.descricao|replace(chr(39), chr(92) + chr(39)) or '' }}')">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="setor-btn setor-btn-{% if setor.ativo %}secondary{% else %}primary{% endif %}"
-                            onclick="toggleSetor({{ setor.id }}, {{ setor.ativo|lower }})">
-                        <i class="bi bi-{% if setor.ativo %}pause{% else %}play{% endif %}"></i>
-                        {% if setor.ativo %}Desativar{% else %}Ativar{% endif %}
-                    </button>
-                    <button class="setor-btn setor-btn-danger" onclick="excluirSetor({{ setor.id }}, '{{ setor.nome|replace(chr(39), chr(92) + chr(39)) }}')">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    {% else %}
-        <div class="empty-state">
-            <div class="empty-state-icon">🏢</div>
-            <h2 class="empty-state-title">Nenhum setor cadastrado</h2>
-            <p class="empty-state-text">Clique no botão "Novo Setor" para começar a gerenciar os setores da sua empresa.</p>
-            <button class="setor-btn setor-btn-primary" onclick="abrirModalNovoSetor()">
-                <i class="bi bi-plus-lg me-2"></i>Novo Setor
-            </button>
-        </div>
-    {% endif %}
-</div>
-
-<!-- Modal Novo Setor -->
-<div id="modalNovoSetor" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2 class="modal-title">Novo Setor</h2>
-            <button class="modal-close" onclick="fecharModal('modalNovoSetor')">&times;</button>
-        </div>
-        <form id="formNovoSetor">
-            <div class="form-group">
-                <label class="form-label" for="nomeSetor">Nome do Setor *</label>
-                <input type="text" id="nomeSetor" name="nome" class="form-input" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="descricaoSetor">Descrição</label>
-                <textarea id="descricaoSetor" name="descricao" class="form-input form-textarea" placeholder="Descreva as atividades deste setor..."></textarea>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="setor-btn setor-btn-secondary" onclick="fecharModal('modalNovoSetor')">Cancelar</button>
-                <button type="submit" class="setor-btn setor-btn-primary">Criar Setor</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Modal Editar Setor -->
-<div id="modalEditarSetor" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2 class="modal-title">Editar Setor</h2>
-            <button class="modal-close" onclick="fecharModal('modalEditarSetor')">&times;</button>
-        </div>
-        <form id="formEditarSetor">
-            <input type="hidden" id="editarSetorId" name="setor_id">
-            <div class="form-group">
-                <label class="form-label" for="editarNomeSetor">Nome do Setor *</label>
-                <input type="text" id="editarNomeSetor" name="nome" class="form-input" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="editarDescricaoSetor">Descrição</label>
-                <textarea id="editarDescricaoSetor" name="descricao" class="form-input form-textarea"></textarea>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="setor-btn setor-btn-secondary" onclick="fecharModal('modalEditarSetor')">Cancelar</button>
-                <button type="submit" class="setor-btn setor-btn-primary">Salvar Alterações</button>
-            </div>
-        </form>
-    </div>
-</div>
-{% endblock %}
-
 {% block extra_js %}
 <script>
+// ============================================================================
+// SETORES - GERENCIAMENTO DE SETORES
+// ============================================================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializa event listeners
+    const formNovoSetor = document.getElementById('formNovoSetor');
+    if (formNovoSetor) {
+        formNovoSetor.addEventListener('submit', handleNovoSetor);
+    }
+
+    const formEditarSetor = document.getElementById('formEditarSetor');
+    if (formEditarSetor) {
+        formEditarSetor.addEventListener('submit', handleEditarSetor);
+    }
+
+    // Event listeners para botões de ação
+    document.querySelectorAll('.btn-editar').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.setorId;
+            const nome = this.dataset.setorNome;
+            const descricao = this.dataset.setorDescricao;
+            abrirModalEditarSetor(id, nome, descricao);
+        });
+    });
+
+    document.querySelectorAll('.btn-toggle').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.setorId;
+            const ativo = this.dataset.setorAtivo === 'true';
+            toggleSetor(id, ativo);
+        });
+    });
+
+    document.querySelectorAll('.btn-excluir').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.setorId;
+            const nome = this.dataset.setorNome;
+            excluirSetor(id, nome);
+        });
+    });
+
+    // Fechar modal ao clicar fora
+    window.addEventListener('click', function(event) {
+        if (event.target.classList.contains('mm-modal')) {
+            event.target.classList.remove('active');
+            event.target.style.display = 'none';
+        }
+    });
+});
+
+// Abrir modal de novo setor
 function abrirModalNovoSetor() {
-    document.getElementById('modalNovoSetor').style.display = 'block';
+    const modal = document.getElementById('modalNovoSetor');
+    modal.classList.add('active');
+    modal.style.display = 'flex';
     document.getElementById('formNovoSetor').reset();
+    document.getElementById('nomeSetor').focus();
 }
 
+// Abrir modal de editar setor
 function abrirModalEditarSetor(id, nome, descricao) {
     document.getElementById('editarSetorId').value = id;
     document.getElementById('editarNomeSetor').value = nome;
     document.getElementById('editarDescricaoSetor').value = descricao;
-    document.getElementById('modalEditarSetor').style.display = 'block';
+    const modal = document.getElementById('modalEditarSetor');
+    modal.classList.add('active');
+    modal.style.display = 'flex';
+    document.getElementById('editarNomeSetor').focus();
 }
 
+// Fechar modal
 function fecharModal(modalId) {
-    document.getElementById(modalId).style.display = 'none';
+    const modal = document.getElementById(modalId);
+    modal.classList.remove('active');
+    modal.style.display = 'none';
 }
 
+// Handle novo setor
+function handleNovoSetor(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+
+    fetch('/ciclos/setores/novo', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': getCookie('csrf_token')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.ok) {
+            location.reload();
+        } else {
+            alert(data.error || 'Erro ao criar setor');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erro ao criar setor');
+    });
+}
+
+// Handle editar setor
+function handleEditarSetor(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const setorId = formData.get('setor_id');
+
+    fetch(`/ciclos/setores/${setorId}/editar`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': getCookie('csrf_token')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.ok) {
+            location.reload();
+        } else {
+            alert(data.error || 'Erro ao editar setor');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erro ao editar setor');
+    });
+}
+
+// Toggle setor (ativar/desativar)
 function toggleSetor(id, ativo) {
     const action = ativo ? 'desativar' : 'ativar';
     if (confirm(`Tem certeza que deseja ${action} este setor?`)) {
@@ -375,6 +887,7 @@ function toggleSetor(id, ativo) {
     }
 }
 
+// Excluir setor
 function excluirSetor(id, nome) {
     if (confirm(`Tem certeza que deseja excluir o setor "${nome}"? Esta ação não pode ser desfeita.`)) {
         fetch(`/ciclos/setores/${id}/excluir`, {
@@ -399,6 +912,7 @@ function excluirSetor(id, nome) {
     }
 }
 
+// Get CSRF cookie
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -413,71 +927,5 @@ function getCookie(name) {
     }
     return cookieValue;
 }
-
-// Fechar modais ao clicar fora
-window.onclick = function(event) {
-    if (event.target.classList.contains('modal')) {
-        event.target.style.display = 'none';
-    }
-}
-
-// Inicializar quando o DOM estiver pronto
-document.addEventListener('DOMContentLoaded', function() {
-    const formNovoSetor = document.getElementById('formNovoSetor');
-    if (formNovoSetor) {
-        formNovoSetor.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-
-            fetch('/ciclos/setores/novo', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': getCookie('csrf_token')
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.ok) {
-                    location.reload();
-                } else {
-                    alert(data.error || 'Erro ao criar setor');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Erro ao criar setor');
-            });
-        });
-    }
-
-    const formEditarSetor = document.getElementById('formEditarSetor');
-    if (formEditarSetor) {
-        formEditarSetor.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-
-            fetch(`/ciclos/setores/${formData.get('setor_id')}/editar`, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': getCookie('csrf_token')
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.ok) {
-                    location.reload();
-                } else {
-                    alert(data.error || 'Erro ao editar setor');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Erro ao editar setor');
-            });
-        });
-    }
-});
 </script>
 {% endblock %}
