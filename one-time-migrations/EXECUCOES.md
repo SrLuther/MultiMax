@@ -5,10 +5,22 @@ Registre aqui quando cada migração foi executada com sucesso.
 ## ✅ Migrações Aplicadas
 
 ### 2026_01_21_add_setor_to_collaborator.py
-- **Dev Local**: ✅ 2026-01-21 (Executado com sucesso)
+- **Dev Local**: ✅ 2026-01-20 (Executado com sucesso)
+  - Adicionado setor_id em collaborator ✓
+  - Adicionado setor_id em ciclo ✓ (ATUALIZADO)
+  - Índices criados ✓
 - **VPS Produção**: ⏳ Pendente
 - **Status**: Aguardando deploy em produção
 - **Pode deletar?**: ❌ Não (aguardar produção)
+
+### 2026_01_20_create_setores.py
+- **Dev Local**: ✅ 2026-01-20 (Executado com sucesso)
+  - 4 setores criados: Açougue, Estoque, Produção, Expedição ✓
+  - 6 colaboradores atribuídos ao Açougue ✓
+  - 30 lançamentos de teste criados (15h cada colaborador) ✓
+- **VPS Produção**: ⏳ Pendente
+- **Status**: Populando dados base do sistema
+- **Pode deletar?**: ❌ Não (aguardar produção + testes)
 
 ---
 

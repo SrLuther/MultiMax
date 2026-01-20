@@ -1,3 +1,19 @@
+## [2.6.74] - 2026-01-20
+
+### Correções Críticas
+
+- fix(ciclos): filtro de setor agora inclui registros históricos com `setor_id = NULL`
+  - Problema: Lançamentos antigos (criados antes da atribuição de setor) eram invisíveis ao filtrar por setor
+  - Solução: Filtro agora busca `Ciclo.setor_id == selecionado OR (Ciclo.setor_id IS NULL AND Collaborator.setor_id == selecionado)`
+  - Retrocompatibilidade: Dados antigos continuam visíveis e funcionais
+  - Afetadas 3 funções em `ciclos.py`: `_calculate_collaborator_balance_range()` e 2 queries de pesquisa
+
+### Migrações e Dados
+
+- db: adiciona coluna `setor_id` na tabela `ciclo` (antes estava apenas em `collaborator`)
+- migration: novo script `2026_01_20_create_setores.py` cria setores iniciais (Açougue, Estoque, Produção, Expedição)
+- data: população inicial de setores e atribuição de colaboradores ao Açougue
+
 ## [2.6.73] - 2026-01-21
 
 ### Funcionalidades
