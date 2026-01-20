@@ -66,26 +66,49 @@ def increment_version(version: str, bump_type: str = "patch") -> str:
     return ".".join(map(str, parts))
 
 
+FORBIDDEN_GENERIC = [
+    "atualizacao do sistema",
+    "atualização do sistema",
+    "update do sistema",
+    "versao",
+    "versão",
+    "update",
+]
+
+
+def ensure_descriptive_text(text: str, new_version: str) -> str:
+    """Garante que a descrição não seja genérica e está em PT-BR."""
+    normalized = text.strip()
+    if len(normalized) < 20:
+        raise ValueError(
+            f"Descrição muito curta para {new_version}. Inclua o que mudou (ex.: design, rotas, segurança)."
+        )
+    lowered = normalized.lower()
+    if any(bad in lowered for bad in FORBIDDEN_GENERIC):
+        raise ValueError(
+            "Descrição genérica detectada. Especifique o que foi alterado (ex.: design(setores), fix(auth), docs)."
+        )
+    return normalized
+
+
 def update_changelog(new_version: str, commit_message: str | None = None):
     """Atualiza CHANGELOG.md"""
     changelog = Path("CHANGELOG.md")
     today = date.today().isoformat()
-    
+
     if not changelog.exists():
         print("AVISO: CHANGELOG.md nao encontrado, criando...")
         commit_msg = commit_message or f"Versao {new_version}"
-        changelog_content = (
-            f"## [{new_version}] - {today}\n\n"
-            f"### Atualizacao\n\n- {commit_msg}\n\n"
-        )
+        changelog_content = f"## [{new_version}] - {today}\n\n" f"### Atualizacao\n\n- {commit_msg}\n\n"
         changelog.write_text(changelog_content, encoding="utf-8")
         return
 
     content = changelog.read_text(encoding="utf-8")
-    
+
     # Determina o tipo de mudança e seção apropriada
-    section, description = determine_section_and_description(commit_message or f"Versao {new_version}")
-    
+    section, description = determine_section_and_description(commit_message or f"Versão {new_version}")
+    description = ensure_descriptive_text(description, new_version)
+
     # Cria nova entrada
     new_entry = f"## [{new_version}] - {today}\n\n{section}\n\n- {description}\n\n"
 
@@ -103,41 +126,44 @@ def update_changelog(new_version: str, commit_message: str | None = None):
 
 
 def determine_section_and_description(message: str) -> tuple[str, str]:
-    """Determina a seção e descrição apropriada baseada na mensagem"""
-    
-    # Padrões para identificar tipo de mudança
-    if any(keyword in message.lower() for keyword in ['fix', 'correç', 'erro', 'bug', 'error']):
+    """Determina a seção e descrição apropriada baseada na mensagem (PT-BR)."""
+    msg_lower = message.lower()
+
+    if any(keyword in msg_lower for keyword in ["fix", "correç", "erro", "bug", "error"]):
         section = "### Correções"
-        # Extrai descrição mais limpa
-        if 'fix(' in message:
-            # Formato: fix(modulo): descrição
-            match = re.search(r'fix\([^)]+\):\s*(.+)', message)
+        if "fix(" in message:
+            match = re.search(r"fix\([^)]+\):\s*(.+)", message)
             if match:
                 return section, f"fix{match.group(0)}"
         return section, message
-    
-    elif any(keyword in message.lower() for keyword in ['feat', 'nova', 'adiciona', 'novo', 'implementa']):
+
+    if any(keyword in msg_lower for keyword in ["feat", "nova", "adiciona", "novo", "implementa"]):
         section = "### Novidades"
-        if 'feat(' in message:
-            match = re.search(r'feat\([^)]+\):\s*(.+)', message)
+        if "feat(" in message:
+            match = re.search(r"feat\([^)]+\):\s*(.+)", message)
             if match:
                 return section, f"feat{match.group(0)}"
         return section, message
-    
-    elif any(keyword in message.lower() for keyword in ['refactor', 'melhoria', 'otimiza', 'melhora', 'update']):
+
+    if any(keyword in msg_lower for keyword in ["refactor", "melhoria", "otimiza", "melhora"]):
         section = "### Melhorias"
         return section, message
-    
-    elif 'versao' in message.lower():
-        # Se for apenas "Versao X.Y.Z", tenta extrair mais contexto
-        if len(message.split('-')) > 1:
-            desc = message.split('-', 1)[1].strip()
+
+    if "design" in msg_lower:
+        section = "### Design"
+        return section, message
+
+    if "docs" in msg_lower or "documenta" in msg_lower:
+        section = "### Documentação"
+        return section, message
+
+    if "versao" in msg_lower or "versão" in msg_lower:
+        if len(message.split("-")) > 1:
+            desc = message.split("-", 1)[1].strip()
             return determine_section_and_description(desc)
-        else:
-            return "### Atualização", message
-    
-    else:
         return "### Atualização", message
+
+    return "### Atualização", message
 
 
 def update_init_py(new_version: str):
@@ -207,89 +233,81 @@ def create_git_tag(new_version: str, commit_message: str | None = None):
     return True
 
 
-def get_descriptive_commit_message(new_version: str) -> str:
-    """Analisa mudanças e gera mensagem descritiva para o changelog"""
-    
+def get_descriptive_commit_message(new_version: str) -> str:  # noqa: C901
+    """Analisa mudanças e gera mensagem descritiva para o changelog (PT-BR e não genérica)."""
+
     # 1. Tenta obter mensagens de commits não enviados
     try:
         result = subprocess.run(
-            ["git", "log", "origin/nova-versao-deploy..HEAD", "--oneline"], 
-            capture_output=True, text=True
+            ["git", "log", "origin/nova-versao-deploy..HEAD", "--oneline"], capture_output=True, text=True
         )
         if result.returncode == 0 and result.stdout.strip():
-            commits = result.stdout.strip().split('\n')
-            if commits:
-                # Pega os commits mais relevantes (ignorando commits de versão)
-                relevant_commits = []
-                for commit in commits:
-                    if not any(keyword in commit.lower() for keyword in ['chore:', 'merge', 'versao', 'version']):
-                        relevant_commits.append(commit)
-                
-                if relevant_commits:
-                    # Extrai descrição do commit (remove hash e tipo)
-                    commit_desc = relevant_commits[0]
-                    # Remove hash no início (ex: "abc1234 feat(adiciona): descrição")
-                    if ' ' in commit_desc:
-                        commit_desc = ' '.join(commit_desc.split(' ')[1:])
-                    
-                    return f"v{new_version} - {commit_desc}"
+            commits = result.stdout.strip().split("\n")
+            relevant = []
+            for commit in commits:
+                if any(keyword in commit.lower() for keyword in ["chore:", "merge", "versao", "version"]):
+                    continue
+                # Remove hash
+                cleaned = commit.split(" ", 1)[1] if " " in commit else commit
+                relevant.append(cleaned)
+            if relevant:
+                # Usa até duas mensagens para ficar mais descritivo
+                joined = "; ".join(relevant[:2])
+                return f"{joined}"
     except Exception:
         pass
-    
+
     # 2. Se não há commits não enviados, analisa staged changes
     try:
-        result = subprocess.run(
-            ["git", "diff", "--cached", "--name-only"], 
-            capture_output=True, text=True
-        )
+        result = subprocess.run(["git", "diff", "--cached", "--name-only"], capture_output=True, text=True)
         if result.returncode == 0 and result.stdout.strip():
-            changed_files = result.stdout.strip().split('\n')
-            
+            changed_files = result.stdout.strip().split("\n")
+
             # Analisa tipos de mudanças baseado nos arquivos
             changes = []
             for file in changed_files:
-                if 'models.py' in file:
+                if "models.py" in file:
                     changes.append("atualização de modelos de dados")
-                elif 'routes/' in file:
+                elif "routes/" in file:
                     changes.append("correções de rotas")
-                elif 'templates/' in file:
+                elif "templates/" in file:
                     changes.append("ajustes de interface")
-                elif '__init__.py' in file:
+                elif "__init__.py" in file:
                     continue  # Ignora mudanças de versão
-                elif any(ext in file for ext in ['.py', '.js', '.html']):
+                elif any(ext in file for ext in [".py", ".js", ".html"]):
                     changes.append("melhorias de código")
-            
+
             if changes:
-                return f"v{new_version} - {', '.join(changes[:2])}"
+                return ", ".join(changes[:2])
     except Exception:
         pass
-    
+
     # 3. Se não há staged changes, analisa working directory
     try:
-        result = subprocess.run(
-            ["git", "status", "--porcelain"], 
-            capture_output=True, text=True
-        )
+        result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
         if result.returncode == 0 and result.stdout.strip():
-            lines = result.stdout.strip().split('\n')
-            
+            lines = result.stdout.strip().split("\n")
+
             # Analisa mudanças não commitadas
             changes = []
             for line in lines:
-                if 'models.py' in line:
+                if "models.py" in line:
                     changes.append("atualização de modelos de dados")
-                elif 'routes/' in line:
+                elif "routes/" in line:
                     changes.append("correções de rotas")
-                elif 'templates/' in line:
+                elif "templates/" in line:
                     changes.append("ajustes de interface")
-            
+
             if changes:
-                return f"v{new_version} - {', '.join(changes[:2])}"
+                return ", ".join(changes[:2])
     except Exception:
         pass
-    
-    # 4. Fallback genérico com versão
-    return f"v{new_version} - Atualização do sistema"
+
+    # 4. Sem descrição suficiente: força erro para evitar texto genérico
+    raise ValueError(
+        "Não foi possível gerar descrição detalhada. Adicione commits descritivos (feat/fix/docs/design) "
+        "ou informe a mensagem manualmente."
+    )
 
 
 def main():
@@ -315,6 +333,9 @@ def main():
     # Obtém mensagem descritiva das mudanças
     commit_message = get_descriptive_commit_message(new_version)
 
+    # Garante que a mensagem é descritiva e em PT-BR
+    commit_message = ensure_descriptive_text(commit_message, new_version)
+
     # Atualiza arquivos
     update_changelog(new_version, commit_message)
     update_init_py(new_version)
@@ -325,7 +346,7 @@ def main():
     print("Arquivos atualizados!")
     print()
     print("Proximos passos (ou use git-push-with-version.ps1):")
-    print(f"1. git add CHANGELOG.md multimax/__init__.py LEIA-ME.txt VERSION_SYNC.md")
+    print("1. git add CHANGELOG.md multimax/__init__.py LEIA-ME.txt VERSION_SYNC.md")
     print(f'2. git commit -m "chore: Atualiza versao para {new_version}"')
     print(f'3. git tag -a v{new_version} -m "Versao {new_version}"')
     print("4. git push origin nova-versao-deploy")
