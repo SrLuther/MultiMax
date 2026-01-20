@@ -2,7 +2,8 @@
 
 ### Correções
 
-- fix(setores): corrige erro 500 por `<h1>` vazio em setores.html, adicionando título e ícone
+- fix(setores): corrige erro 500 em setores.html - adiciona `<h1>` com título e ícone, fecha `{% endblock %}` do bloco content
+- fix(changelog): resolve caminho absoluto do CHANGELOG.md em produção usando `current_app.root_path` para evitar erro "arquivo não encontrado"
 
 ## [2.6.71] - 2026-01-20
 

@@ -1,6 +1,7 @@
 from datetime import date, datetime, timedelta
+from pathlib import Path
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import func
 
@@ -14,6 +15,19 @@ from ..module_registry import get_active_module_labels
 bp = Blueprint("home", __name__, url_prefix="/home")
 
 
+def _resolve_changelog_path() -> "Path":
+    """Retorna caminho absoluto do CHANGELOG.md, independente do cwd."""
+    from pathlib import Path
+
+    # Base do projeto é o diretório acima de app root (multimax/routes/.. -> raiz)
+    base_dir = Path(current_app.root_path).parent
+    candidate = base_dir / "CHANGELOG.md"
+    if candidate.exists():
+        return candidate
+    # Fallback: caminho relativo ao módulo caso o root_path esteja diferente
+    return Path(__file__).resolve().parents[2] / "CHANGELOG.md"
+
+
 def _get_last_update_date_from_changelog() -> str:
     """
     Retorna apenas a data (DD/MM/AAAA) do topo do CHANGELOG.md.
@@ -21,9 +35,8 @@ def _get_last_update_date_from_changelog() -> str:
     """
     try:
         import re
-        from pathlib import Path
 
-        p = Path("CHANGELOG.md")
+        p = _resolve_changelog_path()
         if not p.exists():
             return datetime.now().strftime("%d/%m/%Y")
         lines = p.read_text(encoding="utf-8", errors="ignore").splitlines()
@@ -820,9 +833,8 @@ def changelog_versoes():
     """Exibe página de changelog formatada baseada no arquivo CHANGELOG.md"""
     try:
         import re
-        from pathlib import Path
 
-        changelog_path = Path("CHANGELOG.md")
+        changelog_path = _resolve_changelog_path()
         if not changelog_path.exists():
             return render_template(
                 "changelog_versoes.html", changelog_content=None, error="Arquivo CHANGELOG.md não encontrado"
