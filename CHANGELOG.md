@@ -1,3 +1,9 @@
+## [2.6.68] - 2026-01-19
+
+### Correções
+
+- fix(setores): adicionar DOMContentLoaded em setores.html para evitar erro de função undefined
+
 ## [2.6.67] - 2026-01-19
 
 ### Correções

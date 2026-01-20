@@ -258,7 +258,7 @@
                     <button class="setor-btn setor-btn-secondary" onclick="abrirModalEditarSetor({{ setor.id }}, '{{ setor.nome|replace(chr(39), chr(92) + chr(39)) }}', '{{ setor.descricao|replace(chr(39), chr(92) + chr(39)) or '' }}')">
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="setor-btn setor-btn-{% if setor.ativo %}secondary{% else %}primary{% endif %}" 
+                    <button class="setor-btn setor-btn-{% if setor.ativo %}secondary{% else %}primary{% endif %}"
                             onclick="toggleSetor({{ setor.id }}, {{ setor.ativo|lower }})">
                         <i class="bi bi-{% if setor.ativo %}pause{% else %}play{% endif %}"></i>
                         {% if setor.ativo %}Desativar{% else %}Ativar{% endif %}
@@ -421,55 +421,63 @@ window.onclick = function(event) {
     }
 }
 
-// Form submit handlers
-document.getElementById('formNovoSetor').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    
-    fetch('/ciclos/setores/novo', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRFToken': getCookie('csrf_token')
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.ok) {
-            location.reload();
-        } else {
-            alert(data.error || 'Erro ao criar setor');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Erro ao criar setor');
-    });
-});
+// Inicializar quando o DOM estiver pronto
+document.addEventListener('DOMContentLoaded', function() {
+    const formNovoSetor = document.getElementById('formNovoSetor');
+    if (formNovoSetor) {
+        formNovoSetor.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
 
-document.getElementById('formEditarSetor').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    
-    fetch(`/ciclos/setores/${formData.get('setor_id')}/editar`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRFToken': getCookie('csrf_token')
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.ok) {
-            location.reload();
-        } else {
-            alert(data.error || 'Erro ao editar setor');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Erro ao editar setor');
-    });
+            fetch('/ciclos/setores/novo', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': getCookie('csrf_token')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    location.reload();
+                } else {
+                    alert(data.error || 'Erro ao criar setor');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Erro ao criar setor');
+            });
+        });
+    }
+
+    const formEditarSetor = document.getElementById('formEditarSetor');
+    if (formEditarSetor) {
+        formEditarSetor.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+
+            fetch(`/ciclos/setores/${formData.get('setor_id')}/editar`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': getCookie('csrf_token')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    location.reload();
+                } else {
+                    alert(data.error || 'Erro ao editar setor');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Erro ao editar setor');
+            });
+        });
+    }
 });
 </script>
 {% endblock %}
