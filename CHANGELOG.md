@@ -1,3 +1,9 @@
+## [2.6.70] - 2026-01-20
+
+### Atualização
+
+- v2.6.70 - Atualização do sistema
+
 ## [2.6.69] - 2026-01-19
 
 ### Novidades

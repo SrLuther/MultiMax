@@ -1,45 +1,47 @@
 {% extends 'base.html' %}
 
-{% block title %}Setores — MultiMax{% endblock %}
+{% block title %}Setores - MultiMax{% endblock %}
 
 {% block content %}
 <div class="setores-container">
-    <!-- Hero Header -->
+    <!-- Hero Header com Gradiente Premium -->
     <div class="setores-hero">
         <div class="setores-hero-content">
             <div>
                 <h1 class="setores-title">
-                    <i class="bi bi-building setores-title-icon"></i>
-                    Gestão de Setores
-                </h1>
-                <p class="setores-subtitle">Organize e controle os setores da sua empresa</p>
+                <p class="setores-subtitle">Organize e controle os departamentos e áreas da sua empresa</p>
             </div>
-            <button class="btn-action btn-action-primary" onclick="abrirModalNovoSetor()" id="btnNovoSetor">
-                <i class="bi bi-plus-lg"></i>
-                <span>Novo Setor</span>
-            </button>
+            <div class="setores-hero-actions">
+                <button class="btn-action btn-action-primary" onclick="abrirModalNovoSetor()" id="btnNovoSetor">
+                    <i class="bi bi-plus-lg"></i>
+                    <span>Novo Setor</span>
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- Card de Informação -->
+    <!-- Estado Vazio - Quando não há setores -->
     {% if not setores %}
     <div class="setores-empty-state">
-        <div class="empty-icon">🏢</div>
+        <div class="empty-icon">
+            <i class="bi bi-inbox"></i>
+        </div>
         <h2 class="empty-title">Nenhum setor cadastrado</h2>
-        <p class="empty-text">Comece a organizar sua empresa criando o primeiro setor</p>
+        <p class="empty-text">Comece a organizar sua empresa criando o primeiro departamento ou setor</p>
         <button class="btn-action btn-action-primary" onclick="abrirModalNovoSetor()">
-            <i class="bi bi-plus-lg"></i>
+            <i class="bi bi-plus-circle"></i>
             Criar Primeiro Setor
         </button>
     </div>
+
+    <!-- Grid de Setores com Design Premium -->
     {% else %}
-    <!-- Grid de Setores -->
     <div class="setores-grid">
         {% for setor in setores %}
         <div class="setor-card {% if not setor.ativo %}setor-inactive{% endif %}">
-            <!-- Card Header com Status -->
+            <!-- Card Header com Nome e Status -->
             <div class="setor-card-header">
-                <div class="setor-header-content">
+                <div class="setor-header-title">
                     <h3 class="setor-card-title">{{ setor.nome }}</h3>
                     <span class="setor-status-badge {% if setor.ativo %}status-active{% else %}status-inactive{% endif %}">
                         <span class="status-dot"></span>
@@ -51,27 +53,33 @@
             <!-- Card Description -->
             {% if setor.descricao %}
             <div class="setor-card-description">
-                {{ setor.descricao }}
+                <p>{{ setor.descricao }}</p>
             </div>
             {% endif %}
 
-            <!-- Card Footer com Meta Info -->
+            <!-- Card Meta Info - Criação -->
             <div class="setor-card-meta">
                 {% if setor.created_by %}
                 <div class="meta-item">
-                    <i class="bi bi-person"></i>
-                    <span class="meta-label">Criado por: <strong>{{ setor.created_by }}</strong></span>
+                    <i class="bi bi-person-circle"></i>
+                    <div class="meta-content">
+                        <span class="meta-label">Criado por</span>
+                        <span class="meta-value">{{ setor.created_by }}</span>
+                    </div>
                 </div>
                 {% endif %}
                 {% if setor.created_at %}
                 <div class="meta-item">
-                    <i class="bi bi-calendar"></i>
-                    <span class="meta-label">{{ setor.created_at.strftime('%d/%m/%Y') }}</span>
+                    <i class="bi bi-calendar-event"></i>
+                    <div class="meta-content">
+                        <span class="meta-label">Data de Criação</span>
+                        <span class="meta-value">{{ setor.created_at.strftime('%d/%m/%Y') }}</span>
+                    </div>
                 </div>
                 {% endif %}
             </div>
 
-            <!-- Card Actions -->
+            <!-- Card Actions - Botões de Ação -->
             <div class="setor-card-actions">
                 <button class="btn-card btn-card-secondary btn-editar"
                         data-setor-id="{{ setor.id }}"
@@ -85,7 +93,7 @@
                         data-setor-id="{{ setor.id }}"
                         data-setor-ativo="{{ setor.ativo|lower }}"
                         title="{% if setor.ativo %}Desativar setor{% else %}Ativar setor{% endif %}">
-                    <i class="bi bi-{% if setor.ativo %}pause{% else %}play{% endif %}"></i>
+                    <i class="bi bi-{% if setor.ativo %}pause-circle{% else %}play-circle{% endif %}"></i>
                     {% if setor.ativo %}Desativar{% else %}Ativar{% endif %}
                 </button>
                 <button class="btn-card btn-card-danger btn-excluir"
@@ -100,6 +108,54 @@
         {% endfor %}
     </div>
     {% endif %}
+
+    <!-- Card Informativo -->
+    <div class="setores-info-card">
+        <div class="setores-info-header">
+            <h3 class="setores-info-title">
+                <i class="bi bi-info-circle"></i>
+                Como Funcionam os Setores
+            </h3>
+        </div>
+        <div class="setores-info-content">
+            <div class="setores-info-item">
+                <div class="setores-info-icon">
+                    <i class="bi bi-diagram-3"></i>
+                </div>
+                <div class="setores-info-text">
+                    <h4>Organização Estrutural</h4>
+                    <p>Crie setores para representar os departamentos da sua empresa. Cada setor pode ter seus próprios colaboradores, ciclos e registros independentes.</p>
+                </div>
+            </div>
+            <div class="setores-info-item">
+                <div class="setores-info-icon">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+                <div class="setores-info-text">
+                    <h4>Atribuição de Colaboradores</h4>
+                    <p>Associe colaboradores aos setores para facilitar a gestão de horas, folgas e atestados por departamento. Melhora a rastreabilidade e controle operacional.</p>
+                </div>
+            </div>
+            <div class="setores-info-item">
+                <div class="setores-info-icon">
+                    <i class="bi bi-graph-up"></i>
+                </div>
+                <div class="setores-info-text">
+                    <h4>Relatórios Segmentados</h4>
+                    <p>Analise dados e gere relatórios específicos por setor. Compare performance entre departamentos e tome decisões baseadas em dados segmentados.</p>
+                </div>
+            </div>
+            <div class="setores-info-item">
+                <div class="setores-info-icon">
+                    <i class="bi bi-toggle2-on"></i>
+                </div>
+                <div class="setores-info-text">
+                    <h4>Ativação/Desativação</h4>
+                    <p>Ative ou desative setores conforme necessário. Setores inativos continuam no histórico sem aparecer em listas de seleção ativa.</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Modal Novo Setor -->
@@ -117,7 +173,7 @@
         <form id="formNovoSetor" class="mm-form">
             <div class="mm-form-group">
                 <label class="mm-form-label" for="nomeSetor">
-                    <i class="bi bi-tags"></i>
+                    <i class="bi bi-tag"></i>
                     Nome do Setor <span class="required">*</span>
                 </label>
                 <input
@@ -125,7 +181,7 @@
                     id="nomeSetor"
                     name="nome"
                     class="mm-form-input"
-                    placeholder="Ex: Produção, Gestão, Estoque..."
+                    placeholder="Ex: Produção, Gestão, Estoque, Logística..."
                     required
                     maxlength="100">
                 <small class="form-text-muted">Máximo de 100 caracteres</small>
@@ -139,7 +195,7 @@
                     id="descricaoSetor"
                     name="descricao"
                     class="mm-form-input mm-form-textarea"
-                    placeholder="Descreva as atividades deste setor..."
+                    placeholder="Descreva brevemente as atividades e responsabilidades deste setor..."
                     maxlength="500"></textarea>
                 <small class="form-text-muted">Opcional - Máximo de 500 caracteres</small>
             </div>
@@ -148,7 +204,7 @@
                     Cancelar
                 </button>
                 <button type="submit" class="btn-action btn-action-primary">
-                    <i class="bi bi-check-lg"></i>
+                    <i class="bi bi-check-circle"></i>
                     Criar Setor
                 </button>
             </div>
@@ -172,7 +228,7 @@
             <input type="hidden" id="editarSetorId" name="setor_id">
             <div class="mm-form-group">
                 <label class="mm-form-label" for="editarNomeSetor">
-                    <i class="bi bi-tags"></i>
+                    <i class="bi bi-tag"></i>
                     Nome do Setor <span class="required">*</span>
                 </label>
                 <input
@@ -180,9 +236,10 @@
                     id="editarNomeSetor"
                     name="nome"
                     class="mm-form-input"
-                    placeholder="Ex: Produção, Gestão, Estoque..."
+                    placeholder="Ex: Produção, Gestão, Estoque, Logística..."
                     required
                     maxlength="100">
+                <small class="form-text-muted">Máximo de 100 caracteres</small>
             </div>
             <div class="mm-form-group">
                 <label class="mm-form-label" for="editarDescricaoSetor">
@@ -193,14 +250,16 @@
                     id="editarDescricaoSetor"
                     name="descricao"
                     class="mm-form-input mm-form-textarea"
+                    placeholder="Descreva brevemente as atividades e responsabilidades deste setor..."
                     maxlength="500"></textarea>
+                <small class="form-text-muted">Opcional - Máximo de 500 caracteres</small>
             </div>
             <div class="mm-modal-footer">
                 <button type="button" class="btn-action btn-action-secondary" onclick="fecharModal('modalEditarSetor')">
                     Cancelar
                 </button>
                 <button type="submit" class="btn-action btn-action-primary">
-                    <i class="bi bi-check-lg"></i>
+                    <i class="bi bi-check-circle"></i>
                     Salvar Alterações
                 </button>
             </div>
@@ -208,308 +267,501 @@
     </div>
 </div>
 
-{% endblock %}
-
-{% block extra_css %}
 <style>
 /* ============================================================================
-   SETORES - LAYOUT E DESIGN SYSTEM INTEGRADO
+   SETORES - ESTILO PREMIUM COM DESIGN SYSTEM DO PROJETO
    ============================================================================ */
 
-:root {
-    --setor-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-    --setor-card-shadow-hover: 0 8px 16px rgba(0, 0, 0, 0.12);
-}
-
-/* Contêiner Principal */
 .setores-container {
+    padding: 2rem;
     max-width: 1400px;
     margin: 0 auto;
-    padding: var(--mm-space-8);
-    padding-top: var(--mm-space-6);
+    animation: fadeIn 0.5s ease-in;
 }
 
-/* Hero Section */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Hero Section com Gradiente Premium */
 .setores-hero {
-    background: linear-gradient(135deg, var(--mm-bg-card) 0%, rgba(var(--mm-primary-rgb), 0.02) 100%);
-    border: 1px solid var(--mm-border);
-    border-radius: var(--mm-radius-lg);
-    padding: var(--mm-space-8);
-    margin-bottom: var(--mm-space-8);
-    box-shadow: var(--mm-shadow);
+    background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+    border-radius: 20px;
+    padding: 3rem 2.5rem;
+    margin-bottom: 2.5rem;
+    box-shadow: 0 10px 40px rgba(16, 185, 129, 0.25);
+    position: relative;
+    overflow: hidden;
+    color: white;
+}
+
+.setores-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: rotate 20s linear infinite;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 .setores-hero-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: var(--mm-space-8);
+    flex-wrap: wrap;
+    gap: 2rem;
+    position: relative;
+    z-index: 1;
 }
 
 .setores-title {
-    font-size: var(--mm-text-3xl);
-    font-weight: var(--mm-font-bold);
-    color: var(--mm-text-primary);
+    font-size: 3rem;
+    font-weight: 800;
+    color: white;
     margin: 0;
     display: flex;
     align-items: center;
-    gap: var(--mm-space-3);
+    gap: 1rem;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    letter-spacing: -0.5px;
 }
 
 .setores-title-icon {
-    color: var(--mm-primary);
-    font-size: var(--mm-text-4xl);
+    font-size: 3.5rem;
+    animation: bounce 2s ease-in-out infinite;
+    color: white;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
 }
 
 .setores-subtitle {
-    color: var(--mm-text-secondary);
-    font-size: var(--mm-text-lg);
-    margin: var(--mm-space-2) 0 0 0;
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.95);
+    margin-top: 0.5rem;
+    margin-bottom: 0;
+}
+
+.setores-hero-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.75rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.btn-action-primary {
+    background: white;
+    color: #059669;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.btn-action-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    background: #f0f9f8;
+}
+
+.btn-action-secondary {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-action-secondary:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
 }
 
 /* Grid de Setores */
 .setores-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-    gap: var(--mm-space-6);
-    margin-bottom: var(--mm-space-8);
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 1.75rem;
+    margin-bottom: 3rem;
 }
 
 /* Card de Setor */
 .setor-card {
     background: var(--mm-bg-card);
+    border-radius: 16px;
+    padding: 1.75rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
     border: 1px solid var(--mm-border);
-    border-radius: var(--mm-radius-lg);
-    padding: var(--mm-space-6);
+    transition: all 0.3s ease;
     display: flex;
     flex-direction: column;
-    gap: var(--mm-space-4);
-    box-shadow: var(--setor-card-shadow);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.setor-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, #10b981, #059669);
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .setor-card:hover {
-    box-shadow: var(--setor-card-shadow-hover);
-    border-color: var(--mm-primary);
-    transform: translateY(-2px);
+    transform: translateY(-8px);
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.15);
+    border-color: #10b981;
+}
+
+.setor-card:hover::before {
+    opacity: 1;
 }
 
 .setor-card.setor-inactive {
     opacity: 0.7;
-    background: rgba(var(--mm-text-muted), 0.02);
+    background: rgba(107, 114, 128, 0.05);
 }
 
 /* Card Header */
 .setor-card-header {
-    border-bottom: 1px solid var(--mm-border);
-    padding-bottom: var(--mm-space-4);
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--mm-border);
 }
 
-.setor-header-content {
+.setor-header-title {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: var(--mm-space-4);
+    gap: 1rem;
 }
 
 .setor-card-title {
-    font-size: var(--mm-text-xl);
-    font-weight: var(--mm-font-semibold);
-    color: var(--mm-text-primary);
+    font-size: 1.5rem;
+    font-weight: 700;
     margin: 0;
-    flex: 1;
+    color: var(--mm-text);
 }
 
-/* Status Badge */
 .setor-status-badge {
     display: inline-flex;
     align-items: center;
-    gap: var(--mm-space-2);
-    padding: var(--mm-space-2) var(--mm-space-3);
-    border-radius: 999px;
-    font-size: var(--mm-text-xs);
-    font-weight: var(--mm-font-medium);
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
     white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.status-active {
+    background: rgba(16, 185, 129, 0.15);
+    color: #047857;
+}
+
+.status-inactive {
+    background: rgba(107, 114, 128, 0.15);
+    color: #6b7280;
 }
 
 .status-dot {
-    display: inline-block;
     width: 8px;
     height: 8px;
     border-radius: 50%;
-}
-
-.setor-status-badge.status-active {
-    background: rgba(var(--mm-success), 0.1);
-    color: var(--mm-success);
-}
-
-.setor-status-badge.status-active .status-dot {
-    background: var(--mm-success);
-    animation: pulse 2s infinite;
-}
-
-.setor-status-badge.status-inactive {
-    background: rgba(var(--mm-danger), 0.1);
-    color: var(--mm-danger);
-}
-
-.setor-status-badge.status-inactive .status-dot {
-    background: var(--mm-danger);
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    background: currentColor;
+    display: inline-block;
 }
 
 /* Card Description */
 .setor-card-description {
     color: var(--mm-text-secondary);
-    font-size: var(--mm-text-sm);
-    line-height: var(--mm-leading-normal);
-    flex: 1;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    max-height: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* Card Meta */
+.setor-card-description p {
+    margin: 0;
+}
+
+/* Card Meta Info */
 .setor-card-meta {
-    border-top: 1px solid var(--mm-border);
-    padding-top: var(--mm-space-3);
-    font-size: var(--mm-text-xs);
     display: flex;
     flex-direction: column;
-    gap: var(--mm-space-2);
+    gap: 0.875rem;
+    padding: 1rem 0;
+    border-top: 1px solid var(--mm-border);
+    border-bottom: 1px solid var(--mm-border);
 }
 
 .meta-item {
     display: flex;
-    align-items: center;
-    gap: var(--mm-space-2);
-    color: var(--mm-text-muted);
+    align-items: flex-start;
+    gap: 0.75rem;
+    color: var(--mm-text-secondary);
+    font-size: 0.875rem;
 }
 
 .meta-item i {
-    color: var(--mm-primary);
-    font-size: var(--mm-text-sm);
+    color: #10b981;
+    font-size: 1.1rem;
+    margin-top: 2px;
+}
+
+.meta-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
 }
 
 .meta-label {
-    font-size: var(--mm-text-xs);
+    font-weight: 500;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--mm-text-secondary);
+}
+
+.meta-value {
+    color: var(--mm-text);
+    font-weight: 600;
 }
 
 /* Card Actions */
 .setor-card-actions {
     display: flex;
-    gap: var(--mm-space-2);
-    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
 }
 
 .btn-card {
     flex: 1;
-    min-width: 100px;
-    padding: var(--mm-space-2) var(--mm-space-3);
+    padding: 0.75rem;
+    border-radius: 10px;
     border: none;
-    border-radius: var(--mm-radius-md);
-    font-size: var(--mm-text-sm);
-    font-weight: var(--mm-font-medium);
-    cursor: pointer;
-    transition: all 0.2s ease;
+    font-weight: 600;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: var(--mm-space-2);
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+    text-decoration: none;
+    min-height: 40px;
 }
 
 .btn-card-primary {
-    background: var(--mm-primary);
-    color: var(--mm-text-primary);
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
 }
 
 .btn-card-primary:hover {
-    background: var(--mm-primary-dark);
-    box-shadow: 0 4px 12px rgba(var(--mm-primary-rgb), 0.3);
+    background: linear-gradient(135deg, #059669, #047857);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .btn-card-secondary {
-    background: var(--mm-bg-secondary);
-    color: var(--mm-text-primary);
+    background: var(--mm-bg);
+    color: var(--mm-text);
     border: 1px solid var(--mm-border);
 }
 
 .btn-card-secondary:hover {
     background: var(--mm-border);
-    border-color: var(--mm-primary);
+    border-color: #10b981;
+    color: #10b981;
 }
 
 .btn-card-danger {
-    background: rgba(var(--mm-danger), 0.1);
-    color: var(--mm-danger);
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .btn-card-danger:hover {
-    background: var(--mm-danger);
+    background: #ef4444;
     color: white;
+    transform: translateY(-2px);
 }
 
 /* Empty State */
 .setores-empty-state {
     text-align: center;
-    padding: var(--mm-space-16);
-    background: rgba(var(--mm-primary-rgb), 0.02);
+    padding: 4rem 2rem;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(5, 150, 105, 0.05));
+    border-radius: 20px;
     border: 2px dashed var(--mm-border);
-    border-radius: var(--mm-radius-lg);
+    margin: 2rem 0;
 }
 
 .empty-icon {
-    font-size: 4rem;
-    margin-bottom: var(--mm-space-4);
+    font-size: 5rem;
+    color: #10b981;
+    margin-bottom: 1rem;
+    opacity: 0.8;
 }
 
 .empty-title {
-    font-size: var(--mm-text-2xl);
-    font-weight: var(--mm-font-bold);
-    color: var(--mm-text-primary);
-    margin-bottom: var(--mm-space-2);
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--mm-text);
+    margin: 0 0 0.75rem 0;
 }
 
 .empty-text {
-    font-size: var(--mm-text-base);
+    font-size: 1rem;
     color: var(--mm-text-secondary);
-    margin-bottom: var(--mm-space-6);
+    margin: 0 0 1.5rem 0;
 }
 
-/* Modais */
+/* Info Card */
+.setores-info-card {
+    background: linear-gradient(135deg, #f0fdf4 0%, #e8f5e9 100%);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-top: 3rem;
+    border: 2px solid #10b981;
+    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.15);
+}
+
+.setores-info-header {
+    margin-bottom: 1.75rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid rgba(16, 185, 129, 0.2);
+}
+
+.setores-info-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #047857;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.setores-info-title i {
+    color: #10b981;
+    font-size: 1.75rem;
+}
+
+.setores-info-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.setores-info-item {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    gap: 1rem;
+}
+
+.setores-info-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
+}
+
+.setores-info-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    background: rgba(16, 185, 129, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #10b981;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.setores-info-text h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    color: #047857;
+}
+
+.setores-info-text p {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* Modal Styles */
 .mm-modal {
     display: none;
     position: fixed;
-    top: 0;
+    z-index: 1000;
     left: 0;
+    top: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(2px);
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.3s ease;
 }
 
 .mm-modal.active {
     display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .mm-modal-content {
     background: var(--mm-bg-card);
-    border-radius: var(--mm-radius-lg);
-    box-shadow: var(--mm-shadow-xl);
-    width: 90%;
+    padding: 2rem;
+    border-radius: 16px;
     max-width: 500px;
-    overflow: hidden;
-    animation: slideUp 0.3s ease;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: slideIn 0.3s ease;
 }
 
-@keyframes slideUp {
+@keyframes slideIn {
     from {
-        transform: translateY(20px);
+        transform: translateY(-50px);
         opacity: 0;
     }
     to {
@@ -522,82 +774,84 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--mm-space-6);
-    border-bottom: 1px solid var(--mm-border);
-    gap: var(--mm-space-4);
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--mm-border);
 }
 
 .mm-modal-title {
-    font-size: var(--mm-text-xl);
-    font-weight: var(--mm-font-bold);
-    color: var(--mm-text-primary);
+    font-size: 1.5rem;
+    font-weight: 700;
     margin: 0;
+    color: var(--mm-text);
     display: flex;
     align-items: center;
-    gap: var(--mm-space-3);
-    flex: 1;
+    gap: 0.75rem;
+}
+
+.mm-modal-title i {
+    color: #10b981;
 }
 
 .mm-modal-close {
     background: none;
     border: none;
-    font-size: var(--mm-text-xl);
+    font-size: 1.5rem;
+    color: var(--mm-text-secondary);
     cursor: pointer;
-    color: var(--mm-text-muted);
-    padding: var(--mm-space-1);
-    transition: all 0.2s ease;
+    transition: color 0.2s;
 }
 
 .mm-modal-close:hover {
-    color: var(--mm-text-primary);
-    transform: rotate(90deg);
+    color: #10b981;
 }
 
-/* Forms */
 .mm-form {
-    padding: var(--mm-space-6);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
 }
 
 .mm-form-group {
-    margin-bottom: var(--mm-space-5);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .mm-form-label {
-    display: block;
-    margin-bottom: var(--mm-space-2);
-    font-weight: var(--mm-font-medium);
-    color: var(--mm-text-primary);
-    font-size: var(--mm-text-sm);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--mm-text);
     display: flex;
     align-items: center;
-    gap: var(--mm-space-2);
+    gap: 0.5rem;
 }
 
 .mm-form-label i {
-    color: var(--mm-primary);
+    color: #10b981;
 }
 
-.mm-form-label .required {
-    color: var(--mm-danger);
+.required {
+    color: #ef4444;
 }
 
-.mm-form-input {
-    width: 100%;
-    padding: var(--mm-space-3) var(--mm-space-4);
-    border: 1px solid var(--mm-border);
-    border-radius: var(--mm-radius-md);
-    background: var(--mm-bg-card);
-    color: var(--mm-text-primary);
-    font-family: var(--mm-font-sans);
-    font-size: var(--mm-text-sm);
-    transition: all 0.2s ease;
+.mm-form-input,
+.mm-form-textarea {
+    padding: 0.875rem 1rem;
+    border: 2px solid var(--mm-border);
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    background: var(--mm-bg);
+    color: var(--mm-text);
+    transition: all 0.3s ease;
 }
 
-.mm-form-input:focus {
+.mm-form-input:focus,
+.mm-form-textarea:focus {
     outline: none;
-    border-color: var(--mm-primary);
-    box-shadow: 0 0 0 3px rgba(var(--mm-primary-rgb), 0.1);
-    background: var(--mm-bg-card);
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
 
 .mm-form-textarea {
@@ -606,65 +860,27 @@
 }
 
 .form-text-muted {
-    display: block;
-    font-size: var(--mm-text-xs);
-    color: var(--mm-text-muted);
-    margin-top: var(--mm-space-1);
+    font-size: 0.75rem;
+    color: var(--mm-text-secondary);
 }
 
 .mm-modal-footer {
     display: flex;
+    gap: 1rem;
     justify-content: flex-end;
-    gap: var(--mm-space-3);
-    padding: var(--mm-space-6);
-    border-top: 1px solid var(--mm-border);
-    background: rgba(var(--mm-primary-rgb), 0.01);
-}
-
-.btn-action {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--mm-space-2);
-    padding: var(--mm-space-3) var(--mm-space-5);
-    border: none;
-    border-radius: var(--mm-radius-md);
-    font-size: var(--mm-text-sm);
-    font-weight: var(--mm-font-medium);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.btn-action-primary {
-    background: var(--mm-primary);
-    color: var(--mm-text-primary);
-}
-
-.btn-action-primary:hover {
-    background: var(--mm-primary-dark);
-    box-shadow: 0 4px 12px rgba(var(--mm-primary-rgb), 0.3);
-    transform: translateY(-2px);
-}
-
-.btn-action-secondary {
-    background: var(--mm-bg-secondary);
-    color: var(--mm-text-primary);
-    border: 1px solid var(--mm-border);
-}
-
-.btn-action-secondary:hover {
-    background: var(--mm-border);
-    border-color: var(--mm-primary);
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid var(--mm-border);
 }
 
 /* Responsivo */
 @media (max-width: 768px) {
     .setores-container {
-        padding: var(--mm-space-4);
+        padding: 1rem;
     }
 
     .setores-hero {
-        padding: var(--mm-space-4);
+        padding: 2rem 1.5rem;
     }
 
     .setores-hero-content {
@@ -673,60 +889,49 @@
     }
 
     .setores-title {
-        font-size: var(--mm-text-2xl);
+        font-size: 2rem;
     }
 
     .setores-grid {
         grid-template-columns: 1fr;
+        gap: 1rem;
     }
 
-    #btnNovoSetor {
-        width: 100%;
-    }
-
-    .setor-header-content {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .setor-card-actions {
-        gap: var(--mm-space-2);
-    }
-
-    .btn-card {
-        min-width: auto;
-        flex-basis: calc(50% - var(--mm-space-1));
-    }
-
-    .mm-modal-content {
-        width: 95%;
+    .setores-info-content {
+        grid-template-columns: 1fr;
     }
 
     .mm-modal-footer {
-        flex-direction: column;
+        flex-direction: column-reverse;
+    }
+
+    .btn-action,
+    .btn-card {
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+    }
+
+    .setores-hero-actions {
+        width: 100%;
     }
 
     .btn-action {
-        width: 100%;
+        flex: 1;
     }
 }
 
-/* Dark Mode */
+/* Dark Mode Support */
 @media (prefers-color-scheme: dark) {
-    .setor-card:hover {
-        background: rgba(var(--mm-primary-rgb), 0.05);
+    .setores-info-card {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1));
+        border-color: rgba(16, 185, 129, 0.3);
     }
 
-    .setor-card.setor-inactive {
-        background: rgba(var(--mm-text-muted), 0.05);
-    }
-
-    .setores-empty-state {
-        background: rgba(var(--mm-primary-rgb), 0.05);
+    .setores-info-item {
+        background: rgba(31, 41, 55, 0.6);
     }
 }
 </style>
-{% endblock %}
 
 {% block extra_js %}
 <script>
@@ -735,7 +940,7 @@
 // ============================================================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Inicializa event listeners
+    // Inicializa event listeners de formulários
     const formNovoSetor = document.getElementById('formNovoSetor');
     if (formNovoSetor) {
         formNovoSetor.addEventListener('submit', handleNovoSetor);
@@ -746,7 +951,7 @@ document.addEventListener('DOMContentLoaded', function() {
         formEditarSetor.addEventListener('submit', handleEditarSetor);
     }
 
-    // Event listeners para botões de ação
+    // Event listeners para botões de ação dos cards
     document.querySelectorAll('.btn-editar').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = this.dataset.setorId;
