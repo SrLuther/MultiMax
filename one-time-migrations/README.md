@@ -7,7 +7,7 @@ Este diretório contém scripts de migração que são executados **uma única v
 ### No VPS (Produção):
 ```bash
 cd /caminho/do/projeto
-python tools/migrations/2026_01_21_add_setor_to_collaborator.py
+python one-time-migrations/2026_01_21_add_setor_to_collaborator.py
 ```
 
 ### Após Execução Bem-Sucedida:
@@ -23,7 +23,7 @@ Quando **TODAS** as seguintes condições forem atendidas:
 
 **Então você pode deletar este diretório inteiro:**
 ```bash
-rm -rf tools/migrations
+rm -rf one-time-migrations
 ```
 
 ## 📝 Convenção de Nomenclatura
