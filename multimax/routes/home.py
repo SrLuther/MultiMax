@@ -19,12 +19,18 @@ def _resolve_changelog_path() -> "Path":
     """Retorna caminho absoluto do CHANGELOG.md, independente do cwd."""
     from pathlib import Path
 
-    # Base do projeto é o diretório acima de app root (multimax/routes/.. -> raiz)
+    # 1. Verifica volume montado no Docker (produção VPS)
+    volume_path = Path("/opt/multimax/CHANGELOG.md")
+    if volume_path.exists():
+        return volume_path
+
+    # 2. Base do projeto é o diretório acima de app root (multimax/routes/.. -> raiz)
     base_dir = Path(current_app.root_path).parent
     candidate = base_dir / "CHANGELOG.md"
     if candidate.exists():
         return candidate
-    # Fallback: caminho relativo ao módulo caso o root_path esteja diferente
+
+    # 3. Fallback: caminho relativo ao módulo caso o root_path esteja diferente
     return Path(__file__).resolve().parents[2] / "CHANGELOG.md"
 
 
