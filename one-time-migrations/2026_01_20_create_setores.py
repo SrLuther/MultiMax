@@ -9,8 +9,8 @@ from pathlib import Path
 # Adicionar o diretório raiz ao path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from multimax import create_app, db
-from multimax.models import Collaborator, Setor
+from multimax import create_app, db  # noqa: E402
+from multimax.models import Collaborator, Setor  # noqa: E402
 
 app = create_app()
 
