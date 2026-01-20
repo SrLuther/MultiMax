@@ -7,6 +7,7 @@
 <meta name="ciclos-url-confirmar-fechamento" content="{{ url_for('ciclos.confirmar_fechamento') }}">
 <meta name="ciclos-url-pdf-geral" content="{{ url_for('ciclos.pdf_geral') }}">
 <meta name="ciclos-url-resumo-fechamento" content="{{ url_for('ciclos.resumo_fechamento') }}">
+<meta name="ciclos-selected-setor-id" content="{{ selected_setor_id or '' }}">
 {% endblock %}
 
 {% block content %}
@@ -45,6 +46,28 @@
                 </a>
                 {% endif %}
             </div>
+        </div>
+    </div>
+
+    <!-- Filtro por Setor -->
+    <div class="resumo-geral-card" style="margin-bottom: 1rem;">
+        <div class="resumo-header" style="display:flex; align-items:center; justify-content:space-between;">
+            <h3 class="resumo-title" style="margin:0;">
+                <i class="bi bi-diagram-3"></i>
+                Filtrar por Setor
+            </h3>
+            <form method="get" action="{{ url_for('ciclos.index') }}" style="display:flex; gap:0.5rem; align-items:center;">
+                <select name="setor_id" class="form-select" style="min-width: 220px;">
+                    <option value="">Todos os setores</option>
+                    {% for s in setores %}
+                    <option value="{{ s.id }}" {% if selected_setor_id == s.id %}selected{% endif %}>{{ s.nome }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn-action btn-action-secondary" style="text-decoration:none;">
+                    <i class="bi bi-filter"></i>
+                    Aplicar
+                </button>
+            </form>
         </div>
     </div>
 

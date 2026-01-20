@@ -46,10 +46,12 @@ repos:
 
   # Security checks
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.6
+    rev: 1.9.2
     hooks:
       - id: bandit
         args: ['-r', 'multimax/', '-c', 'pyproject.toml', '-ll', '-f', 'json', '-o', 'bandit-report.json']
+        pass_filenames: false
+        always_run: true
         exclude: '^(tests/|tools/)'
 
   # Custom JavaScript safety check (warnings only, doesn't block)

@@ -48,6 +48,28 @@ def _get_all_collaborators():
     return Collaborator.query.filter_by(active=True).order_by(Collaborator.name.asc()).all()
 
 
+def _get_collaborators_by_setor(setor_id: int | None) -> list[Collaborator]:
+    """Retorna colaboradores ativos, opcionalmente filtrados por setor (via registros em Ciclo)."""
+    if not setor_id:
+        return _get_all_collaborators()
+
+    # Buscar IDs de colaboradores que possuem registros ativos no setor informado
+    ids = (
+        db.session.query(Ciclo.collaborator_id)
+        .filter(Ciclo.status_ciclo == "ativo", Ciclo.setor_id == setor_id)
+        .distinct()
+        .all()
+    )
+    ids_list = [i[0] for i in ids]
+    if not ids_list:
+        return []
+    return (
+        Collaborator.query.filter(Collaborator.active.is_(True), Collaborator.id.in_(ids_list))
+        .order_by(Collaborator.name.asc())
+        .all()
+    )
+
+
 def _get_active_ciclos_query(collaborator_id):
     """Helper para buscar registros ativos de um colaborador"""
     return Ciclo.query.filter(Ciclo.collaborator_id == collaborator_id, Ciclo.status_ciclo == "ativo")
@@ -106,12 +128,15 @@ def _calculate_collaborator_balance(collaborator_id):
 
 
 def _calculate_collaborator_balance_range(
-    collaborator_id: int, start_date: date, end_date: date
+    collaborator_id: int, start_date: date, end_date: date, setor_id: int | None = None
 ) -> dict[str, float | int]:
-    """Calcula saldo do colaborador apenas dentro de um período (ex.: ciclo semanal em andamento)."""
-    total_horas_decimal = _get_active_ciclos_query(collaborator_id).filter(
+    """Calcula saldo do colaborador dentro de um período, opcionalmente filtrando por setor."""
+    q = _get_active_ciclos_query(collaborator_id).filter(
         Ciclo.data_lancamento >= start_date, Ciclo.data_lancamento <= end_date
-    ).with_entities(func.coalesce(func.sum(Ciclo.valor_horas), 0)).scalar() or Decimal("0.0")
+    )
+    if setor_id:
+        q = q.filter(Ciclo.setor_id == setor_id)
+    total_horas_decimal = q.with_entities(func.coalesce(func.sum(Ciclo.valor_horas), 0)).scalar() or Decimal("0.0")
 
     total_horas = Decimal(str(total_horas_decimal))
     total_horas_float = float(total_horas)
@@ -522,15 +547,21 @@ def index():
             "week_end": min(week_end_raw, current_date),
         }
 
-        # Buscar todos os colaboradores ativos
-        colaboradores = _get_all_collaborators()
+        # Filtro por setor (opcional)
+        selected_setor_id = request.args.get("setor_id", type=int)
+
+        # Carregar setores ativos para o seletor
+        setores = Setor.query.filter_by(ativo=True).order_by(Setor.nome.asc()).all()
+
+        # Buscar colaboradores ativos (filtrados por setor se houver)
+        colaboradores = _get_collaborators_by_setor(selected_setor_id)
 
         # Calcular saldos para cada colaborador
         colaboradores_stats = []
         for colab in colaboradores:
             # Na tela principal, mostrar apenas o ciclo semanal em andamento (não prever semanas futuras)
             balance = _calculate_collaborator_balance_range(
-                colab.id, ciclo_semana_atual["week_start"], ciclo_semana_atual["week_end"]
+                colab.id, ciclo_semana_atual["week_start"], ciclo_semana_atual["week_end"], selected_setor_id
             )
             colaboradores_stats.append({"collaborator": colab, "balance": balance})
 
@@ -613,6 +644,8 @@ def index():
             atestados=atestados,
             folgas=folgas,
             ocorrencias=ocorrencias,
+            setores=setores,
+            selected_setor_id=selected_setor_id,
         )
     except Exception as e:
         try:
@@ -1564,13 +1597,35 @@ def resumo_fechamento():
         return jsonify({"ok": False, "error": "Acesso negado"}), 403
 
     try:
-        colaboradores = _get_all_collaborators()
+        # Filtro por setor (opcional)
+        selected_setor_id = request.args.get("setor_id", type=int)
+
+        colaboradores = _get_collaborators_by_setor(selected_setor_id)
         colaboradores_resumo = []
 
         valor_dia = _get_valor_dia()
 
         for colab in colaboradores:
-            balance = _calculate_collaborator_balance(colab.id)
+            # Calcular saldos apenas do setor selecionado, se houver
+            if selected_setor_id:
+                # Total por setor usando a janela completa (todos registros ativos no setor)
+                total_horas_decimal = _get_active_ciclos_query(colab.id).filter(
+                    Ciclo.setor_id == selected_setor_id
+                ).with_entities(func.coalesce(func.sum(Ciclo.valor_horas), 0)).scalar() or Decimal("0.0")
+                total_horas = float(Decimal(str(total_horas_decimal)))
+                if total_horas < 0:
+                    dias_completos = 0
+                    horas_restantes = 0.0
+                else:
+                    dias_completos = int(math.floor(total_horas / 8.0))
+                    horas_restantes = round(total_horas % 8.0, 1)
+                valor_total = float(Decimal(str(dias_completos)) * Decimal(str(_get_valor_dia())))
+            else:
+                balance = _calculate_collaborator_balance(colab.id)
+                total_horas = balance["total_horas"]
+                dias_completos = balance["dias_completos"]
+                horas_restantes = balance["horas_restantes"]
+                valor_total = balance["valor_aproximado"]
 
             # Buscar registros ativos
             registros = _get_active_ciclos_query(colab.id).all()

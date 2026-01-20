@@ -1,3 +1,10 @@
+## [2.6.69] - 2026-01-19
+
+### Novidades
+
+- feat(ciclos): suporte a filtro por Setor na página Ciclos (dropdown de setores, cards e totais filtrados por setor)
+- feat(ciclos): resumo de fechamento agora aceita `setor_id` e calcula apenas registros do setor selecionado
+
 ## [2.6.68] - 2026-01-19
 
 ### Correções

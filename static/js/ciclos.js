@@ -13,6 +13,7 @@
         currentPage: 1,
         currentCicloId: null,
         canEdit: false,
+        selectedSetorId: null,
         urls: {
             confirmarFechamento: '',
             pdfGeral: '',
@@ -49,6 +50,12 @@
         const urlResumoMeta = document.querySelector('meta[name="ciclos-url-resumo-fechamento"]');
         if (urlResumoMeta) {
             state.urls.resumoFechamento = urlResumoMeta.getAttribute('content');
+        }
+
+        const setorMeta = document.querySelector('meta[name="ciclos-selected-setor-id"]');
+        if (setorMeta) {
+            const v = setorMeta.getAttribute('content');
+            state.selectedSetorId = v && v.trim() ? v.trim() : null;
         }
 
         // Ler URL de lançamento do formulário
@@ -401,7 +408,8 @@
         const modal = new bootstrap.Modal(document.getElementById('modalFechamento'));
         modal.show();
 
-        fetch(state.urls.resumoFechamento)
+        const resumoUrl = state.selectedSetorId ? `${state.urls.resumoFechamento}?setor_id=${encodeURIComponent(state.selectedSetorId)}` : state.urls.resumoFechamento;
+        fetch(resumoUrl)
             .then(response => response.json())
             .then(data => {
                 document.getElementById('fechamento_loading').style.display = 'none';
