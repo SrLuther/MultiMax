@@ -1,3 +1,15 @@
+## [2.7.1] - 2026-01-20
+
+### Correções
+
+- fix(estoque-producao): corrige formatação de atributos de dados em botões
+  - Reverte quebra de linha do Black em data-* attributes
+  - Consolida atributos data-action, data-id, data-nome e data-quantidade na mesma linha
+  - Resolve erros de parsing JavaScript no VSCode
+  - Mantém HTML válido e JavaScript funcional
+
+---
+
 ## [2.7.0] - 2026-01-20
 
 ### 🎉 Nova Funcionalidade: Módulo de Estoque de Produção com Previsão de Uso
