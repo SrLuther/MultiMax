@@ -580,8 +580,8 @@ class CicloFechamento(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ciclo_id = db.Column(db.Integer, nullable=False, unique=True, index=True)  # ID do ciclo fechado
     setor_id = db.Column(
-        db.Integer, db.ForeignKey("setor.id"), nullable=False, index=True
-    )  # Novo campo para divisão por setor
+        db.Integer, db.ForeignKey("setor.id"), nullable=True, index=True
+    )  # Campo para divisão por setor (nullable para compatibilidade com bancos antigos)
     data_fechamento = db.Column(
         db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")), nullable=False
     )
