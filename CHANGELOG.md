@@ -1,3 +1,9 @@
+## [2.6.71] - 2026-01-20
+
+### Atualização
+
+- v2.6.71 - Atualização do sistema
+
 ## [2.6.70] - 2026-01-20
 
 ### Atualização
@@ -49,11 +55,23 @@
 
 ## [2.6.62] - 2026-01-19
 
-### Atualização
 
-- v2.6.62 - Atualização do sistema
-
+### Design Premium
 ## [2.6.61] - 2026-01-19
+- design(setores): redesign página com padrão premium matching ciclos system
+  - Adicionar gradient hero section em verde (#10b981 a #047857) com animação de rotação e bounce no ícone
+  - Implementar card grid com minmax(380px, 1fr) para layout responsivo e hover effects com elevação visual
+  - Adicionar metadata display com ícones profissionais (created_by, created_at) com styling aprimorado
+  - Criar info section com 4 guidance items educacionais (Organização, Atribuição, Relatórios, Ativação)
+  - Implementar dark mode com CSS variables (--mm-primary, --mm-bg-card, --mm-text, --mm-border, --mm-text-secondary)
+  - Adicionar animações suaves: @keyframes bounce (2s), rotate (20s), fadeIn (0.5s), slideIn (0.3s)
+  - Responsive mobile-first layout com breakpoint 768px (grid 1fr no mobile)
+  - Event listeners com data-* attributes pattern (sem Jinja2 em handlers JavaScript)
+  - Enhanced modal styling com backdrop-filter blur(4px) e animação slideIn
+  - Status badges color-coded (verde ativo #10b981, cinza inativo #6b7280)
+  - Professional typography e spacing system com rem-based units
+  - Empty state com ícone (bi-inbox) e action button para criar primeiro setor
+  - Elevação de qualidade perceptual através de design system alinhado com ciclos/index.html
 
 ### Correções
 
