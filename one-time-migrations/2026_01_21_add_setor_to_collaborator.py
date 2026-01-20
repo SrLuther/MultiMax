@@ -15,39 +15,60 @@ from multimax import create_app, db  # noqa: E402
 
 
 def migrate_add_setor_to_collaborator():
-    """Executa a migração para adicionar setor_id na tabela collaborator"""
+    """Executa a migração para adicionar setor_id nas tabelas collaborator e ciclo"""
 
     app = create_app()
 
     with app.app_context():
         try:
             print("=" * 60)
-            print("MIGRAÇÃO: Adicionar setor_id à tabela collaborator")
+            print("MIGRAÇÃO: Adicionar setor_id às tabelas")
             print("=" * 60)
 
-            # Verificar se a coluna já existe
+            # ================================================================
+            # Tabela: collaborator
+            # ================================================================
+            print("\n[1] Processando tabela: collaborator")
             result = db.session.execute(db.text("PRAGMA table_info(collaborator)"))
             columns = [row[1] for row in result]
 
-            if "setor_id" in columns:
-                print("✓ Coluna 'setor_id' já existe na tabela collaborator")
-                print("  Migração não necessária.")
-                return
+            if "setor_id" not in columns:
+                print("  → Adicionando coluna setor_id...")
+                db.session.execute(db.text("ALTER TABLE collaborator ADD COLUMN setor_id INTEGER"))
+                print("    ✓ Coluna adicionada com sucesso")
 
-            print("\n1. Adicionando coluna setor_id...")
-            db.session.execute(db.text("ALTER TABLE collaborator ADD COLUMN setor_id INTEGER"))
-            print("   ✓ Coluna adicionada com sucesso")
+                print("  → Criando índice para performance...")
+                db.session.execute(
+                    db.text("CREATE INDEX IF NOT EXISTS ix_collaborator_setor_id ON collaborator(setor_id)")
+                )
+                print("    ✓ Índice criado com sucesso")
+            else:
+                print("  ✓ Coluna 'setor_id' já existe")
 
-            print("\n2. Criando índice para performance...")
-            db.session.execute(db.text("CREATE INDEX IF NOT EXISTS ix_collaborator_setor_id ON collaborator(setor_id)"))
-            print("   ✓ Índice criado com sucesso")
+            # ================================================================
+            # Tabela: ciclo
+            # ================================================================
+            print("\n[2] Processando tabela: ciclo")
+            result = db.session.execute(db.text("PRAGMA table_info(ciclo)"))
+            columns = [row[1] for row in result]
+
+            if "setor_id" not in columns:
+                print("  → Adicionando coluna setor_id...")
+                db.session.execute(db.text("ALTER TABLE ciclo ADD COLUMN setor_id INTEGER"))
+                print("    ✓ Coluna adicionada com sucesso")
+
+                print("  → Criando índice para performance...")
+                db.session.execute(db.text("CREATE INDEX IF NOT EXISTS ix_ciclo_setor_id ON ciclo(setor_id)"))
+                print("    ✓ Índice criado com sucesso")
+            else:
+                print("  ✓ Coluna 'setor_id' já existe")
 
             # Commit das alterações
             db.session.commit()
-            print("\n3. Commit realizado com sucesso")
+            print("\n[3] Commit realizado com sucesso")
 
             # Verificar resultado
-            print("\n4. Verificando dados existentes...")
+            print("\n[4] Verificando dados existentes...")
             result = db.session.execute(db.text("SELECT id, name, setor_id FROM collaborator LIMIT 5"))
             rows = result.fetchall()
 

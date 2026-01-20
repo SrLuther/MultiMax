@@ -1,3 +1,9 @@
+## [2.6.74] - 2026-01-20
+
+### Melhorias
+
+- melhorias de código, melhorias de código
+
 ## [2.6.73] - 2026-01-21
 
 ### Funcionalidades
