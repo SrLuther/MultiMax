@@ -66,29 +66,9 @@ def increment_version(version: str, bump_type: str = "patch") -> str:
     return ".".join(map(str, parts))
 
 
-FORBIDDEN_GENERIC = [
-    "atualizacao do sistema",
-    "atualização do sistema",
-    "update do sistema",
-    "versao",
-    "versão",
-    "update",
-]
-
-
 def ensure_descriptive_text(text: str, new_version: str) -> str:
-    """Garante que a descrição não seja genérica e está em PT-BR."""
-    normalized = text.strip()
-    if len(normalized) < 20:
-        raise ValueError(
-            f"Descrição muito curta para {new_version}. Inclua o que mudou (ex.: design, rotas, segurança)."
-        )
-    lowered = normalized.lower()
-    if any(bad in lowered for bad in FORBIDDEN_GENERIC):
-        raise ValueError(
-            "Descrição genérica detectada. Especifique o que foi alterado (ex.: design(setores), fix(auth), docs)."
-        )
-    return normalized
+    """Simplesmente retorna o texto como está"""
+    return text.strip()
 
 
 def update_changelog(new_version: str, commit_message: str | None = None):
@@ -98,16 +78,15 @@ def update_changelog(new_version: str, commit_message: str | None = None):
 
     if not changelog.exists():
         print("AVISO: CHANGELOG.md nao encontrado, criando...")
-        commit_msg = commit_message or f"Versao {new_version}"
-        changelog_content = f"## [{new_version}] - {today}\n\n" f"### Atualizacao\n\n- {commit_msg}\n\n"
+        description = commit_message or "Atualização do sistema"
+        changelog_content = f"## [{new_version}] - {today}\n\n### Atualização\n\n- {description}\n\n"
         changelog.write_text(changelog_content, encoding="utf-8")
         return
 
     content = changelog.read_text(encoding="utf-8")
 
     # Determina o tipo de mudança e seção apropriada
-    section, description = determine_section_and_description(commit_message or f"Versão {new_version}")
-    description = ensure_descriptive_text(description, new_version)
+    section, description = determine_section_and_description(commit_message or "Atualização do sistema")
 
     # Cria nova entrada
     new_entry = f"## [{new_version}] - {today}\n\n{section}\n\n- {description}\n\n"
@@ -303,11 +282,8 @@ def get_descriptive_commit_message(new_version: str) -> str:  # noqa: C901
     except Exception:
         pass
 
-    # 4. Sem descrição suficiente: força erro para evitar texto genérico
-    raise ValueError(
-        "Não foi possível gerar descrição detalhada. Adicione commits descritivos (feat/fix/docs/design) "
-        "ou informe a mensagem manualmente."
-    )
+    # 4. Sem descrição suficiente: retorna mensagem padrão
+    return f"Atualização do sistema para versão {new_version}"
 
 
 def main():
@@ -332,9 +308,6 @@ def main():
 
     # Obtém mensagem descritiva das mudanças
     commit_message = get_descriptive_commit_message(new_version)
-
-    # Garante que a mensagem é descritiva e em PT-BR
-    commit_message = ensure_descriptive_text(commit_message, new_version)
 
     # Atualiza arquivos
     update_changelog(new_version, commit_message)
