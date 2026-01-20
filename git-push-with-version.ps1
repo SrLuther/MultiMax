@@ -16,13 +16,27 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-# Adiciona arquivos de versão ao staging
+# Adiciona arquivos de versão ao staging (ignora arquivos que não existem)
 Write-Host "Adicionando arquivos de versao..." -ForegroundColor Yellow
-git add CHANGELOG.md multimax/__init__.py LEIA-ME.txt VERSION_SYNC.md 2>$null
+
+$filesToAdd = @("CHANGELOG.md", "multimax/__init__.py", "LEIA-ME.txt", "VERSION_SYNC.md")
+foreach ($file in $filesToAdd) {
+    if (Test-Path $file) {
+        git add $file 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "OK: $file adicionado" -ForegroundColor Green
+        }
+    } else {
+        Write-Host "AVISO: $file nao encontrado, pulando..." -ForegroundColor Yellow
+    }
+}
 
 # Verifica se há mudanças para commitar
-$hasChanges = git diff --cached --quiet
-if ($LASTEXITCODE -ne 0) {
+git diff --cached --quiet
+if ($LASTEXITCODE -eq 0) {
+    # Não há mudanças, pula para push
+    Write-Host "Nenhuma mudanca de versao detectada. Prosseguindo com push..." -ForegroundColor Yellow
+} else {
     # Há mudanças, cria commit de versão
     $changelogContent = Get-Content CHANGELOG.md -Raw
     if ($changelogContent -match '## \[(\d+\.\d+\.\d+)\]') {
