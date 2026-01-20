@@ -121,7 +121,12 @@ def _calculate_collaborator_balance_range(
         Ciclo.data_lancamento >= start_date, Ciclo.data_lancamento <= end_date
     )
     if setor_id:
-        q = q.filter(Ciclo.setor_id == setor_id)
+        # Incluir: registros com setor_id preenchido OU registros antigos (NULL) do colaborador neste setor
+        from sqlalchemy import or_
+
+        q = q.filter(
+            or_(Ciclo.setor_id == setor_id, (Ciclo.setor_id.is_(None) & (Collaborator.setor_id == setor_id)))
+        ).join(Collaborator)
     total_horas_decimal = q.with_entities(func.coalesce(func.sum(Ciclo.valor_horas), 0)).scalar() or Decimal("0.0")
 
     total_horas = Decimal(str(total_horas_decimal))
@@ -1602,9 +1607,22 @@ def resumo_fechamento():
             # Calcular saldos apenas do setor selecionado, se houver (CORREÇÃO PROBLEMA 1 E 2)
             if selected_setor_id:
                 # Total por setor usando a janela completa (todos registros ativos no setor)
-                total_horas_decimal = _get_active_ciclos_query(colab.id).filter(
-                    Ciclo.setor_id == selected_setor_id
-                ).with_entities(func.coalesce(func.sum(Ciclo.valor_horas), 0)).scalar() or Decimal("0.0")
+                # Incluir: registros com setor_id preenchido OU registros antigos (NULL) do colaborador neste setor
+                from sqlalchemy import or_
+
+                query = (
+                    _get_active_ciclos_query(colab.id)
+                    .filter(
+                        or_(
+                            Ciclo.setor_id == selected_setor_id,
+                            (Ciclo.setor_id.is_(None) & (Collaborator.setor_id == selected_setor_id)),
+                        )
+                    )
+                    .join(Collaborator)
+                )
+                total_horas_decimal = query.with_entities(
+                    func.coalesce(func.sum(Ciclo.valor_horas), 0)
+                ).scalar() or Decimal("0.0")
                 total_horas = float(Decimal(str(total_horas_decimal)))
                 if total_horas < 0:
                     dias_completos = 0
@@ -1630,7 +1648,15 @@ def resumo_fechamento():
             # Buscar registros ativos (CORREÇÃO: agora filtra por setor se selecionado)
             registros_query = _get_active_ciclos_query(colab.id)
             if selected_setor_id:
-                registros_query = registros_query.filter(Ciclo.setor_id == selected_setor_id)
+                # Incluir: registros com setor_id preenchido OU registros antigos (NULL) do colaborador neste setor
+                from sqlalchemy import or_
+
+                registros_query = registros_query.filter(
+                    or_(
+                        Ciclo.setor_id == selected_setor_id,
+                        (Ciclo.setor_id.is_(None) & (Collaborator.setor_id == selected_setor_id)),
+                    )
+                ).join(Collaborator)
             registros = registros_query.all()
 
             # Os valores já estão corretos em balance, não sobrescreve mais
