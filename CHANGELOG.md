@@ -1,3 +1,39 @@
+## [2.6.67] - 2026-01-19
+
+### Correções
+
+- v2.6.67 - correções de rotas, correções de rotas
+
+## [2.6.66] - 2026-01-19
+
+### Correções
+
+- v2.6.66 - correções de rotas, correções de rotas
+
+## [2.6.65] - 2026-01-19
+
+### Correções
+
+- v2.6.65 - refactor(usuarios): reduz complexidade de perfil e gestao com helpers, remove imports não utilizados
+
+## [2.6.64] - 2026-01-19
+
+### Correções
+
+- v2.6.64 - correções de rotas, correções de rotas
+
+## [2.6.63] - 2026-01-19
+
+### Correções
+
+- v2.6.63 - correções de rotas, correções de rotas
+
+## [2.6.62] - 2026-01-19
+
+### Atualização
+
+- v2.6.62 - Atualização do sistema
+
 ## [2.6.61] - 2026-01-19
 
 ### Correções
