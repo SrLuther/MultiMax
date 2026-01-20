@@ -1393,7 +1393,7 @@ def gestao():
         view=view,
         senha_sugestao=senha_sugestao,
         roles=roles,
-            setores=setores,
+        setores=setores,
         colaboradores=colaboradores,
         folgas=bank_ctx["folgas"],
         users=all_users,
@@ -1429,7 +1429,7 @@ def gestao():
 @login_required
 def gestao_colabs_criar():
     """Cria colaborador e usuário juntos (são uma coisa só)"""
-        setor_id = request.form.get("setor_id", type=int)
+    setor_id = request.form.get("setor_id", type=int)
     if current_user.nivel not in ("admin", "DEV"):
         flash("Você não tem permissão para criar colaboradores.", "danger")
         return redirect(url_for("usuarios.gestao"))
