@@ -709,20 +709,11 @@
             </div>
 
             <div class="ep-card-actions">
-                <button class="ep-btn ep-btn-sm ep-btn-primary"
-                        data-action="ajustar"
-                        data-id="{{ estoque.id }}"
-                        data-nome="{{ estoque.produto.nome }}"
-                        data-quantidade="{{ estoque.quantidade }}">
+                <button class="ep-btn ep-btn-sm ep-btn-primary" data-action="ajustar" data-id="{{ estoque.id }}" data-nome="{{ estoque.produto.nome }}" data-quantidade="{{ estoque.quantidade }}">
                     <i class="bi bi-arrow-left-right"></i>
                     Ajustar
                 </button>
-                <button class="ep-btn ep-btn-sm ep-btn-secondary"
-                        data-action="editar"
-                        data-id="{{ estoque.id }}"
-                        data-previsao="{{ estoque.previsao_uso or '' }}"
-                        data-data="{{ estoque.data_previsao or '' }}"
-                        data-obs="{{ estoque.observacao or '' }}">
+                <button class="ep-btn ep-btn-sm ep-btn-secondary" data-action="editar" data-id="{{ estoque.id }}" data-previsao="{{ estoque.previsao_uso or '' }}" data-data="{{ estoque.data_previsao or '' }}" data-obs="{{ estoque.observacao or '' }}">
                     <i class="bi bi-pencil"></i>
                     Editar
                 </button>
