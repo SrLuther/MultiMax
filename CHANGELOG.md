@@ -1,3 +1,9 @@
+## [2.6.72] - 2026-01-20
+
+### Correções
+
+- fix(setores): corrige erro 500 por `<h1>` vazio em setores.html, adicionando título e ícone
+
 ## [2.6.71] - 2026-01-20
 
 ### Design Premium
