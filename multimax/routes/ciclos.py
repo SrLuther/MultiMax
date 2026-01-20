@@ -545,10 +545,14 @@ def index():
         # Calcular saldos para cada colaborador
         colaboradores_stats = []
         for colab in colaboradores:
-            # Na tela principal, mostrar apenas o ciclo semanal em andamento (não prever semanas futuras)
-            balance = _calculate_collaborator_balance_range(
-                colab.id, ciclo_semana_atual["week_start"], ciclo_semana_atual["week_end"], selected_setor_id
-            )
+            # Na tela principal, mostrar o saldo total acumulado do colaborador (incluindo saldos de meses anteriores)
+            # Se houver filtro de setor, calcular apenas o saldo desse setor
+            if selected_setor_id:
+                balance = _calculate_collaborator_balance_range(
+                    colab.id, date(1900, 1, 1), date(2099, 12, 31), selected_setor_id
+                )
+            else:
+                balance = _calculate_collaborator_balance(colab.id)
             colaboradores_stats.append({"collaborator": colab, "balance": balance})
 
         # Buscar configurações

@@ -68,7 +68,7 @@ if __name__ == "__main__":
     debug = os.getenv("DEBUG", "false").lower() == "true"
     _start_keepalive()
     try:
-        from waitress import serve
+        from waitress import serve  # type: ignore
     except ImportError:
         serve = None
     if serve:

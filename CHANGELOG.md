@@ -17,6 +17,14 @@
   - Empty state com ícone (bi-inbox) e action button para criar primeiro setor
   - Elevação de qualidade perceptual através de design system alinhado com ciclos/index.html
 
+  ### Correções e melhorias
+
+  - refactor(home): extrai helpers de rodízio e reutiliza cálculo de equipes (abertura/fechamento/domingo) com persistência automática das referências
+  - fix(ciclos): saldo em Ciclos exibe acumulado (respeitando filtro de setor) em vez de apenas semana corrente
+  - chore(app): adiciona type ignore na importação opcional do waitress para evitar alertas quando o pacote não está instalado
+  - chore(update_version): mensagens de ajuda sem f-strings desnecessários e instruções de git add ajustadas
+  - docs(LEIA-ME): cabeçalho e seção de funcionalidades atualizados para versão 2.6.71
+
 ## [2.6.70] - 2026-01-20
 
 ### Atualização

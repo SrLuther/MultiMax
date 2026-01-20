@@ -48,9 +48,7 @@ def update_changelog(version, date_str="2025-01-04"):
     match = re.search(pattern, content)
     content = re.sub(
         pattern,
-        new_entry.rstrip() + "\n\n" + match.group(0)
-        if match
-        else new_entry + content,
+        new_entry.rstrip() + "\n\n" + match.group(0) if match else new_entry + content,
         content,
         count=1,
         flags=re.MULTILINE,
@@ -140,7 +138,7 @@ def main():
 
     # Valida formato da versão
     if not re.match(r"^\d+\.\d+\.\d+$", new_version):
-        print(f"Erro: Versão deve estar no formato X.Y.Z (ex: 2.3.8)")
+        print("Erro: Versão deve estar no formato X.Y.Z (ex: 2.3.8)")
         sys.exit(1)
 
     print(f"Atualizando versão para {new_version}...")
@@ -154,7 +152,7 @@ def main():
 
     print()
     print("Arquivos atualizados. Próximos passos:")
-    print(f"1. git add CHANGELOG.md multimax/__init__.py LEIA-ME.txt VERSION_SYNC.md")
+    print("1. git add CHANGELOG.md multimax/__init__.py LEIA-ME.txt VERSION_SYNC.md")
     print(f'2. git commit -m "{commit_message}"')
     print(f'3. git tag -a v{new_version} -m "Versão {new_version} - {commit_message}"')
     print("4. git push origin nova-versao-deploy")

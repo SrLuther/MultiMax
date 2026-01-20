@@ -5,11 +5,11 @@ from flask_login import current_user, login_required
 from sqlalchemy import func
 
 from .. import db
-from ..module_registry import get_active_module_labels
 from ..models import AppSetting as AppSettingModel
 from ..models import CleaningHistory, CleaningTask, Collaborator
 from ..models import Historico as HistoricoModel
 from ..models import Holiday, MeatReception, NotificationRead, Produto, SystemLog, TimeOffRecord
+from ..module_registry import get_active_module_labels
 
 bp = Blueprint("home", __name__, url_prefix="/home")
 
@@ -155,6 +155,148 @@ def get_low_stock_products():
     return products
 
 
+def _resolve_rodizio_reference(current_monday: date) -> tuple[date, str]:
+    """Obtém/normaliza referências de rodízio (segunda base e time de abertura)."""
+    ref_monday_setting = AppSettingModel.query.filter_by(key="rodizio_ref_monday").first()
+    ref_open_setting = AppSettingModel.query.filter_by(key="rodizio_open_team_ref").first()
+
+    ref_monday: date | None = None
+    if ref_monday_setting and (ref_monday_setting.value or "").strip():
+        try:
+            ref_monday = datetime.strptime(ref_monday_setting.value.strip(), "%Y-%m-%d").date()
+        except Exception:
+            ref_monday = None
+
+    if not ref_monday:
+        if not ref_monday_setting:
+            ref_monday_setting = AppSettingModel()
+            ref_monday_setting.key = "rodizio_ref_monday"
+            db.session.add(ref_monday_setting)
+        ref_monday_setting.value = current_monday.strftime("%Y-%m-%d")
+        db.session.commit()
+        ref_monday = current_monday
+
+    open_ref = ref_open_setting.value.strip() if ref_open_setting and ref_open_setting.value else "1"
+    if open_ref not in ("1", "2"):
+        open_ref = "1"
+
+    if ref_monday < current_monday:
+        weeks_diff = (current_monday - ref_monday).days // 7
+        if weeks_diff % 2 == 1:
+            open_ref = "2" if open_ref == "1" else "1"
+        ref_monday = current_monday
+        if not ref_monday_setting:
+            ref_monday_setting = AppSettingModel()
+            ref_monday_setting.key = "rodizio_ref_monday"
+            db.session.add(ref_monday_setting)
+        ref_monday_setting.value = current_monday.strftime("%Y-%m-%d")
+        if not ref_open_setting:
+            ref_open_setting = AppSettingModel()
+            ref_open_setting.key = "rodizio_open_team_ref"
+            db.session.add(ref_open_setting)
+        ref_open_setting.value = open_ref
+        db.session.commit()
+
+    return ref_monday, open_ref
+
+
+def _get_sunday_event(current_monday: date, sunday: date) -> dict | None:
+    """Calcula evento de domingo conforme configurações, preservando lógica existente."""
+    try:
+        domingo_keys = ["domingo_ref_sunday", "domingo_team_ref", "domingo_manha_team"]
+        domingo_settings = {s.key: s for s in AppSettingModel.query.filter(AppSettingModel.key.in_(domingo_keys)).all()}
+
+        sun_ref_setting = domingo_settings.get("domingo_ref_sunday")
+        sun_team_setting = domingo_settings.get("domingo_team_ref")
+        base_team = sun_team_setting.value.strip() if sun_team_setting and sun_team_setting.value else None
+        if base_team not in ("1", "2"):
+            sun_m = domingo_settings.get("domingo_manha_team")
+            base_team = sun_m.value.strip() if sun_m and sun_m.value else "1"
+            if base_team not in ("1", "2"):
+                base_team = "1"
+            if not sun_team_setting:
+                sun_team_setting = AppSettingModel()
+                sun_team_setting.key = "domingo_team_ref"
+                db.session.add(sun_team_setting)
+            sun_team_setting.value = base_team
+
+        ref_sunday = None
+        if sun_ref_setting and (sun_ref_setting.value or "").strip():
+            try:
+                ref_sunday = datetime.strptime(sun_ref_setting.value.strip(), "%Y-%m-%d").date()
+            except Exception:
+                ref_sunday = None
+        if not sun_ref_setting:
+            last_sunday = current_monday - timedelta(days=1)
+            if not sun_ref_setting:
+                sun_ref_setting = AppSettingModel()
+                sun_ref_setting.key = "domingo_ref_sunday"
+                db.session.add(sun_ref_setting)
+            sun_ref_setting.value = last_sunday.strftime("%Y-%m-%d")
+            db.session.commit()
+            ref_sunday = last_sunday
+
+        weeks_since_ref = 0
+        try:
+            if ref_sunday:
+                weeks_since_ref = max(0, (sunday - ref_sunday).days // 7)
+        except Exception:
+            weeks_since_ref = 0
+
+        domingo_val = base_team if (weeks_since_ref % 2 == 0) else ("2" if base_team == "1" else "1")
+        return {
+            "title": f"DOMINGO EQUIPE '{domingo_val}' (5h–13h)",
+            "start": sunday.strftime("%Y-%m-%d"),
+            "color": "#fd7e14",
+            "url": url_for("colaboradores.escala"),
+            "kind": "rodizio-sunday",
+            "team": domingo_val,
+        }
+    except Exception:
+        return None
+
+
+def _build_rodizio_week_events(current_monday: date, open_ref: str) -> list[dict[str, str]]:
+    """Gera eventos de rodízio para 5 semanas à frente."""
+    events: list[dict[str, str]] = []
+    for i in range(5):
+        ws = current_monday + timedelta(days=7 * i)
+        we = ws + timedelta(days=5)
+        open_team = open_ref if (i % 2 == 0) else ("2" if open_ref == "1" else "1")
+        close_team = "2" if open_team == "1" else "1"
+
+        d = ws
+        while d <= we:
+            events.append(
+                {
+                    "title": f"EQUIPE ABERTURA '{open_team}'",
+                    "start": d.strftime("%Y-%m-%d"),
+                    "color": "#198754",
+                    "url": url_for("colaboradores.escala"),
+                    "kind": "rodizio-open",
+                    "team": open_team,
+                }
+            )
+            events.append(
+                {
+                    "title": f"EQUIPE FECHAMENTO '{close_team}'",
+                    "start": d.strftime("%Y-%m-%d"),
+                    "color": "#157347",
+                    "url": url_for("colaboradores.escala"),
+                    "kind": "rodizio-close",
+                    "team": close_team,
+                }
+            )
+            d = d + timedelta(days=1)
+
+        sunday = ws + timedelta(days=6)
+        sunday_event = _get_sunday_event(current_monday, sunday)
+        if sunday_event:
+            events.append(sunday_event)
+
+    return events
+
+
 @bp.after_app_request
 def _home_no_cache(response):
     try:
@@ -238,7 +380,7 @@ def dashboard_public():
 
 @bp.route("/dashboard/full", strict_slashes=False)
 @login_required
-def dashboard_authenticated():
+def dashboard_authenticated():  # noqa: C901 - função principal do dashboard agrega vários blocos
     """Dashboard completo para usuários autenticados"""
     db_diag = None
     modules_active: list[str] = []
@@ -321,126 +463,8 @@ def dashboard_authenticated():
 
         today = date.today()
         current_monday = today - timedelta(days=today.weekday())
-        ref_monday_setting = AppSettingModel.query.filter_by(key="rodizio_ref_monday").first()
-        ref_open_setting = AppSettingModel.query.filter_by(key="rodizio_open_team_ref").first()
-        ref_monday = None
-        if ref_monday_setting and (ref_monday_setting.value or "").strip():
-            try:
-                ref_monday = datetime.strptime(ref_monday_setting.value.strip(), "%Y-%m-%d").date()
-            except Exception:
-                ref_monday = None
-        if not ref_monday:
-            if not ref_monday_setting:
-                ref_monday_setting = AppSettingModel()
-                ref_monday_setting.key = "rodizio_ref_monday"
-                db.session.add(ref_monday_setting)
-            ref_monday_setting.value = current_monday.strftime("%Y-%m-%d")
-            db.session.commit()
-            ref_monday = current_monday
-        open_ref = ref_open_setting.value.strip() if ref_open_setting and ref_open_setting.value else "1"
-        if open_ref not in ("1", "2"):
-            open_ref = "1"
-        if ref_monday < current_monday:
-            weeks_diff = (current_monday - ref_monday).days // 7
-            if weeks_diff % 2 == 1:
-                open_ref = "2" if open_ref == "1" else "1"
-            ref_monday = current_monday
-            if not ref_monday_setting:
-                ref_monday_setting = AppSettingModel()
-                ref_monday_setting.key = "rodizio_ref_monday"
-                db.session.add(ref_monday_setting)
-            ref_monday_setting.value = current_monday.strftime("%Y-%m-%d")
-            if not ref_open_setting:
-                ref_open_setting = AppSettingModel()
-                ref_open_setting.key = "rodizio_open_team_ref"
-                db.session.add(ref_open_setting)
-            ref_open_setting.value = open_ref
-            db.session.commit()
-        for i in range(5):
-            ws = current_monday + timedelta(days=7 * i)
-            we = ws + timedelta(days=5)
-            open_team = open_ref if (i % 2 == 0) else ("2" if open_ref == "1" else "1")
-            close_team = "2" if open_team == "1" else "1"
-            d = ws
-            while d <= we:
-                events.append(
-                    {
-                        "title": f"EQUIPE ABERTURA '{open_team}'",
-                        "start": d.strftime("%Y-%m-%d"),
-                        "color": "#198754",
-                        "url": url_for("colaboradores.escala"),
-                        "kind": "rodizio-open",
-                        "team": open_team,
-                    }
-                )
-                events.append(
-                    {
-                        "title": f"EQUIPE FECHAMENTO '{close_team}'",
-                        "start": d.strftime("%Y-%m-%d"),
-                        "color": "#157347",
-                        "url": url_for("colaboradores.escala"),
-                        "kind": "rodizio-close",
-                        "team": close_team,
-                    }
-                )
-                d = d + timedelta(days=1)
-            sunday = ws + timedelta(days=6)
-            try:
-                # Otimização: buscar todos os settings de domingo de uma vez
-                domingo_keys = ["domingo_ref_sunday", "domingo_team_ref", "domingo_manha_team"]
-                domingo_settings = {
-                    s.key: s for s in AppSettingModel.query.filter(AppSettingModel.key.in_(domingo_keys)).all()
-                }
-                sun_ref_setting = domingo_settings.get("domingo_ref_sunday")
-                sun_team_setting = domingo_settings.get("domingo_team_ref")
-                base_team = sun_team_setting.value.strip() if sun_team_setting and sun_team_setting.value else None
-                if base_team not in ("1", "2"):
-                    # fallback para configuração antiga, se existir
-                    sun_m = domingo_settings.get("domingo_manha_team")
-                    base_team = sun_m.value.strip() if sun_m and sun_m.value else "1"
-                    if base_team not in ("1", "2"):
-                        base_team = "1"
-                    if not sun_team_setting:
-                        sun_team_setting = AppSettingModel()
-                        sun_team_setting.key = "domingo_team_ref"
-                        db.session.add(sun_team_setting)
-                    sun_team_setting.value = base_team
-                # definir domingo de referência se não existir
-                ref_sunday = None
-                if sun_ref_setting and (sun_ref_setting.value or "").strip():
-                    try:
-                        ref_sunday = datetime.strptime(sun_ref_setting.value.strip(), "%Y-%m-%d").date()
-                    except Exception:
-                        ref_sunday = None
-                if not sun_ref_setting:
-                    last_sunday = current_monday - timedelta(days=1)
-                    if not sun_ref_setting:
-                        sun_ref_setting = AppSettingModel()
-                        sun_ref_setting.key = "domingo_ref_sunday"
-                        db.session.add(sun_ref_setting)
-                    sun_ref_setting.value = last_sunday.strftime("%Y-%m-%d")
-                    db.session.commit()
-                    ref_sunday = last_sunday
-                # calcular equipe do domingo pelo número de semanas desde a referência
-                weeks_since_ref = 0
-                try:
-                    if ref_sunday:
-                        weeks_since_ref = max(0, (sunday - ref_sunday).days // 7)
-                except Exception:
-                    weeks_since_ref = 0
-                domingo_val = base_team if (weeks_since_ref % 2 == 0) else ("2" if base_team == "1" else "1")
-                events.append(
-                    {
-                        "title": f"DOMINGO EQUIPE '{domingo_val}' (5h–13h)",
-                        "start": sunday.strftime("%Y-%m-%d"),
-                        "color": "#fd7e14",
-                        "url": url_for("colaboradores.escala"),
-                        "kind": "rodizio-sunday",
-                        "team": domingo_val,
-                    }
-                )
-            except Exception:
-                pass
+        ref_monday, open_ref = _resolve_rodizio_reference(current_monday)
+        events.extend(_build_rodizio_week_events(ref_monday, open_ref))
     except Exception:
         pass
     try:
@@ -788,22 +812,20 @@ def update_mural():
 @bp.route("/changelog", methods=["GET"])
 def changelog_redirect():
     """Redireciona /changelog para /changelog/versoes para manter compatibilidade"""
-    return redirect(url_for('home.changelog_versoes'))
+    return redirect(url_for("home.changelog_versoes"))
 
 
 @bp.route("/changelog/versoes", methods=["GET"])
 def changelog_versoes():
     """Exibe página de changelog formatada baseada no arquivo CHANGELOG.md"""
     try:
-        from pathlib import Path
         import re
+        from pathlib import Path
 
         changelog_path = Path("CHANGELOG.md")
         if not changelog_path.exists():
             return render_template(
-                "changelog_versoes.html",
-                changelog_content=None,
-                error="Arquivo CHANGELOG.md não encontrado"
+                "changelog_versoes.html", changelog_content=None, error="Arquivo CHANGELOG.md não encontrado"
             )
 
         content = changelog_path.read_text(encoding="utf-8", errors="ignore")
@@ -812,52 +834,39 @@ def changelog_versoes():
         versions = []
         current_version = None
 
-        lines = content.split('\n')
+        lines = content.split("\n")
         for line in lines:
             line = line.strip()
 
             # Detecta início de versão ## [X.Y.Z] - data
-            version_match = re.match(r'^## \[([\d.]+)\] - (\d{4}-\d{2}-\d{2})', line)
+            version_match = re.match(r"^## \[([\d.]+)\] - (\d{4}-\d{2}-\d{2})", line)
             if version_match:
                 if current_version:
                     versions.append(current_version)
 
-                current_version = {
-                    'version': version_match.group(1),
-                    'date': version_match.group(2),
-                    'sections': []
-                }
+                current_version = {"version": version_match.group(1), "date": version_match.group(2), "sections": []}
                 continue
 
             # Detecta seção ### Nome
-            section_match = re.match(r'^### (.+)', line)
+            section_match = re.match(r"^### (.+)", line)
             if section_match and current_version:
-                current_version['sections'].append({
-                    'title': section_match.group(1),
-                    'items': []
-                })
+                current_version["sections"].append({"title": section_match.group(1), "items": []})
                 continue
 
             # Detecta item da lista - texto
-            if line.startswith('- ') and current_version and current_version['sections']:
+            if line.startswith("- ") and current_version and current_version["sections"]:
                 item_text = line[2:].strip()
-                current_version['sections'][-1]['items'].append(item_text)
+                current_version["sections"][-1]["items"].append(item_text)
 
         # Adiciona a última versão se existir
         if current_version:
             versions.append(current_version)
 
-        return render_template(
-            "changelog_versoes.html",
-            changelog_content=versions,
-            total_versions=len(versions)
-        )
+        return render_template("changelog_versoes.html", changelog_content=versions, total_versions=len(versions))
 
     except Exception as e:
         return render_template(
-            "changelog_versoes.html",
-            changelog_content=None,
-            error=f"Erro ao ler changelog: {str(e)}"
+            "changelog_versoes.html", changelog_content=None, error=f"Erro ao ler changelog: {str(e)}"
         )
 
 
