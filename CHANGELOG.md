@@ -7,7 +7,8 @@
   - Dropdown de seleção de setor nos formulários de criar/editar colaborador
   - Lançamentos de horas herdam automaticamente o setor do colaborador
   - Carryover de horas preserva o setor do colaborador
-  - Script de migração SQL: tools/migrate_add_setor_to_collaborator.sql
+  - Script de migração disponível em `one-time-migrations/2026_01_21_add_setor_to_collaborator.py`
+  - Migração com rollback automático e logs detalhados para execução segura no VPS
 
 ## [2.6.72] - 2026-01-20
 
