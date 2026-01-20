@@ -77,6 +77,16 @@
                 </a>
             </div>
 
+            {% if current_user.nivel in ('admin', 'DEV') %}
+            <div class="mm-nav-section">
+                <div class="mm-nav-section-title">Gestão</div>
+                <a href="{{ url_for('estoque_producao.index') }}" class="mm-nav-item {% if 'estoque_producao' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-box-seam mm-nav-icon"></i>
+                    <span class="mm-nav-text">Estoque de Produção</span>
+                </a>
+            </div>
+            {% endif %}
+
             {% endif %}
 
 

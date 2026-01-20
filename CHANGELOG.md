@@ -1,3 +1,69 @@
+## [2.7.0] - 2026-01-20
+
+### 🎉 Nova Funcionalidade: Módulo de Estoque de Produção com Previsão de Uso
+
+#### Sistema Completo de Gestão de Estoque
+- **feat(estoque-producao)**: Novo módulo premium para gestão de estoque de produção com previsão de uso
+  - Controle de quantidade de produtos por setor
+  - Previsão de uso para eventos sazonais
+  - Ajustes de quantidade com motivo obrigatório (entrada/saída/correção)
+  - Histórico completo de auditoria com timeline visual
+  - Exclusão lógica (soft delete) para preservar histórico
+  - Validação de quantidades não-negativas em todos os ajustes
+
+#### Modelos de Dados
+- **EstoqueProducao**: Armazena produtos em estoque com quantidade, setor, previsão e observações
+  - Campos: produto_id, quantidade, setor_id, previsao_uso, data_previsao, data_registro, criado_por, observacao, ativo
+  - Relacionamentos: ForeignKey para Produto e Setor
+  - Soft delete via campo `ativo`
+- **HistoricoAjusteEstoque**: Auditoria completa de todos os ajustes
+  - Rastreia quantidade anterior, ajuste realizado, quantidade nova
+  - Motivo obrigatório para cada ajuste
+  - Registra quem realizou o ajuste e quando
+
+#### Rotas e Funcionalidades
+- `GET /estoque-producao/`: Listagem com filtros avançados (produto, setor, previsão, intervalo de datas)
+- `POST /estoque-producao/criar`: Criar novo registro com validações
+- `POST /estoque-producao/<id>/ajustar`: Ajustar quantidade com auditoria
+- `POST /estoque-producao/<id>/editar`: Editar previsão, data e observações
+- `POST /estoque-producao/<id>/excluir`: Exclusão lógica
+- `GET /estoque-producao/<id>/historico`: Timeline de ajustes com detalhes
+
+#### Interface Premium
+- **Página Principal** (`estoque_producao.html`):
+  - Hero section com gradient verde e animações
+  - Cards com estatísticas (total em estoque, itens com previsão, etc)
+  - Filtros avançados com layout profissional
+  - Card grid responsivo mostrando cada item de estoque
+  - Três modais: criar, ajustar, editar
+  - Design dark mode compatible
+- **Página de Histórico** (`estoque_producao_historico.html`):
+  - Timeline vertical com visualização de ajustes
+  - Badges color-coded por tipo (verde entrada, vermelho saída, azul correção)
+  - Detalhes completos: quantidades anteriores, ajuste e nova
+  - Motivo do ajuste em destaque
+
+#### Migrações
+- Script `2026_01_20_create_estoque_producao.py`: Cria tabelas com rollback automático
+- Integração com sistema de migrations existente em `one-time-migrations/`
+
+#### Permissões
+- Acesso restrito a admin/DEV (menu em seção "Gestão")
+- Validações de permissão em todas as operações
+
+#### Integração
+- Integrado no menu principal em nova seção "Gestão"
+- Blueprint registrado com url_prefix="/estoque-producao"
+- Utiliza modelos Produto e Setor existentes
+
+#### Correções Técnicas
+- Corrigidas 40+ erros de lint e type checking
+- Event listeners para modais usando data-attributes
+- Separação adequada entre HTML e JavaScript
+- Validações de SQL no backend
+
+---
+
 ## [2.6.74] - 2026-01-20
 
 ### Correções Críticas

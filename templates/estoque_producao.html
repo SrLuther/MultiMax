@@ -1,0 +1,971 @@
+{% extends 'base.html' %}
+
+{% block title %}Estoque de Produção - MultiMax{% endblock %}
+
+{% block head %}
+<style>
+/* ====================================================================
+   ESTOQUE DE PRODUÇÃO - VARIÁVEIS E BASE
+   ==================================================================== */
+:root {
+    --ep-primary: #10b981;
+    --ep-primary-dark: #047857;
+    --ep-secondary: #3b82f6;
+    --ep-danger: #ef4444;
+    --ep-warning: #f59e0b;
+    --ep-success: #10b981;
+    --ep-bg: #f9fafb;
+    --ep-card: #ffffff;
+    --ep-border: #e5e7eb;
+    --ep-text: #111827;
+    --ep-text-secondary: #6b7280;
+    --ep-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --ep-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] {
+    --ep-bg: #111827;
+    --ep-card: #1f2937;
+    --ep-border: #374151;
+    --ep-text: #f9fafb;
+    --ep-text-secondary: #9ca3af;
+    --ep-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --ep-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+.ep-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+/* ====================================================================
+   HERO HEADER COM GRADIENTE
+   ==================================================================== */
+.ep-hero {
+    background: linear-gradient(135deg, var(--ep-primary) 0%, var(--ep-primary-dark) 100%);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 32px;
+    color: white;
+    box-shadow: var(--ep-shadow-lg);
+    position: relative;
+    overflow: hidden;
+}
+
+.ep-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 300px;
+    height: 300px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    50% { transform: translate(-20px, 20px) rotate(180deg); }
+}
+
+.ep-hero-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.ep-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.ep-title i {
+    font-size: 2rem;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.ep-subtitle {
+    font-size: 1rem;
+    margin: 0;
+    opacity: 0.95;
+}
+
+.ep-hero-actions {
+    display: flex;
+    gap: 12px;
+}
+
+/* ====================================================================
+   ESTATÍSTICAS RÁPIDAS
+   ==================================================================== */
+.ep-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 32px;
+}
+
+.ep-stat-card {
+    background: var(--ep-card);
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid var(--ep-border);
+    box-shadow: var(--ep-shadow);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.ep-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--ep-shadow-lg);
+}
+
+.ep-stat-label {
+    font-size: 0.875rem;
+    color: var(--ep-text-secondary);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ep-stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--ep-text);
+}
+
+/* ====================================================================
+   SEÇÃO DE FILTROS
+   ==================================================================== */
+.ep-filters {
+    background: var(--ep-card);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    border: 1px solid var(--ep-border);
+    box-shadow: var(--ep-shadow);
+}
+
+.ep-filters-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.ep-filters-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--ep-text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ep-filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.ep-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ep-form-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--ep-text);
+}
+
+.ep-form-input,
+.ep-form-select {
+    padding: 10px 12px;
+    border: 1px solid var(--ep-border);
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    color: var(--ep-text);
+    background: var(--ep-card);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.ep-form-input:focus,
+.ep-form-select:focus {
+    outline: none;
+    border-color: var(--ep-primary);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+/* ====================================================================
+   GRID DE REGISTROS
+   ==================================================================== */
+.ep-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+    margin-bottom: 32px;
+}
+
+.ep-card {
+    background: var(--ep-card);
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid var(--ep-border);
+    box-shadow: var(--ep-shadow);
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+
+.ep-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--ep-shadow-lg);
+}
+
+.ep-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--ep-border);
+}
+
+.ep-card-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--ep-text);
+    margin: 0;
+}
+
+.ep-card-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.ep-badge-previsao {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+[data-theme="dark"] .ep-badge-previsao {
+    background: #78350f;
+    color: #fef3c7;
+}
+
+.ep-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.ep-info-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9375rem;
+}
+
+.ep-info-icon {
+    color: var(--ep-primary);
+    font-size: 1.125rem;
+}
+
+.ep-info-label {
+    font-weight: 600;
+    color: var(--ep-text);
+}
+
+.ep-info-value {
+    color: var(--ep-text-secondary);
+}
+
+.ep-card-quantity {
+    background: linear-gradient(135deg, var(--ep-primary) 0%, var(--ep-primary-dark) 100%);
+    color: white;
+    padding: 16px;
+    border-radius: 8px;
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.ep-quantity-label {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+.ep-quantity-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-top: 4px;
+}
+
+.ep-card-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+/* ====================================================================
+   BOTÕES
+   ==================================================================== */
+.ep-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+}
+
+.ep-btn-primary {
+    background: var(--ep-primary);
+    color: white;
+}
+
+.ep-btn-primary:hover {
+    background: var(--ep-primary-dark);
+    transform: translateY(-1px);
+}
+
+.ep-btn-secondary {
+    background: var(--ep-secondary);
+    color: white;
+}
+
+.ep-btn-secondary:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+}
+
+.ep-btn-sm {
+    padding: 6px 14px;
+    font-size: 0.875rem;
+}
+
+.ep-btn-outline {
+    background: transparent;
+    border: 1px solid var(--ep-border);
+    color: var(--ep-text);
+}
+
+.ep-btn-outline:hover {
+    background: var(--ep-bg);
+    border-color: var(--ep-primary);
+}
+
+.ep-btn-danger {
+    background: var(--ep-danger);
+    color: white;
+}
+
+.ep-btn-danger:hover {
+    background: #dc2626;
+}
+
+/* ====================================================================
+   MODALS
+   ==================================================================== */
+.ep-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.ep-modal-overlay.active {
+    display: flex;
+}
+
+.ep-modal {
+    background: var(--ep-card);
+    border-radius: 16px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.ep-modal-header {
+    padding: 24px;
+    border-bottom: 1px solid var(--ep-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ep-modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--ep-text);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ep-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--ep-text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    transition: color 0.2s;
+}
+
+.ep-modal-close:hover {
+    color: var(--ep-text);
+}
+
+.ep-modal-body {
+    padding: 24px;
+}
+
+.ep-modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--ep-border);
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+/* ====================================================================
+   ESTADO VAZIO
+   ==================================================================== */
+.ep-empty-state {
+    text-align: center;
+    padding: 80px 20px;
+}
+
+.ep-empty-icon {
+    font-size: 4rem;
+    color: var(--ep-text-secondary);
+    margin-bottom: 16px;
+}
+
+.ep-empty-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--ep-text);
+    margin-bottom: 8px;
+}
+
+.ep-empty-text {
+    font-size: 1rem;
+    color: var(--ep-text-secondary);
+    margin-bottom: 24px;
+}
+
+/* ====================================================================
+   RESPONSIVO
+   ==================================================================== */
+@media (max-width: 768px) {
+    .ep-container {
+        padding: 16px;
+    }
+
+    .ep-hero {
+        padding: 24px;
+    }
+
+    .ep-title {
+        font-size: 1.5rem;
+    }
+
+    .ep-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ep-filters-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ep-hero-content {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .ep-hero-actions {
+        justify-content: stretch;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ep-container">
+    <!-- Hero Header -->
+    <div class="ep-hero">
+        <div class="ep-hero-content">
+            <div>
+                <h1 class="ep-title">
+                    <i class="bi bi-box-seam"></i>
+                    Estoque de Produção
+                </h1>
+                <p class="ep-subtitle">Controle de produtos produzidos com previsão de uso futuro</p>
+            </div>
+            <div class="ep-hero-actions">
+                <button class="ep-btn ep-btn-primary" onclick="abrirModalNovo()">
+                    <i class="bi bi-plus-lg"></i>
+                    Novo Registro
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estatísticas Rápidas -->
+    <div class="ep-stats">
+        <div class="ep-stat-card">
+            <div class="ep-stat-label">
+                <i class="bi bi-list-check"></i>
+                Total de Registros
+            </div>
+            <div class="ep-stat-value">{{ total_registros }}</div>
+        </div>
+        <div class="ep-stat-card">
+            <div class="ep-stat-label">
+                <i class="bi bi-box"></i>
+                Quantidade Total
+            </div>
+            <div class="ep-stat-value">{{ "%.2f"|format(total_quantidade) }}</div>
+        </div>
+        <div class="ep-stat-card">
+            <div class="ep-stat-label">
+                <i class="bi bi-cart-check"></i>
+                Produtos Únicos
+            </div>
+            <div class="ep-stat-value">{{ produtos_unicos }}</div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="ep-filters">
+        <div class="ep-filters-header">
+            <h2 class="ep-filters-title">
+                <i class="bi bi-funnel"></i>
+                Filtros de Pesquisa
+            </h2>
+        </div>
+        <form method="GET" action="{{ url_for('estoque_producao.index') }}">
+            <div class="ep-filters-grid">
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Produto</label>
+                    <input type="text" name="produto" class="ep-form-input"
+                           placeholder="Nome ou código" value="{{ filtro_produto }}">
+                </div>
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Setor</label>
+                    <select name="setor" class="ep-form-select">
+                        <option value="">Todos os setores</option>
+                        {% for setor in setores %}
+                        <option value="{{ setor.id }}" {% if filtro_setor == setor.id|string %}selected{% endif %}>
+                            {{ setor.nome }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Previsão de Uso</label>
+                    <input type="text" name="previsao" class="ep-form-input"
+                           placeholder="Ex: Carnaval" value="{{ filtro_previsao }}">
+                </div>
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Data Inicial</label>
+                    <input type="date" name="data_ini" class="ep-form-input" value="{{ filtro_data_ini }}">
+                </div>
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Data Final</label>
+                    <input type="date" name="data_fim" class="ep-form-input" value="{{ filtro_data_fim }}">
+                </div>
+                <div class="ep-form-group" style="display: flex; align-items: flex-end;">
+                    <button type="submit" class="ep-btn ep-btn-primary" style="width: 100%;">
+                        <i class="bi bi-search"></i>
+                        Buscar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Estado Vazio -->
+    {% if not estoques %}
+    <div class="ep-empty-state">
+        <div class="ep-empty-icon">
+            <i class="bi bi-inbox"></i>
+        </div>
+        <h2 class="ep-empty-title">Nenhum registro encontrado</h2>
+        <p class="ep-empty-text">
+            {% if filtro_produto or filtro_setor or filtro_previsao %}
+            Nenhum resultado para os filtros aplicados. Tente ajustar sua busca.
+            {% else %}
+            Comece registrando o primeiro produto produzido e estocado.
+            {% endif %}
+        </p>
+        <button class="ep-btn ep-btn-primary" onclick="abrirModalNovo()">
+            <i class="bi bi-plus-circle"></i>
+            Criar Primeiro Registro
+        </button>
+    </div>
+    {% else %}
+
+    <!-- Grid de Registros -->
+    <div class="ep-grid">
+        {% for estoque in estoques %}
+        <div class="ep-card">
+            <div class="ep-card-header">
+                <h3 class="ep-card-title">{{ estoque.produto.nome }}</h3>
+                {% if estoque.previsao_uso %}
+                <span class="ep-card-badge ep-badge-previsao">
+                    <i class="bi bi-calendar-event"></i>
+                    {{ estoque.previsao_uso }}
+                </span>
+                {% endif %}
+            </div>
+
+            <div class="ep-card-quantity">
+                <div class="ep-quantity-label">Quantidade em Estoque</div>
+                <div class="ep-quantity-value">{{ "%.2f"|format(estoque.quantidade) }}</div>
+            </div>
+
+            <div class="ep-card-info">
+                <div class="ep-info-row">
+                    <i class="bi bi-diagram-3 ep-info-icon"></i>
+                    <span class="ep-info-label">Setor:</span>
+                    <span class="ep-info-value">{{ estoque.setor.nome }}</span>
+                </div>
+                <div class="ep-info-row">
+                    <i class="bi bi-calendar3 ep-info-icon"></i>
+                    <span class="ep-info-label">Registrado em:</span>
+                    <span class="ep-info-value">{{ estoque.data_registro.strftime('%d/%m/%Y %H:%M') }}</span>
+                </div>
+                {% if estoque.data_previsao %}
+                <div class="ep-info-row">
+                    <i class="bi bi-calendar-check ep-info-icon"></i>
+                    <span class="ep-info-label">Data Prevista:</span>
+                    <span class="ep-info-value">{{ estoque.data_previsao.strftime('%d/%m/%Y') }}</span>
+                </div>
+                {% endif %}
+                {% if estoque.criado_por %}
+                <div class="ep-info-row">
+                    <i class="bi bi-person ep-info-icon"></i>
+                    <span class="ep-info-label">Criado por:</span>
+                    <span class="ep-info-value">{{ estoque.criado_por }}</span>
+                </div>
+                {% endif %}
+                {% if estoque.observacao %}
+                <div class="ep-info-row">
+                    <i class="bi bi-chat-left-text ep-info-icon"></i>
+                    <span class="ep-info-label">Observação:</span>
+                    <span class="ep-info-value">{{ estoque.observacao[:50] }}{% if estoque.observacao|length > 50 %}...{% endif %}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="ep-card-actions">
+                <button class="ep-btn ep-btn-sm ep-btn-primary"
+                        data-action="ajustar"
+                        data-id="{{ estoque.id }}"
+                        data-nome="{{ estoque.produto.nome }}"
+                        data-quantidade="{{ estoque.quantidade }}">
+                    <i class="bi bi-arrow-left-right"></i>
+                    Ajustar
+                </button>
+                <button class="ep-btn ep-btn-sm ep-btn-secondary"
+                        data-action="editar"
+                        data-id="{{ estoque.id }}"
+                        data-previsao="{{ estoque.previsao_uso or '' }}"
+                        data-data="{{ estoque.data_previsao or '' }}"
+                        data-obs="{{ estoque.observacao or '' }}">
+                    <i class="bi bi-pencil"></i>
+                    Editar
+                </button>
+                <a href="{{ url_for('estoque_producao.historico', id=estoque.id) }}" class="ep-btn ep-btn-sm ep-btn-outline">
+                    <i class="bi bi-clock-history"></i>
+                    Histórico
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal Novo Registro -->
+<div class="ep-modal-overlay" id="modalNovo">
+    <div class="ep-modal">
+        <div class="ep-modal-header">
+            <h2 class="ep-modal-title">
+                <i class="bi bi-plus-circle"></i>
+                Novo Registro de Estoque
+            </h2>
+            <button class="ep-modal-close" onclick="fecharModal('modalNovo')">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+        <form method="POST" action="{{ url_for('estoque_producao.criar') }}">
+            <div class="ep-modal-body">
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Produto *</label>
+                    <select name="produto_id" class="ep-form-select" required>
+                        <option value="">Selecione um produto</option>
+                        {% for produto in produtos %}
+                        <option value="{{ produto.id }}">{{ produto.nome }} ({{ produto.codigo }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Quantidade *</label>
+                    <input type="number" step="0.01" min="0" name="quantidade" class="ep-form-input" required>
+                </div>
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Setor *</label>
+                    <select name="setor_id" class="ep-form-select" required>
+                        <option value="">Selecione um setor</option>
+                        {% for setor in setores %}
+                        <option value="{{ setor.id }}">{{ setor.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Previsão de Uso</label>
+                    <input type="text" name="previsao_uso" class="ep-form-input"
+                           placeholder="Ex: Carnaval 2026, Fim de Semana">
+                </div>
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Data da Previsão</label>
+                    <input type="date" name="data_previsao" class="ep-form-input">
+                </div>
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Observação</label>
+                    <textarea name="observacao" class="ep-form-input" rows="3"
+                              placeholder="Observações sobre este registro..."></textarea>
+                </div>
+            </div>
+            <div class="ep-modal-footer">
+                <button type="button" class="ep-btn ep-btn-outline" onclick="fecharModal('modalNovo')">
+                    Cancelar
+                </button>
+                <button type="submit" class="ep-btn ep-btn-primary">
+                    <i class="bi bi-check-lg"></i>
+                    Criar Registro
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Ajustar Quantidade -->
+<div class="ep-modal-overlay" id="modalAjustar">
+    <div class="ep-modal">
+        <div class="ep-modal-header">
+            <h2 class="ep-modal-title">
+                <i class="bi bi-arrow-left-right"></i>
+                Ajustar Quantidade
+            </h2>
+            <button class="ep-modal-close" onclick="fecharModal('modalAjustar')">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+        <form method="POST" id="formAjustar">
+            <div class="ep-modal-body">
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Produto</label>
+                    <input type="text" class="ep-form-input" id="ajustarProdutoNome" readonly>
+                </div>
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Quantidade Atual</label>
+                    <input type="text" class="ep-form-input" id="ajustarQuantidadeAtual" readonly>
+                </div>
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Tipo de Ajuste *</label>
+                    <select name="tipo_ajuste" class="ep-form-select" required>
+                        <option value="entrada">Entrada (adicionar)</option>
+                        <option value="saida">Saída (remover)</option>
+                        <option value="correcao">Correção (ajustar para valor exato)</option>
+                    </select>
+                </div>
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Quantidade *</label>
+                    <input type="number" step="0.01" min="0.01" name="quantidade_ajuste" class="ep-form-input" required>
+                </div>
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Motivo do Ajuste *</label>
+                    <textarea name="motivo" class="ep-form-input" rows="3" required
+                              placeholder="Descreva o motivo do ajuste..."></textarea>
+                </div>
+            </div>
+            <div class="ep-modal-footer">
+                <button type="button" class="ep-btn ep-btn-outline" onclick="fecharModal('modalAjustar')">
+                    Cancelar
+                </button>
+                <button type="submit" class="ep-btn ep-btn-primary">
+                    <i class="bi bi-check-lg"></i>
+                    Confirmar Ajuste
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Editar Registro -->
+<div class="ep-modal-overlay" id="modalEditar">
+    <div class="ep-modal">
+        <div class="ep-modal-header">
+            <h2 class="ep-modal-title">
+                <i class="bi bi-pencil"></i>
+                Editar Registro
+            </h2>
+            <button class="ep-modal-close" onclick="fecharModal('modalEditar')">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+        <form method="POST" id="formEditar">
+            <div class="ep-modal-body">
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Previsão de Uso</label>
+                    <input type="text" name="previsao_uso" class="ep-form-input" id="editarPrevisao"
+                           placeholder="Ex: Carnaval 2026">
+                </div>
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Data da Previsão</label>
+                    <input type="date" name="data_previsao" class="ep-form-input" id="editarDataPrevisao">
+                </div>
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Observação</label>
+                    <textarea name="observacao" class="ep-form-input" rows="3" id="editarObservacao"
+                              placeholder="Observações..."></textarea>
+                </div>
+            </div>
+            <div class="ep-modal-footer">
+                <button type="button" class="ep-btn ep-btn-outline" onclick="fecharModal('modalEditar')">
+                    Cancelar
+                </button>
+                <button type="submit" class="ep-btn ep-btn-primary">
+                    <i class="bi bi-check-lg"></i>
+                    Salvar Alterações
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Funções de controle de modais
+function abrirModal(id) {
+    document.getElementById(id).classList.add('active');
+}
+
+function fecharModal(id) {
+    document.getElementById(id).classList.remove('active');
+}
+
+function abrirModalNovo() {
+    abrirModal('modalNovo');
+}
+
+function abrirModalAjustar(id, produtoNome, quantidadeAtual) {
+    document.getElementById('ajustarProdutoNome').value = produtoNome;
+    document.getElementById('ajustarQuantidadeAtual').value = parseFloat(quantidadeAtual).toFixed(2);
+    document.getElementById('formAjustar').action = '/estoque-producao/' + id + '/ajustar';
+    abrirModal('modalAjustar');
+}
+
+function abrirModalEditar(id, previsao, dataPrevisao, observacao) {
+    document.getElementById('editarPrevisao').value = previsao;
+    document.getElementById('editarDataPrevisao').value = dataPrevisao;
+    document.getElementById('editarObservacao').value = observacao;
+    document.getElementById('formEditar').action = '/estoque-producao/' + id + '/editar';
+    abrirModal('modalEditar');
+}
+
+// Event listeners para botões com data-attributes
+document.addEventListener('DOMContentLoaded', function() {
+    // Botões de ajustar
+    document.querySelectorAll('button[data-action="ajustar"]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            const nome = this.getAttribute('data-nome');
+            const quantidade = this.getAttribute('data-quantidade');
+            abrirModalAjustar(id, nome, quantidade);
+        });
+    });
+
+    // Botões de editar
+    document.querySelectorAll('button[data-action="editar"]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            const previsao = this.getAttribute('data-previsao');
+            const data = this.getAttribute('data-data');
+            const obs = this.getAttribute('data-obs');
+            abrirModalEditar(id, previsao, data, obs);
+        });
+    });
+});
+
+// Fechar modal ao clicar no overlay
+document.querySelectorAll('.ep-modal-overlay').forEach(function(overlay) {
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+            fecharModal(overlay.id);
+        }
+    });
+});
+
+// Fechar modal com ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.ep-modal-overlay.active').forEach(function(modal) {
+            fecharModal(modal.id);
+        });
+    }
+});
+</script>
+
+{% endblock %}

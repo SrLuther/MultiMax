@@ -1,0 +1,298 @@
+{% extends 'base.html' %}
+
+{% block title %}Histórico de Ajustes - Estoque de Produção - MultiMax{% endblock %}
+
+{% block head %}
+<style>
+:root {
+    --ep-primary: #10b981;
+    --ep-primary-dark: #047857;
+    --ep-bg: #f9fafb;
+    --ep-card: #ffffff;
+    --ep-border: #e5e7eb;
+    --ep-text: #111827;
+    --ep-text-secondary: #6b7280;
+    --ep-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] {
+    --ep-bg: #111827;
+    --ep-card: #1f2937;
+    --ep-border: #374151;
+    --ep-text: #f9fafb;
+    --ep-text-secondary: #9ca3af;
+}
+
+.ep-hist-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.ep-hist-header {
+    background: linear-gradient(135deg, var(--ep-primary) 0%, var(--ep-primary-dark) 100%);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 32px;
+    color: white;
+}
+
+.ep-hist-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.ep-hist-info {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+}
+
+.ep-hist-info-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+}
+
+.ep-hist-timeline {
+    position: relative;
+    padding-left: 40px;
+}
+
+.ep-hist-timeline::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--ep-border);
+}
+
+.ep-hist-item {
+    position: relative;
+    background: var(--ep-card);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid var(--ep-border);
+    box-shadow: var(--ep-shadow);
+}
+
+.ep-hist-item::before {
+    content: '';
+    position: absolute;
+    left: -28px;
+    top: 24px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--ep-primary);
+    border: 3px solid var(--ep-card);
+}
+
+.ep-hist-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.ep-hist-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.ep-hist-badge-entrada {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.ep-hist-badge-saida {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.ep-hist-badge-correcao {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+[data-theme="dark"] .ep-hist-badge-entrada {
+    background: #065f46;
+    color: #d1fae5;
+}
+
+[data-theme="dark"] .ep-hist-badge-saida {
+    background: #991b1b;
+    color: #fee2e2;
+}
+
+[data-theme="dark"] .ep-hist-badge-correcao {
+    background: #1e40af;
+    color: #dbeafe;
+}
+
+.ep-hist-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.ep-hist-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ep-hist-label {
+    font-size: 0.875rem;
+    color: var(--ep-text-secondary);
+}
+
+.ep-hist-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--ep-text);
+}
+
+.ep-hist-motivo {
+    background: var(--ep-bg);
+    border-left: 3px solid var(--ep-primary);
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 12px;
+}
+
+.ep-hist-footer {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--ep-border);
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    color: var(--ep-text-secondary);
+}
+
+.ep-btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--ep-primary);
+    color: white;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s;
+    margin-bottom: 24px;
+}
+
+.ep-btn-back:hover {
+    background: var(--ep-primary-dark);
+    transform: translateY(-1px);
+}
+
+.ep-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--ep-text-secondary);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ep-hist-container">
+    <a href="{{ url_for('estoque_producao.index') }}" class="ep-btn-back">
+        <i class="bi bi-arrow-left"></i>
+        Voltar ao Estoque
+    </a>
+
+    <div class="ep-hist-header">
+        <h1 class="ep-hist-title">
+            <i class="bi bi-clock-history"></i>
+            Histórico de Ajustes
+        </h1>
+        <div class="ep-hist-info">
+            <div class="ep-hist-info-item">
+                <i class="bi bi-box"></i>
+                <strong>Produto:</strong> {{ estoque.produto.nome }}
+            </div>
+            <div class="ep-hist-info-item">
+                <i class="bi bi-diagram-3"></i>
+                <strong>Setor:</strong> {{ estoque.setor.nome }}
+            </div>
+            <div class="ep-hist-info-item">
+                <i class="bi bi-123"></i>
+                <strong>Quantidade Atual:</strong> {{ "%.2f"|format(estoque.quantidade) }}
+            </div>
+        </div>
+    </div>
+
+    {% if not historicos %}
+    <div class="ep-empty">
+        <i class="bi bi-inbox" style="font-size: 3rem; margin-bottom: 16px;"></i>
+        <h3>Nenhum ajuste registrado</h3>
+        <p>O histórico estará vazio até que o primeiro ajuste seja realizado.</p>
+    </div>
+    {% else %}
+    <div class="ep-hist-timeline">
+        {% for hist in historicos %}
+        <div class="ep-hist-item">
+            <div class="ep-hist-item-header">
+                <span class="ep-hist-badge ep-hist-badge-{{ hist.tipo_ajuste }}">
+                    <i class="bi bi-{% if hist.tipo_ajuste == 'entrada' %}arrow-down{% elif hist.tipo_ajuste == 'saida' %}arrow-up{% else %}arrow-left-right{% endif %}"></i>
+                    {{ hist.tipo_ajuste }}
+                </span>
+                <span style="color: var(--ep-text-secondary); font-size: 0.875rem;">
+                    {{ hist.data_ajuste.strftime('%d/%m/%Y %H:%M') }}
+                </span>
+            </div>
+
+            <div class="ep-hist-details">
+                <div class="ep-hist-detail">
+                    <span class="ep-hist-label">Quantidade Anterior</span>
+                    <span class="ep-hist-value">{{ "%.2f"|format(hist.quantidade_anterior) }}</span>
+                </div>
+                <div class="ep-hist-detail">
+                    <span class="ep-hist-label">Ajuste</span>
+                    <span class="ep-hist-value" {% if hist.quantidade_ajuste > 0 %}style="color: #10b981;"{% else %}style="color: #ef4444;"{% endif %}>
+                        {{ "%+.2f"|format(hist.quantidade_ajuste) }}
+                    </span>
+                </div>
+                <div class="ep-hist-detail">
+                    <span class="ep-hist-label">Quantidade Nova</span>
+                    <span class="ep-hist-value">{{ "%.2f"|format(hist.quantidade_nova) }}</span>
+                </div>
+            </div>
+
+            <div class="ep-hist-motivo">
+                <strong>Motivo:</strong> {{ hist.motivo }}
+            </div>
+
+            <div class="ep-hist-footer">
+                <span>
+                    <i class="bi bi-person"></i>
+                    {{ hist.ajustado_por }}
+                </span>
+                <span>
+                    <i class="bi bi-clock"></i>
+                    {{ hist.data_ajuste.strftime('%d/%m/%Y às %H:%M:%S') }}
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
