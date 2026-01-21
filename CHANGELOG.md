@@ -1,3 +1,19 @@
+## [2.7.3] - 2026-01-20
+
+### Funcionalidades
+
+- feat(produtos): botão "Criar Produto" agora visível e destacado no cabeçalho da página de produtos
+  - Adiciona ícone e estilo primário para facilitar localização
+  - Formulário expandido com campos: categoria, nome, quantidade inicial, preços de custo/venda
+  - Botões cancelar/criar com melhor feedback visual
+
+### Correções
+
+- fix(produtos): corrige permissão para incluir nível `DEV` na criação de produtos
+- fix(produtos): corrige rota do formulário de criação para usar endpoint correto `estoque.adicionar`
+
+---
+
 ## [2.7.2] - 2026-01-20
 
 ### Funcionalidades
@@ -9,6 +25,8 @@
 ### Técnicas
 
 - refactor(estoque): extrai helpers de validação/histórico e reduz complexidade das rotas `adicionar`, `editar` e `gerenciar`
+- docs(readme): refatorar para versão 2.7.2, remove links inválidos e infos imprecisas
+- docs(readme): ajusta URL de acesso para produção (www.multimax.tec.br)
 
 ---
 
