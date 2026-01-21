@@ -1,6 +1,13 @@
 ## [Unreleased]
 
 
+## [2.7.19] - 2026-01-21
+
+### Corrigido
+
+- fix(gestao): exibir botão de criar Collaborator para usuários cadastrados via login que ainda não têm colaborador, permitindo associar setor pelo modal
+
+
 ## [2.7.18] - 2026-01-21
 
 ### Corrigido

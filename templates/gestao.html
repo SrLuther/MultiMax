@@ -346,6 +346,12 @@
                                         {% else %}
                                         <span class="gestao-badge gestao-badge-warning">Você</span>
                                         {% endif %}
+                                        {% if not c.collaborator %}
+                                        <button class="gestao-btn-modern gestao-btn-sm gestao-btn-primary" data-bs-toggle="modal" data-bs-target="#modalCriarColabUser{{ u.id }}" title="Criar Collaborator para gerenciar em Ciclos">
+                                            <i class="bi bi-plus"></i>
+                                            Criar Colab
+                                        </button>
+                                        {% endif %}
                                     </div>
                                     {% else %}
                                     <button class="gestao-btn-modern gestao-btn-sm gestao-btn-primary" data-bs-toggle="modal" data-bs-target="#modalCriarColabUser{{ u.id }}" title="Criar Collaborator para gerenciar em Ciclos">
