@@ -1,3 +1,15 @@
+## [2.7.9] - 2026-01-21
+
+### Melhoria
+
+- feat(ciclos): melhorar formato do cabeçalho do PDF geral de ciclo
+  - Alterado de "Ciclo - 1 | Janeiro" para "Janeiro 2026"
+  - Exibe mês de referência com ano no formato intuitivo
+  - Função `_infer_reference_month_from_weeks` agora retorna formato "Mês Ano"
+  - Template PDF simplificado removendo "Ciclo - X |" desnecessário
+
+---
+
 ## [2.7.8] - 2026-01-21
 
 ### Melhoria

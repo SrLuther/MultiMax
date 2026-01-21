@@ -394,17 +394,18 @@ def _weekly_cycles_for_month(anchor: date) -> list[dict[str, object]]:
 
 
 def _infer_reference_month_from_weeks(weeks: list[CicloSemana]) -> str:
-    """Tenta inferir mês de referência (PT) a partir das semanas arquivadas."""
+    """Tenta inferir mês de referência (PT) a partir das semanas arquivadas no formato 'Mês Ano'."""
     if not weeks:
-        return _month_name_pt(datetime.now(ZoneInfo("America/Sao_Paulo")).date().month)
+        now = datetime.now(ZoneInfo("America/Sao_Paulo")).date()
+        return f"{_month_name_pt(now.month)} {now.year}"
 
     # Preferir o mês do week_end (tende a refletir o mês "atual" do ciclo)
-    counts: dict[int, int] = {}
+    counts: dict[tuple[int, int], int] = {}  # (month, year) -> count
     for w in weeks:
-        m = w.week_end.month
-        counts[m] = counts.get(m, 0) + 1
-    best_month = max(counts.items(), key=lambda kv: kv[1])[0]
-    return _month_name_pt(best_month)
+        key = (w.week_end.month, w.week_end.year)
+        counts[key] = counts.get(key, 0) + 1
+    best_month, best_year = max(counts.items(), key=lambda kv: kv[1])[0]
+    return f"{_month_name_pt(best_month)} {best_year}"
 
 
 def _calculate_collaborator_balance_for_cycle(collaborator_id: int, ciclo_id: int) -> dict[str, float | int]:
