@@ -1208,12 +1208,24 @@ def lancar_horas():
                 flash("Folga utilizada deve ser exatamente -8 horas.", "warning")
                 return redirect(url_for("ciclos.index"))
 
-        # Validar e converter data
-        try:
-            data_lancamento = datetime.strptime(data_lancamento_str, "%Y-%m-%d").date()
-        except ValueError:
-            flash("Data inválida.", "warning")
-            return redirect(url_for("ciclos.index"))
+        # Validar data
+        data_lancamento = datetime.strptime(data_lancamento_str, "%Y-%m-%d").date()
+
+        # Validação especial para "Folga utilizada": verificar se já existe folga manual no mesmo dia
+        if origem == "Folga utilizada":
+            folga_existente = CicloFolga.query.filter(
+                CicloFolga.collaborator_id == collaborator_id,
+                CicloFolga.data_folga == data_lancamento,
+                CicloFolga.status_ciclo == "ativo",
+                CicloFolga.tipo == "uso",
+            ).first()
+            if folga_existente:
+                flash(
+                    f"Já existe uma folga manual registrada para {data_lancamento.strftime('%d/%m/%Y')}. "
+                    "Exclua a folga manual ou escolha outra data.",
+                    "warning",
+                )
+                return redirect(url_for("ciclos.index", collaborator_id=collaborator_id))
 
         # NÃO calcular dias no lançamento - sempre 0
         # Conversão de horas em dias acontece APENAS no fechamento
@@ -1291,6 +1303,22 @@ def folgas_adicionar():
             return redirect(url_for("ciclos.index"))
 
         data_folga = datetime.strptime(data_str, "%Y-%m-%d").date()
+
+        # Validação para folgas de "uso": verificar se já existe lançamento de "Folga utilizada" no mesmo dia
+        if tipo == "uso":
+            folga_horas_existente = Ciclo.query.filter(
+                Ciclo.collaborator_id == cid,
+                Ciclo.data_lancamento == data_folga,
+                Ciclo.status_ciclo == "ativo",
+                Ciclo.origem == "Folga utilizada",
+            ).first()
+            if folga_horas_existente:
+                flash(
+                    f"Já existe um lançamento de horas com 'Folga utilizada' para {data_folga.strftime('%d/%m/%Y')}. "
+                    "Exclua o lançamento de horas ou escolha outra data.",
+                    "warning",
+                )
+                return redirect(url_for("ciclos.index", collaborator_id=cid))
 
         f = CicloFolga()
         f.collaborator_id = cid

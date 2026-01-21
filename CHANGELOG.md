@@ -1,3 +1,15 @@
+## [2.7.12] - 2026-01-21
+
+### Correção
+
+- fix(ciclos): impedir criação de folgas duplicadas no mesmo dia
+  - Valida se já existe lançamento de horas "Folga utilizada" antes de criar folga manual de uso
+  - Valida se já existe folga manual de uso antes de lançar horas "Folga utilizada"
+  - Exibe mensagem clara solicitando exclusão do registro existente
+  - Previne duplicatas que causam confusão nos relatórios
+
+---
+
 ## [2.7.11] - 2026-01-21
 
 ### Refatoração
