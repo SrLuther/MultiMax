@@ -2603,9 +2603,10 @@ def pdf_geral_ciclo(ciclo_id: int):
                         Ciclo.status_ciclo == "fechado",
                         Ciclo.ciclo_id == ciclo_id,
                         Ciclo.collaborator_id == colab.id,
+                        Ciclo.setor_id == colab.setor_id,  # Filtro de setor adicionado
                         Ciclo.data_lancamento >= w.week_start,
                         Ciclo.data_lancamento <= w.week_end,
-                        Ciclo.origem == "Folga utilizada",
+                        Ciclo.origem == "Folga utilizada",  # Buscar APENAS "Folga utilizada"
                     )
                     .order_by(Ciclo.data_lancamento.asc(), Ciclo.id.asc())
                     .all()

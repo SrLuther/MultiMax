@@ -1,12 +1,14 @@
-# 🚀 Instruções de Deploy VPS - v2.7.13
+# 🚀 Instruções de Deploy VPS - v2.7.13 (Docker)
 
 ## ⚠️ ATENÇÃO: Migração de Banco de Dados Necessária
 
 Esta versão requer execução de migração de banco de dados na VPS.
 
+**Ambiente:** Docker / Docker Compose
+
 ---
 
-## 📋 Passos para Deploy na VPS
+## 📋 Passos para Deploy na VPS com Docker
 
 ### 1. Fazer Pull das Alterações
 
@@ -15,14 +17,14 @@ cd /caminho/do/MultiMax-DEV
 git pull origin nova-versao-deploy
 ```
 
-### 2. **IMPORTANTE:** Executar Migração do Banco
+### 2. **IMPORTANTE:** Executar Migração do Banco DENTRO DO CONTAINER
 
 ```bash
-# Ativar ambiente virtual
-source venv/bin/activate  # ou o caminho do seu venv
+# Opção 1: Executar migração no container em execução
+docker-compose exec multimax python3 one-time-migrations/2026_01_21_add_setor_id_to_ciclo_folga_ocorrencia.py
 
-# Executar migração
-python one-time-migrations/2026_01_21_add_setor_id_to_ciclo_folga_ocorrencia.py
+# OU Opção 2: Se o container não estiver rodando, executar temporariamente
+docker-compose run --rm multimax python3 one-time-migrations/2026_01_21_add_setor_id_to_ciclo_folga_ocorrencia.py
 ```
 
 **O que a migração faz:**
@@ -50,22 +52,33 @@ Atualizando setor_id para registros existentes em ciclo_ocorrencia...
 ✅ Migração concluída com sucesso!
 ```
 
-### 4. Reiniciar Aplicação
+### 4. Reconstruir e Reiniciar Containers Docker
 
 ```bash
-# Dependendo do seu setup:
-sudo systemctl restart multimax
-# ou
-sudo supervisorctl restart multimax
-# ou
-pm2 restart multimax
+# Reconstruir a imagem com o código atualizado
+docker-compose build
+
+### 5. Verificar Logs do Docker
+
+```bash
+# Ver logs do container multimax
+docker-compose logs -f multimax
+
+# Ou verificar logs das últimas 100 linhas
+docker-compose logs --tail=100 multimax
+
+# Verificar se há erros relacionados a setor_id
+docker-compose logs multimax | grep -i "setor_id"
 ```
 
-### 5. Verificar Logs
+### 6. Verificar se a Aplicação está Funcionando
 
 ```bash
-# Verificar se não há erros relacionados a setor_id
-tail -f /var/log/multimax/error.log
+# Verificar status dos containers
+docker-compose ps
+
+# Testar conexão HTTP
+curl http://localhost:5000/  # ou a porta configurada
 ```
 
 ---
@@ -113,13 +126,13 @@ tail -f /var/log/multimax/error.log
 
 ---
 
-## 🆘 Se Algo Der Errado
+## 🆘 Se Algo Der Errado (Docker)
 
 ### Erro: "no such column: setor_id"
 
-**Solução:** Execute a migração novamente:
+**Solução:** Execute a migração novamente dentro do container:
 ```bash
-python one-time-migrations/2026_01_21_add_setor_id_to_ciclo_folga_ocorrencia.py
+docker-compose exec multimax python3 one-time-migrations/2026_01_21_add_setor_id_to_ciclo_folga_ocorrencia.py
 ```
 
 ### Erro: "column setor_id already exists"
@@ -127,23 +140,61 @@ python one-time-migrations/2026_01_21_add_setor_id_to_ciclo_folga_ocorrencia.py
 **Causa:** Migração já foi executada anteriormente.  
 **Ação:** Nenhuma, está tudo certo!
 
+### Container não inicia após rebuild
+
+**Possíveis causas:**
+1. Erro na build da imagem - verificar logs: `docker-compose logs multimax`
+2. Porta em uso - verificar: `docker-compose ps` e `netstat -tulpn | grep 5000`
+3. Volumes com permissões erradas
+
+**Solução:**
+```bash
+# Verificar logs detalhados
+docker-compose logs --tail=200 multimax
+
+# Forçar rebuild completo
+docker-compose build --no-cache
+docker-compose up -d
+```
+
 ### PDF ainda mostra folgas fantasmas
 
 **Possíveis causas:**
-1. Cache do navegador - testar em modo anônimo
-2. Migração não foi executada - verificar logs da migração
-3. Aplicação não foi reiniciada - reiniciar serviço
+1. Cache do navegador - testar em modo anônimo (Ctrl+Shift+N)
+2. Migração não foi executada no container correto
+3. Container não foi reiniciado após migração
 
-**Diagnóstico:**
+**Diagnóstico dentro do container:**
 ```bash
-# Conectar no banco e verificar
-sqlite3 instance/multimax.db
-# ou
-psql -d multimax_db
+# Entrar no container
+docker-compose exec multimax bash
 
-# Verificar estrutura da tabela
-.schema ciclo_folga  # SQLite
-\d ciclo_folga       # PostgreSQL
+# Conectar no banco e verificar estrutura
+# Para SQLite:
+sqlite3 instance/multimax.db ".schema ciclo_folga"
+
+# Para PostgreSQL:
+psql -U usuario -d multimax_db -c "\d ciclo_folga"
+
+# Verificar se coluna setor_id existe
+sqlite3 instance/multimax.db "PRAGMA table_info(ciclo_folga);"
+```
+
+### Verificar estado do banco de dados
+
+```bash
+# Entrar no container e verificar folgas do dia 20/01
+docker-compose exec multimax python3 -c "
+from multimax import create_app, db
+from multimax.models import CicloFolga, Ciclo
+from datetime import date
+app = create_app()
+with app.app_context():
+    folgas = CicloFolga.query.filter(CicloFolga.data_folga == date(2026, 1, 20)).all()
+    print(f'Folgas no dia 20/01: {len(folgas)}')
+    horas = Ciclo.query.filter(Ciclo.data_lancamento == date(2026, 1, 20), Ciclo.origem == 'Folga utilizada').all()
+    print(f'Horas com folga utilizada: {len(horas)}')
+"
 ```
 
 ---

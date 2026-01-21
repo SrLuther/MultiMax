@@ -1,3 +1,15 @@
+## [2.7.14] - 2026-01-21
+
+### Correção
+
+- fix(ciclos): adicionar filtro setor_id em query de folgas utilizadas no PDF geral
+  - Query de `folgas_utilizadas_ciclo` agora inclui `Ciclo.setor_id == colab.setor_id`
+  - Garante que apenas folgas do setor correto sejam exibidas no PDF
+  - Resolve problema de folgas "fantasmas" de setores anteriores
+  - Completa correção iniciada em v2.7.13 com migração de setor_id
+
+---
+
 ## [2.7.13] - 2026-01-21
 
 ### Correção
