@@ -1,3 +1,17 @@
+## [2.7.2] - 2026-01-20
+
+### Funcionalidades
+
+- feat(estoque-producao): exportação em PDF com layout profissional (cabeçalho, estatísticas e tabela paginada)
+- feat(estoque-producao): adiciona atalhos "Registrar Produto" e "Exportar PDF" na página principal
+- chore(module_registry): registra o módulo `estoque_producao` no registry para aparecer no menu
+
+### Técnicas
+
+- refactor(estoque): extrai helpers de validação/histórico e reduz complexidade das rotas `adicionar`, `editar` e `gerenciar`
+
+---
+
 ## [2.7.1] - 2026-01-20
 
 ### Correções
