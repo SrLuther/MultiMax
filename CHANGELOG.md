@@ -1,3 +1,21 @@
+## [2.7.7] - 2026-01-21
+
+### Correção
+
+- fix(gestao): corrigir paginação de usuários na página de gestão
+  - Tabela estava iterando sobre `colaboradores` (lista completa) em vez de `users_page` (página paginada)
+  - Paginação agora funciona corretamente e avança para próximas páginas
+  - Criada classe wrapper `_CollaboratorUser` para exibir usuários
+  - Nova função `_all_users_for_display()` que combina usuários com/sem Collaborator
+
+- fix(gestao): exibir usuários cadastrados via tela de login
+  - Usuários que se cadastram pela tela de login agora aparecem na seção "Gerenciar Colaboradores/Usuários"
+  - Anteriormente apenas apareciam Collaborator records
+  - Agora todos os User records são exibidos com seus níveis de permissão editáveis
+  - Botão de edição (lápis) apenas aparece para usuários com Collaborator associado
+
+---
+
 ## [2.7.6] - 2026-01-20
 
 ### Limpeza

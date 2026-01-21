@@ -460,6 +460,46 @@ def _get_display_name(collab):
         return ""
 
 
+class _CollaboratorUser:
+    """Wrapper para exibir usuários na página de gestão (com ou sem collaborator)"""
+
+    def __init__(self, user=None, collaborator=None):
+        self.id = user.id if user else (collaborator.id if collaborator else None)
+        self.user = user
+        self.collaborator = collaborator
+        self.name = (user.name if user else collaborator.name) if (user or collaborator) else ""
+
+    def __repr__(self):
+        return f"<_CollaboratorUser {self.name}>"
+
+
+def _all_users_for_display(q: str):
+    """Retorna todos os usuários para a gestão (colaboradores + usuários sem collaborator)"""
+    try:
+        # Buscar todos os usuários
+        all_users = User.query.order_by(User.name.asc()).all()
+        # Criar lista de wrappers
+        display_items = []
+        for user in all_users:
+            # Tenta encontrar um collaborator associado
+            collab = Collaborator.query.filter_by(user_id=user.id).first()
+            wrapper = _CollaboratorUser(user=user, collaborator=collab)
+            display_items.append(wrapper)
+
+        if not q:
+            return display_items, display_items
+
+        # Filtrar por query
+        q_lower = q.lower()
+        filtrados = [item for item in display_items if q_lower in item.name.lower()]
+        return display_items, filtrados
+    except Exception as e:
+        import logging
+
+        logging.getLogger(__name__).error(f"Erro ao buscar usuários para display: {e}", exc_info=True)
+        return [], []
+
+
 def _access_logs_context(acc_user: str):
     acc_page = _safe_int_arg("acc_page", 1)
     aq = SystemLog.query.filter(SystemLog.origem == "Acesso", SystemLog.evento == "login")
@@ -1367,8 +1407,9 @@ def gestao():
     logs = _collect_logs()
     logs_page, l_total_pages, l_page = _paginate_list(logs, l_page, 2)
 
-    colaboradores, colaboradores_filtrados = _collaborators_with_display(q)
-    users_page, u_total_pages, u_page = _paginate_list(colaboradores_filtrados, u_page, 5)
+    # Buscar todos os usuários (com ou sem collaborator)
+    all_users_list, filtered_users = _all_users_for_display(q)
+    users_page, u_total_pages, u_page = _paginate_list(filtered_users, u_page, 5)
     all_users = User.query.all()
 
     acc_user = (request.args.get("acc_user") or "").strip()
@@ -1377,7 +1418,16 @@ def gestao():
     senha_sugestao = "123456"
     roles = JobRole.query.order_by(JobRole.name.asc()).all()
     setores = Setor.query.filter_by(ativo=True).order_by(Setor.nome.asc()).all()
-    bank_ctx = _gestao_bank_context(colaboradores, per_page=10)
+
+    # Buscar colaboradores para o banco de horas (apenas que têm collaborator)
+    colaboradores_colab = Collaborator.query.order_by(Collaborator.name.asc()).all()
+    for c in colaboradores_colab:
+        try:
+            c.display_name = _get_display_name(c)
+        except Exception:
+            c.display_name = ""
+
+    bank_ctx = _gestao_bank_context(colaboradores_colab, per_page=10)
     vps_storage = _vps_storage_info()
 
     return render_template(
@@ -1394,7 +1444,7 @@ def gestao():
         senha_sugestao=senha_sugestao,
         roles=roles,
         setores=setores,
-        colaboradores=colaboradores,
+        colaboradores=colaboradores_colab,
         folgas=bank_ctx["folgas"],
         users=all_users,
         bank_balances=bank_ctx["bank_balances"],

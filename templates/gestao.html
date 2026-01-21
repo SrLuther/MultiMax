@@ -282,7 +282,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for c in colaboradores %}
+                        {% for c in users_page %}
                         {% set u = c.user %}
                         <tr class="gestao-table-row">
                             <td>
@@ -350,9 +350,11 @@
                                     {% else %}
                                     <span class="gestao-badge gestao-badge-secondary">Criar usuário no modal de edição</span>
                                     {% endif %}
-                                    <button class="gestao-btn-modern gestao-btn-sm gestao-btn-outline" data-bs-toggle="modal" data-bs-target="#modalEditColab{{ c.id }}" title="Editar">
+                                    {% if c.collaborator %}
+                                    <button class="gestao-btn-modern gestao-btn-sm gestao-btn-outline" data-bs-toggle="modal" data-bs-target="#modalEditColab{{ c.collaborator.id }}" title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </button>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
