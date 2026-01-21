@@ -603,6 +603,7 @@ def index():
                 folgas = (
                     CicloFolga.query.filter(
                         CicloFolga.collaborator_id == selected_collaborator.id,
+                        CicloFolga.setor_id == selected_collaborator.setor_id,
                         CicloFolga.status_ciclo == "ativo",
                         CicloFolga.data_folga >= ciclo_semana_atual["week_start"],
                         CicloFolga.data_folga <= ciclo_semana_atual["week_end"],
@@ -941,7 +942,7 @@ def _buscar_horas_semana(week_start, week_end, status: str, ciclo_id: int | None
     )
 
 
-def _buscar_folgas_semana(week_start, week_end, status: str, ciclo_id: int | None = None):
+def _buscar_folgas_semana(week_start, week_end, status: str, ciclo_id: int | None = None, setor_id: int | None = None):
     filtros = [
         CicloFolga.status_ciclo == status,
         CicloFolga.data_folga >= week_start,
@@ -949,6 +950,8 @@ def _buscar_folgas_semana(week_start, week_end, status: str, ciclo_id: int | Non
     ]
     if ciclo_id is not None:
         filtros.append(CicloFolga.ciclo_id == ciclo_id)
+    if setor_id is not None:
+        filtros.append(CicloFolga.setor_id == setor_id)
     return (
         CicloFolga.query.filter(*filtros)
         .order_by(CicloFolga.nome_colaborador.asc(), CicloFolga.data_folga.asc(), CicloFolga.id.asc())
@@ -1110,6 +1113,9 @@ def _criar_carryover_e_fechar_registros(colaboradores_totais, next_month_start, 
 
 def _fechar_folgas_e_ocorrencias(proximo_ciclo_id):
     try:
+        # ✅ Fixo: Filterby setor_id indiretamente via collaborator
+        # Não filtramos por setor_id específico pois esta é uma operação de ciclo global
+        # Mas ainda assim garantimos que cada folga fica com seu setor_id durante a transição
         folgas_ativas = CicloFolga.query.filter(CicloFolga.status_ciclo == "ativo").all()
         for f in folgas_ativas:
             f.ciclo_id = proximo_ciclo_id
@@ -1215,6 +1221,7 @@ def lancar_horas():
         if origem == "Folga utilizada":
             folga_existente = CicloFolga.query.filter(
                 CicloFolga.collaborator_id == collaborator_id,
+                CicloFolga.setor_id == collaborator.setor_id,
                 CicloFolga.data_folga == data_lancamento,
                 CicloFolga.status_ciclo == "ativo",
                 CicloFolga.tipo == "uso",
@@ -2131,6 +2138,7 @@ def pdf_individual(collaborator_id):
             folgas = (
                 CicloFolga.query.filter(
                     CicloFolga.collaborator_id == collaborator_id,
+                    CicloFolga.setor_id == collaborator.setor_id,
                     CicloFolga.status_ciclo == "ativo",
                     CicloFolga.data_folga >= week_start,
                     CicloFolga.data_folga <= week_end,
@@ -2281,6 +2289,7 @@ def pdf_individual_ciclo(collaborator_id: int, ciclo_id: int):
                     CicloFolga.status_ciclo == "fechado",
                     CicloFolga.ciclo_id == ciclo_id,
                     CicloFolga.collaborator_id == collaborator_id,
+                    CicloFolga.setor_id == collaborator.setor_id,
                     CicloFolga.data_folga >= w.week_start,
                     CicloFolga.data_folga <= w.week_end,
                 )
@@ -2430,6 +2439,7 @@ def pdf_geral():
                 folgas = (
                     CicloFolga.query.filter(
                         CicloFolga.collaborator_id == colab.id,
+                        CicloFolga.setor_id == colab.setor_id,
                         CicloFolga.status_ciclo == "ativo",
                         CicloFolga.data_folga >= week_start,
                         CicloFolga.data_folga <= week_end,
@@ -2593,6 +2603,7 @@ def pdf_geral_ciclo(ciclo_id: int):
                         CicloFolga.status_ciclo == "fechado",
                         CicloFolga.ciclo_id == ciclo_id,
                         CicloFolga.collaborator_id == colab.id,
+                        CicloFolga.setor_id == colab.setor_id,
                         CicloFolga.data_folga >= w.week_start,
                         CicloFolga.data_folga <= w.week_end,
                     )

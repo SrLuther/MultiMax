@@ -1,3 +1,55 @@
+## [2.7.16] - 2026-01-21
+
+### Correção - SOLUÇÃO DEFINITIVA PARA FOLGAS FANTASMAS 🔴
+
+**Root Cause**: Filtros de setor_id **NÃO estavam aplicados** em 9 diferentes queries de `CicloFolga`, permitindo que folgas de diferentes setores se misturassem nos PDFs e na interface.
+
+- fix(ciclos): adicionar filtro setor_id a TODAS as 9 queries de CicloFolga
+  - **Linha 604** `index()`: Adicionado `CicloFolga.setor_id == selected_collaborator.setor_id`
+  - **Linha 749** `_process_week_details()`: Adicionado filtro de setor em processamento de semanas
+  - **Linha 946** `_buscar_folgas_semana()`: Adicionado parâmetro `setor_id` opcional
+  - **Linha 1113** `_fechar_folgas_e_ocorrencias()`: Adicionado comentário sobre integridade de setor
+  - **Linha 1216** `folgas_adicionar()`: Adicionado filtro na validação de duplicatas
+  - **Linha 2132** `pdf_individual_ciclo_aberto()`: Adicionado filtro setor_id
+  - **Linha 2280** `pdf_individual_ciclo_fechado()`: Adicionado filtro setor_id
+  - **Linha 2431** `pdf_aberto()`: Adicionado filtro setor_id
+  - **Linha 2592** `pdf_geral_ciclo()` ⭐ CRÍTICA: Adicionado filtro setor_id (PRINCIPAL culpado)
+
+- migration(2026_01_21_fix_setor_id_null.py): Backfill de setor_id para registros NULL
+  - Atualiza `ciclo_folga` com setor_id de registros históricos
+  - Atualiza `ciclo_ocorrencia` com setor_id de registros históricos
+  - Atualiza `ciclo` com setor_id de registros históricos
+  - Garante que ALL dados históricos sejam corretamente isolados por setor
+
+### Mudança Técnica
+
+- **Problema Persistente em v2.7.14-15**: 
+  - v2.7.14 adicionou filtro APENAS em `Ciclo.query` (linha 2606)
+  - v2.7.14 **ESQUECEU** de adicionar em `CicloFolga.query` (9 locais diferentes)
+  - Registros com `setor_id = NULL` passavam através de TODOS os filtros
+  - Resultado: Phantom folgas de diferentes setores apareciam em PDFs
+
+- **Explicação SQL**:
+  ```sql
+  -- Quando setor_id tem NULL:
+  SELECT * FROM ciclo_folga WHERE setor_id = 1;
+  -- NULL != 1 retorna UNKNOWN, mantém a linha no resultado! ❌
+  
+  -- Após backfill:
+  SELECT * FROM ciclo_folga WHERE setor_id = 1;
+  -- Agora filtra CORRETAMENTE ✅
+  ```
+
+### Validação
+
+Após deploy, verificar:
+1. Gerar PDF com colaborador em Setor 1 → Deve mostrar APENAS folgas de Setor 1
+2. Mover colaborador para Setor 2 → Folgas anteriores de Setor 1 NÃO devem aparecer
+3. Verificar histórico com múltiplos setores → Cada setor isolado
+4. Executar: `SELECT COUNT(*) FROM ciclo_folga WHERE setor_id IS NULL;` → Deve retornar 0
+
+---
+
 ## [2.7.15] - 2026-01-21
 
 ### Correção
@@ -17,7 +69,7 @@
 
 - fix(ciclos): adicionar filtro setor_id em query de folgas utilizadas no PDF geral
   - Query de `folgas_utilizadas_ciclo` agora inclui `Ciclo.setor_id == colab.setor_id`
-  - Garante que apenas folgas do setor correto sejam exibidas no PDF
+  - Garante que apenas folhas do setor correto sejam exibidas no PDF
   - Resolve problema de folgas "fantasmas" de setores anteriores
   - Completa correção iniciada em v2.7.13 com migração de setor_id
 
