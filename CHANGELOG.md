@@ -1,3 +1,26 @@
+## [2.7.5] - 2026-01-20
+
+### Refatoração
+
+- refactor(pre-commit): reforçar hook do CHANGELOG para exigir NOVAS versões
+  - Hook agora EXIGE criação de nova versão (nunca permite edição de versões existentes)
+  - Valida formato semântico (MAJOR.MINOR.PATCH)
+  - Impede remoção ou modificação de versões já lançadas
+  - Verifica se pelo menos uma nova versão foi adicionada ao topo
+  - Mensagens de erro mais claras e orientadas para o usuário
+  - Suporta versões antigas com formato legado (2.0, 2.2) para compatibilidade histórica
+- docs(devops): documentação completa sobre novo comportamento do pre-commit hook
+  - Arquivo: `docs/PRE_COMMIT_HOOK_CHANGELOG.md`
+  - Instruções detalhadas, exemplos e troubleshooting
+
+### Técnicas
+
+- refactor(tests): atualizar testes de module_registry para usar nome correto do blueprint `estoque_producao`
+  - Testes falhavam porque ainda referenciavam blueprint antigo `estoque`
+  - Módulo unificado `estoque_producao.py` exigia atualização nos testes
+
+---
+
 ## [2.7.4] - 2026-01-20
 
 ### Correções

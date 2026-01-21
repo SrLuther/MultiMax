@@ -2,7 +2,13 @@
 
 ## Visão Geral
 
-Um hook de pre-commit automático foi implementado para garantir que toda mudança de código seja acompanhada de uma atualização no arquivo `CHANGELOG.md`. Isso previne commits esquecidos e mantém o histórico de mudanças sempre sincronizado com o código.
+Um hook de pre-commit automático foi implementado para garantir que toda mudança de código seja acompanhada de uma **NOVA VERSÃO** no arquivo `CHANGELOG.md`. 
+
+**Regras Rigorosas:**
+1. ✅ Exige criação de NOVA versão (nunca editar existentes)
+2. ✅ Previne modificação de versões já lançadas
+3. ✅ Valida formato semântico (MAJOR.MINOR.PATCH)
+4. ✅ Mantém histórico imutável
 
 ## Como Funciona
 
@@ -17,53 +23,77 @@ pre-commit install
 Ele é ativado antes de cada commit Git e verifica se:
 
 1. **Há arquivos de código modificados** (`.py`, `.html`, `.js`, `.css`, `.sql`, `.json`)
-2. **Se houver mudanças de código**: O arquivo `CHANGELOG.md` DEVE estar também modificado (staged)
-3. **Se apenas documentação foi modificada**: O commit é permitido sem atualizar CHANGELOG
+2. **Se houver mudanças de código**: Uma **NOVA VERSÃO** deve ser criada em `CHANGELOG.md`
+3. **Versões já lançadas**: JAMAIS podem ser editadas ou removidas
+4. **Formato de versão**: Deve seguir semver (X.Y.Z) ou estar em [Unreleased]
 
 ### Comportamento
 
 #### ✅ Cenário Permitido - Commit com sucesso
 
 ```bash
-# Modificou código E atualizou CHANGELOG
+# Modificou código E criou NOVA versão no CHANGELOG
 git add src/models.py CHANGELOG.md
 git commit -m "feat: new feature"
 # ✓ Commit aceito!
 ```
 
-#### ❌ Cenário Bloqueado - Commit recusado
-
-```bash
-# Modificou código MAS NÃO atualizou CHANGELOG
-git add src/models.py
-git commit -m "feat: new feature"
-
-# Output:
-# ======================================================================
-# [ERROR] Code modified but CHANGELOG.md was not updated
-# ======================================================================
-#
-# Modified files (staged):
-#    * src/models.py
-#
-# Please:
-#    1. Open CHANGELOG.md
-#    2. Add entry in [Unreleased] or create new version section
-#    3. Run: git add CHANGELOG.md
-#    4. Run commit again: git commit
-# ======================================================================
-```
-
-## Formato do CHANGELOG
-
-Sempre mantenha o CHANGELOG atualizado no topo com um novo versionamento ou seção `[Unreleased]`:
-
+**CHANGELOG.md atualizado corretamente:**
 ```markdown
-## [2.7.4] - 2026-01-21
+## [Unreleased]
+
+## [2.7.5] - 2026-01-21
 
 ### Funcionalidades
 
-- feat(produtos): descrição da nova feature
+- feat(produtos): nova feature adicionada
+
+## [2.7.4] - 2026-01-20
+...versões anteriores...
+```
+
+#### ❌ Cenários Bloqueados
+
+**Cenário 1: CHANGELOG não foi atualizado**
+```bash
+git add src/models.py
+git commit -m "feat: new feature"
+
+# ❌ BLOQUEADO: CHANGELOG.md não foi staged
+```
+
+**Cenário 2: Apenas editou [Unreleased] existente**
+```bash
+# Modificou CHANGELOG sem criar NOVA versão
+git add src/models.py CHANGELOG.md
+git commit -m "feat: new feature"
+
+# ❌ BLOQUEADO: Nenhuma nova versão foi criada!
+# ERRO: Code modified but NO NEW VERSION was created in CHANGELOG.md
+```
+
+**Cenário 3: Tentou editar versão lançada**
+```bash
+# Tentou editar versão 2.7.4 existente
+git add CHANGELOG.md
+git commit -m "fix: typo in old version"
+
+# ❌ BLOQUEADO: Não é permitido modificar versões já lançadas!
+# ERRO: Cannot remove or modify existing RELEASED versions!
+```
+
+## Formato Correto do CHANGELOG
+
+**Sempre adicione NOVA versão NO TOPO:**
+
+```markdown
+## [Unreleased]
+
+## [2.7.5] - 2026-01-21
+
+### Funcionalidades
+
+- feat(produtos): nova feature
 
 ### Correções
 
@@ -71,7 +101,10 @@ Sempre mantenha o CHANGELOG atualizado no topo com um novo versionamento ou seç
 
 ### Melhorias
 
-- refactor(código): descrição da melhoria
+- refactor(código): melhor design
+
+## [2.7.4] - 2026-01-20
+... versões anteriores (IMUTÁVEIS) ...
 ```
 
 ## Estrutura do Hook
@@ -81,11 +114,20 @@ Sempre mantenha o CHANGELOG atualizado no topo com um novo versionamento ou seç
 **Localização:** `tools/check_changelog_updated.py`
 
 Script Python que:
-- Obtém lista de arquivos staged via `git diff --cached`
+- Obtém lista de arquivos staged
 - Verifica se há arquivos de código modificados
-- Valida se CHANGELOG.md foi incluído
+- Valida se **NOVA VERSÃO** foi criada (não apenas edições)
+- Previne modificação de versões já lançadas
+- Valida formato semântico (MAJOR.MINOR.PATCH)
 - Retorna código 0 (sucesso) ou 1 (bloqueado)
-- Usa ASCII-safe characters para compatibilidade cross-platform
+
+**Validações realizadas:**
+
+1. **Existência**: CHANGELOG.md deve estar staged
+2. **Novas versões**: Pelo menos 1 versão nova deve ser adicionada
+3. **Formato**: Versões devem ser X.Y.Z ou [Unreleased]
+4. **Integridade**: Versões lançadas não podem ser removidas/editadas
+5. **Semântica**: Versão anterior deve estar preservada
 
 ### Configuração
 
@@ -95,11 +137,25 @@ Script Python que:
 - repo: local
   hooks:
     - id: check-changelog-updated
-      name: Check CHANGELOG Updated
+      name: Check CHANGELOG Updated (Requires NEW Version)
       entry: python tools/check_changelog_updated.py
       language: system
       always_run: true
       pass_filenames: false
+```
+
+## Fluxo Correto ao Commitar
+
+```bash
+# 1. Faça suas mudanças de código
+# 2. Edite o CHANGELOG.md:
+#    - Mantenha [Unreleased] ou crie [X.Y.Z] novo
+#    - NUNCA edite versões antigas
+# 3. Stage ambos arquivos
+git add src/models.py CHANGELOG.md
+
+# 4. Commit (hook vai validar)
+git commit -m "feat: description"
 ```
 
 ## Exceções
@@ -110,7 +166,7 @@ Commits que **não acionam** o hook:
 2. **Apenas configuração** (.pre-commit-config.yaml, pyproject.toml)
 3. **Sem arquivos staged** (repositório limpo)
 
-## Bypass (Emergência)
+## Bypass (Emergência Apenas)
 
 Se absolutamente necessário contornar o hook:
 
@@ -118,7 +174,7 @@ Se absolutamente necessário contornar o hook:
 git commit --no-verify -m "emergency: commit without changelog"
 ```
 
-⚠️ **Evite usar `--no-verify` regularmente!** Quebra o objetivo do automação.
+⚠️ **EVITE usar `--no-verify`!** Destrói a integridade do histórico.
 
 ## Troubleshooting
 
@@ -136,18 +192,6 @@ Verifique se o Python está disponível:
 python --version
 python tools/check_changelog_updated.py
 ```
-
-### Erro de encoding
-
-O script foi otimizado para usar apenas ASCII. Se receber erro de encoding:
-
-1. Reinstale o hook:
-   ```bash
-   pre-commit install
-   ```
-
-2. Limpe cache:
-   ```bash
    pre-commit clean
    pre-commit install
    ```
