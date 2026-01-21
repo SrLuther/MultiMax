@@ -71,6 +71,39 @@
         </div>
     </div>
 
+    <!-- Descrição do Setor Selecionado -->
+    {% if selected_setor_id %}
+    {% set setor_selecionado = none %}
+    {% for s in setores %}
+        {% if s.id == selected_setor_id %}
+        {% set setor_selecionado = s %}
+        {% endif %}
+    {% endfor %}
+    {% if setor_selecionado %}
+    <div class="resumo-geral-card" style="margin-bottom: 1rem; border-left: 4px solid #10b981;">
+        <div class="resumo-header" style="display:flex; align-items:flex-start; justify-content:space-between;">
+            <div>
+                <h3 class="resumo-title" style="margin-bottom: 0.5rem;">
+                    <i class="bi bi-diagram-3" style="color: #10b981;"></i>
+                    {{ setor_selecionado.nome }}
+                </h3>
+                {% if setor_selecionado.descricao %}
+                <p style="margin: 0; color: #6b7280; font-size: 0.95rem; line-height: 1.5;">
+                    {{ setor_selecionado.descricao }}
+                </p>
+                {% endif %}
+            </div>
+            <form method="get" action="{{ url_for('ciclos.index') }}" style="display:flex; gap:0.5rem;">
+                <button type="submit" class="btn-action btn-action-secondary" style="text-decoration:none; font-size: 0.85rem;">
+                    <i class="bi bi-x"></i>
+                    Limpar Filtro
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
     <!-- Resumo do Ciclo Atual -->
     <div class="resumo-geral-card">
         <div class="resumo-header">

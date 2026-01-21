@@ -49,11 +49,13 @@ def _get_all_collaborators():
 
 
 def _get_collaborators_by_setor(setor_id: int | None) -> list[Collaborator]:
-    """Retorna colaboradores ativos, sempre retornando todos (filtro por setor é apenas visual)."""
-    # Sempre retorna TODOS os colaboradores ativos, independente do setor
-    # O filtro por setor é apenas visual - calcula dados separados por setor
-    # Isso evita confusão do usuário ao nao ver colaboradores sem registros no setor
-    return _get_all_collaborators()
+    """Retorna colaboradores ativos filtrados por setor."""
+    if setor_id:
+        # Filtra apenas colaboradores do setor selecionado
+        return Collaborator.query.filter_by(active=True, setor_id=setor_id).order_by(Collaborator.name.asc()).all()
+    else:
+        # Se nenhum setor selecionado, retorna todos
+        return _get_all_collaborators()
 
 
 def _get_active_ciclos_query(collaborator_id):

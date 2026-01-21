@@ -1,6 +1,17 @@
 ## [Unreleased]
 
 
+## [2.7.20] - 2026-01-21
+
+### Melhoria
+
+- feat(ciclos): filtrar colaboradores por setor selecionado
+  - Ao selecionar um setor no filtro, apenas colaboradores desse setor são exibidos na lista
+  - Novo card exibe nome e descrição do setor selecionado
+  - Botão "Limpar Filtro" permite remover o filtro rapidamente
+  - Descrição do setor é puxada da página Gestão de Setores
+
+
 ## [2.7.19] - 2026-01-21
 
 ### Corrigido
