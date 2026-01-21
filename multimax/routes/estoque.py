@@ -1,4 +1,5 @@
 import io
+import logging
 from collections import OrderedDict
 from datetime import date, datetime, timedelta
 from typing import cast
@@ -19,6 +20,112 @@ bp = Blueprint("estoque", __name__)
 # ============================================================================
 
 ALLOWED_CATEGORIES = {"CX", "PC", "VA", "AV"}
+
+
+def _check_roles(allowed: tuple[str, ...], message: str, endpoint: str = "estoque.index"):
+    """Valida nível de acesso e retorna redirect se não autorizado."""
+    if current_user.nivel not in allowed:
+        flash(message, "danger")
+        return redirect(url_for(endpoint))
+    return None
+
+
+def _parse_int_safe(value: str | None, default: int | None = 0) -> int | None:
+    try:
+        return int(value or "")
+    except (ValueError, TypeError):
+        return default
+
+
+def _gerar_codigo_categoria(pref: str) -> str:
+    existentes = cast(
+        list[tuple[str]], Produto.query.with_entities(Produto.codigo).filter(Produto.codigo.like(f"{pref}-%")).all()
+    )
+    maior = 0
+    for (cod,) in existentes:
+        try:
+            sufixo = cod.split("-", 1)[1]
+            num = int(sufixo)
+            if num > maior:
+                maior = num
+        except Exception:
+            continue
+    return f"{pref}-{maior+1:04d}"
+
+
+def _criar_historico(produto: Produto, action: str, quantidade: int, detalhes: str) -> Historico:
+    hist = Historico()
+    hist.product_id = produto.id
+    hist.product_name = (produto.nome or "")[:100]
+    hist.action = action
+    hist.quantidade = quantidade
+    hist.details = (detalhes or "")[:255]
+    hist.usuario = (current_user.username or "")[:100]
+    db.session.add(hist)
+    return hist
+
+
+def _processar_movimentacao(produto: Produto, op: str):
+    quantidade = _parse_int_safe(request.form.get("quantidade"), 0) or 0
+    if quantidade <= 0:
+        flash("A quantidade deve ser positiva.", "warning")
+        return redirect(url_for("estoque.index"))
+    if op == "saida" and quantidade > produto.quantidade:
+        flash(f"Saída de {quantidade} unidades excede o estoque atual ({produto.quantidade}).", "warning")
+        return redirect(url_for("estoque.index"))
+
+    produto.quantidade = produto.quantidade + quantidade if op == "entrada" else produto.quantidade - quantidade
+    detalhes = (request.form.get("detalhes") or "").strip() or (
+        "Entrada de estoque" if op == "entrada" else "Saída de estoque"
+    )
+    hist = _criar_historico(produto, "entrada" if op == "entrada" else "saida", quantidade, detalhes)
+    try:
+        db.session.commit()
+        flash(
+            f"{('Entrada' if op == 'entrada' else 'Saída')} registrada para \"{produto.nome}\".",
+            "success" if op == "entrada" else "warning",
+        )
+        if op == "saida" and produto.quantidade <= produto.estoque_minimo:
+            flash(f'ALERTA: O estoque de "{produto.nome}" está abaixo do nível mínimo!', "danger")
+            try:
+                registrar_evento(
+                    "estoque abaixo do mínimo",
+                    produto=produto.nome,
+                    quantidade=produto.quantidade,
+                    limite=produto.estoque_minimo,
+                )
+            except Exception:
+                pass  # Não falhar se o evento não puder ser registrado
+        try:
+            registrar_evento(
+                "entrada de estoque" if op == "entrada" else "saída de estoque",
+                produto=produto.nome,
+                quantidade=quantidade,
+                descricao=hist.details,
+            )
+        except Exception:
+            pass
+    except Exception as e:
+        db.session.rollback()
+        logging.getLogger(__name__).error(f"Erro ao registrar movimentação de estoque: {e}", exc_info=True)
+        flash(f"Erro ao registrar movimentação: {e}", "danger")
+    return redirect(url_for("estoque.index"))
+
+
+def _processar_exclusao(produto: Produto):
+    if current_user.nivel not in ("admin", "DEV"):
+        flash("Você não tem permissão para excluir produtos.", "danger")
+        return redirect(url_for("estoque.index"))
+    try:
+        Historico.query.filter_by(product_id=produto.id).delete()
+        db.session.delete(produto)
+        db.session.commit()
+        flash(f'Produto "{produto.nome}" excluído.', "danger")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Erro ao excluir produto: {e}", "danger")
+    return redirect(url_for("estoque.index"))
+
 
 # ============================================================================
 # Funções auxiliares - Gráficos e agregações
@@ -432,12 +539,9 @@ def saida_produto(id: int):
 @bp.route("/adicionar", methods=["POST"])
 @login_required
 def adicionar():
-    if current_user.nivel == "visualizador":
-        flash("Visualizadores não têm permissão para fazer alterações no sistema.", "danger")
-        return redirect(url_for("estoque.index"))
-    if current_user.nivel not in ["operador", "admin", "DEV"]:
-        flash("Você não tem permissão para adicionar produtos.", "danger")
-        return redirect(url_for("estoque.index"))
+    deny = _check_roles(("operador", "admin", "DEV"), "Você não tem permissão para adicionar produtos.")
+    if deny:
+        return deny
     try:
         nome = request.form.get("nome", "").strip()
         if not nome:
@@ -447,55 +551,19 @@ def adicionar():
             flash(f'Produto com o nome "{nome}" já existe.', "danger")
             return redirect(url_for("estoque.index"))
         categoria = request.form.get("categoria", "AV").strip().upper()
-        prefix_map = {
-            "CX": "CX",
-            "PC": "PC",
-            "VA": "VA",
-            "AV": "AV",
-        }
-        prefix = prefix_map.get(categoria, "AV")
-
-        def gerar_codigo(pref: str) -> str:
-            existentes = cast(
-                list[tuple[str]],
-                Produto.query.with_entities(Produto.codigo).filter(Produto.codigo.like(f"{pref}-%")).all(),
-            )
-            maior = 0
-            for (cod,) in existentes:
-                try:
-                    sufixo = cod.split("-", 1)[1]
-                    num = int(sufixo)
-                    if num > maior:
-                        maior = num
-                except Exception:
-                    continue
-            return f"{pref}-{maior+1:04d}"
-
-        proximo_codigo = gerar_codigo(prefix)
+        prefix = categoria if categoria in ALLOWED_CATEGORIES else "AV"
+        proximo_codigo = _gerar_codigo_categoria(prefix)
         new_produto = Produto()
         new_produto.codigo = proximo_codigo
         new_produto.nome = nome
-        try:
-            new_produto.quantidade = int(request.form.get("quantidade", "0") or "0")
-        except (ValueError, TypeError):
-            new_produto.quantidade = 0
-        try:
-            new_produto.estoque_minimo = int(request.form.get("estoque_minimo", "0") or "0")
-        except (ValueError, TypeError):
-            new_produto.estoque_minimo = 0
+        new_produto.quantidade = _parse_int_safe(request.form.get("quantidade"), 0)
+        new_produto.estoque_minimo = max(0, _parse_int_safe(request.form.get("estoque_minimo"), 0))
         new_produto.preco_custo = float(request.form.get("preco_custo", "0"))
         new_produto.preco_venda = float(request.form.get("preco_venda", "0"))
         db.session.add(new_produto)
         db.session.flush()
         if new_produto.quantidade > 0:
-            hist = Historico()
-            hist.product_id = new_produto.id
-            hist.product_name = new_produto.nome
-            hist.action = "entrada"
-            hist.quantidade = new_produto.quantidade
-            hist.details = "Estoque inicial adicionado"
-            hist.usuario = current_user.username
-            db.session.add(hist)
+            _criar_historico(new_produto, "entrada", new_produto.quantidade, "Estoque inicial adicionado")
         db.session.commit()
         flash(f'Produto "{new_produto.nome}" adicionado com sucesso!', "success")
     except Exception as e:
@@ -589,79 +657,51 @@ def saida(id: int):
 @bp.route("/editar/<int:id>", methods=["GET", "POST"])
 @login_required
 def editar(id: int):
-    if current_user.nivel not in ["operador", "admin", "DEV"]:
-        flash("Você não tem permissão para editar produtos.", "danger")
-        return redirect(url_for("estoque.index"))
+    deny = _check_roles(("operador", "admin", "DEV"), "Você não tem permissão para editar produtos.")
+    if deny:
+        return deny
     produto = Produto.query.get_or_404(id)
     if request.method == "POST":
-        if current_user.nivel == "visualizador":
-            flash("Visualizadores não têm permissão para fazer alterações no sistema.", "danger")
-            return redirect(url_for("estoque.index"))
+        deny_post = _check_roles(("operador", "admin", "DEV"), "Você não tem permissão para editar produtos.")
+        if deny_post:
+            return deny_post
         try:
             novo_nome = request.form.get("nome", produto.nome)
             novo_codigo = request.form.get("codigo", produto.codigo)
-            novo_minimo = int(request.form.get("estoque_minimo", str(produto.estoque_minimo)))
-            ajuste_str = request.form.get("ajuste", "0")
+            novo_minimo = max(0, _parse_int_safe(request.form.get("estoque_minimo"), produto.estoque_minimo))
+            ajuste = _parse_int_safe(request.form.get("ajuste"), 0)
             detalhes = (request.form.get("detalhes") or "").strip()
-            data_validade_str = request.form.get("data_validade", "").strip()
-            lote = request.form.get("lote", "").strip()
-            try:
-                ajuste = int(ajuste_str)
-            except Exception:
-                ajuste = 0
+            data_validade = _parse_date_safe(request.form.get("data_validade", "").strip())
+            lote = (request.form.get("lote", "") or "").strip() or None
+
             produto.nome = novo_nome
             produto.codigo = novo_codigo
-            if novo_minimo < 0:
-                novo_minimo = 0
             produto.estoque_minimo = novo_minimo
-            if data_validade_str:
-                try:
-                    produto.data_validade = datetime.strptime(data_validade_str, "%Y-%m-%d").date()
-                except Exception:
-                    pass
-            else:
-                produto.data_validade = None
-            produto.lote = lote if lote else None
+            produto.data_validade = data_validade
+            produto.lote = lote
+
             fornecedor_id_str = request.form.get("fornecedor_id", "").strip()
-            if fornecedor_id_str:
-                try:
-                    produto.fornecedor_id = int(fornecedor_id_str)
-                except ValueError:
-                    produto.fornecedor_id = None
-            else:
-                produto.fornecedor_id = None
+            produto.fornecedor_id = _parse_int_safe(fornecedor_id_str, None) if fornecedor_id_str else None
+
             if ajuste != 0:
                 if ajuste < 0 and produto.quantidade < abs(ajuste):
                     flash(f"Ajuste de {-ajuste} excede estoque atual ({produto.quantidade}).", "warning")
                     return redirect(url_for("estoque.editar", id=id))
-                if ajuste > 0:
-                    produto.quantidade += ajuste
-                else:
-                    produto.quantidade -= abs(ajuste)
-                hist = Historico()
-                hist.product_id = produto.id
-                hist.product_name = produto.nome
-                hist.action = "entrada" if ajuste > 0 else "saida"
-                hist.quantidade = abs(ajuste)
-                hist.details = detalhes or "Ajuste via edição"
-                hist.usuario = current_user.username
-                db.session.add(hist)
+                produto.quantidade += ajuste
+                _criar_historico(
+                    produto,
+                    "entrada" if ajuste > 0 else "saida",
+                    abs(ajuste),
+                    detalhes or "Ajuste via edição",
+                )
             db.session.commit()
             if ajuste != 0:
-                if ajuste > 0:
-                    registrar_evento(
-                        "entrada de estoque",
-                        produto=produto.nome,
-                        quantidade=ajuste,
-                        descricao=detalhes or "Ajuste via edição",
-                    )
-                else:
-                    registrar_evento(
-                        "saída de estoque",
-                        produto=produto.nome,
-                        quantidade=abs(ajuste),
-                        descricao=detalhes or "Ajuste via edição",
-                    )
+                registrar_evento(
+                    "entrada de estoque" if ajuste > 0 else "saída de estoque",
+                    produto=produto.nome,
+                    quantidade=abs(ajuste),
+                    descricao=detalhes or "Ajuste via edição",
+                )
             flash(f'Produto "{produto.nome}" atualizado com sucesso!', "info")
         except Exception as e:
             db.session.rollback()
@@ -717,98 +757,19 @@ def atualizar_minimo(id: int):
 @bp.route("/gerenciar", methods=["POST"])
 @login_required
 def gerenciar():
-    if current_user.nivel == "visualizador":
-        flash("Visualizadores não têm permissão para fazer alterações no sistema.", "danger")
-        return redirect(url_for("estoque.index"))
-    if current_user.nivel not in ["operador", "admin", "DEV"]:
-        flash("Você não tem permissão para gerenciar estoque.", "danger")
-        return redirect(url_for("estoque.index"))
+    deny = _check_roles(("operador", "admin", "DEV"), "Você não tem permissão para gerenciar estoque.")
+    if deny:
+        return deny
     op = (request.form.get("op") or "").strip().lower()
-    try:
-        pid = int(request.form.get("product_id", "0"))
-    except Exception:
-        pid = 0
+    pid = _parse_int_safe(request.form.get("product_id"), 0) or 0
     if pid <= 0:
         flash("Produto inválido.", "danger")
         return redirect(url_for("estoque.index"))
     produto = Produto.query.get_or_404(pid)
     if op in ("entrada", "saida"):
-        try:
-            quantidade = int(request.form.get("quantidade", "0"))
-        except Exception:
-            quantidade = 0
-        if quantidade <= 0:
-            flash("A quantidade deve ser positiva.", "warning")
-            return redirect(url_for("estoque.index"))
-        if op == "saida" and quantidade > produto.quantidade:
-            flash(f"Saída de {quantidade} unidades excede o estoque atual ({produto.quantidade}).", "warning")
-            return redirect(url_for("estoque.index"))
-        if op == "entrada":
-            produto.quantidade += quantidade
-        else:
-            produto.quantidade -= quantidade
-        hist = Historico()
-        hist.product_id = produto.id
-        hist.product_name = produto.nome[:100] if produto.nome else ""
-        hist.action = "entrada" if op == "entrada" else "saida"
-        hist.quantidade = quantidade
-        detalhes = (request.form.get("detalhes") or "").strip() or (
-            "Entrada de estoque" if op == "entrada" else "Saída de estoque"
-        )
-        hist.details = detalhes[:255] if detalhes else ""
-        hist.usuario = current_user.username[:100] if current_user.username else ""
-        try:
-            db.session.add(hist)
-            db.session.commit()
-            flash(
-                f"{('Entrada' if op == 'entrada' else 'Saída')} registrada para \"{produto.nome}\".",
-                "success" if op == "entrada" else "warning",
-            )
-            if op == "saida" and produto.quantidade <= produto.estoque_minimo:
-                flash(f'ALERTA: O estoque de "{produto.nome}" está abaixo do nível mínimo!', "danger")
-                try:
-                    registrar_evento(
-                        "estoque abaixo do mínimo",
-                        produto=produto.nome,
-                        quantidade=produto.quantidade,
-                        limite=produto.estoque_minimo,
-                    )
-                except Exception:
-                    pass  # Não falhar se o evento não puder ser registrado
-            if op == "entrada":
-                try:
-                    registrar_evento(
-                        "entrada de estoque", produto=produto.nome, quantidade=quantidade, descricao=hist.details
-                    )
-                except Exception:
-                    pass
-            else:
-                try:
-                    registrar_evento(
-                        "saída de estoque", produto=produto.nome, quantidade=quantidade, descricao=hist.details
-                    )
-                except Exception:
-                    pass
-        except Exception as e:
-            db.session.rollback()
-            import logging
-
-            logging.getLogger(__name__).error(f"Erro ao registrar movimentação de estoque: {e}", exc_info=True)
-            flash(f"Erro ao registrar movimentação: {e}", "danger")
-        return redirect(url_for("estoque.index"))
+        return _processar_movimentacao(produto, op)
     if op == "excluir":
-        if current_user.nivel not in ("admin", "DEV"):
-            flash("Você não tem permissão para excluir produtos.", "danger")
-            return redirect(url_for("estoque.index"))
-        try:
-            Historico.query.filter_by(product_id=produto.id).delete()
-            db.session.delete(produto)
-            db.session.commit()
-            flash(f'Produto "{produto.nome}" excluído.', "danger")
-        except Exception as e:
-            db.session.rollback()
-            flash(f"Erro ao excluir produto: {e}", "danger")
-        return redirect(url_for("estoque.index"))
+        return _processar_exclusao(produto)
     flash("Operação inválida.", "danger")
     return redirect(url_for("estoque.index"))
 

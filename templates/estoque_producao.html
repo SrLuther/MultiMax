@@ -556,6 +556,14 @@
                     <i class="bi bi-plus-lg"></i>
                     Novo Registro
                 </button>
+                <a class="ep-btn ep-btn-secondary" href="{{ url_for('estoque.lista_produtos') }}" target="_blank" rel="noopener">
+                    <i class="bi bi-box"></i>
+                    Registrar Produto
+                </a>
+                <a class="ep-btn ep-btn-outline" href="{{ url_for('estoque_producao.exportar_pdf') }}" target="_blank" rel="noopener">
+                    <i class="bi bi-filetype-pdf"></i>
+                    Exportar PDF
+                </a>
             </div>
         </div>
     </div>

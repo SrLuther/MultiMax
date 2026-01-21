@@ -4,10 +4,15 @@ Controla produtos produzidos e estocados internamente com previsão de uso futur
 """
 
 from datetime import datetime
+from io import BytesIO
 from zoneinfo import ZoneInfo
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import mm
+from reportlab.pdfgen import canvas
 from sqlalchemy import func, or_
 
 from .. import db
@@ -21,6 +26,22 @@ def _require_permission():
     if not current_user.is_authenticated:
         return False
     return current_user.nivel in ["admin", "DEV"]
+
+
+def _pdf_new_page(pdf: canvas.Canvas, title: str, generated_at: str, margin: float) -> float:
+    """Renderiza cabeçalho padrão e retorna o Y inicial da página."""
+    width, height = A4
+    pdf.setFillColor(colors.HexColor("#0f172a"))
+    pdf.rect(0, height - 52, width, 52, stroke=0, fill=1)
+    pdf.setFillColor(colors.white)
+    pdf.setFont("Helvetica-Bold", 18)
+    pdf.drawString(margin, height - 22, title)
+    pdf.setFont("Helvetica", 10)
+    pdf.drawString(margin, height - 38, generated_at)
+    pdf.setStrokeColor(colors.HexColor("#10b981"))
+    pdf.setLineWidth(2)
+    pdf.line(margin, height - 54, width - margin, height - 54)
+    return height - 72
 
 
 # ============================================================================
@@ -98,6 +119,110 @@ def index():
         filtro_data_ini=filtro_data_ini,
         filtro_data_fim=filtro_data_fim,
     )
+
+
+@bp.route("/pdf", methods=["GET"])
+@login_required
+def exportar_pdf():
+    """Gera um PDF com visão profissional do estoque de produção."""
+    if not _require_permission():
+        flash("Você não tem permissão para acessar este recurso.", "danger")
+        return redirect(url_for("estoque_producao.index"))
+
+    estoques = (
+        EstoqueProducao.query.filter_by(ativo=True)
+        .join(Produto)
+        .order_by(Produto.nome.asc(), EstoqueProducao.data_previsao.asc())
+        .all()
+    )
+    setores = {s.id: s.nome for s in Setor.query.filter_by(ativo=True).all()}
+
+    buffer = BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=A4)
+    margin = 18 * mm
+    width, _ = A4
+    generated_at = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("Gerado em %d/%m/%Y %H:%M")
+    y = _pdf_new_page(pdf, "Estoque de Produção", generated_at, margin)
+
+    def _maybe_paginate(y_pos: float) -> float:
+        if y_pos < margin + 40:
+            pdf.showPage()
+            return _pdf_new_page(pdf, "Estoque de Produção", generated_at, margin)
+        return y_pos
+
+    def _draw_stats(y_pos: float) -> float:
+        total_registros = len(estoques)
+        total_quantidade = sum(e.quantidade for e in estoques)
+        produtos_unicos = len({e.produto_id for e in estoques})
+        pdf.setFillColor(colors.HexColor("#10b981"))
+        pdf.setFont("Helvetica-Bold", 12)
+        pdf.drawString(margin, y_pos, "Visão Geral")
+        pdf.setFont("Helvetica", 10)
+        pdf.setFillColor(colors.black)
+        y_line = y_pos - 14
+        pdf.drawString(margin, y_line, f"Registros ativos: {total_registros}")
+        pdf.drawString(margin + 180, y_line, f"Quantidade total: {total_quantidade:0.2f}")
+        pdf.drawString(margin + 360, y_line, f"Produtos únicos: {produtos_unicos}")
+        return y_line - 18
+
+    def _draw_table_header(y_pos: float) -> float:
+        headers = ["Produto", "Setor", "Qtd", "Previsão", "Data Prev.", "Observação"]
+        col_widths = [150, 90, 40, 90, 70, 120]
+        pdf.setFillColor(colors.HexColor("#0f172a"))
+        pdf.rect(margin, y_pos - 14, sum(col_widths), 18, fill=1, stroke=0)
+        pdf.setFont("Helvetica-Bold", 10)
+        pdf.setFillColor(colors.white)
+        x = margin + 4
+        for header, w in zip(headers, col_widths):
+            pdf.drawString(x, y_pos - 2, header)
+            x += w
+        return y_pos - 24
+
+    def _draw_row(y_pos: float, estoque: EstoqueProducao) -> float:
+        pdf.setFont("Helvetica", 9)
+        pdf.setFillColor(colors.black)
+        col_widths = [150, 90, 40, 90, 70, 120]
+        values = [
+            estoque.produto.nome if estoque.produto else "-",
+            setores.get(estoque.setor_id, "-"),
+            f"{estoque.quantidade:0.2f}",
+            estoque.previsao_uso or "-",
+            estoque.data_previsao.strftime("%d/%m/%Y") if estoque.data_previsao else "-",
+            (estoque.observacao or "").strip(),
+        ]
+
+        def _short(text: str, limit: int = 70) -> str:
+            t = (text or "").strip()
+            return (t[: limit - 3] + "...") if len(t) > limit else t
+
+        values[-1] = _short(values[-1])
+
+        x = margin + 4
+        for val, w in zip(values, col_widths):
+            pdf.drawString(x, y_pos, val)
+            x += w
+        pdf.setStrokeColor(colors.HexColor("#e5e7eb"))
+        pdf.line(margin, y_pos - 4, margin + sum(col_widths), y_pos - 4)
+        return y_pos - 18
+
+    y = _draw_stats(_maybe_paginate(y))
+    y = _draw_table_header(_maybe_paginate(y))
+
+    if not estoques:
+        pdf.setFillColor(colors.black)
+        pdf.setFont("Helvetica", 11)
+        pdf.drawString(margin, y, "Nenhum registro ativo encontrado.")
+    else:
+        for estoque in estoques:
+            y = _maybe_paginate(y)
+            y = _draw_row(y, estoque)
+
+    pdf.showPage()
+    pdf.save()
+    buffer.seek(0)
+
+    filename = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("estoque-producao-%Y%m%d-%H%M.pdf")
+    return send_file(buffer, download_name=filename, mimetype="application/pdf", as_attachment=True)
 
 
 # ============================================================================
