@@ -1618,25 +1618,46 @@ def excluir(ciclo_id):
         return jsonify({"ok": False, "error": "Acesso negado. Apenas administradores podem excluir registros."}), 403
 
     try:
-        ciclo = Ciclo.query.get_or_404(ciclo_id)
+        ciclo = Ciclo.query.get(ciclo_id)
 
-        # Verificar se o registro está ativo (só pode excluir registros ativos)
-        if ciclo.status_ciclo != "ativo":
-            return jsonify({"ok": False, "error": "Apenas registros ativos podem ser excluídos."}), 400
+        if ciclo:
+            # Verificar se o registro está ativo (só pode excluir registros ativos)
+            if ciclo.status_ciclo != "ativo":
+                return jsonify({"ok": False, "error": "Apenas registros ativos podem ser excluídos."}), 400
 
-        colaborador_nome = ciclo.nome_colaborador
-        horas_excluidas = float(ciclo.valor_horas)
+            colaborador_nome = ciclo.nome_colaborador
+            horas_excluidas = float(ciclo.valor_horas)
 
-        # Excluir registro
-        db.session.delete(ciclo)
+            # Excluir registro
+            db.session.delete(ciclo)
 
-        # Log
-        log = SystemLog()
-        log.origem = "Ciclos"
-        log.evento = "exclusao_registro"
-        log.detalhes = f"Exclusão de registro {ciclo_id}: {horas_excluidas}h de {colaborador_nome}"
-        log.usuario = current_user.name or current_user.username
-        db.session.add(log)
+            # Log
+            log = SystemLog()
+            log.origem = "Ciclos"
+            log.evento = "exclusao_registro"
+            log.detalhes = f"Exclusão de registro {ciclo_id}: {horas_excluidas}h de {colaborador_nome}"
+            log.usuario = current_user.name or current_user.username
+            db.session.add(log)
+        else:
+            # Fallback: tentar excluir uma folga pendente (CicloFolga)
+            folga = CicloFolga.query.get_or_404(ciclo_id)
+
+            if folga.status_ciclo != "ativo":
+                return jsonify({"ok": False, "error": "Apenas registros ativos podem ser excluídos."}), 400
+
+            colaborador_nome = folga.nome_colaborador
+            horas_excluidas = float(-8.0 * (folga.dias or 1))
+
+            db.session.delete(folga)
+
+            log = SystemLog()
+            log.origem = "Ciclos"
+            log.evento = "exclusao_folga"
+            log.detalhes = (
+                f"Exclusão de folga {ciclo_id}: {horas_excluidas}h de {colaborador_nome}"
+            )
+            log.usuario = current_user.name or current_user.username
+            db.session.add(log)
 
         db.session.commit()
 

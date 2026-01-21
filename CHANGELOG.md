@@ -11,6 +11,7 @@
   - **Integração**: Folgas pendentes são agora combinadas com registros de `Ciclo` no mesmo histórico
   - **Formatação**: Origem exibida como "Folga uso" ou "Folga adicional" (baseado em `tipo`)
   - **Ordenação**: Todos os registros (Ciclo + CicloFolga) ordenados por data descendente
+- fix(ciclos): permitir exclusão de folgas pendentes pelo modal de histórico (fallback no endpoint `/ciclos/excluir/<id>` para `CicloFolga` ativo)
 
 ### Raiz do Problema
 - A rota `historico()` buscava apenas em `Ciclo` (registros já lançados)
