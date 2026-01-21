@@ -1,32 +1,66 @@
 # MultiMax
 
-![Flask 2.3+](https://img.shields.io/badge/Flask-2.3+-blue) ![Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue) ![Licenca MIT](https://img.shields.io/badge/Licen%C3%A7a-MIT-lightgrey) ![Versao 2.7.2](https://img.shields.io/badge/Vers%C3%A3o-2.7.2-green)
+![Flask 2.3+](https://img.shields.io/badge/Flask-2.3+-0d6efd) ![Python 3.11+](https://img.shields.io/badge/Python-3.11+-0d6efd) ![Licença MIT](https://img.shields.io/badge/Licença-MIT-lightgrey) ![Versão 2.7.2](https://img.shields.io/badge/Versão-2.7.2-198754)
 
-Plataforma web em Flask para gestão operacional (estoque, produção e rotinas internas). Foco em rastreabilidade, controle de permissões e relatórios exportáveis.
+Plataforma web em Flask para gestão operacional com foco em rastreabilidade, controle de permissões e exportação de relatórios. Atual em produção em https://www.multimax.tec.br.
+
+---
+
+## Sumário
+
+- Visão geral
+- Funcionalidades-chave
+- Stack técnica
+- Requisitos
+- Instalação rápida
+- Configuração
+- Execução
+- Módulos
+- Testes
+- Links úteis
+- Licença
 
 ---
 
 ## Visão geral
 
-- **Estoque**: cadastro de produtos, entradas/saídas e histórico com auditoria.
-- **Estoque de Produção**: previsão de uso, ajustes com motivo obrigatório e exportação em PDF.
-- **Colaboradores/Escalas**: gestão de pessoas e cronograma semanal.
-- **Ciclos**: acompanhamento e fechamento periódico de horas/valores.
-- **Autenticação**: níveis de acesso (visualizador, operador, admin, DEV).
+- Controle de estoque com histórico de auditoria.
+- Estoque de produção com previsão de uso e ajustes rastreáveis.
+- Gestão de colaboradores/escalas e ciclos operacionais.
+- Perfis de acesso: visualizador, operador, admin, DEV.
 
-Consulte o [CHANGELOG](CHANGELOG.md) para detalhes da versão atual.
+---
+
+## Funcionalidades-chave
+
+- **Estoque**: cadastro, entradas/saídas, alerta de mínimo e histórico.
+- **Estoque de Produção**: previsão de uso, ajustes com motivo obrigatório, exportação em PDF (layout profissional).
+- **Ciclos**: acompanhamento e fechamento periódico de horas/valores.
+- **Colaboradores/Escalas**: gestão de pessoas e cronograma semanal.
+- **Carnes/Receitas**: suporte a rastreabilidade e insumos.
+
+Consulte o [CHANGELOG](CHANGELOG.md) para o detalhe das versões.
+
+---
+
+## Stack técnica
+
+- Flask 2.3+, Flask-Login, Flask-SQLAlchemy
+- SQLAlchemy 2.x
+- ReportLab (PDFs), qrcode
+- Banco: SQLite (dev) ou PostgreSQL (prod)
 
 ---
 
 ## Requisitos
 
 - Python 3.11+
-- Pip e virtualenv
-- Banco SQLite (dev) ou PostgreSQL (prod)
+- pip e virtualenv
+- Acesso a SQLite ou PostgreSQL
 
 ---
 
-## Instalação e execução
+## Instalação rápida
 
 ```bash
 git clone https://github.com/SrLuther/MultiMax.git
@@ -38,32 +72,46 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Produção: https://www.multimax.tec.br. Desenvolvimento local: http://localhost:5000.
+Ambientes:
+- Produção: https://www.multimax.tec.br
+- Desenvolvimento local: http://localhost:5000
 
 ---
 
-## Configuração mínima
+## Configuração
 
-Defina variáveis de ambiente conforme necessidade:
+Variáveis essenciais:
 
-- `SQLALCHEMY_DATABASE_URI` (ex.: `sqlite:///multimax.db` ou string do PostgreSQL)
-- `SECRET_KEY` (obrigatória em produção)
-- `SENHA_ADMIN` e `SENHA_OPERADOR` (credenciais iniciais)
-- `HOST` / `PORT` (se desejar alterar o host/porta padrão)
+- `SQLALCHEMY_DATABASE_URI` — string do banco (ex.: `sqlite:///multimax.db` ou URL do PostgreSQL)
+- `SECRET_KEY` — obrigatória em produção
+- `SENHA_ADMIN`, `SENHA_OPERADOR` — credenciais iniciais
+- `HOST`, `PORT` — caso queira alterar o endereço/porta
+- `DEBUG` — desative em produção
 
-Para produção, configure também servidor WSGI (ex.: Waitress ou gunicorn) e desative `DEBUG`.
+Para produção, use um WSGI (ex.: Waitress ou gunicorn) e configure o banco PostgreSQL.
 
 ---
 
-## Principais módulos
+## Execução
 
-- `multimax/routes/estoque.py`: gestão de produtos, histórico e movimentações.
-- `multimax/routes/estoque_producao.py`: estoque de produção, ajustes e PDF.
-- `multimax/routes/ciclos.py`: ciclos e fechamentos periódicos.
-- `multimax/routes/colaboradores.py`: colaboradores e escalas.
-- `multimax/routes/carnes.py` e `multimax/routes/receitas.py`: controle de carnes e receitas.
+- **Desenvolvimento**: `python app.py`
+- **Produção (exemplo Waitress)**:
 
-Templates estão em `templates/` e assets em `static/`.
+```bash
+waitress-serve --host=0.0.0.0 --port=8000 app:app
+```
+
+---
+
+## Módulos
+
+- `multimax/routes/estoque.py` — produtos, histórico e movimentações.
+- `multimax/routes/estoque_producao.py` — estoque de produção, ajustes, PDF.
+- `multimax/routes/ciclos.py` — ciclos e fechamentos periódicos.
+- `multimax/routes/colaboradores.py` — colaboradores e escalas.
+- `multimax/routes/carnes.py`, `multimax/routes/receitas.py` — carnes e receitas.
+
+Templates em `templates/` e assets em `static/`.
 
 ---
 
@@ -76,16 +124,15 @@ pytest
 
 ---
 
-## Contribuição
+## Links úteis
 
-1. Crie uma branch: `git checkout -b feature/sua-feature`
-2. Faça commits claros (Conventional Commits são bem-vindos)
-3. Abra um PR descrevendo mudanças e passos de teste
-
-Issues e sugestões: https://github.com/SrLuther/MultiMax/issues
+- Produção: https://www.multimax.tec.br
+- Repositório: https://github.com/SrLuther/MultiMax
+- Issues: https://github.com/SrLuther/MultiMax/issues
+- Changelog: [CHANGELOG](CHANGELOG.md)
 
 ---
 
 ## Licença
 
-MIT. Veja [LICENSE](LICENSE).
+MIT — veja [LICENSE](LICENSE).
