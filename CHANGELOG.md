@@ -11,6 +11,9 @@
   - Mensagens claras em inglês/português explicando procedimento
   - Permite commits de documentação pura sem CHANGELOG
   - Script Python com tratamento de encoding cross-platform
+- docs(devops): guia completo de uso do pre-commit hook com exemplos e troubleshooting
+  - Arquivo: `docs/PRE_COMMIT_HOOK_CHANGELOG.md`
+  - Instruções de instalação, configuração e bypass
 
 ### Correções
 
