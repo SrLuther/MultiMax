@@ -1,3 +1,5 @@
+## [Unreleased]
+
 ## [2.7.16] - 2026-01-21
 
 ### Correção - SOLUÇÃO DEFINITIVA PARA FOLGAS FANTASMAS 🔴
@@ -20,6 +22,11 @@
   - Atualiza `ciclo_ocorrencia` com setor_id de registros históricos
   - Atualiza `ciclo` com setor_id de registros históricos
   - Garante que ALL dados históricos sejam corretamente isolados por setor
+
+- docs: adicionar documentação completa sobre phantom folgas fix
+  - DIAGNOSTICO_COMPLETO_FOLGAS_FANTASMAS.md: Análise de todas as 9 queries
+  - IMPLEMENTATION_v2.7.16_SUMMARY.md: Guia de deploy e teste
+  - RESUMO_FINAL_v2.7.16.md: Sumário executivo da solução
 
 ### Mudança Técnica
 
