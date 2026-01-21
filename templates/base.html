@@ -93,10 +93,6 @@
             {% if current_user.is_authenticated and current_user.nivel in ('admin', 'DEV') %}
             <div class="mm-nav-section">
                 <div class="mm-nav-section-title">Administração</div>
-                <a href="{{ url_for('home.changelog_versoes') }}" class="mm-nav-item {% if request.endpoint == 'home.changelog_versoes' %}active{% endif %}">
-                    <i class="bi bi-journal-code mm-nav-icon"></i>
-                    <span class="mm-nav-text">Changelog</span>
-                </a>
                 <a href="{{ url_for('usuarios.gestao') }}" class="mm-nav-item {% if 'usuarios' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-gear mm-nav-icon"></i>
                     <span class="mm-nav-text">Gestão</span>
@@ -144,10 +140,10 @@
             {% if current_user.is_authenticated %}
 
             <div class="mm-quick-actions d-none d-lg-flex" role="toolbar" aria-label="Ações rápidas">
-                <a href="{{ url_for('estoque.lista_produtos') }}" class="mm-quick-action" title="Gerenciar produtos" aria-label="Gerenciar produtos">
+                <a href="{{ url_for('estoque_producao.lista_produtos') }}" class="mm-quick-action" title="Gerenciar produtos" aria-label="Gerenciar produtos">
                     <i class="bi bi-plus-circle" aria-hidden="true"></i>
                 </a>
-                <a href="{{ url_for('estoque.index') }}" class="mm-quick-action" title="Ver estoque" aria-label="Ver estoque">
+                <a href="{{ url_for('estoque_producao.index') }}" class="mm-quick-action" title="Ver estoque" aria-label="Ver estoque">
                     <i class="bi bi-box-seam" aria-hidden="true"></i>
                 </a>
                 {% if current_user.nivel in ('operador','admin','DEV') %}

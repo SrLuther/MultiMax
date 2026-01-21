@@ -13,7 +13,7 @@
                 <p class="dashboard-subtitle">Visão geral do sistema MultiMax</p>
             </div>
             <div class="dashboard-hero-actions">
-                <a href="{{ url_for('estoque.index') }}" class="btn-modern btn-primary-modern">
+                <a href="{{ url_for('estoque_producao.index') }}" class="btn-modern btn-primary-modern">
                     <i class="bi bi-box-seam"></i>
                     <span>Ver Estoque</span>
                 </a>
@@ -108,7 +108,7 @@
             Acesso Rápido
         </h2>
         <div class="shortcuts-grid">
-            <a href="{{ url_for('estoque.index') }}" class="shortcut-card shortcut-primary">
+            <a href="{{ url_for('estoque_producao.index') }}" class="shortcut-card shortcut-primary">
                 <div class="shortcut-icon">
                     <i class="bi bi-box-seam"></i>
                 </div>
@@ -203,7 +203,7 @@
                         <i class="bi bi-exclamation-diamond"></i>
                         Estoque Crítico
                     </h3>
-                    <a href="{{ url_for('estoque.index') }}" class="btn-link-modern">Ver Todos</a>
+                    <a href="{{ url_for('estoque_producao.index') }}" class="btn-link-modern">Ver Todos</a>
                 </div>
                 <div class="chart-body">
                     {% if low_stock %}
@@ -254,51 +254,7 @@
     </div>
     {% endif %}
 
-    <!-- Informações do Sistema -->
-    <div class="system-info-card">
-        <div class="system-info-header">
-            <div class="system-info-title-section">
-                <h2 class="system-info-title">
-                    <i class="bi bi-info-circle-fill"></i>
-                    Sobre o MultiMax
-                </h2>
-                <div class="system-info-version">
-                    <span class="version-badge">Versão atual: v{{ git_version or 'dev' }} • em evolução contínua</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="system-info-body">
-            <div class="system-info-intro">
-                <p class="system-info-lead">
-                    O Multi é um sistema independente de gestão integrada, desenvolvido com foco em clareza operacional, precisão nos controles e fluidez nos processos do dia a dia. Seu desenvolvimento conta com o apoio de ferramentas de inteligência artificial, utilizadas como suporte técnico e criativo ao longo da evolução do sistema, sempre sob direção humana e decisões de negócio bem definidas.
-                </p>
-                <p class="system-info-lead" style="margin-top: 0.75rem;">
-                    A arquitetura do Multi evolui continuamente para acompanhar necessidades reais da operação, preservando consistência, confiabilidade e simplicidade no uso.
-                </p>
-                <div class="system-info-note" style="margin-top: 1rem;">
-                    <i class="bi bi-check2-circle"></i>
-                    <p style="margin: 0;">Atualizado recentemente • {{ last_update_date }}</p>
-                </div>
-            </div>
-
-            <div class="system-info-features" style="margin-top: 1.25rem;">
-                <h3 class="features-title" style="margin-bottom: 0.75rem;">
-                    <i class="bi bi-grid-3x3-gap-fill"></i>
-                    Módulos ativos
-                </h3>
-                <ul style="margin: 0; padding-left: 1.25rem;">
-                    {% if modules_active %}
-                        {% for m in modules_active %}
-                        <li style="margin: 0.25rem 0;">{{ m }}</li>
-                        {% endfor %}
-                    {% else %}
-                        <li style="margin: 0.25rem 0;">—</li>
-                    {% endif %}
-                </ul>
-            </div>
-        </div>
-    </div>
+    <!-- Informações do Sistema removidas -->
 </div>
 {% endblock %}
 

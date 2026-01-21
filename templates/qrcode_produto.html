@@ -7,17 +7,17 @@
       <div class="card shadow-sm">
         <div class="card-header d-flex justify-content-between align-items-center">
           <span><strong>QR Code do Produto</strong></span>
-          <a href="{{ url_for('estoque.lista_produtos') }}" class="btn btn-sm btn-outline-secondary">Voltar</a>
+          <a href="{{ url_for('estoque_producao.lista_produtos') }}" class="btn btn-sm btn-outline-secondary">Voltar</a>
         </div>
         <div class="card-body text-center">
           <h5 class="mb-3">{{ produto.nome }}</h5>
           <p class="text-muted mb-3">Código: <strong>{{ produto.codigo }}</strong></p>
           <div class="mb-3">
-            <img src="{{ url_for('estoque.qrcode_produto', id=produto.id) }}" alt="QR Code" class="img-fluid border rounded" style="max-width: 250px;">
+            <img src="{{ url_for('estoque_producao.qrcode_produto', id=produto.id) }}" alt="QR Code" class="img-fluid border rounded" style="max-width: 250px;">
           </div>
           <p class="small text-muted mb-3">Escaneie este código para identificar o produto rapidamente</p>
           <div class="d-flex justify-content-center gap-2">
-            <a href="{{ url_for('estoque.qrcode_produto', id=produto.id) }}" download="qrcode_{{ produto.codigo }}.png" class="btn btn-primary">
+            <a href="{{ url_for('estoque_producao.qrcode_produto', id=produto.id) }}" download="qrcode_{{ produto.codigo }}.png" class="btn btn-primary">
               <span class="me-1">📥</span> Baixar QR Code
             </a>
             <button class="btn btn-outline-secondary" onclick="window.print()">

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Controle de Estoque — MultiMax{% endblock %}
+{% block title %}Gestão de Estoque — MultiMax{% endblock %}
 
 {% block content %}
 <div class="estoque-container">
@@ -9,9 +9,9 @@
             <div>
                 <h1 class="estoque-title">
                     <i class="bi bi-box-seam estoque-title-icon"></i>
-                    Controle de Estoque
+                    Gestão de Estoque Unificada
                 </h1>
-                <p class="estoque-subtitle">Gestão completa de produtos, movimentações e histórico</p>
+                <p class="estoque-subtitle">Produtos • Estoque Geral • Estoque de Produção — Tudo em um só lugar</p>
             </div>
             <div class="estoque-hero-actions">
                 {% if current_user.nivel in ('operador', 'admin', 'DEV') %}
@@ -34,13 +34,13 @@
             <div class="action-label">Adicionar Produto</div>
         </button>
         {% endif %}
-        <a href="{{ url_for('estoque.lista_produtos') }}" class="action-card action-success">
+        <a href="{{ url_for('estoque_producao.lista_produtos') }}" class="action-card action-success">
             <div class="action-icon">
                 <i class="bi bi-arrow-left-right"></i>
             </div>
             <div class="action-label">Movimentar</div>
         </a>
-        <a href="{{ url_for('estoque.lista_produtos') }}" class="action-card action-info">
+        <a href="{{ url_for('estoque_producao.lista_produtos') }}" class="action-card action-info">
             <div class="action-icon">
                 <i class="bi bi-card-list"></i>
             </div>
@@ -64,7 +64,7 @@
             </h3>
         </div>
         <div class="filters-body">
-            <form method="get" action="{{ url_for('estoque.index') }}" class="filters-form">
+            <form method="get" action="{{ url_for('estoque_producao.index') }}" class="filters-form">
                 <div class="filter-group">
                     <label class="filter-label">
                         <i class="bi bi-search"></i>
@@ -157,12 +157,12 @@
                     </div>
                 </div>
                 <div class="product-footer">
-                    <a href="{{ url_for('estoque.editar', id=p.id) }}" class="btn-product-action">
+                    <a href="{{ url_for('estoque_producao.editar', id=p.id) }}" class="btn-product-action">
                         <i class="bi bi-pencil"></i>
                         Editar
                     </a>
                     {% if current_user.nivel in ('admin', 'DEV', 'operador') %}
-                    <form method="post" action="{{ url_for('estoque.excluir_produto', id=p.id) }}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir o produto {{ p.nome }} ({{ p.codigo }})? Esta ação não pode ser desfeita.');">
+                    <form method="post" action="{{ url_for('estoque_producao.excluir_produto', id=p.id) }}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir o produto {{ p.nome }} ({{ p.codigo }})? Esta ação não pode ser desfeita.');">
                         <button class="btn-product-action" type="submit" title="Excluir" style="color: #ef4444; border-color: #ef4444;">
                             <i class="bi bi-trash"></i>
                             Excluir
@@ -177,7 +177,7 @@
         <!-- Paginação -->
         <div class="pagination-wrapper">
             <nav class="pagination-modern">
-                <a href="{{ url_for('estoque.index', ppage=produtos_pag.prev_num, busca=busca, cat=cat) }}"
+                <a href="{{ url_for('estoque_producao.index', ppage=produtos_pag.prev_num, busca=busca, cat=cat) }}"
                    class="pagination-btn {% if not produtos_pag.has_prev %}disabled{% endif %}">
                     <i class="bi bi-chevron-left"></i>
                     <span>Anterior</span>
@@ -188,7 +188,7 @@
                     <span class="pagination-text">de</span>
                     <span class="pagination-total">{{ produtos_pag.pages }}</span>
                 </div>
-                <a href="{{ url_for('estoque.index', ppage=produtos_pag.next_num, busca=busca, cat=cat) }}"
+                <a href="{{ url_for('estoque_producao.index', ppage=produtos_pag.next_num, busca=busca, cat=cat) }}"
                    class="pagination-btn {% if not produtos_pag.has_next %}disabled{% endif %}">
                     <span>Próxima</span>
                     <i class="bi bi-chevron-right"></i>
@@ -202,7 +202,7 @@
             </div>
             <h3 class="empty-title">Nenhum produto encontrado</h3>
             <p class="empty-text">Ajuste os filtros ou adicione um novo produto ao estoque.</p>
-            <a href="{{ url_for('estoque.lista_produtos') }}" class="btn-empty-action">
+            <a href="{{ url_for('estoque_producao.lista_produtos') }}" class="btn-empty-action">
                 <i class="bi bi-plus-lg"></i>
                 Adicionar Produto
             </a>
@@ -273,7 +273,7 @@
             <!-- Paginação do Histórico -->
             <div class="pagination-wrapper">
                 <nav class="pagination-modern">
-                    <a href="{{ url_for('estoque.index', page=historico.prev_num, busca=busca, cat=cat, ppage=produtos_pag.page if produtos_pag else 1) }}"
+                    <a href="{{ url_for('estoque_producao.index', page=historico.prev_num, busca=busca, cat=cat, ppage=produtos_pag.page if produtos_pag else 1) }}"
                        class="pagination-btn {% if not historico.has_prev %}disabled{% endif %}">
                         <i class="bi bi-chevron-left"></i>
                         <span>Anterior</span>
@@ -284,7 +284,7 @@
                         <span class="pagination-text">de</span>
                         <span class="pagination-total">{{ historico.pages }}</span>
                     </div>
-                    <a href="{{ url_for('estoque.index', page=historico.next_num, busca=busca, cat=cat, ppage=produtos_pag.page if produtos_pag else 1) }}"
+                    <a href="{{ url_for('estoque_producao.index', page=historico.next_num, busca=busca, cat=cat, ppage=produtos_pag.page if produtos_pag else 1) }}"
                        class="pagination-btn {% if not historico.has_next %}disabled{% endif %}">
                         <span>Próxima</span>
                         <i class="bi bi-chevron-right"></i>
@@ -1082,6 +1082,107 @@
 }
 </style>
 
+        </div>
+        <!-- FIM ABA 1: ESTOQUE GERAL -->
+
+        <!-- ABA 2: PRODUTOS (Lista Completa) -->
+        <div class="tab-pane fade" id="produtos" role="tabpanel" aria-labelledby="produtos-tab">
+            <div class="filters-card">
+                <div class="filters-header">
+                    <h3 class="filters-title">
+                        <i class="bi bi-card-list"></i>
+                        Lista Completa de Produtos
+                    </h3>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Nome</th>
+                                <th>Categoria</th>
+                                <th>Quantidade</th>
+                                <th>Preço Custo</th>
+                                <th>Preço Venda</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in produtos_all %}
+                            <tr>
+                                <td>{{ p.codigo }}</td>
+                                <td>{{ p.nome }}</td>
+                                <td><span class="badge bg-primary">{{ p.codigo.split('-')[0] }}</span></td>
+                                <td>{{ p.quantidade }}</td>
+                                <td>R$ {{ "%.2f"|format(p.preco_custo or 0) }}</td>
+                                <td>R$ {{ "%.2f"|format(p.preco_venda or 0) }}</td>
+                                <td>
+                                    <a href="{{ url_for('estoque_producao.editar', id=p.id) }}" class="btn btn-sm btn-info">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- FIM ABA 2: PRODUTOS -->
+
+        <!-- ABA 3: ESTOQUE DE PRODUÇÃO -->
+        <div class="tab-pane fade" id="estoque-producao" role="tabpanel" aria-labelledby="estoque-producao-tab">
+            <div class="filters-card">
+                <div class="filters-header">
+                    <h3 class="filters-title">
+                        <i class="bi bi-tools"></i>
+                        Estoque de Produção
+                    </h3>
+                </div>
+                {% if estoques_producao %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Total em Produção:</strong> {{ total_producao }} unidades
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Produto</th>
+                                <th>Setor</th>
+                                <th>Quantidade</th>
+                                <th>Previsão de Uso</th>
+                                <th>Data Registro</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ep in estoques_producao %}
+                            <tr>
+                                <td>{{ ep.produto.nome if ep.produto else 'N/A' }}</td>
+                                <td>{{ ep.setor.nome if ep.setor else 'N/A' }}</td>
+                                <td>{{ ep.quantidade }}</td>
+                                <td>{{ ep.previsao_uso or 'Não definida' }}</td>
+                                <td>{{ ep.data_registro.strftime('%d/%m/%Y') if ep.data_registro else 'N/A' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Nenhum item no estoque de produção no momento.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <!-- FIM ABA 3: ESTOQUE DE PRODUÇÃO -->
+
+    </div>
+    <!-- FIM Tab Content -->
+
+</div>
+
 <!-- Modal Novo Produto -->
 {% if current_user.nivel in ('operador', 'admin', 'DEV') %}
 <div class="modal fade" id="modalNovoProduto" tabindex="-1" aria-labelledby="modalNovoProdutoLabel" aria-hidden="true">
@@ -1095,7 +1196,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
             <div class="modal-body" style="padding: 2rem;">
-                <form method="POST" action="{{ url_for('estoque.adicionar') }}" id="formNovoProduto">
+                <form method="POST" action="{{ url_for('estoque_producao.adicionar') }}" id="formNovoProduto">
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label" style="font-weight: 600; color: #374151; display: flex; align-items: center; gap: 0.5rem;">
@@ -1161,4 +1262,29 @@
     </div>
 </div>
 {% endif %}
+
+    <!-- Sistema de Abas Unificado -->
+    <ul class="nav nav-tabs nav-fill mb-4" id="estoqueTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="estoque-geral-tab" data-bs-toggle="tab" data-bs-target="#estoque-geral" type="button" role="tab" aria-controls="estoque-geral" aria-selected="true">
+                <i class="bi bi-box-seam"></i> Estoque Geral
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="produtos-tab" data-bs-toggle="tab" data-bs-target="#produtos" type="button" role="tab" aria-controls="produtos" aria-selected="false">
+                <i class="bi bi-card-list"></i> Produtos
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="estoque-producao-tab" data-bs-toggle="tab" data-bs-target="#estoque-producao" type="button" role="tab" aria-controls="estoque-producao" aria-selected="false">
+                <i class="bi bi-tools"></i> Estoque de Produção
+            </button>
+        </li>
+    </ul>
+
+    <!-- Conteúdo das Abas -->
+    <div class="tab-content" id="estoqueTabContent">
+
+        <!-- ABA 1: ESTOQUE GERAL -->
+        <div class="tab-pane fade show active" id="estoque-geral" role="tabpanel" aria-labelledby="estoque-geral-tab">
 {% endblock %}

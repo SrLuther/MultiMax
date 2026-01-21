@@ -17,7 +17,7 @@
       <i class="bi bi-plus-circle"></i> Adicionar Novo Produto
     </div>
     <div class="card-body">
-      <form class="row g-3" method="post" action="{{ url_for('estoque.adicionar') }}">
+      <form class="row g-3" method="post" action="{{ url_for('estoque_producao.adicionar') }}">
         <div class="col-md-4">
           <label class="form-label fw-bold">Categoria</label>
           <select name="categoria" class="form-select" required>
@@ -79,17 +79,17 @@
         <td>{{ p.quantidade }}</td>
         <td>{{ p.estoque_minimo }}</td>
         <td class="text-center">
-          <a class="btn btn-outline-dark btn-sm" href="{{ url_for('estoque.qrcode_view', id=p.id) }}" title="Ver QR Code">
+          <a class="btn btn-outline-dark btn-sm" href="{{ url_for('estoque_producao.qrcode_view', id=p.id) }}" title="Ver QR Code">
             <span>📱</span>
           </a>
         </td>
         <td class="text-center">
           {% if current_user.nivel in ('operador','admin', 'DEV') %}
           <div class="btn-group" role="group">
-            <a class="btn btn-outline-info btn-sm" href="{{ url_for('estoque.editar', id=p.id) }}" title="Editar">
+            <a class="btn btn-outline-info btn-sm" href="{{ url_for('estoque_producao.editar', id=p.id) }}" title="Editar">
               <i class="bi bi-pencil"></i> EDITAR
             </a>
-            <form method="post" action="{{ url_for('estoque.excluir_produto', id=p.id) }}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir o produto {{ p.nome }} ({{ p.codigo }})? Esta ação não pode ser desfeita.');">
+            <form method="post" action="{{ url_for('estoque_producao.excluir_produto', id=p.id) }}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir o produto {{ p.nome }} ({{ p.codigo }})? Esta ação não pode ser desfeita.');">
               <button class="btn btn-outline-danger btn-sm" type="submit" title="Excluir">
                 <i class="bi bi-trash"></i>
               </button>
@@ -113,7 +113,7 @@
     <div class="card mb-3 card-animated">
       <div class="card-header">Entrada: {{ p.nome }} ({{ p.codigo }})</div>
       <div class="card-body">
-        <form class="row g-2" method="post" action="{{ url_for('estoque.entrada_produto', id=p.id) }}">
+        <form class="row g-2" method="post" action="{{ url_for('estoque_producao.entrada_produto', id=p.id) }}">
           <div class="col-md-4">
             <label class="form-label">Quantidade</label>
             <input type="number" name="quantidade" class="form-control" min="1" required>
@@ -133,7 +133,7 @@
     <div class="card mb-3 card-animated">
       <div class="card-header">Saída: {{ p.nome }} ({{ p.codigo }})</div>
       <div class="card-body">
-        <form class="row g-2" method="post" action="{{ url_for('estoque.saida_produto', id=p.id) }}">
+        <form class="row g-2" method="post" action="{{ url_for('estoque_producao.saida_produto', id=p.id) }}">
           <div class="col-md-4">
             <label class="form-label">Quantidade</label>
             <input type="number" name="quantidade" class="form-control" min="1" required>

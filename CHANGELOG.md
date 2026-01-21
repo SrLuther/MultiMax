@@ -1,3 +1,23 @@
+## [2.7.4] - 2026-01-20
+
+### Refatoração
+
+- refactor(estoque): fusão dos módulos "Gestão de Estoque" e "Estoque de Produção" em módulo unificado
+  - Módulo único `estoque_producao.py` agora contém todas funcionalidades de gestão de produtos e estoque de produção
+  - Mantém ambos modelos de dados (`Produto` e `EstoqueProducao`) em um único blueprint
+  - Todas as rotas preservadas: `/estoque`, `/produtos`, operações de entrada/saída, geração de QR codes, ajustes de estoque
+  - URL prefix vazio para retrocompatibilidade com rotas existentes
+  - Navegação simplificada: módulo único "Gestão de Estoque" visível no menu
+  - Atualização completa de templates (base.html, index.html, produtos.html, editar_produto.html, qrcode_produto.html, estoque_producao.html, grafico_produto.html, home.html)
+  - Remoção do módulo redundante elimina confusão na navegação
+- refactor(estoque): interface unificada com sistema de abas
+  - **Página única** integra: Estoque Geral, Produtos e Estoque de Produção
+  - Sistema de abas Bootstrap permite navegar entre diferentes visões sem trocar de página
+  - Rota `/estoque` agora serve conteúdo unificado com todas as funcionalidades
+  - Elimina necessidade de páginas separadas (`/produtos`, `/estoque-producao`)
+  - Experiência de usuário mais fluida e coesa
+  - Label do módulo atualizado para "Gestão de Estoque"
+
 ## [2.7.3] - 2026-01-20
 
 ### Funcionalidades

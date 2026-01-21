@@ -2,7 +2,7 @@
 {% block title %}Editar Produto — MultiMax{% endblock %}
 {% block content %}
 <h2 class="mb-3">Editar Produto</h2>
-<form method="post" action="{{ url_for('estoque.editar', id=produto.id) }}" class="row g-3">
+<form method="post" action="{{ url_for('estoque_producao.editar', id=produto.id) }}" class="row g-3">
   <div class="col-md-4">
     <label class="form-label">Código</label>
     <input name="codigo" class="form-control" value="{{ produto.codigo }}" required>
@@ -55,7 +55,7 @@
   </div>
   {% endif %}
   <div class="col-12 d-flex justify-content-between">
-    <a class="btn btn-secondary" href="{{ url_for('estoque.lista_produtos') }}">Voltar</a>
+    <a class="btn btn-secondary" href="{{ url_for('estoque_producao.lista_produtos') }}">Voltar</a>
     <button class="btn btn-primary" type="submit">Salvar</button>
   </div>
 </form>
