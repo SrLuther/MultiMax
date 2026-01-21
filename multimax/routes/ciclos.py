@@ -1504,7 +1504,7 @@ def historico(collaborator_id):
                         "horas": float(-8),  # Folgas são -8h por padrão
                     }
                 )
-            
+
             # Ordenar todos os registros (Ciclo + CicloFolga) por data descendente
             registros_data.sort(key=lambda x: x["data"], reverse=True)
 
@@ -1653,9 +1653,7 @@ def excluir(ciclo_id):
             log = SystemLog()
             log.origem = "Ciclos"
             log.evento = "exclusao_folga"
-            log.detalhes = (
-                f"Exclusão de folga {ciclo_id}: {horas_excluidas}h de {colaborador_nome}"
-            )
+            log.detalhes = f"Exclusão de folga {ciclo_id}: {horas_excluidas}h de {colaborador_nome}"
             log.usuario = current_user.name or current_user.username
             db.session.add(log)
 

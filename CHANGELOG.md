@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+
+## [2.7.18] - 2026-01-21
+
+### Corrigido
+
+- chore: corrigir warning de whitespace (flake8 W293) em multimax/routes/ciclos.py
+
 ## [2.7.17] - 2026-01-21
 
 ### Correção - Folgas Pendentes Não Aparecem no Histórico Modal
