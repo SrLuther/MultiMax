@@ -2090,7 +2090,11 @@ def pdf_individual(collaborator_id):
             week_end = s["week_end"]
             horas = (
                 _get_active_ciclos_query(collaborator_id)
-                .filter(Ciclo.data_lancamento >= week_start, Ciclo.data_lancamento <= week_end)
+                .filter(
+                    Ciclo.data_lancamento >= week_start,
+                    Ciclo.data_lancamento <= week_end,
+                    Ciclo.origem != "Folga utilizada",
+                )
                 .order_by(Ciclo.data_lancamento.asc(), Ciclo.id.asc())
                 .all()
             )
@@ -2104,8 +2108,17 @@ def pdf_individual(collaborator_id):
                 .order_by(CicloFolga.data_folga.asc(), CicloFolga.id.asc())
                 .all()
             )
-            # Incluir "Folgas utilizadas" da tabela Ciclo como folgas
-            folgas_utilizadas_ciclo = [h for h in horas if h.origem == "Folga utilizada"]
+            # Buscar "Folgas utilizadas" da tabela Ciclo separadamente
+            folgas_utilizadas_ciclo = (
+                _get_active_ciclos_query(collaborator_id)
+                .filter(
+                    Ciclo.data_lancamento >= week_start,
+                    Ciclo.data_lancamento <= week_end,
+                    Ciclo.origem == "Folga utilizada",
+                )
+                .order_by(Ciclo.data_lancamento.asc(), Ciclo.id.asc())
+                .all()
+            )
             # Criar objetos similares a CicloFolga para mesclar
             for h in folgas_utilizadas_ciclo:
                 folga_ciclo = SimpleNamespace(
@@ -2119,8 +2132,6 @@ def pdf_individual(collaborator_id):
                     status_ciclo=h.status_ciclo,
                 )
                 folgas = list(folgas) + [folga_ciclo]
-            # Remover "Folgas utilizadas" da lista de horas para evitar duplicação
-            horas = [h for h in horas if h.origem != "Folga utilizada"]
             # Reordenar por data após mesclar
             folgas = sorted(folgas, key=lambda f: (f.data_folga, getattr(f, "id", 0)))
             ocorrencias = (
@@ -2230,6 +2241,7 @@ def pdf_individual_ciclo(collaborator_id: int, ciclo_id: int):
                     Ciclo.collaborator_id == collaborator_id,
                     Ciclo.data_lancamento >= w.week_start,
                     Ciclo.data_lancamento <= w.week_end,
+                    Ciclo.origem != "Folga utilizada",
                 )
                 .order_by(Ciclo.data_lancamento.asc(), Ciclo.id.asc())
                 .all()
@@ -2245,8 +2257,19 @@ def pdf_individual_ciclo(collaborator_id: int, ciclo_id: int):
                 .order_by(CicloFolga.data_folga.asc(), CicloFolga.id.asc())
                 .all()
             )
-            # Incluir "Folgas utilizadas" da tabela Ciclo como folgas
-            folgas_utilizadas_ciclo = [h for h in horas if h.origem == "Folga utilizada"]
+            # Buscar "Folgas utilizadas" da tabela Ciclo separadamente
+            folgas_utilizadas_ciclo = (
+                Ciclo.query.filter(
+                    Ciclo.status_ciclo == "fechado",
+                    Ciclo.ciclo_id == ciclo_id,
+                    Ciclo.collaborator_id == collaborator_id,
+                    Ciclo.data_lancamento >= w.week_start,
+                    Ciclo.data_lancamento <= w.week_end,
+                    Ciclo.origem == "Folga utilizada",
+                )
+                .order_by(Ciclo.data_lancamento.asc(), Ciclo.id.asc())
+                .all()
+            )
             # Criar objetos similares a CicloFolga para mesclar
             for h in folgas_utilizadas_ciclo:
                 folga_ciclo = SimpleNamespace(
@@ -2366,7 +2389,11 @@ def pdf_geral():
                 week_end = s["week_end"]
                 horas = (
                     _get_active_ciclos_query(colab.id)
-                    .filter(Ciclo.data_lancamento >= week_start, Ciclo.data_lancamento <= week_end)
+                    .filter(
+                        Ciclo.data_lancamento >= week_start,
+                        Ciclo.data_lancamento <= week_end,
+                        Ciclo.origem != "Folga utilizada",
+                    )
                     .order_by(Ciclo.data_lancamento.asc(), Ciclo.id.asc())
                     .all()
                 )
@@ -2380,8 +2407,17 @@ def pdf_geral():
                     .order_by(CicloFolga.data_folga.asc(), CicloFolga.id.asc())
                     .all()
                 )
-                # Incluir "Folgas utilizadas" da tabela Ciclo como folgas
-                folgas_utilizadas_ciclo = [h for h in horas if h.origem == "Folga utilizada"]
+                # Buscar "Folgas utilizadas" da tabela Ciclo separadamente
+                folgas_utilizadas_ciclo = (
+                    _get_active_ciclos_query(colab.id)
+                    .filter(
+                        Ciclo.data_lancamento >= week_start,
+                        Ciclo.data_lancamento <= week_end,
+                        Ciclo.origem == "Folga utilizada",
+                    )
+                    .order_by(Ciclo.data_lancamento.asc(), Ciclo.id.asc())
+                    .all()
+                )
                 # Criar objetos similares a CicloFolga para mesclar
                 for h in folgas_utilizadas_ciclo:
                     folga_ciclo = SimpleNamespace(
@@ -2517,6 +2553,7 @@ def pdf_geral_ciclo(ciclo_id: int):
                         Ciclo.collaborator_id == colab.id,
                         Ciclo.data_lancamento >= w.week_start,
                         Ciclo.data_lancamento <= w.week_end,
+                        Ciclo.origem != "Folga utilizada",  # Não incluir folgas aqui para evitar duplicação
                     )
                     .order_by(Ciclo.data_lancamento.asc(), Ciclo.id.asc())
                     .all()
@@ -2532,8 +2569,19 @@ def pdf_geral_ciclo(ciclo_id: int):
                     .order_by(CicloFolga.data_folga.asc(), CicloFolga.id.asc())
                     .all()
                 )
-                # Incluir "Folgas utilizadas" da tabela Ciclo como folgas
-                folgas_utilizadas_ciclo = [h for h in horas if h.origem == "Folga utilizada"]
+                # Buscar "Folgas utilizadas" da tabela Ciclo separadamente para adicionar como folgas
+                folgas_utilizadas_ciclo = (
+                    Ciclo.query.filter(
+                        Ciclo.status_ciclo == "fechado",
+                        Ciclo.ciclo_id == ciclo_id,
+                        Ciclo.collaborator_id == colab.id,
+                        Ciclo.data_lancamento >= w.week_start,
+                        Ciclo.data_lancamento <= w.week_end,
+                        Ciclo.origem == "Folga utilizada",
+                    )
+                    .order_by(Ciclo.data_lancamento.asc(), Ciclo.id.asc())
+                    .all()
+                )
                 # Criar objetos similares a CicloFolga para mesclar
                 for h in folgas_utilizadas_ciclo:
                     folga_ciclo = SimpleNamespace(

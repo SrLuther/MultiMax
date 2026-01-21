@@ -1,3 +1,16 @@
+## [2.7.10] - 2026-01-21
+
+### Correção
+
+- fix(ciclos): eliminar duplicação de folgas utilizadas em PDFs de ciclo
+  - Folgas utilizadas agora aparecem apenas uma vez por dia no PDF
+  - Corrigido em 4 rotas: PDF geral fechado, PDF individual ciclo aberto, PDF individual ciclo fechado, PDF geral
+  - Query de horas agora exclui `origem = "Folga utilizada"` desde o início
+  - Folgas utilizadas buscadas separadamente e adicionadas apenas na seção de folgas
+  - Elimina confusão de ver mesma folga em dois formatos (horas e dias)
+
+---
+
 ## [2.7.9] - 2026-01-21
 
 ### Melhoria
