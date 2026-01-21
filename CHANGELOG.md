@@ -1,5 +1,27 @@
 ## [Unreleased]
 
+## [2.7.17] - 2026-01-21
+
+### Correção - Folgas Pendentes Não Aparecem no Histórico Modal
+
+**Problema**: Folgas pendentes (CicloFolga) com status "ativo" não apareciam no modal de histórico individual do colaborador, mesmo estando registradas no banco de dados e aparecendo nos PDFs.
+
+- fix(ciclos): incluir folgas pendentes (CicloFolga) no histórico modal individual
+  - **Rota `/ciclos/historico/<collaborator_id>`**: Adicionada query para `CicloFolga` com filtros de `collaborator_id`, `status_ciclo=ativo` e range de datas (week_start/week_end)
+  - **Integração**: Folgas pendentes são agora combinadas com registros de `Ciclo` no mesmo histórico
+  - **Formatação**: Origem exibida como "Folga uso" ou "Folga adicional" (baseado em `tipo`)
+  - **Ordenação**: Todos os registros (Ciclo + CicloFolga) ordenados por data descendente
+
+### Raiz do Problema
+- A rota `historico()` buscava apenas em `Ciclo` (registros já lançados)
+- `CicloFolga` armazena folgas **pendentes** que ainda não foram convertidas em registros de `Ciclo`
+- PDFs já mostravam corretamente porque tinham lógica separada de busca em ambas as tabelas
+- Modal (histórico individual) estava incompleto
+
+### Impacto
+- Usuários podem agora ver folgas pendentes no histórico modal
+- Consistência visual entre modal, histórico e PDFs
+
 ## [2.7.16] - 2026-01-21
 
 ### Correção - SOLUÇÃO DEFINITIVA PARA FOLGAS FANTASMAS 🔴

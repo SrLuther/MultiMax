@@ -1481,6 +1481,33 @@ def historico(collaborator_id):
                     }
                 )
 
+            # Adicionar folgas pendentes (CicloFolga) ao histórico
+            folgas = (
+                CicloFolga.query.filter(
+                    CicloFolga.collaborator_id == collaborator_id,
+                    CicloFolga.status_ciclo == "ativo",
+                    CicloFolga.data_folga >= week_start,
+                    CicloFolga.data_folga <= week_end,
+                )
+                .order_by(CicloFolga.data_folga.desc(), CicloFolga.id.desc())
+                .all()
+            )
+
+            for folga in folgas:
+                data_formatada = folga.data_folga.strftime("%d/%m/%Y") if folga.data_folga else "-"
+                registros_data.append(
+                    {
+                        "id": folga.id,
+                        "data": data_formatada,
+                        "origem": "Folga " + folga.tipo,  # "Folga uso" ou "Folga adicional"
+                        "descricao": folga.observacao or "-",
+                        "horas": float(-8),  # Folgas são -8h por padrão
+                    }
+                )
+            
+            # Ordenar todos os registros (Ciclo + CicloFolga) por data descendente
+            registros_data.sort(key=lambda x: x["data"], reverse=True)
+
             # Calcular resumo com fallback seguro
             if week_start and week_end:
                 # Type hints explícitos para corrigir problemas de tipo
