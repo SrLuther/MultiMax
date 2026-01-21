@@ -1,5 +1,11 @@
 ## [2.7.4] - 2026-01-20
 
+### Correções
+
+- fix(tests): atualizar testes de module_registry para usar nome correto do blueprint `estoque_producao`
+  - Testes falhavam porque ainda referenciavam blueprint antigo `estoque`
+  - Módulo unificado `estoque_producao.py` exigia atualização nos testes
+
 ### Refatoração
 
 - refactor(estoque): fusão dos módulos "Gestão de Estoque" e "Estoque de Produção" em módulo unificado

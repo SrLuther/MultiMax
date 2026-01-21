@@ -11,7 +11,7 @@ def test_get_active_module_labels_unknown_blueprints_ignored():
 
 def test_get_active_module_labels_returns_expected_labels_in_registry_order():
     # Ordem deve seguir o MODULE_REGISTRY, não a ordem de entrada.
-    blueprints = ["notificacoes", "ciclos", "estoque"]
+    blueprints = ["notificacoes", "ciclos", "estoque_producao"]
     assert get_active_module_labels(blueprints) == [
         "Gestão de Estoque",
         "Ciclos e Pagamentos",
@@ -21,7 +21,7 @@ def test_get_active_module_labels_returns_expected_labels_in_registry_order():
 
 def test_get_active_module_labels_handles_iterable_types():
     # Aceitar qualquer Iterable[str]
-    blueprints = {"estoque", "exportacao", "colaboradores", "ciclos", "notificacoes"}
+    blueprints = {"estoque_producao", "exportacao", "colaboradores", "ciclos", "notificacoes"}
     labels = get_active_module_labels(blueprints)
     assert labels == [
         "Gestão de Estoque",
@@ -30,4 +30,3 @@ def test_get_active_module_labels_handles_iterable_types():
         "Relatórios e PDFs",
         "Notificações",
     ]
-
