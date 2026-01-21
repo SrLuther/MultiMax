@@ -1,21 +1,27 @@
 {% extends 'base.html' %}
 {% block title %}MultiMax{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex justify-content-between align-items-center mb-4">
   <h2 class="mb-0">Produtos</h2>
-  {% if current_user.nivel in ('operador','admin') %}
-  <button class="btn btn-success" data-bs-toggle="collapse" data-bs-target="#addCard">Adicionar Produto</button>
+  {% if current_user.nivel in ('operador','admin','DEV') %}
+  <button class="btn btn-primary btn-lg" data-bs-toggle="collapse" data-bs-target="#addCard">
+    <i class="bi bi-plus-lg"></i> Criar Produto
+  </button>
   {% endif %}
-  </div>
-{% if current_user.nivel in ('operador','admin') %}
-<div id="addCard" class="collapse">
-  <div class="card mb-3 card-animated">
-    <div class="card-header">Adicionar Produto</div>
+</div>
+
+{% if current_user.nivel in ('operador','admin','DEV') %}
+<div id="addCard" class="collapse mb-4">
+  <div class="card card-animated shadow-sm">
+    <div class="card-header bg-primary text-white">
+      <i class="bi bi-plus-circle"></i> Adicionar Novo Produto
+    </div>
     <div class="card-body">
-      <form class="row g-2" method="post" action="{{ url_for('estoque.adicionar_produto') }}">
+      <form class="row g-3" method="post" action="{{ url_for('estoque.adicionar') }}">
         <div class="col-md-4">
-          <label class="form-label">Categoria</label>
+          <label class="form-label fw-bold">Categoria</label>
           <select name="categoria" class="form-select" required>
+            <option value="">-- Selecione uma categoria --</option>
             <option value="CX">Caixas</option>
             <option value="PC">Pacotes</option>
             <option value="VA">A vácuo</option>
@@ -23,15 +29,30 @@
           </select>
         </div>
         <div class="col-md-5">
-          <label class="form-label">Nome</label>
-          <input name="nome" class="form-control" required>
+          <label class="form-label fw-bold">Nome do Produto</label>
+          <input name="nome" class="form-control" placeholder="Ex: Carne Vermelha" required>
         </div>
         <div class="col-md-3">
-          <label class="form-label">Estoque Mínimo</label>
+          <label class="form-label fw-bold">Estoque Mínimo</label>
           <input type="number" name="estoque_minimo" class="form-control" min="0" value="0">
         </div>
-        <div class="col-12 d-flex justify-content-end">
-          <button class="btn btn-success" type="submit">Adicionar</button>
+        <div class="col-md-4">
+          <label class="form-label fw-bold">Quantidade Inicial</label>
+          <input type="number" name="quantidade" class="form-control" min="0" value="0">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold">Preço de Custo</label>
+          <input type="number" name="preco_custo" class="form-control" min="0" step="0.01" value="0.00">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold">Preço de Venda</label>
+          <input type="number" name="preco_venda" class="form-control" min="0" step="0.01" value="0.00">
+        </div>
+        <div class="col-12 d-flex justify-content-end gap-2">
+          <button class="btn btn-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#addCard">Cancelar</button>
+          <button class="btn btn-success btn-lg" type="submit">
+            <i class="bi bi-check-lg"></i> Criar Produto
+          </button>
         </div>
       </form>
     </div>
