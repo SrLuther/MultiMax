@@ -7,18 +7,7 @@
   - Atualiza registros existentes com setor do colaborador
   - Resolve erro "no such column: ciclo_folga.setor_id"
   - Sincroniza schema do banco com modelos SQLAlchemy
-
----
-
-## [2.7.13] - 2026-01-21
-
-### Correção
-
-- fix(database): adicionar coluna setor_id em ciclo_folga e ciclo_ocorrencia
-  - Criada migração one-time para adicionar colunas faltantes no banco
-  - Atualiza registros existentes com setor do colaborador
-  - Resolve erro "no such column: ciclo_folga.setor_id"
-  - Sincroniza schema do banco com modelos SQLAlchemy
+  - **IMPORTANTE:** Migração deve ser executada na VPS após deploy
 
 ---
 
