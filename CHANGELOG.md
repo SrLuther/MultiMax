@@ -1,3 +1,14 @@
+## [2.7.6] - 2026-01-20
+
+### Limpeza
+
+- refactor(home): remove rota POST /changelog desativada
+  - Remove funcionalidade abandonada de atualização de changelog via interface web
+  - Changelog agora é gerenciado exclusivamente via CHANGELOG.md no repositório
+  - Simplifica codebase removendo código legado
+
+---
+
 ## [2.7.5] - 2026-01-20
 
 ### Refatoração
