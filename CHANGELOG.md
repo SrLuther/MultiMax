@@ -1,3 +1,18 @@
+## [2.7.11] - 2026-01-21
+
+### Refatoração
+
+- refactor(auth): reduzir complexidade ciclomática da função login
+  - Extraída lógica de validação em `_validate_registration_data()`
+  - Extraída criação de usuário em `_create_user_and_collaborator()`
+  - Extraído processamento de cadastro em `_handle_registration()`
+  - Extraída obtenção de IP/User-Agent em `_get_client_info()`
+  - Extraído registro de logs em `_log_user_login()`
+  - Extraído processamento de login em `_handle_login()`
+  - Complexidade reduzida de 26 para ~3, resolvendo alerta Flake8 C901
+
+---
+
 ## [2.7.10] - 2026-01-21
 
 ### Correção
