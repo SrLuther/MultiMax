@@ -38,7 +38,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Acesse em http://localhost:5000.
+Produção: https://www.multimax.tec.br. Desenvolvimento local: http://localhost:5000.
 
 ---
 
