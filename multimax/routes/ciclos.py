@@ -1040,8 +1040,19 @@ def _proximo_ciclo_id():
     return (ultimo_fechamento.ciclo_id + 1) if ultimo_fechamento else 1
 
 
-def _registros_ativos():
-    return Ciclo.query.filter(Ciclo.status_ciclo == "ativo").all()
+def _registros_ativos(setor_id: int | None = None):
+    query = Ciclo.query.filter(Ciclo.status_ciclo == "ativo")
+    if setor_id:
+        # Filtrar por setor: registros com setor_id preenchido OU registros antigos (NULL) do colaborador neste setor
+        from sqlalchemy import or_
+
+        query = query.filter(
+            or_(
+                Ciclo.setor_id == setor_id,
+                (Ciclo.setor_id.is_(None) & (Collaborator.setor_id == setor_id)),
+            )
+        ).join(Collaborator)
+    return query.all()
 
 
 def _agrupar_e_calcular_totais(registros_ativos):
@@ -1801,13 +1812,18 @@ def confirmar_fechamento():
         return redirect(url_for("ciclos.index"))
 
     try:
+        # Filtro por setor (opcional)
+        selected_setor_id = request.form.get("setor_id", type=int)
+
         anchor_before_close, next_month_start = _datas_fechamento()
         proximo_ciclo_id = _proximo_ciclo_id()
 
-        registros_ativos = _registros_ativos()
+        registros_ativos = _registros_ativos(selected_setor_id)
         if not registros_ativos:
             flash("Nenhum registro ativo encontrado para fechamento.", "warning")
-            return redirect(url_for("ciclos.index"))
+            return redirect(
+                url_for("ciclos.index", setor_id=selected_setor_id) if selected_setor_id else url_for("ciclos.index")
+            )
 
         colaboradores_totais, totais_gerais = _agrupar_e_calcular_totais(registros_ativos)
 
@@ -1833,7 +1849,9 @@ def confirmar_fechamento():
 
         print(traceback.format_exc())
 
-    return redirect(url_for("ciclos.index"))
+    return redirect(
+        url_for("ciclos.index", setor_id=selected_setor_id) if selected_setor_id else url_for("ciclos.index")
+    )
 
 
 @bp.route("/config", methods=["GET", "POST"], strict_slashes=False)

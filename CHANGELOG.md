@@ -1,6 +1,16 @@
 ## [Unreleased]
 
 
+## [2.7.21] - 2026-01-21
+
+### Melhoria
+
+- feat(ciclos): aplicar filtro de setor ao fechar/registrar pagamento do ciclo
+  - Botão "Registrar Pagamento" respeita o setor selecionado
+  - Resumo de fechamento mostra apenas colaboradores do setor
+  - Carryover de horas e fechamento de registros filtrados por setor
+  - Ao retornar, página mantém o filtro de setor aplicado
+
 ## [2.7.20] - 2026-01-21
 
 ### Melhoria

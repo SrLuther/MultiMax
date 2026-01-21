@@ -568,6 +568,15 @@
                     observacoes.value = document.getElementById('fechamento_observacoes').value;
                     form.appendChild(observacoes);
 
+                    // Adicionar setor_id se selecionado
+                    if (state.selectedSetorId) {
+                        const setorId = document.createElement('input');
+                        setorId.type = 'hidden';
+                        setorId.name = 'setor_id';
+                        setorId.value = state.selectedSetorId;
+                        form.appendChild(setorId);
+                    }
+
                     document.body.appendChild(form);
                     form.submit();
                 }
