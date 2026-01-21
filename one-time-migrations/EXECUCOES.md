@@ -4,6 +4,17 @@ Registre aqui quando cada migração foi executada com sucesso.
 
 ## ✅ Migrações Aplicadas
 
+### 2026_01_21_add_setor_id_to_ciclo_folga_ocorrencia.py
+- **Dev Local**: ✅ 2026-01-21 (Executado com sucesso)
+  - Adicionado setor_id em ciclo_folga ✓
+  - Adicionado setor_id em ciclo_ocorrencia ✓
+  - Registros existentes atualizados com setor do colaborador ✓
+  - 0 registros atualizados (tabelas vazias)
+- **VPS Produção**: ⏳ Pendente
+- **Status**: Sincronização de schema do banco com modelos
+- **Motivo**: Erro "no such column: ciclo_folga.setor_id" estava impedindo consultas
+- **Pode deletar?**: ❌ Não (aguardar produção)
+
 ### 2026_01_21_add_setor_to_collaborator.py
 - **Dev Local**: ✅ 2026-01-20 (Executado com sucesso)
   - Adicionado setor_id em collaborator ✓
