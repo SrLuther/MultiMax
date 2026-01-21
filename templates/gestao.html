@@ -348,7 +348,10 @@
                                         {% endif %}
                                     </div>
                                     {% else %}
-                                    <span class="gestao-badge gestao-badge-secondary">Criar usuário no modal de edição</span>
+                                    <button class="gestao-btn-modern gestao-btn-sm gestao-btn-primary" data-bs-toggle="modal" data-bs-target="#modalCriarColabUser{{ u.id }}" title="Criar Collaborator para gerenciar em Ciclos">
+                                        <i class="bi bi-plus"></i>
+                                        Criar Colab
+                                    </button>
                                     {% endif %}
                                     {% if c.collaborator %}
                                     <button class="gestao-btn-modern gestao-btn-sm gestao-btn-outline" data-bs-toggle="modal" data-bs-target="#modalEditColab{{ c.collaborator.id }}" title="Editar">
@@ -711,6 +714,61 @@
         </form>
     </div>
 </div>
+
+<!-- Modals para criar Collaborator para usuários sem um -->
+{% for c in users_page %}
+{% set u = c.user %}
+{% if u and not c.collaborator %}
+<div class="modal fade" id="modalCriarColabUser{{ u.id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <form method="post" action="{{ url_for('usuarios.gestao_usuario_criar_colaborador', user_id=u.id) }}">
+            <div class="modal-content gestao-modal-modern">
+                <div class="modal-header gestao-modal-header-modern">
+                    <h5 class="modal-title">
+                        <i class="bi bi-plus-circle"></i>
+                        Criar Collaborator para {{ u.name }}
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body gestao-modal-body-modern">
+                    <div class="gestao-form-group-modern">
+                        <label class="gestao-label-modern">
+                            <i class="bi bi-person"></i>
+                            Nome
+                        </label>
+                        <input type="text" class="gestao-input-modern" value="{{ u.name }}" disabled>
+                        <small class="gestao-hint-modern">O nome é baseado na conta de usuário.</small>
+                    </div>
+                    <div class="gestao-form-group-modern">
+                        <label class="gestao-label-modern">
+                            <i class="bi bi-building"></i>
+                            Setor
+                        </label>
+                        <select name="setor_id" class="gestao-select-modern">
+                            <option value="">Nenhum</option>
+                            {% for setor in setores %}
+                            <option value="{{ setor.id }}">{{ setor.nome }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="gestao-hint-modern">Selecione um setor para que este usuário seja gerenciável na página de ciclos.</small>
+                    </div>
+                </div>
+                <div class="modal-footer gestao-modal-footer-modern">
+                    <button class="gestao-btn-modern gestao-btn-outline" type="button" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i>
+                        Cancelar
+                    </button>
+                    <button class="gestao-btn-modern gestao-btn-primary" type="submit">
+                        <i class="bi bi-check-circle"></i>
+                        Criar Collaborator
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
 
 <style>
 /* Container */

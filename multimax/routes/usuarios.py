@@ -1601,6 +1601,51 @@ def gestao_usuarios_associar():
     return redirect(url_for("usuarios.gestao"))
 
 
+@bp.route("/gestao/usuarios/<int:user_id>/criar-colaborador", methods=["POST"])
+@login_required
+def gestao_usuario_criar_colaborador(user_id: int):
+    """Cria um Collaborator para um usuário existente (usuário cadastrado via login)"""
+    if current_user.nivel not in ("admin", "DEV"):
+        flash("Você não tem permissão para criar colaboradores.", "danger")
+        return redirect(url_for("usuarios.gestao"))
+
+    user = User.query.get(user_id)
+    if not user:
+        flash("Usuário não encontrado.", "danger")
+        return redirect(url_for("usuarios.gestao"))
+
+    # Verificar se já tem um Collaborator
+    existing = Collaborator.query.filter_by(user_id=user.id).first()
+    if existing:
+        flash("Este usuário já tem um Collaborator associado.", "warning")
+        return redirect(url_for("usuarios.gestao"))
+
+    try:
+        # Criar novo Collaborator
+        new_collab = Collaborator()
+        new_collab.name = user.name
+        new_collab.user_id = user.id
+        new_collab.active = True
+
+        # Aplicar setor se fornecido
+        setor_id = request.form.get("setor_id", type=int)
+        if setor_id:
+            setor = Setor.query.get(setor_id)
+            if setor:
+                new_collab.setor_id = setor_id
+
+        db.session.add(new_collab)
+        db.session.commit()
+
+        flash(f"Collaborator criado para {user.name}. Agora pode ser gerenciado na página de ciclos.", "success")
+        return redirect(url_for("usuarios.gestao"))
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Erro ao criar Collaborator: {e}", "danger")
+        return redirect(url_for("usuarios.gestao"))
+
+
 @bp.route("/gestao/colaboradores/horas/adicionar", methods=["POST"])
 @login_required
 def gestao_colabs_horas_adicionar():

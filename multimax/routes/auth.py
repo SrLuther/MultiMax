@@ -4,7 +4,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
 from .. import db
-from ..models import SystemLog, User, UserLogin
+from ..models import Collaborator, SystemLog, User, UserLogin
 from ..password_hash import check_password_hash, generate_password_hash
 
 logger = logging.getLogger(__name__)
@@ -56,6 +56,20 @@ def login():
                 new_user.nivel = "visualizador"  # Sempre visualizador para novos cadastros
 
                 db.session.add(new_user)
+                db.session.flush()  # Gera o ID sem fazer commit
+
+                # Criar automaticamente um Collaborator para o novo usuário
+                # Isso permite que o usuário seja gerenciado na página de ciclos
+                try:
+                    new_collaborator = Collaborator()
+                    new_collaborator.name = name[:100]
+                    new_collaborator.user_id = new_user.id
+                    new_collaborator.active = True
+                    db.session.add(new_collaborator)
+                except Exception as collab_e:
+                    # Log mas não falha o registro do usuário
+                    logger.warning(f"Erro ao criar Collaborator para novo usuário {username}: {collab_e}")
+
                 db.session.commit()
 
                 flash("Cadastro realizado com sucesso! Faça login para continuar.", "success")

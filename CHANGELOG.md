@@ -1,3 +1,21 @@
+## [2.7.8] - 2026-01-21
+
+### Melhoria
+
+- feat(auth): criar Collaborator automaticamente ao registrar novo usuário
+  - Quando um usuário se cadastra via tela de login, um Collaborator é criado automaticamente
+  - Permite que novos usuários sejam gerenciados imediatamente na página de ciclos
+  - Fallback se erro na criação não impede o registro do usuário
+
+- feat(gestao): permitir associar setor a usuários cadastrados via login
+  - Nova rota: `POST /gestao/usuarios/<user_id>/criar-colaborador`
+  - Novo modal em Gerenciar Colaboradores/Usuários para criar Collaborator
+  - Botão "Criar Colab" aparece para usuários sem Collaborator
+  - Permite selecionar setor ao criar o Collaborator
+  - Usuários são imediatamente gerenciáveis em Ciclos
+
+---
+
 ## [2.7.7] - 2026-01-21
 
 ### Correção
