@@ -1324,6 +1324,7 @@ def folgas_adicionar():
         f.collaborator_id = cid
         f.nome_colaborador = collaborator.name
         f.data_folga = data_folga
+        f.setor_id = collaborator.setor_id  # Adicionar setor do colaborador
         f.tipo = tipo
         f.dias = dias
         f.observacao = obs if obs else None
@@ -1385,6 +1386,7 @@ def ocorrencias_adicionar():
         o.collaborator_id = cid
         o.nome_colaborador = collaborator.name
         o.data_ocorrencia = data_oc
+        o.setor_id = collaborator.setor_id  # Adicionar setor do colaborador
         o.tipo = tipo
         o.descricao = desc if desc else None
         o.status_ciclo = "ativo"

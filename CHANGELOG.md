@@ -1,3 +1,16 @@
+## [2.7.15] - 2026-01-21
+
+### Correção
+
+- fix(ciclos): adicionar setor_id ao criar folgas e ocorrências
+  - `folgas_adicionar()` agora atribui `setor_id = collaborator.setor_id`
+  - `ocorrencias_adicionar()` agora atribui `setor_id = collaborator.setor_id`
+  - Garante que filtros de setor funcionem em todas as operações
+  - Resolve inconsistência entre criação e leitura de dados
+  - Complementa v2.7.14 completando proteção de setor em todas as tabelas
+
+---
+
 ## [2.7.14] - 2026-01-21
 
 ### Correção
