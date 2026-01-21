@@ -6,8 +6,15 @@
   - Adiciona ícone e estilo primário para facilitar localização
   - Formulário expandido com campos: categoria, nome, quantidade inicial, preços de custo/venda
   - Botões cancelar/criar com melhor feedback visual
+- feat(devops): hook pre-commit automático para garantir atualização de CHANGELOG
+  - Bloqueia commits de código sem atualizar CHANGELOG.md
+  - Mensagens claras em inglês/português explicando procedimento
+  - Permite commits de documentação pura sem CHANGELOG
+  - Script Python com tratamento de encoding cross-platform
 
 ### Correções
+
+- fix(pre-commit): corrigido encoding de caracteres especiais no output do hook
 
 - fix(produtos): corrige permissão para incluir nível `DEV` na criação de produtos
 - fix(produtos): corrige rota do formulário de criação para usar endpoint correto `estoque.adicionar`
