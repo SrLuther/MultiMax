@@ -1,6 +1,15 @@
 ## [Unreleased]
 
 
+## [3.0.6] - 2026-01-22
+
+### Correção
+
+- fix(whatsapp): alterar endpoint padrão de localhost para https://www.multimax.tec.br/notify
+- config(whatsapp): centralizar URL em variável WHATSAPP_NOTIFY_URL para compatibilidade com Docker
+- docs(env): adicionar exemplo de configuração do endpoint WhatsApp
+
+
 ## [3.0.5] - 2026-01-22
 
 ### Melhoria

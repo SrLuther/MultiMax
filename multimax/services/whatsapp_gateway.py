@@ -70,7 +70,7 @@ def set_auto_notifications_enabled(enabled: bool, actor: str | None = None) -> N
 
 
 def _notify_url() -> str:
-    return (os.getenv("WHATSAPP_NOTIFY_URL") or "http://localhost:3001/notify").strip()
+    return (os.getenv("WHATSAPP_NOTIFY_URL") or "https://www.multimax.tec.br/notify").strip()
 
 
 def get_gateway_display_url() -> str:
