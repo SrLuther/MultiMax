@@ -1184,3 +1184,40 @@ body {
 [data-theme="dark"] .text-uppercase.text-muted {
   color: #94a3b8 !important;
 }
+
+/* Headings no modo dark - garantir visibilidade */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6,
+[data-theme="dark"] .h1,
+[data-theme="dark"] .h2,
+[data-theme="dark"] .h3,
+[data-theme="dark"] .h4,
+[data-theme="dark"] .h5,
+[data-theme="dark"] .h6 {
+  color: #f8fafc !important;
+}
+
+/* Parágrafos e textos gerais */
+[data-theme="dark"] p {
+  color: #cbd5e1 !important;
+}
+
+/* Textarea e inputs - placeholder mais visível */
+[data-theme="dark"] textarea::placeholder,
+[data-theme="dark"] input::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1;
+}
+
+/* Labels de formulário */
+[data-theme="dark"] label {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .form-label {
+  color: #cbd5e1 !important;
+}

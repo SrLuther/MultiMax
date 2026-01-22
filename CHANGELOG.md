@@ -1,6 +1,17 @@
 ## [Unreleased]
 
 
+## [3.0.12] - 2026-01-22
+
+### Correção
+
+- fix(ui): corrigir visibilidade de headings (h1-h6) no modo dark
+- fix(ui): parágrafos agora visíveis com cor clara (#cbd5e1) no dark mode
+- fix(ui): placeholders de textarea e inputs mais legíveis (#94a3b8)
+- fix(ui): labels de formulário com contraste adequado no tema escuro
+- fix(ui): resolver problema de títulos "invisíveis" na página WhatsApp
+
+
 ## [3.0.11] - 2026-01-22
 
 ### Correção
