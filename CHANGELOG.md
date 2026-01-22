@@ -1,6 +1,14 @@
 ## [Unreleased]
 
 
+## [3.0.1] - 2026-01-22
+
+### Novo
+
+- chore(whatsapp): adicionar micro-serviço local (`whatsapp-service/`) para autenticar via Baileys, exibir QR Code e listar todos os grupos com seus `GROUP ID (@g.us)`
+- infra: `auth/` do serviço ignorado no git para não versionar sessões
+
+
 ## [3.0.0] - 2026-01-22
 
 ### Novo

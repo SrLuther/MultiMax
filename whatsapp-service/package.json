@@ -1,0 +1,15 @@
+{
+  "name": "whatsapp-service",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Serviço local Baileys para descoberta de grupos WhatsApp (QR e lista de IDs)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.5",
+    "pino": "^9.5.0",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
