@@ -1,6 +1,17 @@
 ## [Unreleased]
 
 
+## [3.0.11] - 2026-01-22
+
+### Correção
+
+- fix(usuarios): corrigir erro 500 ao excluir usuários
+- fix(usuarios): remover/desvincular todos os registros relacionados antes da exclusão
+- fix(usuarios): desvincular colaborador, remover logins, votos e notificações
+- fix(usuarios): atualizar referências em recepções de carne e registros de jornada
+- fix(usuarios): adicionar imports necessários (UserLogin, ArticleVote, etc)
+
+
 ## [3.0.10] - 2026-01-22
 
 ### Correção

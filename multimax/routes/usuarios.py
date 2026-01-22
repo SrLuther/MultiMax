@@ -13,6 +13,7 @@ from flask_login import current_user, login_required
 from .. import db
 from ..models import (
     AppSetting,
+    ArticleVote,
     Ciclo,
     CleaningHistory,
     CleaningTask,
@@ -20,14 +21,18 @@ from ..models import (
     Historico,
     Holiday,
     JobRole,
+    MeatReception,
     MedicalCertificate,
     NotificationRead,
     Produto,
+    RegistroJornadaChange,
     Setor,
     Shift,
+    SuggestionVote,
     SystemLog,
     TimeOffRecord,
     User,
+    UserLogin,
     Vacation,
 )
 from ..password_hash import check_password_hash, generate_password_hash
@@ -1214,7 +1219,31 @@ def excluir_user(user_id):
         flash("Apenas o desenvolvedor pode excluir administradores.", "danger")
         return redirect(url_for("usuarios.users"))
     try:
+        # Remover registros relacionados antes de excluir o usuário
+        # 1. Desvincular colaborador (setar user_id como NULL)
+        Collaborator.query.filter_by(user_id=user_id).update({"user_id": None})
+
+        # 2. Remover registros de login
+        UserLogin.query.filter_by(user_id=user_id).delete()
+
+        # 3. Remover votos de artigos
+        ArticleVote.query.filter_by(user_id=user_id).delete()
+
+        # 4. Remover votos de sugestões
+        SuggestionVote.query.filter_by(user_id=user_id).delete()
+
+        # 5. Remover notificações lidas
+        NotificationRead.query.filter_by(user_id=user_id).delete()
+
+        # 6. Atualizar recepções de carne (setar recebedor_id como NULL)
+        MeatReception.query.filter_by(recebedor_id=user_id).update({"recebedor_id": None})
+
+        # 7. Atualizar mudanças de registro de jornada (setar changed_by como NULL)
+        RegistroJornadaChange.query.filter_by(changed_by=user_id).update({"changed_by": None})
+
+        # Agora podemos excluir o usuário com segurança
         db.session.delete(user)
+
         log = SystemLog()
         log.origem = "Usuarios"
         log.evento = "excluir"
@@ -1222,7 +1251,7 @@ def excluir_user(user_id):
         log.usuario = current_user.name
         db.session.add(log)
         db.session.commit()
-        flash(f'Usuário "{user.name}" excluído com sucesso.', "danger")
+        flash(f'Usuário "{user.name}" excluído com sucesso.', "success")
     except Exception as e:
         db.session.rollback()
         flash(f"Erro ao excluir usuário: {e}", "danger")
