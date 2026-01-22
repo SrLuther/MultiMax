@@ -1040,3 +1040,147 @@ body {
   content-visibility: auto;
   contain-intrinsic-size: 600px;
 }
+
+/* ===== DARK MODE - BOOTSTRAP OVERRIDES ===== */
+/* Melhorar legibilidade de textos no modo dark */
+[data-theme="dark"] .text-muted {
+  color: #cbd5e1 !important; /* Mais claro que o padrão */
+}
+
+[data-theme="dark"] .text-primary {
+  color: #60d394 !important; /* Verde claro legível */
+}
+
+[data-theme="dark"] .text-success {
+  color: #4ade80 !important; /* Verde success mais claro */
+}
+
+[data-theme="dark"] .text-secondary {
+  color: #94a3b8 !important; /* Cinza claro */
+}
+
+[data-theme="dark"] .text-info {
+  color: #60a5fa !important; /* Azul claro */
+}
+
+[data-theme="dark"] .text-warning {
+  color: #fbbf24 !important; /* Amarelo legível */
+}
+
+[data-theme="dark"] .text-danger {
+  color: #f87171 !important; /* Vermelho claro */
+}
+
+/* Badges no modo dark */
+[data-theme="dark"] .badge.bg-primary-subtle {
+  background-color: rgba(96, 211, 148, 0.15) !important;
+  color: #60d394 !important;
+}
+
+[data-theme="dark"] .badge.bg-success-subtle {
+  background-color: rgba(74, 222, 128, 0.15) !important;
+  color: #4ade80 !important;
+}
+
+[data-theme="dark"] .badge.bg-secondary-subtle {
+  background-color: rgba(148, 163, 184, 0.15) !important;
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .badge.bg-light {
+  background-color: #334155 !important;
+  color: #cbd5e1 !important;
+  border-color: #475569 !important;
+}
+
+/* Alerts no modo dark */
+[data-theme="dark"] .alert-info {
+  background-color: rgba(96, 165, 250, 0.1) !important;
+  border-color: rgba(96, 165, 250, 0.2) !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .alert-info .text-info {
+  color: #60a5fa !important;
+}
+
+[data-theme="dark"] .alert-info .text-muted,
+[data-theme="dark"] .alert-info .small.text-muted {
+  color: #94a3b8 !important;
+}
+
+/* Cards no modo dark */
+[data-theme="dark"] .card {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .card-body {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .card .text-muted {
+  color: #cbd5e1 !important;
+}
+
+/* Form controls no modo dark */
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-floating > .form-control {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .form-control::placeholder {
+  color: #64748b !important;
+}
+
+[data-theme="dark"] .form-floating > label {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .form-control:focus {
+  background-color: #1e293b !important;
+  border-color: #60d394 !important;
+  color: #f8fafc !important;
+}
+
+/* Botões no modo dark - melhorar contraste */
+[data-theme="dark"] .btn-success {
+  background-color: #22c55e !important;
+  border-color: #22c55e !important;
+  color: #0f172a !important;
+}
+
+[data-theme="dark"] .btn-success:hover {
+  background-color: #16a34a !important;
+  border-color: #16a34a !important;
+}
+
+[data-theme="dark"] .btn-outline-primary {
+  color: #60d394 !important;
+  border-color: #60d394 !important;
+}
+
+[data-theme="dark"] .btn-outline-primary:hover {
+  background-color: #60d394 !important;
+  border-color: #60d394 !important;
+  color: #0f172a !important;
+}
+
+/* Small text e helper text */
+[data-theme="dark"] .small,
+[data-theme="dark"] small {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .small.text-muted,
+[data-theme="dark"] small.text-muted {
+  color: #cbd5e1 !important;
+}
+
+/* Texto uppercase */
+[data-theme="dark"] .text-uppercase.text-muted {
+  color: #94a3b8 !important;
+}

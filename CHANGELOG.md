@@ -1,6 +1,17 @@
 ## [Unreleased]
 
 
+## [3.0.10] - 2026-01-22
+
+### Correção
+
+- fix(ui): melhorar contraste e legibilidade no modo dark
+- fix(ui): textos `.text-muted`, `.text-primary`, `.text-success` agora claros no dark mode
+- fix(ui): badges com cores legíveis no fundo escuro
+- fix(ui): cards, formulários e alertas com melhor contraste
+- fix(ui): botões e textos pequenos mais visíveis no tema escuro
+
+
 ## [3.0.9] - 2026-01-22
 
 ### Correção
