@@ -1,6 +1,6 @@
 # WhatsApp Service (Baileys)
 
-Serviço Node.js local para autenticar via WhatsApp Web, listar todos os grupos do número conectado e exibir `GROUP ID` (formato `@g.us`). Nenhum envio é feito nesta fase.
+Serviço Node.js em modo daemon para integração contínua com WhatsApp Web via Baileys. Mantém conexão ativa, reconecta automaticamente e lista grupos na inicialização.
 
 **Integração exclusiva com WhatsApp** — Sem Telegram ou outros mensageiros.
 
@@ -21,17 +21,23 @@ npm start
 node index.js
 ```
 
+**O serviço permanecerá ativo indefinidamente** após a conexão.
+
 Fluxo:
 1) O terminal exibirá um QR Code (modo texto). Escaneie com o WhatsApp no celular: *Configurações > Aparelhos conectados > Conectar dispositivo*.
 2) Após a conexão, o serviço listará todos os grupos com:
    ```
    <nome do grupo> -> <group_id>
    ```
-3) Copie o `group_id` (termina com `@g.us`). O processo encerra automaticamente depois de listar.
+3) O serviço **permanece ativo** aguardando eventos e rotinas futuras.
+4) Reconexão automática em caso de queda (exceto logout).
+
+Para **parar o serviço**: `Ctrl+C` (SIGINT) ou `kill <pid>` (SIGTERM).
 
 ## Persistência de sessão
 - A autenticação fica em `whatsapp-service/auth/` (ignorada pelo git).
 - Se precisar reconectar do zero (ex.: sessão expirada), delete a pasta `auth/` e rode novamente.
+- Reconexão automática em quedas temporárias (timeout em 5 segundos).
 
 ## Segurança
 - Nenhum ID de grupo é armazenado; apenas impresso no console.
@@ -54,3 +60,11 @@ npm start
 ## Próximos passos (fora do escopo atual)
 - Expor endpoint HTTP local para o Multimax consumir.
 - Implementar envio para grupos usando os IDs capturados.
+- Adicionar tarefas periódicas/automatizadas (estrutura já preparada em `setupAutomatedTasks()`).
+
+## Modo Daemon
+O serviço roda continuamente em modo daemon:
+- ✓ Reconexão automática
+- ✓ Estrutura para rotinas periódicas
+- ✓ Shutdown gracioso (SIGINT/SIGTERM)
+- ✓ Logs estruturados (pino)

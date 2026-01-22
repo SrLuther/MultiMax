@@ -16,7 +16,13 @@ const {
 
 const logger = pino({ level: "info" }).child({ module: "whatsapp-service" });
 
-async function listGroupsAndExit(sock) {
+let globalSocket = null;
+let reconnectTimeout = null;
+
+/**
+ * Lista grupos disponíveis (chamado uma vez na conexão inicial)
+ */
+async function listGroups(sock) {
   try {
     const groupsMap = await sock.groupFetchAllParticipating();
     const groups = Object.values(groupsMap).sort((a, b) => (a.subject || "").localeCompare(b.subject || ""));
@@ -24,21 +30,31 @@ async function listGroupsAndExit(sock) {
     if (!groups.length) {
       logger.info("Nenhum grupo encontrado para este número.");
     } else {
-      logger.info("Grupos encontrados (nome -> group_id):");
+      logger.info("Grupos disponíveis (nome -> group_id):");
       groups.forEach((g) => {
         const name = g.subject || "(sem nome)";
-        logger.info(`${name} -> ${g.id}`);
+        logger.info(`  ${name} -> ${g.id}`);
       });
     }
-    logger.info("Encerrando serviço após listar grupos.");
-    process.exit(0);
+    logger.info("Serviço ativo. Aguardando eventos...");
   } catch (err) {
     logger.error({ err }, "Erro ao listar grupos");
-    process.exit(1);
   }
 }
 
-async function main() {
+/**
+ * Inicializa rotinas automáticas (placeholder para futuras implementações)
+ */
+function setupAutomatedTasks(sock) {
+  // Exemplo: tarefas periódicas podem ser adicionadas aqui
+  // setInterval(() => { ... }, 60000);
+  logger.info("Rotinas automáticas preparadas (aguardando implementação).");
+}
+
+/**
+ * Conecta ao WhatsApp e mantém conexão ativa
+ */
+async function connectToWhatsApp() {
   const authFolder = path.join(__dirname, "auth");
   const { state, saveCreds } = await useMultiFileAuthState(authFolder);
   const { version } = await fetchLatestBaileysVersion();
@@ -52,9 +68,11 @@ async function main() {
     browser: ["MultiMax", "Desktop", "1.0.0"],
   });
 
+  globalSocket = sock;
+
   sock.ev.on("creds.update", saveCreds);
 
-  sock.ev.on("connection.update", (update) => {
+  sock.ev.on("connection.update", async (update) => {
     const { connection, lastDisconnect, qr } = update;
 
     if (qr) {
@@ -63,26 +81,61 @@ async function main() {
     }
 
     if (connection === "open") {
-      logger.info("Conectado com sucesso. Listando grupos...");
-      listGroupsAndExit(sock);
+      logger.info("✓ Conectado com sucesso ao WhatsApp");
+      await listGroups(sock);
+      setupAutomatedTasks(sock);
     }
 
     if (connection === "close") {
       const statusCode = lastDisconnect?.error?.output?.statusCode;
+      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+
       if (statusCode === DisconnectReason.loggedOut) {
-        logger.error("Sessão expirada. Apague a pasta auth/ e refaça o login.");
+        logger.error("✗ Sessão expirada. Apague a pasta auth/ e refaça o login.");
         process.exit(1);
+      } else if (shouldReconnect) {
+        logger.warn("Conexão perdida. Reconectando em 5 segundos...");
+        reconnectTimeout = setTimeout(() => {
+          connectToWhatsApp();
+        }, 5000);
       }
     }
   });
+
+  return sock;
+}
+
+/**
+ * Ponto de entrada principal
+ */
+async function main() {
+  logger.info("Iniciando serviço WhatsApp (modo daemon)...");
+  await connectToWhatsApp();
 }
 
 process.on("SIGINT", () => {
-  logger.info("Interrompido pelo usuário. Encerrando...");
+  logger.info("Sinal de interrupção recebido. Encerrando graciosamente...");
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout);
+  }
+  if (globalSocket) {
+    globalSocket.end();
+  }
+  process.exit(0);
+});
+
+process.on("SIGTERM", () => {
+  logger.info("Sinal de término recebido. Encerrando graciosamente...");
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout);
+  }
+  if (globalSocket) {
+    globalSocket.end();
+  }
   process.exit(0);
 });
 
 main().catch((err) => {
-  logger.error({ err }, "Falha ao iniciar o serviço WhatsApp");
+  logger.error({ err }, "Falha crítica ao iniciar o serviço WhatsApp");
   process.exit(1);
 });

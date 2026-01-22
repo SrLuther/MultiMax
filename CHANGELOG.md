@@ -1,6 +1,16 @@
 ## [Unreleased]
 
 
+## [3.0.3] - 2026-01-22
+
+### Melhoria
+
+- feat(whatsapp-service): transformar em daemon contínuo com reconexão automática (timeout 5s)
+- feat(whatsapp-service): estruturar `setupAutomatedTasks()` para futuras rotinas periódicas
+- feat(whatsapp-service): shutdown gracioso via SIGINT/SIGTERM
+- docs(whatsapp-service): atualizar README com instruções de modo daemon
+
+
 ## [3.0.2] - 2026-01-22
 
 ### Correção
