@@ -1,6 +1,14 @@
 ## [Unreleased]
 
 
+## [3.0.9] - 2026-01-22
+
+### Correção
+
+- fix(whatsapp): corrigir nome do campo JSON de 'message' para 'mensagem' no gateway Python
+- fix(whatsapp): resolver erro 400 "Campo 'mensagem' é obrigatório" ao enviar notificações
+
+
 ## [3.0.8] - 2026-01-22
 
 ### Documentação

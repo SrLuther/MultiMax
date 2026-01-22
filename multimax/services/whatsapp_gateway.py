@@ -103,7 +103,7 @@ def send_whatsapp_message(message: str, actor: str | None = None, origin: str = 
     if not url:
         return False, "Endpoint do serviço WhatsApp não configurado."
 
-    payload = {"message": msg, "origin": origin}
+    payload = {"mensagem": msg, "origin": origin}
     headers = {"Content-Type": "application/json"}
     try:
         resp = requests.post(
