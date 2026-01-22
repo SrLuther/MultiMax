@@ -1,12 +1,13 @@
 # WhatsApp Service (Baileys)
 
-Serviço Node.js em modo daemon para integração contínua com WhatsApp Web via Baileys. Mantém conexão ativa, reconecta automaticamente e lista grupos na inicialização.
+Serviço Node.js em modo daemon para integração contínua com WhatsApp Web via Baileys. Mantém conexão ativa, reconecta automaticamente e expõe endpoint HTTP para envio de mensagens.
 
 **Integração exclusiva com WhatsApp** — Sem Telegram ou outros mensageiros.
 
 ## Requisitos
 - Node.js 18+ (com suporte a `crypto.webcrypto`)
 - npm
+- Grupo WhatsApp chamado **"Notify"** (case-insensitive)
 
 ## Instalação
 ```bash
@@ -31,8 +32,43 @@ Fluxo:
    ```
 3) O serviço **permanece ativo** aguardando eventos e rotinas futuras.
 4) Reconexão automática em caso de queda (exceto logout).
+5) **Servidor HTTP na porta 3001** pronto para receber requisições.
 
 Para **parar o serviço**: `Ctrl+C` (SIGINT) ou `kill <pid>` (SIGTERM).
+
+## Endpoint HTTP
+
+### POST `/notify`
+Envia mensagem imediatamente para o grupo **Notify**.
+
+**Request:**
+```json
+{
+  "mensagem": "Texto da mensagem"
+}
+```
+
+**Response 200:**
+```json
+{
+  "sucesso": true,
+  "mensagem": "Enviado para grupo Notify"
+}
+```
+
+**Response 500:**
+```json
+{
+  "erro": "Descrição do erro"
+}
+```
+
+**Exemplo com curl:**
+```bash
+curl -X POST http://localhost:3001/notify \
+  -H "Content-Type: application/json" \
+  -d '{"mensagem":"Olá do MultiMax!"}'
+```
 
 ## Persistência de sessão
 - A autenticação fica em `whatsapp-service/auth/` (ignorada pelo git).
@@ -58,13 +94,16 @@ npm start
 ```
 
 ## Próximos passos (fora do escopo atual)
-- Expor endpoint HTTP local para o Multimax consumir.
-- Implementar envio para grupos usando os IDs capturados.
+- Implementar autenticação no endpoint /notify
 - Adicionar tarefas periódicas/automatizadas (estrutura já preparada em `setupAutomatedTasks()`).
+- Suporte a múltiplos grupos via parâmetro
 
 ## Modo Daemon
 O serviço roda continuamente em modo daemon:
 - ✓ Reconexão automática
+- ✓ Endpoint HTTP POST /notify (porta 3001)
+- ✓ Envio imediato para grupo "Notify"
+- ✓ Logs estruturados (pino)
+- ✓ Ignora erros de histórico do WhatsApp
 - ✓ Estrutura para rotinas periódicas
 - ✓ Shutdown gracioso (SIGINT/SIGTERM)
-- ✓ Logs estruturados (pino)

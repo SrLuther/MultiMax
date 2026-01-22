@@ -1,6 +1,17 @@
 ## [Unreleased]
 
 
+## [3.0.4] - 2026-01-22
+
+### Novo
+
+- feat(whatsapp-service): adicionar endpoint HTTP POST `/notify` na porta 3001 para envio de mensagens
+- feat(whatsapp-service): envio imediato para grupo "Notify" via endpoint
+- feat(whatsapp-service): ignorar erros de histórico do WhatsApp automaticamente
+- feat(whatsapp-service): logs detalhados de conexão e envio de mensagens
+- deps(whatsapp-service): adicionar `express` para servidor HTTP
+
+
 ## [3.0.3] - 2026-01-22
 
 ### Melhoria

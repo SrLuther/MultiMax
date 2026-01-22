@@ -7,6 +7,7 @@ if (!global.crypto) {
 const path = require("path");
 const pino = require("pino");
 const qrcode = require("qrcode-terminal");
+const express = require("express");
 const {
   default: makeWASocket,
   DisconnectReason,
@@ -18,6 +19,7 @@ const logger = pino({ level: "info" }).child({ module: "whatsapp-service" });
 
 let globalSocket = null;
 let reconnectTimeout = null;
+let notifyGroupId = null;
 
 /**
  * Lista grupos disponíveis (chamado uma vez na conexão inicial)
@@ -34,11 +36,44 @@ async function listGroups(sock) {
       groups.forEach((g) => {
         const name = g.subject || "(sem nome)";
         logger.info(`  ${name} -> ${g.id}`);
+
+        // Identificar o grupo "Notify" para envio via endpoint
+        if (name.toLowerCase() === "notify") {
+          notifyGroupId = g.id;
+          logger.info(`✓ Grupo Notify identificado: ${g.id}`);
+        }
       });
     }
     logger.info("Serviço ativo. Aguardando eventos...");
   } catch (err) {
     logger.error({ err }, "Erro ao listar grupos");
+  }
+}
+
+/**
+ * Envia mensagem para o grupo Notify
+ */
+async function sendToNotifyGroup(mensagem) {
+  if (!globalSocket) {
+    throw new Error("WhatsApp não está conectado");
+  }
+
+  if (!notifyGroupId) {
+    throw new Error("Grupo Notify não encontrado");
+  }
+
+  try {
+    await globalSocket.sendMessage(notifyGroupId, { text: mensagem });
+    logger.info({ grupo: "Notify", tamanho: mensagem.length }, "Mensagem enviada com sucesso");
+    return true;
+  } catch (err) {
+    // Ignorar erros de histórico do WhatsApp
+    if (err.message && err.message.includes("history")) {
+      logger.warn({ err: err.message }, "Aviso de histórico ignorado");
+      return true;
+    }
+    logger.error({ err, grupo: "Notify" }, "Falha ao enviar mensagem");
+    throw err;
   }
 }
 
@@ -106,10 +141,41 @@ async function connectToWhatsApp() {
 }
 
 /**
+ * Configura servidor HTTP com endpoint /notify
+ */
+function setupHttpServer() {
+  const app = express();
+  app.use(express.json());
+
+  app.post("/notify", async (req, res) => {
+    const { mensagem } = req.body;
+
+    if (!mensagem) {
+      logger.warn("Requisição /notify sem mensagem");
+      return res.status(400).json({ erro: "Campo 'mensagem' é obrigatório" });
+    }
+
+    try {
+      await sendToNotifyGroup(mensagem);
+      res.status(200).json({ sucesso: true, mensagem: "Enviado para grupo Notify" });
+    } catch (err) {
+      logger.error({ err }, "Erro ao processar /notify");
+      res.status(500).json({ erro: err.message || "Falha ao enviar mensagem" });
+    }
+  });
+
+  app.listen(3001, () => {
+    logger.info("Servidor HTTP rodando na porta 3001");
+    logger.info("Endpoint disponível: POST http://localhost:3001/notify");
+  });
+}
+
+/**
  * Ponto de entrada principal
  */
 async function main() {
   logger.info("Iniciando serviço WhatsApp (modo daemon)...");
+  setupHttpServer();
   await connectToWhatsApp();
 }
 
