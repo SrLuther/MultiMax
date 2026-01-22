@@ -1,6 +1,14 @@
 ## [Unreleased]
 
 
+## [3.0.13] - 2026-01-22
+
+### Correção
+
+- fix(ui): melhorar contraste de placeholders em textarea no modo dark (#e2e8f0)
+- fix(ui): aumentar visibilidade do placeholder "Mensagem para o(s) grupo(s)"
+
+
 ## [3.0.12] - 2026-01-22
 
 ### Correção
