@@ -164,8 +164,8 @@ function setupHttpServer() {
     }
   });
 
-  app.listen(3001, () => {
-    logger.info("Servidor HTTP rodando na porta 3001");
+  app.listen(3001, "0.0.0.0", () => {
+    logger.info("Servidor HTTP rodando na porta 3001 e acessível externamente");
     logger.info("Endpoint disponível: POST http://localhost:3001/notify");
   });
 }

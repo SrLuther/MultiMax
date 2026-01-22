@@ -41,6 +41,8 @@ Para **parar o serviço**: `Ctrl+C` (SIGINT) ou `kill <pid>` (SIGTERM).
 ### POST `/notify`
 Envia mensagem imediatamente para o grupo **Notify**.
 
+**Servidor acessível em:** `http://0.0.0.0:3001` (qualquer host, porta 3001)
+
 **Request:**
 ```json
 {
@@ -68,6 +70,13 @@ Envia mensagem imediatamente para o grupo **Notify**.
 curl -X POST http://localhost:3001/notify \
   -H "Content-Type: application/json" \
   -d '{"mensagem":"Olá do MultiMax!"}'
+```
+
+**De outro host na mesma rede:**
+```bash
+curl -X POST http://<IP_DO_SERVIDOR>:3001/notify \
+  -H "Content-Type: application/json" \
+  -d '{"mensagem":"Mensagem da rede interna"}'
 ```
 
 ## Persistência de sessão

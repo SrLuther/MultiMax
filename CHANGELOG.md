@@ -1,6 +1,14 @@
 ## [Unreleased]
 
 
+## [3.0.5] - 2026-01-22
+
+### Melhoria
+
+- fix(whatsapp-service): servidor Express escuta em 0.0.0.0 para ser acessível externamente
+- docs(whatsapp-service): adicionar instruções de acesso remoto ao endpoint /notify
+
+
 ## [3.0.4] - 2026-01-22
 
 ### Novo
