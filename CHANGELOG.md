@@ -1,6 +1,26 @@
 ## [Unreleased]
 
 
+## [3.0.7] - 2026-01-22
+
+### Documentação
+
+- docs(infra): criar documentação completa de infraestrutura em `docs/infra-whatsapp.md`
+- docs(infra): diagramas de arquitetura e fluxo de comunicação Docker→Nginx→WhatsApp
+- docs(infra): explicar isolamento de rede Docker e necessidade do Nginx
+- docs(infra): configurações detalhadas de Nginx com SSL e proxy reverso
+- docs(infra): definição completa do serviço systemd
+- docs(infra): checklist de validação e comandos de teste
+- docs(infra): guia de troubleshooting e manutenção
+- feat(scripts): adicionar script de automação `scripts/setup-whatsapp-infra.sh`
+- feat(scripts): instalação automatizada de Node.js, Nginx e dependências
+- feat(scripts): criação automática de usuário dedicado e diretórios
+- feat(scripts): configuração completa do serviço systemd
+- feat(scripts): configuração automática do Nginx com proxy reverso
+- feat(scripts): validação pós-instalação com testes de conectividade
+- feat(scripts): guia interativo de próximos passos (autenticação, SSL, testes)
+
+
 ## [3.0.6] - 2026-01-22
 
 ### Correção
