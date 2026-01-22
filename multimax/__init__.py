@@ -125,6 +125,7 @@ def _register_blueprints(app: Flask) -> tuple[bool, None]:
     from .routes.home import bp as home_bp
     from .routes.receitas import bp as receitas_bp
     from .routes.usuarios import bp as usuarios_bp
+    from .routes.whatsapp_admin import bp as whatsapp_admin_bp
 
     notif_enabled = (os.getenv("NOTIFICACOES_ENABLED", "false") or "false").lower() == "true"
     notificacoes_bp: Blueprint | None = None
@@ -155,6 +156,7 @@ def _register_blueprints(app: Flask) -> tuple[bool, None]:
     app.register_blueprint(carnes_bp)
     app.register_blueprint(colaboradores_bp)
     app.register_blueprint(receitas_bp)
+    app.register_blueprint(whatsapp_admin_bp)
     app.register_blueprint(api_bp)
     app.register_blueprint(ciclos_bp)
     if notificacoes_bp:

@@ -17,4 +17,6 @@ pypdf>=6.0.0
 
 waitress>=2.1.2
 requests>=2.31.0
+chardet>=5.2.0
+cryptography>=42.0.0
 psutil>=5.9.8

@@ -1,6 +1,20 @@
 ## [Unreleased]
 
 
+## [3.0.0] - 2026-01-22
+
+### Novo
+
+- feat(whatsapp): gateway local Baileys com endpoint único (`/notify`) chamado pelo MultiMax, sem exposição de IDs de grupo
+- feat(whatsapp): painel DEV em `/dev/whatsapp` com envio manual imediato para todos os grupos e controle ON/OFF das automações
+- feat(whatsapp): estado de notificações automáticas persistido via `AppSetting` (fallback para env), envio manual sempre liberado
+- feat(whatsapp): menu lateral DEV com acesso rápido ao painel e UI premium separando bloco manual e bloco automático
+
+### Infra
+
+- deps: incluir `chardet` e `cryptography` no `requirements.txt` para instalação automática na VPS
+
+
 ## [2.7.21] - 2026-01-21
 
 ### Melhoria

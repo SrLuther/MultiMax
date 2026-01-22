@@ -4,10 +4,15 @@ from zoneinfo import ZoneInfo
 
 from .. import db
 from ..models import EventoDoDia, NotificacaoDiaria, NotificacaoPersonalizada
+from .whatsapp_gateway import get_auto_notifications_enabled
 
 
 def _enabled() -> bool:
-    return (os.getenv("NOTIFICACOES_ENABLED", "false") or "false").lower() == "true"
+    """Retorna se notificações automáticas estão liberadas."""
+    try:
+        return get_auto_notifications_enabled()
+    except Exception:
+        return (os.getenv("NOTIFICACOES_ENABLED", "false") or "false").strip().lower() == "true"
 
 
 def registrar_evento(
