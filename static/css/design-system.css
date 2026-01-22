@@ -1219,6 +1219,21 @@ body {
   font-weight: 400;
 }
 
+/* Form-floating: esconder placeholder quando label está visível */
+[data-theme="dark"] .form-floating > .form-control:focus::placeholder,
+[data-theme="dark"] .form-floating > .form-control:not(:placeholder-shown)::placeholder {
+  opacity: 0 !important;
+}
+
+/* Form-floating: placeholder visível apenas quando vazio e sem foco */
+[data-theme="dark"] .form-floating > textarea::placeholder {
+  color: transparent !important;
+}
+
+[data-theme="dark"] .form-floating > input::placeholder {
+  color: transparent !important;
+}
+
 /* Labels de formulário */
 [data-theme="dark"] label {
   color: #cbd5e1 !important;

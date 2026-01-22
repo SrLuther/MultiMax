@@ -1,6 +1,15 @@
 ## [Unreleased]
 
 
+## [3.0.14] - 2026-01-22
+
+### Correção
+
+- fix(ui): remover sobreposição de texto em form-floating no modo dark
+- fix(ui): esconder placeholder quando label do form-floating está visível
+- fix(ui): resolver problema de duplo texto em campos flutuantes do Bootstrap
+
+
 ## [3.0.13] - 2026-01-22
 
 ### Correção
