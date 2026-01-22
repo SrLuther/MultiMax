@@ -1,3 +1,9 @@
+// Injetar crypto.webcrypto como global para compatibilidade com Node 18
+if (!global.crypto) {
+  const { webcrypto } = require("crypto");
+  global.crypto = webcrypto;
+}
+
 const path = require("path");
 const pino = require("pino");
 const qrcode = require("qrcode-terminal");

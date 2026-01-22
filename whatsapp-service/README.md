@@ -2,8 +2,10 @@
 
 Serviço Node.js local para autenticar via WhatsApp Web, listar todos os grupos do número conectado e exibir `GROUP ID` (formato `@g.us`). Nenhum envio é feito nesta fase.
 
+**Integração exclusiva com WhatsApp** — Sem Telegram ou outros mensageiros.
+
 ## Requisitos
-- Node.js 18+
+- Node.js 18+ (com suporte a `crypto.webcrypto`)
 - npm
 
 ## Instalação
@@ -35,6 +37,19 @@ Fluxo:
 - Nenhum ID de grupo é armazenado; apenas impresso no console.
 - Sem credenciais hardcoded.
 - Pasta `auth/` está no `.gitignore` para evitar commit acidental.
+- Crypto injetado globalmente para compatibilidade com Node 18.
+
+## Resolução de problemas
+
+### "ReferenceError: crypto is not defined"
+Já está resolvido no código. O `crypto.webcrypto` é injetado automaticamente no topo do `index.js`.
+
+### Sessão expirada
+Delete a pasta `whatsapp-service/auth/` e rode novamente:
+```bash
+rm -rf auth/
+npm start
+```
 
 ## Próximos passos (fora do escopo atual)
 - Expor endpoint HTTP local para o Multimax consumir.

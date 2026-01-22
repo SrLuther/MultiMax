@@ -1,6 +1,14 @@
 ## [Unreleased]
 
 
+## [3.0.2] - 2026-01-22
+
+### Correção
+
+- fix(whatsapp-service): injetar `crypto.webcrypto` como global para compatibilidade com Node 18+
+- docs(whatsapp-service): adicionar troubleshooting e instruções de sessão expirada
+
+
 ## [3.0.1] - 2026-01-22
 
 ### Novo
