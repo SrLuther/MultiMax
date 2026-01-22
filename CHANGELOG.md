@@ -1,6 +1,18 @@
 ## [Unreleased]
 
 
+## [3.0.8] - 2026-01-22
+
+### Documentação
+
+- docs(scripts): criar README.md abrangente para diretório de scripts de automação
+- docs(scripts): instruções detalhadas de uso do setup-whatsapp-infra.sh
+- docs(scripts): pré-requisitos, comandos úteis e troubleshooting
+- docs(scripts): guia completo de configuração pós-instalação (SSL, WhatsApp, testes)
+- docs(scripts): explicar estrutura de diretórios criada pelo script
+- docs(scripts): comandos de validação e manutenção do serviço
+
+
 ## [3.0.7] - 2026-01-22
 
 ### Documentação
