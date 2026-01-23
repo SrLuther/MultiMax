@@ -1,0 +1,46 @@
+[Unit]
+Description=MultiMax Application Server
+Documentation=file:///opt/multimax/docs/DEPLOYMENT.md
+After=network.target postgresql.service
+
+# Reiniciar automático em caso de falha
+StartLimitBurst=5
+StartLimitInterval=60s
+
+[Service]
+Type=simple
+User=multimax
+Group=multimax
+WorkingDirectory=/opt/multimax
+
+# Ambiente
+EnvironmentFile=/opt/multimax/.env
+
+# Execução
+ExecStart=/opt/multimax/venv/bin/python /opt/multimax/app.py
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStop=/bin/kill -TERM $MAINPID
+
+# Restart policy
+Restart=on-failure
+RestartSec=10s
+
+# Timeout
+TimeoutStartSec=30s
+TimeoutStopSec=10s
+
+# Limites de recursos
+LimitNOFILE=65535
+LimitNPROC=512
+
+# Segurança
+PrivateTmp=yes
+NoNewPrivileges=yes
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=multimax
+
+[Install]
+WantedBy=multi-user.target

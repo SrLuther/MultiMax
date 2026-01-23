@@ -1,5 +1,27 @@
 ## [Unreleased]
 
+## [3.0.18] - 2026-01-23
+
+### Adicionado
+
+- feat(infra): criar estrutura completa de deploy /deploy com automação total para Ubuntu 24.04 LTS
+- feat(infra): implementar setup.sh idempotente com detecção de SO, instalação de deps e inicialização
+- feat(infra): criar scripts auxiliares: app-manager.sh (start/stop/status), db-manager.sh (backup/restore)
+- feat(infra): adicionar arquivo systemd multimax.service para gerenciar aplicação como serviço
+- feat(infra): centralizar configuração em deploy/config/.env.example com todas as variáveis necessárias
+- feat(infra): criar template Nginx em /etc/nginx/sites-available/multimax com reverse proxy, SSL, gzip
+- feat(docs): documentação completa de deploy (DEPLOYMENT.md) com pré-requisitos, instalação, operação
+- feat(docs): guia Nginx avançado (NGINX.md) com SSL, load balancing, rate limiting, caching
+- feat(docs): referência de banco de dados (DATABASE.md) com PostgreSQL, SQLite, migrations, backups
+- feat(docs): manual systemd (SYSTEMD.md) com customizações, health checks, troubleshooting
+- feat(deploy): README.md em /deploy com instruções rápidas e operações comuns
+
+## [3.0.17] - 2026-01-23
+
+### Correção
+
+- fix(scripts): corrigir sintaxe do PowerShell em scripts/maintenance-mode.ps1 (remover emojis, trocar switch por if/elseif, compatível com Windows PowerShell padrão)
+
 
 ## [3.0.16] - 2026-01-23
 

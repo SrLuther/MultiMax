@@ -1,0 +1,37 @@
+# Deploy directory gitignore
+# Este arquivo garante que arquivos sensíveis não sejam committed
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Backups
+backups/
+*.sql
+*.sql.gz
+*.backup
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Systemd
+*.service.bak
+*.service.original
