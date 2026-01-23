@@ -1242,3 +1242,31 @@ body {
 [data-theme="dark"] .form-label {
   color: #cbd5e1 !important;
 }
+/* Dashboard - Estoque Crítico e outros cards no modo dark */
+[data-theme="dark"] .low-stock-name {
+  color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .chart-title {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .section-title {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .metric-label {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .metric-value {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .shortcut-label {
+  color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .low-stock-item:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}

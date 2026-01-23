@@ -1,6 +1,17 @@
 ## [Unreleased]
 
 
+## [3.0.15] - 2026-01-22
+
+### Correção
+
+- fix(ui): melhorar visibilidade de textos no dashboard no modo dark
+- fix(ui): "Estoque Crítico" - nomes de produtos agora claramente visíveis (#e2e8f0)
+- fix(ui): títulos de cards e seções com cores claras no dark mode
+- fix(ui): valores de métricas e labels de atalhos legíveis no tema escuro
+- fix(ui): hover em itens de estoque com fundo semi-transparente
+
+
 ## [3.0.14] - 2026-01-22
 
 ### Correção
