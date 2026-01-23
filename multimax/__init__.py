@@ -1,4 +1,4 @@
-import os
+﻿import os
 import shutil
 import sys
 import threading
@@ -73,7 +73,7 @@ def _get_db_path() -> str:
 
 
 def _get_data_dir(db_dir: str) -> str:
-    """Retorna o diretório de dados para backups."""
+    """Retorna o diretÃ³rio de dados para backups."""
     data_dir: str | None = os.getenv("DATA_DIR") or os.getenv("MULTIMAX_DATA_DIR") or None
     if data_dir:
         return data_dir
@@ -85,7 +85,7 @@ def _get_data_dir(db_dir: str) -> str:
 
 
 def _configure_app_database(app: Flask, db_path: str, data_dir_str: str) -> None:
-    """Configura o banco de dados e diretórios no app."""
+    """Configura o banco de dados e diretÃ³rios no app."""
     uri_env = os.getenv("SQLALCHEMY_DATABASE_URI") or os.getenv("DATABASE_URL")
     uri_env = _normalize_db_uri(uri_env)
     selected_uri = uri_env if uri_env else ("sqlite:///" + db_path)
@@ -164,15 +164,15 @@ def _register_blueprints(app: Flask) -> tuple[bool, None]:
     if dbadmin_bp:
         app.register_blueprint(dbadmin_bp)
         rotas = [rule.rule for rule in app.url_map.iter_rules() if rule.endpoint.startswith("dbadmin.")]
-        app.logger.info(f"Blueprint dbadmin registrado com sucesso. Rotas disponíveis: {rotas}")
+        app.logger.info(f"Blueprint dbadmin registrado com sucesso. Rotas disponÃ­veis: {rotas}")
     else:
-        app.logger.warning("Blueprint dbadmin não foi registrado (dbadmin_bp é None)")
+        app.logger.warning("Blueprint dbadmin nÃ£o foi registrado (dbadmin_bp Ã© None)")
 
     return notif_enabled, None
 
 
 def _create_flask_app(base_dir: str) -> Flask:
-    """Cria e configura a instância do Flask."""
+    """Cria e configura a instÃ¢ncia do Flask."""
     return Flask(
         __name__,
         template_folder=os.path.join(base_dir, "templates"),
@@ -181,7 +181,7 @@ def _create_flask_app(base_dir: str) -> Flask:
 
 
 def _setup_directories(db_path: str) -> str:
-    """Configura e cria diretórios necessários."""
+    """Configura e cria diretÃ³rios necessÃ¡rios."""
     db_dir = os.path.dirname(db_path)
     if db_dir:
         os.makedirs(db_dir, exist_ok=True)
@@ -196,7 +196,7 @@ def _setup_login_manager(app: Flask) -> None:
 
     login_manager.init_app(app)
     setattr(login_manager, "login_view", "auth.login")
-    login_manager.login_message = "Por favor, faça login para acessar esta página."
+    login_manager.login_message = "Por favor, faÃ§a login para acessar esta pÃ¡gina."
     login_manager.login_message_category = "warning"
 
     @login_manager.user_loader
@@ -212,7 +212,7 @@ def _setup_login_manager(app: Flask) -> None:
 
 
 def _get_version_from_git() -> str:
-    """Obtém versão do git."""
+    """ObtÃ©m versÃ£o do git."""
     try:
         import subprocess
 
@@ -230,13 +230,13 @@ def _get_version_from_git() -> str:
 
 
 def _setup_extensions(app: Flask) -> None:
-    """Configura extensões da aplicação."""
+    """Configura extensÃµes da aplicaÃ§Ã£o."""
     db.init_app(app)
     _setup_login_manager(app)
 
 
 def _setup_context_processors(app: Flask) -> None:
-    """Configura context processors da aplicação."""
+    """Configura context processors da aplicaÃ§Ã£o."""
 
     @app.context_processor
     def _inject_version():
@@ -250,13 +250,13 @@ def _setup_context_processors(app: Flask) -> None:
                 s = AppSetting.query.filter_by(key="app_version").first()
                 ver = (s.value or "").strip() if s else ""
             except Exception as e:
-                app.logger.warning(f"Erro ao obter versão do banco: {e}")
+                app.logger.warning(f"Erro ao obter versÃ£o do banco: {e}")
                 ver = ""
         return {"git_version": ver or "dev"}
 
 
 def _create_format_date_filter(app: Flask) -> None:
-    """Cria e registra o filtro de formatação de data."""
+    """Cria e registra o filtro de formataÃ§Ã£o de data."""
 
     @app.template_filter("format_date_br")
     def format_date_br(date_str):
@@ -275,12 +275,12 @@ def _create_format_date_filter(app: Flask) -> None:
 
 
 def _setup_template_filters(app: Flask) -> None:
-    """Configura filtros de template da aplicação."""
+    """Configura filtros de template da aplicaÃ§Ã£o."""
     _create_format_date_filter(app)
 
 
 def _setup_main_routes(app: Flask) -> None:
-    """Configura rotas principais da aplicação."""
+    """Configura rotas principais da aplicaÃ§Ã£o."""
     from flask import jsonify, redirect, url_for
     from flask_login import current_user
 
@@ -305,12 +305,40 @@ def _setup_main_routes(app: Flask) -> None:
             return jsonify({"database": "error", "message": str(e)}), 500
 
 
+def _setup_maintenance_mode(app: Flask) -> None:
+    """Configura middleware para modo de manutenÃ§Ã£o."""
+    maintenance_mode = os.getenv("MAINTENANCE_MODE", "false").lower() == "true"
+
+    if not maintenance_mode:
+        return
+
+    # Se modo de manutenÃ§Ã£o estÃ¡ ativo, adiciona middleware que intercepta todas as requisiÃ§Ãµes
+    from flask import make_response, render_template
+
+    @app.before_request
+    def check_maintenance():
+        """Intercepta todas as requisiÃ§Ãµes e retorna pÃ¡gina de manutenÃ§Ã£o."""
+        response = make_response(render_template("maintenance.html"))
+        response.status_code = 503
+        response.headers["Retry-After"] = "3600"  # Sugere retry em 1 hora
+        return response
+
+
 def create_app():
-    """Função principal de criação da aplicação Flask."""
+    """FunÃ§Ã£o principal de criaÃ§Ã£o da aplicaÃ§Ã£o Flask."""
     base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(__file__)))
     _load_env(os.path.join(base_dir, ".env.txt"))
 
     app = _create_flask_app(base_dir)
+
+    # Verificar modo de manutenÃ§Ã£o ANTES de qualquer inicializaÃ§Ã£o
+    maintenance_mode = os.getenv("MAINTENANCE_MODE", "false").lower() == "true"
+
+    if maintenance_mode:
+        # Modo de manutenÃ§Ã£o: nÃ£o inicializar banco de dados, nÃ£o registrar blueprints
+        app.logger.warning("âš ï¸  MODO DE MANUTENÃ‡ÃƒO ATIVO - Sistema bloqueado")
+        _setup_maintenance_mode(app)
+        return app
 
     db_path = _get_db_path()
     data_dir_str = _setup_directories(db_path)

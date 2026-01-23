@@ -1,6 +1,24 @@
 ## [Unreleased]
 
 
+## [3.0.16] - 2026-01-23
+
+### Adicionado
+
+- feat(system): implementar modo de manutenção temporário com página institucional elegante
+- feat(system): adicionar middleware que bloqueia acesso completo ao sistema durante manutenção
+- feat(system): criar página maintenance.html com design minimalista premium e tipografia Inter
+- feat(system): adicionar scripts multiplataforma para gerenciar modo de manutenção (Linux/Windows)
+- feat(system): implementar controle via variável de ambiente MAINTENANCE_MODE
+- feat(system): retornar HTTP 503 com header Retry-After durante manutenção
+- feat(system): bloquear inicialização de banco de dados e rotas quando modo ativo
+- feat(docs): adicionar documentação completa do modo de manutenção
+- feat(docs): criar guia de implantação em produção com checklist
+- feat(docs): adicionar templates de comunicação para notificar usuários
+- feat(docs): criar exemplo de configuração Docker com modo de manutenção
+- feat(tests): adicionar testes automatizados para modo de manutenção
+
+
 ## [3.0.15] - 2026-01-22
 
 ### Correção

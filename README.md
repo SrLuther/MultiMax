@@ -14,6 +14,7 @@ Plataforma web em Flask para gestão operacional com foco em rastreabilidade, co
 - Requisitos
 - Instalação rápida
 - Configuração
+- Modo de Manutenção
 - Execução
 - Módulos
 - Testes
@@ -89,6 +90,47 @@ Variáveis essenciais:
 - `DEBUG` — desative em produção
 
 Para produção, use um WSGI (ex.: Waitress ou gunicorn) e configure o banco PostgreSQL.
+
+---
+
+## Modo de Manutenção
+
+O sistema possui um modo de manutenção que bloqueia completamente o acesso, exibindo uma página institucional elegante.
+
+### Ativar
+
+**Linux/macOS:**
+```bash
+./scripts/maintenance-mode.sh on
+```
+
+**Windows:**
+```powershell
+.\scripts\maintenance-mode.ps1 on
+```
+
+**Ou manualmente**, adicione ao arquivo `.env.txt` ou `.env`:
+```env
+MAINTENANCE_MODE=true
+```
+
+### Desativar
+
+**Linux/macOS:**
+```bash
+./scripts/maintenance-mode.sh off
+```
+
+**Windows:**
+```powershell
+.\scripts\maintenance-mode.ps1 off
+```
+
+### Documentação completa
+
+Para mais detalhes, consulte:
+- [documentacao/MODO_MANUTENCAO.md](documentacao/MODO_MANUTENCAO.md)
+- [documentacao/DOCKER_MAINTENANCE_MODE.md](documentacao/DOCKER_MAINTENANCE_MODE.md)
 
 ---
 

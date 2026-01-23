@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>MultiMax — Manutenção</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'IBM Plex Sans', system-ui, sans-serif;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            animation: fadeIn 0.8s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .container {
+            max-width: 680px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .brand {
+            font-size: 1.125rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            color: #495057;
+            margin-bottom: 4rem;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 500;
+            line-height: 1.3;
+            color: #212529;
+            margin-bottom: 2rem;
+            letter-spacing: -0.02em;
+        }
+
+        .description {
+            font-size: 1.125rem;
+            line-height: 1.8;
+            color: #495057;
+            margin-bottom: 3rem;
+            font-weight: 400;
+        }
+
+        .estimate {
+            font-size: 1rem;
+            line-height: 1.7;
+            color: #6c757d;
+            margin-bottom: 2.5rem;
+            padding: 0 1rem;
+        }
+
+        .note {
+            font-size: 0.9375rem;
+            color: #868e96;
+            margin-top: 3rem;
+            font-weight: 400;
+        }
+
+        .divider {
+            width: 60px;
+            height: 2px;
+            background: #dee2e6;
+            margin: 3rem auto;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.75rem;
+            }
+
+            .description {
+                font-size: 1rem;
+            }
+
+            .estimate {
+                font-size: 0.9375rem;
+            }
+
+            .brand {
+                font-size: 1rem;
+                margin-bottom: 3rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .description {
+                font-size: 0.9375rem;
+            }
+
+            .estimate {
+                font-size: 0.875rem;
+            }
+
+            .brand {
+                margin-bottom: 2.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="brand">MultiMax</div>
+
+        <h1>Sistema temporariamente em manutenção</h1>
+
+        <p class="description">
+            Estamos realizando ajustes técnicos para garantir estabilidade, segurança e continuidade do serviço. Durante esse período, o acesso ao sistema permanece indisponível.
+        </p>
+
+        <div class="divider"></div>
+
+        <p class="estimate">
+            A normalização do acesso ocorrerá conforme a conclusão dos procedimentos técnicos necessários, incluindo etapas que dependem de validações e serviços de terceiros.
+        </p>
+
+        <p class="note">
+            Agradecemos a compreensão.
+        </p>
+    </div>
+</body>
+</html>

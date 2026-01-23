@@ -6,9 +6,69 @@ Este diretório contém scripts auxiliares para automação de tarefas de infrae
 
 ## 📋 Índice
 
+- [maintenance-mode.sh / maintenance-mode.ps1](#maintenance-modesh--maintenance-modeps1)
 - [setup-whatsapp-infra.sh](#setup-whatsapp-infrash)
 - [Pré-requisitos Gerais](#pré-requisitos-gerais)
 - [Troubleshooting](#troubleshooting)
+
+---
+
+## 🔧 maintenance-mode.sh / maintenance-mode.ps1
+
+**Scripts para ativar/desativar o modo de manutenção do sistema MultiMax.**
+
+### 📖 Descrição
+
+Estes scripts permitem ativar ou desativar facilmente o modo de manutenção do sistema, que exibe uma página institucional elegante bloqueando completamente o acesso ao sistema durante manutenções.
+
+### 🎯 Características
+
+- ✅ Ativação/desativação com um comando
+- ✅ Verificação de status atual
+- ✅ Interface colorida e amigável
+- ✅ Compatível com Linux/macOS (bash) e Windows (PowerShell)
+- ✅ Manipulação segura do arquivo .env
+
+### 📦 Uso
+
+**Linux/macOS:**
+
+```bash
+# Ver status atual
+./scripts/maintenance-mode.sh status
+
+# Ativar modo de manutenção
+./scripts/maintenance-mode.sh on
+
+# Desativar modo de manutenção
+./scripts/maintenance-mode.sh off
+```
+
+**Windows (PowerShell):**
+
+```powershell
+# Ver status atual
+.\scripts\maintenance-mode.ps1 status
+
+# Ativar modo de manutenção
+.\scripts\maintenance-mode.ps1 on
+
+# Desativar modo de manutenção
+.\scripts\maintenance-mode.ps1 off
+```
+
+### 🎨 O que acontece quando ativado
+
+1. ✅ Sistema **não** carrega banco de dados
+2. ✅ Sistema **não** carrega rotas ou APIs
+3. ✅ Todas as requisições retornam HTTP 503
+4. ✅ Página institucional estática é exibida
+5. ✅ Design minimalista premium com tipografia Inter
+
+### 📝 Mais informações
+
+Para documentação completa sobre o modo de manutenção, consulte:
+[documentacao/MODO_MANUTENCAO.md](../documentacao/MODO_MANUTENCAO.md)
 
 ---
 
