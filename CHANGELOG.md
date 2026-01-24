@@ -17,6 +17,18 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Passos para restringir `/dev/whatsapp/enviar` a localhost via Nginx
 - Validação do fluxo com token (Authorization: Bearer) e testes via curl
 
+## [3.2.5] - 2026-01-24 23:50:00
+
+### Corrigido
+
+- fix(whatsapp): leitura do token em `.env.txt` agora usa `current_app.root_path`
+  - Garante que o arquivo em `/opt/multimax/.env.txt` seja reconhecido no servidor
+  - Mantido fallback para diretório pai por compatibilidade
+
+### Observações
+
+- Com o ajuste, chamadas com `Authorization: Bearer <token>` a `http://127.0.0.1:5000/dev/whatsapp/enviar` retornam JSON e não redirecionam
+
 ## [3.2.3] - 2026-01-24 23:20:00
 
 ### Mudado

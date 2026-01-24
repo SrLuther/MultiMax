@@ -24,17 +24,23 @@ def _load_service_token() -> str:
         return token_env
     # Fallback: tentar ler token de .env.txt sem reiniciar
     try:
-        base_dir = os.path.dirname(current_app.root_path)
-        env_path = os.path.join(base_dir, ".env.txt")
-        if os.path.exists(env_path):
-            with open(env_path, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line or line.startswith("#") or "=" not in line:
-                        continue
-                    k, v = line.split("=", 1)
-                    if k.strip() == "WHATSAPP_SERVICE_TOKEN":
-                        return v.strip()
+        # Priorizar root_path da aplicação
+        candidates = [current_app.root_path]
+        # Também considerar diretório pai por compatibilidade com alguns setups
+        parent_dir = os.path.dirname(current_app.root_path)
+        if parent_dir and parent_dir not in candidates:
+            candidates.append(parent_dir)
+        for base_dir in candidates:
+            env_path = os.path.join(base_dir, ".env.txt")
+            if os.path.exists(env_path):
+                with open(env_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line or line.startswith("#") or "=" not in line:
+                            continue
+                        k, v = line.split("=", 1)
+                        if k.strip() == "WHATSAPP_SERVICE_TOKEN":
+                            return v.strip()
     except Exception:
         pass
     return ""
