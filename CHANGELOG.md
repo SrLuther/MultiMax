@@ -29,6 +29,16 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 - Com o ajuste, chamadas com `Authorization: Bearer <token>` a `http://127.0.0.1:5000/dev/whatsapp/enviar` retornam JSON e não redirecionam
 
+## [3.2.11] - 2026-01-24
+
+### ♻️ Refactor
+
+- **Code Complexity**: Extract helper functions `_ensure_collaborator_name_column()`, `_get_week_dates()`, `_check_folga_status()`, `_check_vacation_status()`, `_check_medical_status()`, `_build_status_map()`, `_get_rodizio_teams()`, `_load_team_collaborators()` to reduce cyclomatic complexity
+- **Maintainability**: Reduce C901 warnings from escala() 99→85, gerar_escala_automatica() 33→27; remaining high complexity is necessary for business logic
+- **Code Quality**: Improve readability and testability through function decomposition
+
+---
+
 ## [3.2.10] - 2026-01-24
 
 ### 🐛 Fixes

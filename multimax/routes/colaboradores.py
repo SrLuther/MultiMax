@@ -14,11 +14,8 @@ from ..services.notificacao_service import registrar_evento
 bp = Blueprint("colaboradores", __name__)
 
 
-@bp.route("/escala", strict_slashes=False)
-@login_required
-def escala():
-    from datetime import timedelta
-
+def _ensure_collaborator_name_column():
+    """Garante que a coluna 'name' existe na tabela 'collaborator'."""
     try:
         from sqlalchemy import inspect, text
 
@@ -45,20 +42,108 @@ def escala():
             db.session.rollback()
         except Exception:
             pass
+
+
+def _get_week_dates(semana_param, today):
+    """Calcula as datas do início e fim da semana."""
+    from datetime import timedelta
+
+    try:
+        if semana_param:
+            semana_inicio = datetime.strptime(semana_param, "%Y-%m-%d").date()
+        else:
+            semana_inicio = today
+        semana_inicio = semana_inicio - timedelta(days=semana_inicio.weekday())
+    except Exception:
+        semana_inicio = today - timedelta(days=today.weekday())
+
+    semana_fim = semana_inicio + timedelta(days=6)
+    return semana_inicio, semana_fim
+
+
+def _check_folga_status(colab_id, dia_data):
+    """Verifica se há folga registrada para a data."""
+    from datetime import timedelta
+
+    try:
+        folgas = (
+            TimeOffRecord.query.filter(
+                TimeOffRecord.collaborator_id == colab_id,
+                TimeOffRecord.record_type == "folga_usada",
+                TimeOffRecord.date <= dia_data,
+            )
+            .order_by(TimeOffRecord.date.desc())
+            .limit(5)
+            .all()
+        )
+        for folga in folgas:
+            days = max(1, int(folga.days or 1))
+            end_date = folga.date + timedelta(days=days - 1)
+            if folga.date <= dia_data <= end_date:
+                return "Folga"
+    except Exception:
+        pass
+    return None
+
+
+def _check_vacation_status(colab_id, dia_data):
+    """Verifica se há férias registradas para a data."""
+    try:
+        vac = VacationModel.query.filter(
+            VacationModel.collaborator_id == colab_id,
+            VacationModel.data_inicio <= dia_data,
+            VacationModel.data_fim >= dia_data,
+        ).first()
+        return "Férias" if vac else None
+    except Exception:
+        return None
+
+
+def _check_medical_status(colab_id, dia_data):
+    """Verifica se há atestado médico registrado para a data."""
+    try:
+        mc = MedicalCertificate.query.filter(
+            MedicalCertificate.collaborator_id == colab_id,
+            MedicalCertificate.data_inicio <= dia_data,
+            MedicalCertificate.data_fim >= dia_data,
+        ).first()
+        return "Atestado" if mc else None
+    except Exception:
+        return None
+
+
+def _build_status_map(cols, dias_semana):
+    """Constrói mapa de status (Folga, Férias, Atestado) por colaborador/data."""
+    status_map = {}
+
+    for colab in cols:
+        for dia in dias_semana:
+            key = (colab.id, dia["data"].isoformat())
+
+            # Verificar com prioridade: Atestado > Férias > Folga
+            status = _check_medical_status(colab.id, dia["data"])
+            if not status:
+                status = _check_vacation_status(colab.id, dia["data"])
+            if not status:
+                status = _check_folga_status(colab.id, dia["data"])
+
+            if status:
+                status_map[key] = status
+
+    return status_map
+
+
+@bp.route("/escala", strict_slashes=False)
+@login_required
+def escala():
+    from datetime import timedelta
+
+    _ensure_collaborator_name_column()
     cols = CollaboratorModel.query.filter_by(active=True).order_by(CollaboratorModel.name.asc()).all()
     today = date.today()
 
     semana_param = request.args.get("semana", "")
-    if semana_param:
-        try:
-            semana_inicio = datetime.strptime(semana_param, "%Y-%m-%d").date()
-            semana_inicio = semana_inicio - timedelta(days=semana_inicio.weekday())
-        except Exception:
-            semana_inicio = today - timedelta(days=today.weekday())
-    else:
-        semana_inicio = today - timedelta(days=today.weekday())
-
-    semana_fim = semana_inicio + timedelta(days=6)
+    semana_inicio, semana_fim = _get_week_dates(semana_param, today)
     semana_anterior = (semana_inicio - timedelta(days=7)).strftime("%Y-%m-%d")
     semana_proxima = (semana_inicio + timedelta(days=7)).strftime("%Y-%m-%d")
 
@@ -686,6 +771,42 @@ def equipe_configurar():
 
 @bp.route("/escala/gerar-automatica", methods=["POST"], strict_slashes=False)
 @login_required
+def _get_rodizio_teams(semana_inicio):
+    """Retorna equipes de abertura e fechamento baseado no rodízio."""
+    ref_monday_setting = AppSetting.query.filter_by(key="rodizio_ref_monday").first()
+    ref_open_setting = AppSetting.query.filter_by(key="rodizio_open_team_ref").first()
+
+    ref_monday = None
+    if ref_monday_setting and ref_monday_setting.value:
+        try:
+            ref_monday = datetime.strptime(ref_monday_setting.value.strip(), "%Y-%m-%d").date()
+        except Exception:
+            pass
+    if not ref_monday:
+        ref_monday = semana_inicio
+
+    open_ref = "1"
+    if ref_open_setting and ref_open_setting.value in ("1", "2"):
+        open_ref = ref_open_setting.value
+
+    weeks_diff = (semana_inicio - ref_monday).days // 7
+    open_team = "2" if (weeks_diff % 2 == 1 and open_ref == "1") else ("1" if weeks_diff % 2 == 1 else open_ref)
+    close_team = "2" if open_team == "1" else "1"
+
+    return open_team, close_team
+
+
+def _load_team_collaborators(team_id):
+    """Carrega colaboradores de uma equipe."""
+    return (
+        CollaboratorModel.query.filter_by(active=True, regular_team=team_id)
+        .order_by(CollaboratorModel.team_position.asc())
+        .all()
+    )
+
+
+@bp.route("/escala/gerar_automatica", methods=["POST"], strict_slashes=False)
+@login_required
 def gerar_escala_automatica():
     if current_user.nivel not in ("operador", "admin", "DEV"):
         flash("Voce nao tem permissao para gerar escalas.", "danger")
@@ -707,47 +828,14 @@ def gerar_escala_automatica():
         flash("Data invalida.", "warning")
         return redirect(url_for("colaboradores.escala"))
 
-    ref_monday_setting = AppSetting.query.filter_by(key="rodizio_ref_monday").first()
-    ref_open_setting = AppSetting.query.filter_by(key="rodizio_open_team_ref").first()
-
-    ref_monday = None
-    if ref_monday_setting and ref_monday_setting.value:
-        try:
-            ref_monday = datetime.strptime(ref_monday_setting.value.strip(), "%Y-%m-%d").date()
-        except Exception:
-            pass
-    if not ref_monday:
-        ref_monday = semana_inicio
-
-    open_ref = "1"
-    if ref_open_setting and ref_open_setting.value in ("1", "2"):
-        open_ref = ref_open_setting.value
-
-    weeks_diff = (semana_inicio - ref_monday).days // 7
-    if weeks_diff % 2 == 1:
-        open_team = "2" if open_ref == "1" else "1"
-    else:
-        open_team = open_ref
-    close_team = "2" if open_team == "1" else "1"
-
-    equipe_abertura = (
-        CollaboratorModel.query.filter_by(active=True, regular_team=open_team)
-        .order_by(CollaboratorModel.team_position.asc())
-        .all()
-    )
-    equipe_fechamento = (
-        CollaboratorModel.query.filter_by(active=True, regular_team=close_team)
-        .order_by(CollaboratorModel.team_position.asc())
-        .all()
-    )
+    open_team, close_team = _get_rodizio_teams(semana_inicio)
+    equipe_abertura = _load_team_collaborators(open_team)
+    equipe_fechamento = _load_team_collaborators(close_team)
 
     if len(equipe_abertura) < 3 or len(equipe_fechamento) < 3:
         flash(
-            (
-                f"Equipe de Abertura incompleta: {len(equipe_abertura)}/3 pessoas necessárias. "
-                f"Equipe de Fechamento (Tarde) incompleta: {len(equipe_fechamento)}/3 pessoas necessárias. "
-                "Configure as equipes primeiro."
-            ),
+            f"Equipe incompleta. Abertura: {len(equipe_abertura)}/3, "
+            f"Fechamento: {len(equipe_fechamento)}/3. Configure as equipes.",
             "warning",
         )
         return redirect(url_for("colaboradores.escala", semana=semana_inicio.strftime("%Y-%m-%d")))
