@@ -17,6 +17,7 @@ services:
       - DEBUG=false
       - GIT_REPO_DIR=/opt/multimax
       - WHATSAPP_NOTIFY_URL=http://whatsapp-service:3001/notify
+      - WHATSAPP_SERVICE_TOKEN=${WHATSAPP_SERVICE_TOKEN}
     restart: unless-stopped
     depends_on:
       - whatsapp-service

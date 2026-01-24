@@ -29,6 +29,16 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 - Com o ajuste, chamadas com `Authorization: Bearer <token>` a `http://127.0.0.1:5000/dev/whatsapp/enviar` retornam JSON e não redirecionam
 
+## [3.2.6] - 2026-01-24 23:58:00
+
+### Adicionado
+
+- config(docker): injeção persistente de `WHATSAPP_SERVICE_TOKEN` no serviço `multimax` via `docker-compose.yml`
+
+### Observações
+
+- Defina `WHATSAPP_SERVICE_TOKEN` no ambiente antes de `docker-compose up -d` para manter o token após reinícios
+
 ## [3.2.3] - 2026-01-24 23:20:00
 
 ### Mudado
