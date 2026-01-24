@@ -4,6 +4,23 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 > **Nota**: A partir da versão 3.2.0, todas as datas de versão incluem a hora exata local (formato: `YYYY-MM-DD HH:MM:SS`) para rastreabilidade precisa dos releases.
 
+## [3.2.3] - 2026-01-24 23:20:00
+
+### Mudado
+
+- refactor(whatsapp): reduzir complexidade da função `enviar` com helpers
+  - Novas funções: `_load_service_token` e `_is_local_service_call`
+  - Comportamento preservado (serviço com token + localhost, painel DEV com login)
+- style(imports): padronização automática via isort
+
+### Segurança
+
+- Sem alterações de escopo: chamadas de serviço continuam restritas a `localhost` e token válido
+
+### Observações
+
+- Mantidas respostas JSON para chamadas de serviço e fluxo web com flash/redirect
+
 ## [3.2.2] - 2026-01-24 22:45:00
 
 ### Adicionado
@@ -17,8 +34,11 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Token somente via variável de ambiente `WHATSAPP_SERVICE_TOKEN` (definida na VPS)
 - Sem token válido, fluxo segue exigindo login + CSRF e retorna 302 para `/login`
 
+### Mudado
 
-## [Unreleased]
+- feat(whatsapp): respostas de serviço agora retornam JSON (200 em sucesso)
+  - Fallback para leitura de `WHATSAPP_SERVICE_TOKEN` a partir de `.env.txt` sem reiniciar
+  - Fluxo web permanece com redirect e flash messages
 
 ## [3.2.1] - 2026-01-24 20:15:00
 
