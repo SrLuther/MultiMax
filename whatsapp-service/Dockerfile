@@ -1,5 +1,5 @@
-# Use Node.js 18+ como base
-FROM node:18-alpine
+# Use Node.js 20+ como base (requerido pelo Baileys)
+FROM node:20-alpine
 
 # Definir diretório de trabalho
 WORKDIR /app

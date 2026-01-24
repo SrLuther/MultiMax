@@ -29,6 +29,15 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 - Com o ajuste, chamadas com `Authorization: Bearer <token>` a `http://127.0.0.1:5000/dev/whatsapp/enviar` retornam JSON e não redirecionam
 
+## [3.2.8] - 2026-01-24
+
+### 🐛 Fixes
+
+- **WhatsApp Service Dockerfile**: Upgrade base image to Node.js 20-alpine (required by @whiskeysockets/baileys 6.7.21)
+- **Build Error**: Fix npm install failure due to unsupported Node 18 engine
+
+---
+
 ## [3.2.7] - 2026-01-24
 
 ### 🔒 Security
