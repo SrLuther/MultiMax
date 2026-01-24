@@ -1,5 +1,23 @@
 ## [Unreleased]
 
+## [3.1.4] - 2026-01-24
+
+### Adicionado
+
+- feat: script de deploy automático aprimorado (deploy-vps-improved.sh)
+  - Tratamento robusto de erros com set -e
+  - Verificação em cada etapa do processo
+  - Feedback colorido e informativo
+  - Delay de 3 segundos entre docker-compose down e remoção de containers
+  - Limpeza de imagens dangling
+  - Verificação final de sucesso (15 segundos de espera)
+- docs: documentação completa do script de deploy (DEPLOY_SCRIPT_README.md)
+  - Guia de uso com 3 opções diferentes
+  - Tabela das 12 etapas do deploy
+  - Comparação com script original
+  - Troubleshooting e agendamento com cron
+  - Avisos de segurança
+
 ## [3.1.3] - 2026-01-24
 
 ### Corrigido
