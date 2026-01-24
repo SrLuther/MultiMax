@@ -4,6 +4,20 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 > **Nota**: A partir da versão 3.2.0, todas as datas de versão incluem a hora exata local (formato: `YYYY-MM-DD HH:MM:SS`) para rastreabilidade precisa dos releases.
 
+## [3.2.2] - 2026-01-24 22:45:00
+
+### Adicionado
+
+- feat(whatsapp): suporte a token de serviço no `POST /dev/whatsapp/enviar`
+  - Autoriza chamadas locais com `Authorization: Bearer <token>` sem login/CSRF
+  - Restringe a `localhost` (127.0.0.1) e mantém painel web (DEV) intacto
+
+### Segurança
+
+- Token somente via variável de ambiente `WHATSAPP_SERVICE_TOKEN` (definida na VPS)
+- Sem token válido, fluxo segue exigindo login + CSRF e retorna 302 para `/login`
+
+
 ## [Unreleased]
 
 ## [3.2.1] - 2026-01-24 20:15:00

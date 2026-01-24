@@ -1,3 +1,5 @@
+import os
+
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
@@ -31,15 +33,33 @@ def painel():
 
 
 @bp.route("/enviar", methods=["POST"], strict_slashes=False)
-@login_required
 def enviar():
-    _require_dev()
+    # Caminho de serviço: Authorization: Bearer <TOKEN> + IP local
+    auth_header = request.headers.get("Authorization", "").strip()
+    token_env = (os.getenv("WHATSAPP_SERVICE_TOKEN") or "").strip()
+    bearer_ok = False
+    if auth_header.lower().startswith("bearer ") and token_env:
+        provided = auth_header.split(" ", 1)[1].strip()
+        if provided and provided == token_env:
+            # Reforço: só aceitar chamadas locais
+            remote_ip = (request.remote_addr or "").strip()
+            if remote_ip in ("127.0.0.1", "::1"):
+                bearer_ok = True
+
+    if not bearer_ok:
+        # Fluxo web tradicional: exigir login DEV
+        if not current_user.is_authenticated:
+            return redirect(url_for("auth.login"))
+        _require_dev()
+
     message = (request.form.get("message") or "").strip()
     if not message:
         flash("Digite uma mensagem para enviar.", "warning")
         return redirect(url_for("whatsapp_admin.painel"))
 
-    ok, error = send_whatsapp_message(message, actor=current_user.username, origin="manual-dev")
+    actor = current_user.username if current_user.is_authenticated else "service-token"
+    origin = "manual-dev" if current_user.is_authenticated else "service"
+    ok, error = send_whatsapp_message(message, actor=actor, origin=origin)
     if ok:
         flash("Mensagem enviada ao serviço de WhatsApp.", "success")
     else:
