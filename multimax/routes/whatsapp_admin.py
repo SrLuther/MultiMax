@@ -47,16 +47,15 @@ def _load_service_token() -> str:
 
 
 def _is_local_service_call(auth_header: str, remote_ip: str, token: str) -> bool:
+    """Valida chamada de serviço via token Bearer. Token é suficiente para autorizar."""
     if not auth_header or not token:
         return False
     header = auth_header.strip()
     if not header.lower().startswith("bearer "):
         return False
     provided = header.split(" ", 1)[1].strip()
-    if not provided or provided != token:
-        return False
-    ip = (remote_ip or "").strip()
-    return ip in ("127.0.0.1", "::1")
+    # Se token bater, autorizar (token já é a camada de segurança)
+    return provided == token
 
 
 @bp.route("/", methods=["GET"], strict_slashes=False)

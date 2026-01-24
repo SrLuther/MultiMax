@@ -29,6 +29,15 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 - Com o ajuste, chamadas com `Authorization: Bearer <token>` a `http://127.0.0.1:5000/dev/whatsapp/enviar` retornam JSON e não redirecionam
 
+## [3.2.9] - 2026-01-24
+
+### 🔒 Security
+
+- **Token Auth**: Remover restrição de IP para validação de token Bearer; token é suficiente para autorizar chamadas de serviço
+- **Simplificação**: Token válido autoriza independente da origem do request
+
+---
+
 ## [3.2.8] - 2026-01-24
 
 ### 🐛 Fixes
