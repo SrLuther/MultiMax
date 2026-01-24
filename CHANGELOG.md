@@ -29,6 +29,15 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 - Com o ajuste, chamadas com `Authorization: Bearer <token>` a `http://127.0.0.1:5000/dev/whatsapp/enviar` retornam JSON e não redirecionam
 
+## [3.2.7] - 2026-01-24
+
+### 🔒 Security
+
+- **Token Hardcoded**: Define `WHATSAPP_SERVICE_TOKEN` diretamente no docker-compose para garantir disponibilidade no container
+- **Persistência**: Remover dependência de variável de ambiente do host, token agora embarcado no compose
+
+---
+
 ## [3.2.6] - 2026-01-24 23:58:00
 
 ### Adicionado
