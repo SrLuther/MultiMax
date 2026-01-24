@@ -6,6 +6,31 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ## [Unreleased]
 
+### Adicionado
+
+- feat(whatsapp): containerização do serviço WhatsApp com suporte Docker Compose
+  - Novo Dockerfile para whatsapp-service (Node.js 18 Alpine)
+  - Integração com docker-compose.yml para orquestração automática
+  - Configuração de health checks para /health endpoint
+  - Volume persistente para dados de autenticação (whatsapp-auth)
+  - Dependência automática (multimax aguarda whatsapp-service)
+
+- feat(whatsapp): endpoint /health para monitoramento do serviço
+  - Resposta JSON com status e identificação do serviço
+  - Health check automático no docker-compose.yml
+  - Permite verificação rápida da disponibilidade
+
+- feat(whatsapp): suporte ao campo "origin" no endpoint /notify
+  - Rastreamento da origem das mensagens (manual-dev, automatico, etc.)
+  - Logging melhorado com identificação da origem
+
+### Corrigido
+
+- fix(whatsapp): resolve erro 404 ao enviar mensagens
+  - Problema: serviço WhatsApp não estava containerizado no docker-compose
+  - Solução: adicionado serviço whatsapp-service com porta 3001
+  - Resultado: endpoint /notify agora alcançável via proxy nginx
+
 ## [3.2.0] - 2026-01-24 19:48:00
 
 ### Adicionado
