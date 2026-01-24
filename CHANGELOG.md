@@ -1,5 +1,32 @@
 ## [Unreleased]
 
+## [3.1.1] - 2026-01-23
+
+### Adicionado
+
+- feat(ciclos): sistema completo de saldo de horas mensais
+  - Modelo CicloSaldo para armazenar saldos por colaborador/mês
+  - Serviço ciclo_saldo_service.py com funções de cálculo e armazenamento
+  - Integração com fechamento de ciclo mensal
+  - Exibição visual de saldos no modal de "Registrar Pagamento"
+  - Funções de conversão visual (horas para "X dias e Y horas")
+  - Documentação completa: SISTEMA_SALDO_HORAS.md
+  - Migration para criar tabela ciclo_saldo
+
+### Melhorias
+
+- refactor(ciclos): resumo_fechamento JSON agora inclui saldos_mes_proximo
+- ui(ciclos): novo card de saldos no modal de fechamento com formatação visual
+- perf(ciclos): cálculos otimizados com rest operator (%)
+
+### Comportamento
+
+- ✅ Histórico permanece em HORAS REAIS (sem conversão)
+- ✅ Conversão em "X dias e Y horas" é apenas VISUAL
+- ✅ Saldo pode ser positivo (extras) ou negativo (dívida)
+- ✅ Carryover automático de horas restantes para próximo mês
+- ✅ Saldo único por colaborador/mês (UNIQUE constraint)
+
 ## [3.1.0] - 2026-01-23
 
 ### Adicionado

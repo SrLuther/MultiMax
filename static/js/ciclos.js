@@ -452,6 +452,30 @@
                 document.getElementById('fechamento_total_dias').textContent = data.totais.total_dias + ' dias';
                 document.getElementById('fechamento_total_horas_restantes').textContent = data.totais.total_horas_restantes + 'h';
                 document.getElementById('fechamento_total_valor').textContent = 'R$ ' + data.totais.total_valor.toFixed(2);
+
+                // ✅ NOVO: Preencher informações de saldos
+                if (data.saldos_mes_proximo && data.saldos_mes_proximo.saldos && data.saldos_mes_proximo.saldos.length > 0) {
+                    document.getElementById('saldos_mes_ano').textContent = data.saldos_mes_proximo.mes_ano;
+                    const saldosTbody = document.getElementById('saldos_tbody');
+                    saldosTbody.innerHTML = '';
+
+                    data.saldos_mes_proximo.saldos.forEach(saldo => {
+                        const row = saldosTbody.insertRow();
+                        row.innerHTML = `
+                            <td style="width: 50%;">${saldo.nome}</td>
+                            <td style="text-align: right; font-weight: 500;">
+                                <span style="color: ${saldo.horas_restantes > 0 ? '#10b981' : '#6b7280'};">
+                                    ${saldo.horas_restantes > 0 ? '+' : ''}${saldo.horas_restantes}h
+                                </span>
+                                <span style="color: #9ca3af; font-weight: normal; margin-left: 0.5rem;">(${saldo.saldo_visual})</span>
+                            </td>
+                        `;
+                    });
+
+                    document.getElementById('saldos_info_container').style.display = 'block';
+                } else {
+                    document.getElementById('saldos_info_container').style.display = 'none';
+                }
             })
             .catch(error => {
                 console.error('Erro:', error);

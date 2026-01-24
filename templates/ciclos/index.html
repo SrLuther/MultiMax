@@ -874,6 +874,21 @@
                             </tfoot>
                         </table>
                     </div>
+
+                    <!-- ✅ NOVO: Resumo de Saldos que serão Registrados -->
+                    <div class="alert alert-info mt-3" id="saldos_info_container" style="display: none;">
+                        <h6><i class="bi bi-info-circle"></i> Saldos de Horas para o Próximo Mês (<span id="saldos_mes_ano">--</span>):</h6>
+                        <div class="table-responsive" style="margin-top: 0.75rem;">
+                            <table class="table table-sm table-borderless" style="margin: 0;">
+                                <tbody id="saldos_tbody">
+                                </tbody>
+                            </table>
+                        </div>
+                        <small class="d-block mt-2" style="color: #0c63e4; font-weight: 500;">
+                            <i class="bi bi-check-circle"></i> Estes saldos serão aplicados automaticamente no próximo ciclo para compensar horas faltantes ou adicionar horas extras.
+                        </small>
+                    </div>
+
                     <div class="mb-3 mt-3">
                         <label class="form-label">Observações</label>
                         <textarea class="form-control" name="observacoes" id="fechamento_observacoes" rows="3"></textarea>

@@ -25,6 +25,7 @@ from ..models import (
     SystemLog,
     Vacation,
 )
+from ..services.ciclo_saldo_service import _format_mes_ano, fechar_ciclo_mensal, resumo_em_dias_e_horas
 
 try:
     from weasyprint import HTML
@@ -1156,7 +1157,7 @@ def _arquivar_ciclos_semanais(proximo_ciclo_id, anchor_before_close):
         pass
 
 
-def _registrar_fechamento_e_log(proximo_ciclo_id, totais_gerais):
+def _registrar_fechamento_e_log(proximo_ciclo_id, totais_gerais, colaboradores_totais=None):
     fechamento = CicloFechamento()
     fechamento.ciclo_id = proximo_ciclo_id
     fechamento.total_horas = Decimal(str(round(float(totais_gerais["horas"]), 1)))
@@ -1175,6 +1176,24 @@ def _registrar_fechamento_e_log(proximo_ciclo_id, totais_gerais):
     )
     log.usuario = current_user.name or current_user.username
     db.session.add(log)
+
+    # ✅ Integração com sistema de saldo de horas
+    if colaboradores_totais:
+        mes_ano_atual = _format_mes_ano()
+        usuario = current_user.name or current_user.username
+        saldo_result = fechar_ciclo_mensal(colaboradores_totais, mes_ano_atual, usuario)
+
+        # Registrar log adicional com resumo de saldos
+        if saldo_result.get("resumo_saldos"):
+            saldos_str = "; ".join(
+                [f"{dados['nome']}: {dados['saldo_visual']}" for dados in saldo_result["resumo_saldos"].values()]
+            )
+            log_saldo = SystemLog()
+            log_saldo.origem = "Ciclos"
+            log_saldo.evento = "saldo_horas_registrado"
+            log_saldo.detalhes = f"Saldos de horas registrados para o mês {mes_ano_atual}: {saldos_str}"
+            log_saldo.usuario = usuario
+            db.session.add(log_saldo)
 
 
 @bp.route("/lançar", methods=["POST"], strict_slashes=False)
@@ -1759,6 +1778,9 @@ def resumo_fechamento():
             # Os valores já estão corretos em balance, não sobrescreve mais
 
             if total_horas > 0:  # Só incluir se tiver horas
+                # ✅ Calcular saldo visual (apenas para exibição)
+                saldo_visual = resumo_em_dias_e_horas(horas_restantes)
+
                 colaboradores_resumo.append(
                     {
                         "collaborator_id": colab.id,
@@ -1766,6 +1788,7 @@ def resumo_fechamento():
                         "total_horas": round(total_horas, 1),
                         "dias_completos": dias_completos,
                         "horas_restantes": horas_restantes,
+                        "saldo_visual": saldo_visual,  # ✅ Novo campo para exibição
                         "valor": round(valor_total, 2),
                         "registros_count": len(registros),
                     }
@@ -1785,6 +1808,18 @@ def resumo_fechamento():
                     f"{resumo['nome']}: {resumo['total_horas']}h (< 8h) - não entrará na conversão automática"
                 )
 
+        # ✅ Preparar informações de saldo para exibição
+        mes_ano_proximo = _format_mes_ano()
+        saldos_info = []
+        for resumo in colaboradores_resumo:
+            saldos_info.append(
+                {
+                    "nome": resumo["nome"],
+                    "horas_restantes": resumo["horas_restantes"],
+                    "saldo_visual": resumo["saldo_visual"],
+                }
+            )
+
         return jsonify(
             {
                 "ok": True,
@@ -1797,6 +1832,10 @@ def resumo_fechamento():
                     "valor_dia": valor_dia,
                 },
                 "avisos": avisos,
+                "saldos_mes_proximo": {  # ✅ Novo: saldos que serão registrados
+                    "mes_ano": mes_ano_proximo,
+                    "saldos": saldos_info,
+                },
             }
         )
     except Exception as e:
@@ -1830,7 +1869,7 @@ def confirmar_fechamento():
         _criar_carryover_e_fechar_registros(colaboradores_totais, next_month_start, proximo_ciclo_id)
         _fechar_folgas_e_ocorrencias(proximo_ciclo_id)
         _arquivar_ciclos_semanais(proximo_ciclo_id, anchor_before_close)
-        _registrar_fechamento_e_log(proximo_ciclo_id, totais_gerais)
+        _registrar_fechamento_e_log(proximo_ciclo_id, totais_gerais, colaboradores_totais)
 
         db.session.commit()
 

@@ -600,6 +600,31 @@ class CicloFechamento(db.Model):
         return f"<CicloFechamento {self.ciclo_id} - {self.data_fechamento}>"
 
 
+class CicloSaldo(db.Model):
+    """
+    Tabela para armazenar saldo de horas para cada colaborador ao fim de cada mês.
+    O saldo é a diferença entre horas totais e dias completos (saldo = total_horas % 8).
+    Este saldo é carregado no próximo mês para compensar.
+    """
+
+    __tablename__ = "ciclo_saldo"
+    id = db.Column(db.Integer, primary_key=True)
+    collaborator_id = db.Column(db.Integer, db.ForeignKey("collaborator.id"), nullable=False, index=True)
+    mes_ano = db.Column(db.String(7), nullable=False, index=True)  # Formato: "01-2026", "02-2026", etc
+    saldo = db.Column(db.Numeric(5, 1), nullable=False, default=0.0)  # Saldo em horas (pode ser positivo ou negativo)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    created_by = db.Column(db.String(100), nullable=True)
+    updated_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    updated_by = db.Column(db.String(100), nullable=True)
+
+    collaborator = db.relationship("Collaborator", backref="ciclos_saldos", lazy=True)
+
+    __table_args__ = (db.UniqueConstraint("collaborator_id", "mes_ano", name="uq_ciclo_saldo_collab_mesano"),)
+
+    def __repr__(self):
+        return f"<CicloSaldo {self.collaborator_id} - {self.mes_ano} - {self.saldo}h>"
+
+
 class UserLogin(db.Model):
     __tablename__ = "user_login"
     id = db.Column(db.Integer, primary_key=True)
