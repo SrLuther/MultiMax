@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+## [3.1.2] - 2026-01-24
+
+### Corrigido
+
+- fix: correção de erros de linting e type hints (flake8, black, isort)
+  - Adicionado Optional para type hints com argumentos padrão None em ciclo_saldo_service.py
+  - Formatação PEP8 aplicada ao models.py (linhas longas, espaçamento)
+  - Todos os erros de flake8 e isort resolvidos
+
 ## [3.1.1] - 2026-01-23
 
 ### Adicionado

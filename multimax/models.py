@@ -43,7 +43,9 @@ class Produto(db.Model):
 class Historico(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     data = db.Column(
-        db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")), index=True
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+        index=True,
     )
     product_id = db.Column(db.Integer, db.ForeignKey("produto.id"), index=True)
     product_name = db.Column(db.String(100))
@@ -72,7 +74,10 @@ class CleaningTask(db.Model):
 class CleaningHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     task_id = db.Column(db.Integer, db.ForeignKey("cleaning_task.id"), nullable=True)
-    data_conclusao = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    data_conclusao = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
     nome_limpeza = db.Column(db.String(100))
     observacao = db.Column(db.String(500))
     designados = db.Column(db.String(255))
@@ -81,9 +86,17 @@ class CleaningHistory(db.Model):
     qualidade = db.Column(db.Integer, default=5)
 
     checklist_items = db.relationship(
-        "CleaningChecklistItem", backref="history", lazy=True, cascade="all, delete-orphan"
+        "CleaningChecklistItem",
+        backref="history",
+        lazy=True,
+        cascade="all, delete-orphan",
     )
-    photos = db.relationship("CleaningHistoryPhoto", backref="history", lazy=True, cascade="all, delete-orphan")
+    photos = db.relationship(
+        "CleaningHistoryPhoto",
+        backref="history",
+        lazy=True,
+        cascade="all, delete-orphan",
+    )
 
 
 class CleaningChecklistTemplate(db.Model):
@@ -114,12 +127,18 @@ class CleaningHistoryPhoto(db.Model):
     tipo = db.Column(db.String(20), default="depois")
     caption = db.Column(db.String(200))
     uploaded_by = db.Column(db.String(100))
-    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
 
 
 class SystemLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    data = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    data = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
     origem = db.Column(db.String(50))
     evento = db.Column(db.String(50))
     detalhes = db.Column(db.String(255))
@@ -131,13 +150,19 @@ class NotificationRead(db.Model):
     user_id = db.Column(db.Integer, nullable=False)
     tipo = db.Column(db.String(20), nullable=False)  # 'estoque' ou 'limpeza'
     ref_id = db.Column(db.Integer, nullable=False)  # Produto.id ou CleaningTask.id
-    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
 
 
 class MeatReception(db.Model):
     __tablename__ = "meat_reception"
     id = db.Column(db.Integer, primary_key=True)
-    data = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    data = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
     fornecedor = db.Column(db.String(100), nullable=False)
     tipo = db.Column(db.String(10), nullable=False)
     observacao = db.Column(db.String(255))
@@ -237,8 +262,14 @@ class TemporaryEntry(db.Model):
     source = db.Column(db.String(50))
     status = db.Column(db.String(20), default="pendente")
     payload = db.Column(db.Text)
-    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
-    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
+    updated_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
     collaborator = db.relationship("Collaborator", backref="temporary_entries", lazy=True)
 
 
@@ -262,7 +293,12 @@ class TimeOffRecord(db.Model):
 
     __tablename__ = "time_off_record"
     id = db.Column(db.Integer, primary_key=True)
-    collaborator_id = db.Column(db.Integer, db.ForeignKey("collaborator.id"), nullable=False, index=True)
+    collaborator_id = db.Column(
+        db.Integer,
+        db.ForeignKey("collaborator.id"),
+        nullable=False,
+        index=True,
+    )
     date = db.Column(db.Date, nullable=False, index=True)
     record_type = db.Column(
         db.String(20), nullable=False, index=True
@@ -273,7 +309,10 @@ class TimeOffRecord(db.Model):
     rate_per_day = db.Column(db.Float, nullable=True)  # Para conversões
     origin = db.Column(db.String(50), nullable=True)  # Origem do registro (ex: 'horas', 'manual', 'excel')
     notes = db.Column(db.String(500), nullable=True)  # Observações/razão
-    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
     created_by = db.Column(db.String(100), nullable=True)  # Usuário que criou o registro
 
     collaborator = db.relationship("Collaborator", backref="time_off_records", lazy=True)
@@ -358,7 +397,12 @@ class JornadaArchive(db.Model):
 
     # Dados do registro original (cópia)
     original_record_id = db.Column(db.Integer, nullable=False, index=True)  # ID original do registro
-    collaborator_id = db.Column(db.Integer, db.ForeignKey("collaborator.id"), nullable=False, index=True)
+    collaborator_id = db.Column(
+        db.Integer,
+        db.ForeignKey("collaborator.id"),
+        nullable=False,
+        index=True,
+    )
     date = db.Column(db.Date, nullable=False, index=True)
     record_type = db.Column(db.String(20), nullable=False, index=True)
     hours = db.Column(db.Float, nullable=True)
@@ -406,7 +450,10 @@ class NotificacaoPersonalizada(db.Model):
     __tablename__ = "notificacao_personalizada"
     id = db.Column(db.Integer, primary_key=True)
     mensagem = db.Column(db.Text, nullable=False)
-    data_criacao = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    data_criacao = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
     enviar_novamente = db.Column(db.Boolean, default=True)
     enviada = db.Column(db.Boolean, default=False)
 
@@ -428,11 +475,19 @@ class Recipe(db.Model):
     nome = db.Column(db.String(100), nullable=False)
     preparo = db.Column(db.Text)
     embalagem = db.Column(db.String(10))
-    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
     rendimento = db.Column(db.String(50), nullable=True)
     tempo_preparo = db.Column(db.Integer, nullable=True)
 
-    ingredients = db.relationship("RecipeIngredient", backref="recipe", lazy=True, cascade="all, delete-orphan")
+    ingredients = db.relationship(
+        "RecipeIngredient",
+        backref="recipe",
+        lazy=True,
+        cascade="all, delete-orphan",
+    )
 
 
 class RecipeIngredient(db.Model):
@@ -459,7 +514,10 @@ class Setor(db.Model):
     nome = db.Column(db.String(100), nullable=False, unique=True, index=True)
     descricao = db.Column(db.Text, nullable=True)
     ativo = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
     created_by = db.Column(db.String(100), nullable=True)
     updated_at = db.Column(db.DateTime(timezone=True), nullable=True)
     updated_by = db.Column(db.String(100), nullable=True)
@@ -473,8 +531,8 @@ class Setor(db.Model):
             "nome": self.nome,
             "descricao": self.descricao,
             "ativo": self.ativo,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "created_at": (self.created_at.isoformat() if self.created_at else None),
+            "updated_at": (self.updated_at.isoformat() if self.updated_at else None),
         }
 
 
@@ -488,7 +546,12 @@ class Ciclo(db.Model):
 
     __tablename__ = "ciclo"
     id = db.Column(db.Integer, primary_key=True)
-    collaborator_id = db.Column(db.Integer, db.ForeignKey("collaborator.id"), nullable=False, index=True)
+    collaborator_id = db.Column(
+        db.Integer,
+        db.ForeignKey("collaborator.id"),
+        nullable=False,
+        index=True,
+    )
     setor_id = db.Column(
         db.Integer, db.ForeignKey("setor.id"), nullable=False, index=True
     )  # Novo campo para divisão por setor
@@ -502,7 +565,10 @@ class Ciclo(db.Model):
     ciclo_id = db.Column(db.Integer, nullable=True, index=True)  # ID do ciclo (para agrupar por período de fechamento)
     status_ciclo = db.Column(db.String(20), nullable=False, default="ativo", index=True)  # 'ativo', 'fechado'
     valor_aproximado = db.Column(db.Numeric(10, 2), nullable=True)  # Valor em R$ aproximado (dias_fechados * valor_dia)
-    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
     created_by = db.Column(db.String(100), nullable=True)
     updated_at = db.Column(db.DateTime(timezone=True), nullable=True)
     updated_by = db.Column(db.String(100), nullable=True)
@@ -519,7 +585,12 @@ class CicloFolga(db.Model):
 
     __tablename__ = "ciclo_folga"
     id = db.Column(db.Integer, primary_key=True)
-    collaborator_id = db.Column(db.Integer, db.ForeignKey("collaborator.id"), nullable=False, index=True)
+    collaborator_id = db.Column(
+        db.Integer,
+        db.ForeignKey("collaborator.id"),
+        nullable=False,
+        index=True,
+    )
     setor_id = db.Column(
         db.Integer, db.ForeignKey("setor.id"), nullable=False, index=True
     )  # Novo campo para divisão por setor
@@ -530,7 +601,10 @@ class CicloFolga(db.Model):
     observacao = db.Column(db.Text, nullable=True)
     ciclo_id = db.Column(db.Integer, nullable=True, index=True)  # ID do ciclo (para agrupar por período de fechamento)
     status_ciclo = db.Column(db.String(20), nullable=False, default="ativo", index=True)  # 'ativo', 'fechado'
-    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
 
     collaborator = db.relationship("Collaborator", backref="ciclos_folgas", lazy=True)
     setor = db.relationship("Setor", backref="ciclos_folgas", lazy=True)  # Novo relacionamento
@@ -541,7 +615,12 @@ class CicloOcorrencia(db.Model):
 
     __tablename__ = "ciclo_ocorrencia"
     id = db.Column(db.Integer, primary_key=True)
-    collaborator_id = db.Column(db.Integer, db.ForeignKey("collaborator.id"), nullable=False, index=True)
+    collaborator_id = db.Column(
+        db.Integer,
+        db.ForeignKey("collaborator.id"),
+        nullable=False,
+        index=True,
+    )
     setor_id = db.Column(
         db.Integer, db.ForeignKey("setor.id"), nullable=False, index=True
     )  # Novo campo para divisão por setor
@@ -551,7 +630,10 @@ class CicloOcorrencia(db.Model):
     descricao = db.Column(db.String(800), nullable=True)
     ciclo_id = db.Column(db.Integer, nullable=True, index=True)
     status_ciclo = db.Column(db.String(20), nullable=False, default="ativo", index=True)  # 'ativo' | 'fechado'
-    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
     created_by = db.Column(db.String(100), nullable=True)
 
     collaborator = db.relationship("Collaborator", backref="ciclos_ocorrencias", lazy=True)
@@ -570,7 +652,10 @@ class CicloSemana(db.Model):
     week_start = db.Column(db.Date, nullable=False, index=True)
     week_end = db.Column(db.Date, nullable=False, index=True)
     label = db.Column(db.String(50), nullable=False, index=True)  # "Ciclo 1 | Janeiro" / "Ciclo Dezembro | Janeiro"
-    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
 
     setor = db.relationship("Setor", backref="ciclos_semanas", lazy=True)  # Novo relacionamento
 
@@ -585,7 +670,9 @@ class CicloFechamento(db.Model):
         db.Integer, db.ForeignKey("setor.id"), nullable=True, index=True
     )  # Campo para divisão por setor (nullable para compatibilidade com bancos antigos)
     data_fechamento = db.Column(
-        db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")), nullable=False
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+        nullable=False,
     )
     total_horas = db.Column(db.Numeric(10, 1), nullable=False)  # Total de horas lançadas no ciclo
     total_dias = db.Column(db.Integer, nullable=False)  # Total de dias completos do ciclo
@@ -609,10 +696,18 @@ class CicloSaldo(db.Model):
 
     __tablename__ = "ciclo_saldo"
     id = db.Column(db.Integer, primary_key=True)
-    collaborator_id = db.Column(db.Integer, db.ForeignKey("collaborator.id"), nullable=False, index=True)
+    collaborator_id = db.Column(
+        db.Integer,
+        db.ForeignKey("collaborator.id"),
+        nullable=False,
+        index=True,
+    )
     mes_ano = db.Column(db.String(7), nullable=False, index=True)  # Formato: "01-2026", "02-2026", etc
     saldo = db.Column(db.Numeric(5, 1), nullable=False, default=0.0)  # Saldo em horas (pode ser positivo ou negativo)
-    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
     created_by = db.Column(db.String(100), nullable=True)
     updated_at = db.Column(db.DateTime(timezone=True), nullable=True)
     updated_by = db.Column(db.String(100), nullable=True)
@@ -632,7 +727,10 @@ class UserLogin(db.Model):
     username = db.Column(db.String(80))
     ip_address = db.Column(db.String(50))
     user_agent = db.Column(db.String(255))
-    login_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    login_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
 
     user = db.relationship("User", backref="logins", lazy=True)
 
@@ -769,7 +867,10 @@ class Vacation(db.Model):
     data_fim = db.Column(db.Date, nullable=False)
     observacao = db.Column(db.String(255))
     criado_por = db.Column(db.String(100))
-    criado_em = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    criado_em = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
     ativo = db.Column(db.Boolean, default=True)
 
     collaborator = db.relationship("Collaborator", backref="vacations", lazy=True)
@@ -787,7 +888,10 @@ class MedicalCertificate(db.Model):
     cid = db.Column(db.String(20))
     medico = db.Column(db.String(100))
     criado_por = db.Column(db.String(100))
-    criado_em = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    criado_em = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
 
     collaborator = db.relationship("Collaborator", backref="medical_certificates", lazy=True)
 
@@ -799,7 +903,10 @@ class IngredientCatalog(db.Model):
     categoria = db.Column(db.String(50))
     unidade_padrao = db.Column(db.String(20), default="kg")
     ativo = db.Column(db.Boolean, default=True)
-    criado_em = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    criado_em = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
 
 
 class CustomSchedule(db.Model):
@@ -812,9 +919,16 @@ class CustomSchedule(db.Model):
     motivo = db.Column(db.String(255))
     substituto_id = db.Column(db.Integer, db.ForeignKey("collaborator.id"), nullable=True)
     criado_por = db.Column(db.String(100))
-    criado_em = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    criado_em = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
 
-    collaborator = db.relationship("Collaborator", foreign_keys=[collaborator_id], backref="custom_schedules")
+    collaborator = db.relationship(
+        "Collaborator",
+        foreign_keys=[collaborator_id],
+        backref="custom_schedules",
+    )
     substituto = db.relationship("Collaborator", foreign_keys=[substituto_id])
 
 
@@ -835,8 +949,14 @@ class RegistroJornada(db.Model):
     tipo_registro = db.Column(db.String(10), nullable=False)
     valor = db.Column(db.Numeric(8, 2), nullable=False)
     data = db.Column(db.Date, nullable=False)
-    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
-    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
+    updated_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
     observacao = db.Column(db.String(255))
 
     collaborator = db.relationship("Collaborator", backref="registros_jornada", lazy=True)
@@ -853,14 +973,23 @@ class RegistroJornadaChange(db.Model):
     new_tipo = db.Column(db.String(10))
     new_valor = db.Column(db.Numeric(8, 2))
     new_data = db.Column(db.Date)
-    changed_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    changed_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
 
     worklog = db.relationship("RegistroJornada", backref="changes", lazy=True)
     votos_util = db.Column(db.Integer, default=0)
     votos_nao_util = db.Column(db.Integer, default=0)
     criado_por = db.Column(db.String(100))
-    criado_em = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
-    atualizado_em = db.Column(db.DateTime(timezone=True), onupdate=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    criado_em = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
+    atualizado_em = db.Column(
+        db.DateTime(timezone=True),
+        onupdate=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
 
 
 class ArticleVote(db.Model):
@@ -869,7 +998,10 @@ class ArticleVote(db.Model):
     article_id = db.Column(db.Integer, db.ForeignKey("help_article.id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     util = db.Column(db.Boolean, nullable=False)
-    voted_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    voted_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
 
 
 class Suggestion(db.Model):
@@ -881,9 +1013,17 @@ class Suggestion(db.Model):
     status = db.Column(db.String(20), default="pendente")
     votos = db.Column(db.Integer, default=0)
     criado_por = db.Column(db.String(100))
-    criado_em = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    criado_em = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
 
-    votes = db.relationship("SuggestionVote", backref="suggestion", lazy=True, cascade="all, delete-orphan")
+    votes = db.relationship(
+        "SuggestionVote",
+        backref="suggestion",
+        lazy=True,
+        cascade="all, delete-orphan",
+    )
 
 
 class SuggestionVote(db.Model):
@@ -891,7 +1031,10 @@ class SuggestionVote(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     suggestion_id = db.Column(db.Integer, db.ForeignKey("suggestion.id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    voted_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+    voted_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
 
 
 # Estoque de Produção com Previsão de Uso
@@ -904,7 +1047,9 @@ class EstoqueProducao(db.Model):
     previsao_uso = db.Column(db.String(100), nullable=True, index=True)  # Ex: "Carnaval 2026", "Fim de Semana"
     data_previsao = db.Column(db.Date, nullable=True, index=True)  # Data específica da previsão
     data_registro = db.Column(
-        db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")), index=True
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+        index=True,
     )
     criado_por = db.Column(db.String(100))
     observacao = db.Column(db.Text, nullable=True)
@@ -914,7 +1059,10 @@ class EstoqueProducao(db.Model):
     produto = db.relationship("Produto", backref=db.backref("estoque_producao", lazy="dynamic"))
     setor = db.relationship("Setor", backref=db.backref("estoque_producao", lazy="dynamic"))
     historico = db.relationship(
-        "HistoricoAjusteEstoque", backref="estoque", lazy="dynamic", cascade="all, delete-orphan"
+        "HistoricoAjusteEstoque",
+        backref="estoque",
+        lazy="dynamic",
+        cascade="all, delete-orphan",
     )
 
     def __repr__(self):
@@ -924,9 +1072,16 @@ class EstoqueProducao(db.Model):
 class HistoricoAjusteEstoque(db.Model):
     __tablename__ = "historico_ajuste_estoque"
     id = db.Column(db.Integer, primary_key=True)
-    estoque_id = db.Column(db.Integer, db.ForeignKey("estoque_producao.id"), nullable=False, index=True)
+    estoque_id = db.Column(
+        db.Integer,
+        db.ForeignKey("estoque_producao.id"),
+        nullable=False,
+        index=True,
+    )
     data_ajuste = db.Column(
-        db.DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")), index=True
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+        index=True,
     )
     tipo_ajuste = db.Column(db.String(20), nullable=False)  # 'entrada', 'saida', 'correcao'
     quantidade_anterior = db.Column(db.Float, nullable=False)

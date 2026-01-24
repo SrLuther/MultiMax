@@ -9,6 +9,7 @@ Responsabilidades:
 
 from datetime import datetime
 from decimal import Decimal
+from typing import Optional
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_
@@ -17,7 +18,7 @@ from .. import db
 from ..models import CicloSaldo, Collaborator
 
 
-def _format_mes_ano(data: datetime | None = None) -> str:
+def _format_mes_ano(data: Optional[datetime] = None) -> str:
     """
     Formata data como "MM-YYYY" (ex: "01-2026").
     Se data for None, usa a data atual.
@@ -27,7 +28,7 @@ def _format_mes_ano(data: datetime | None = None) -> str:
     return data.strftime("%m-%Y")
 
 
-def _format_mes_ano_anterior(data: datetime | None = None) -> str:
+def _format_mes_ano_anterior(data: Optional[datetime] = None) -> str:
     """
     Retorna o mês anterior no formato "MM-YYYY".
     Se data for None, usa a data atual.
@@ -62,7 +63,7 @@ def registrar_saldo(
     collaborator_id: int,
     mes_ano: str,
     saldo: float,
-    usuario: str = None,
+    usuario: Optional[str] = None,
 ) -> CicloSaldo:
     """
     Registra ou atualiza o saldo de horas para um colaborador em um mês específico.
@@ -99,7 +100,7 @@ def registrar_saldo(
         return novo_saldo
 
 
-def obter_saldo_anterior(collaborator_id: int, data_referencia: datetime = None) -> float:
+def obter_saldo_anterior(collaborator_id: int, data_referencia: Optional[datetime] = None) -> float:
     """
     Obtém o saldo do mês anterior para um colaborador.
 
@@ -222,7 +223,7 @@ def resumo_em_dias_e_horas(total_horas: float) -> str:
 def fechar_ciclo_mensal(
     colaboradores_totais: dict,
     mes_ano: str,
-    usuario: str = None,
+    usuario: Optional[str] = None,
 ) -> dict:
     """
     Função chamada ao fechar ciclo mensal.
@@ -265,7 +266,7 @@ def fechar_ciclo_mensal(
     }
 
 
-def obter_saldo_para_exibicao(collaborator_id: int, mes_ano: str = None) -> dict:
+def obter_saldo_para_exibicao(collaborator_id: int, mes_ano: Optional[str] = None) -> dict:
     """
     Obtém informações de saldo para exibição em tela ou PDF.
 
@@ -303,7 +304,7 @@ def obter_saldo_para_exibicao(collaborator_id: int, mes_ano: str = None) -> dict
 def integrar_com_fechamento_ciclo(
     colaboradores_totais: dict,
     mes_ano: str,
-    usuario: str = None,
+    usuario: Optional[str] = None,
 ) -> dict:
     """
     Função completa que integra o sistema de saldo com o fechamento de ciclo.
@@ -320,7 +321,7 @@ def integrar_com_fechamento_ciclo(
     return fechar_ciclo_mensal(colaboradores_totais, mes_ano, usuario)
 
 
-def gerar_relatorio_saldos(mes_ano: str = None) -> dict:
+def gerar_relatorio_saldos(mes_ano: Optional[str] = None) -> dict:
     """
     Gera relatório de saldos de todos os colaboradores para um mês.
     Útil para relatórios e auditoria.
@@ -372,7 +373,7 @@ def gerar_relatorio_saldos(mes_ano: str = None) -> dict:
 
 def aplicar_saldos_anteriores_ciclo_novo(
     colaboradores_ids: list[int],
-    novo_mes_ano: str = None,
+    novo_mes_ano: Optional[str] = None,
 ) -> dict:
     """
     Para uso ao INICIAR novo ciclo mensal.
