@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 try:
     logger.info("Iniciando criação da aplicação Flask...")
     app = create_app()
-    app.config['_startup_time'] = time.time()  # Registrar tempo de inicialização
+    app.config["_startup_time"] = time.time()  # Registrar tempo de inicialização
     logger.info("Aplicação Flask criada com sucesso")
 
     # Expor função perform_backup no app, se disponível

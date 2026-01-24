@@ -299,9 +299,10 @@ def _setup_main_routes(app: Flask) -> None:
         """Diagnóstico premium do banco de dados com performance detalhada."""
         try:
             import os
-            from datetime import datetime
-            from .models import User
             import sqlite3
+            from datetime import datetime
+
+            from .models import User
 
             # Dados básicos
             user_count = User.query.count()
@@ -336,7 +337,7 @@ def _setup_main_routes(app: Flask) -> None:
             backup_size_mb = 0
             backup_24h = False
             recent_backups = []
-            
+
             if backup_dir and os.path.exists(backup_dir):
                 for fname in os.listdir(backup_dir):
                     fpath = os.path.join(backup_dir, fname)
@@ -348,14 +349,15 @@ def _setup_main_routes(app: Flask) -> None:
                             backup_24h = True
                         mtime = os.path.getmtime(fpath)
                         recent_backups.append((fname, fsize_mb, mtime))
-                
+
                 backup_size_mb = round(backup_size_mb, 2)
                 recent_backups.sort(key=lambda x: x[2], reverse=True)
                 recent_backups = recent_backups[:5]
 
             # Uptime
             import time
-            uptime_sec = int(time.time() - app.config.get('_startup_time', time.time()))
+
+            uptime_sec = int(time.time() - app.config.get("_startup_time", time.time()))
             uptime_min = uptime_sec // 60
             uptime_h = uptime_min // 60
 
@@ -374,7 +376,7 @@ def _setup_main_routes(app: Flask) -> None:
                 <title>Diagnóstico Banco de Dados</title>
                 <style>
                     * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-                    
+
                     body {{
                         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
                         background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
@@ -382,12 +384,12 @@ def _setup_main_routes(app: Flask) -> None:
                         padding: 24px;
                         line-height: 1.6;
                     }}
-                    
+
                     .container {{
                         max-width: 1200px;
                         margin: 0 auto;
                     }}
-                    
+
                     .header {{
                         background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
                         border-radius: 12px;
@@ -395,25 +397,25 @@ def _setup_main_routes(app: Flask) -> None:
                         margin-bottom: 24px;
                         box-shadow: 0 10px 30px rgba(0,0,0,0.3);
                     }}
-                    
+
                     .header h1 {{
                         font-size: 28px;
                         font-weight: 700;
                         margin-bottom: 8px;
                     }}
-                    
+
                     .header p {{
                         opacity: 0.9;
                         font-size: 14px;
                     }}
-                    
+
                     .grid {{
                         display: grid;
                         grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
                         gap: 20px;
                         margin-bottom: 24px;
                     }}
-                    
+
                     .card {{
                         background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
                         border: 1px solid #334155;
@@ -422,12 +424,12 @@ def _setup_main_routes(app: Flask) -> None:
                         box-shadow: 0 4px 15px rgba(0,0,0,0.2);
                         transition: all 0.3s ease;
                     }}
-                    
+
                     .card:hover {{
                         border-color: #64748b;
                         box-shadow: 0 8px 25px rgba(59, 130, 246, 0.1);
                     }}
-                    
+
                     .card-header {{
                         display: flex;
                         align-items: center;
@@ -436,12 +438,12 @@ def _setup_main_routes(app: Flask) -> None:
                         font-weight: 600;
                         color: #3b82f6;
                     }}
-                    
+
                     .card-icon {{
                         font-size: 20px;
                         margin-right: 10px;
                     }}
-                    
+
                     .stat {{
                         display: flex;
                         justify-content: space-between;
@@ -449,25 +451,25 @@ def _setup_main_routes(app: Flask) -> None:
                         border-bottom: 1px solid #334155;
                         font-size: 14px;
                     }}
-                    
+
                     .stat:last-child {{
                         border-bottom: none;
                     }}
-                    
+
                     .stat-label {{
                         color: #94a3b8;
                     }}
-                    
+
                     .stat-value {{
                         color: #e2e8f0;
                         font-weight: 600;
                         font-family: 'Courier New', monospace;
                     }}
-                    
+
                     .status-ok {{ color: #10b981; }}
                     .status-warn {{ color: #f59e0b; }}
                     .status-error {{ color: #ef4444; }}
-                    
+
                     .progress-bar {{
                         width: 100%;
                         height: 6px;
@@ -476,13 +478,13 @@ def _setup_main_routes(app: Flask) -> None:
                         overflow: hidden;
                         margin: 8px 0;
                     }}
-                    
+
                     .progress-fill {{
                         height: 100%;
                         background: linear-gradient(90deg, #3b82f6, #1e40af);
                         transition: width 0.3s ease;
                     }}
-                    
+
                     .backup-item {{
                         background: #334155;
                         padding: 12px;
@@ -493,38 +495,38 @@ def _setup_main_routes(app: Flask) -> None:
                         align-items: center;
                         font-size: 13px;
                     }}
-                    
+
                     .backup-name {{
                         font-family: 'Courier New', monospace;
                         color: #60a5fa;
                     }}
-                    
+
                     .backup-meta {{
                         color: #94a3b8;
                         font-size: 12px;
                     }}
-                    
+
                     .metrics-grid {{
                         display: grid;
                         grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
                         gap: 12px;
                         margin-top: 16px;
                     }}
-                    
+
                     .metric {{
                         background: #334155;
                         padding: 12px;
                         border-radius: 6px;
                         text-align: center;
                     }}
-                    
+
                     .metric-value {{
                         font-size: 18px;
                         font-weight: 700;
                         color: #3b82f6;
                         font-family: 'Courier New', monospace;
                     }}
-                    
+
                     .metric-label {{
                         font-size: 11px;
                         color: #94a3b8;
@@ -532,7 +534,7 @@ def _setup_main_routes(app: Flask) -> None:
                         text-transform: uppercase;
                         letter-spacing: 0.5px;
                     }}
-                    
+
                     .status-badge {{
                         display: inline-block;
                         padding: 6px 12px;
@@ -543,7 +545,7 @@ def _setup_main_routes(app: Flask) -> None:
                         color: #10b981;
                         border: 1px solid #10b981;
                     }}
-                    
+
                     .alert {{
                         background: rgba(239, 68, 68, 0.1);
                         border-left: 4px solid #ef4444;
@@ -561,7 +563,7 @@ def _setup_main_routes(app: Flask) -> None:
                         <h1>📊 Diagnóstico Completo</h1>
                         <p>Status e Performance do Banco de Dados • {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}</p>
                     </div>
-                    
+
                     <div class="grid">
                         <!-- Card: Status do Banco -->
                         <div class="card">
@@ -590,7 +592,7 @@ def _setup_main_routes(app: Flask) -> None:
                                 <span class="stat-value">{db_size_mb} MB</span>
                             </div>
                         </div>
-                        
+
                         <!-- Card: Performance -->
                         <div class="card">
                             <div class="card-header">
@@ -624,7 +626,7 @@ def _setup_main_routes(app: Flask) -> None:
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Card: Backups -->
                         <div class="card">
                             <div class="card-header">
@@ -650,7 +652,7 @@ def _setup_main_routes(app: Flask) -> None:
                                 Daily 00:05 • Weekly Sun 02:00
                             </div>
                         </div>
-                        
+
                         <!-- Card: Backups Recentes -->
                         <div class="card">
                             <div class="card-header">
@@ -659,7 +661,7 @@ def _setup_main_routes(app: Flask) -> None:
                             </div>
                             {backup_list_html if backup_list_html else '<div style="color: #94a3b8; font-size: 13px;">Nenhum backup encontrado</div>'}
                         </div>
-                        
+
                         <!-- Card: Configuração -->
                         <div class="card">
                             <div class="card-header">
@@ -687,18 +689,19 @@ def _setup_main_routes(app: Flask) -> None:
             return html
         except Exception as e:
             import traceback
+
             html = f"""
             <!DOCTYPE html>
             <html>
             <head>
                 <style>
-                    body {{ 
+                    body {{
                         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto';
                         background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
                         color: #e2e8f0;
                         padding: 24px;
                     }}
-                    .error {{ 
+                    .error {{
                         background: rgba(239, 68, 68, 0.1);
                         border: 1px solid #ef4444;
                         border-radius: 12px;
@@ -707,7 +710,7 @@ def _setup_main_routes(app: Flask) -> None:
                         margin: 0 auto;
                     }}
                     h2 {{ color: #ef4444; margin-bottom: 12px; }}
-                    pre {{ 
+                    pre {{
                         background: #1e293b;
                         padding: 12px;
                         border-radius: 6px;

@@ -563,29 +563,29 @@ function aplicarFiltros() {
     var filtroColab = document.getElementById('filtro-colab')?.value.toLowerCase() || '';
     var filtroTurno = document.getElementById('filtro-turno')?.value || '';
     var filtroStatus = document.getElementById('filtro-status')?.value || '';
-    
+
     var linhas = document.querySelectorAll('.grade-row');
-    
+
     linhas.forEach(function(linha) {
         var nomeColab = linha.querySelector('.grade-colab-nome')?.textContent.toLowerCase() || '';
         var visivel = true;
-        
+
         // Filtro por nome
         if (filtroColab && !nomeColab.includes(filtroColab)) {
             visivel = false;
         }
-        
+
         // Filtro por turno ou status
         if ((filtroTurno || filtroStatus) && visivel) {
             var encontrouTurnoOuStatus = false;
             var celulas = linha.querySelectorAll('.grade-turno-cell');
-            
+
             celulas.forEach(function(celula) {
                 var badge = celula.querySelector('.grade-turno-badge');
                 if (badge) {
                     var textoBadge = badge.textContent.trim();
                     var ehStatus = badge.classList.contains('grade-turno-status');
-                    
+
                     if (filtroTurno && !ehStatus && textoBadge === filtroTurno) {
                         encontrouTurnoOuStatus = true;
                     }
@@ -594,12 +594,12 @@ function aplicarFiltros() {
                     }
                 }
             });
-            
+
             if ((filtroTurno || filtroStatus) && !encontrouTurnoOuStatus) {
                 visivel = false;
             }
         }
-        
+
         if (visivel) {
             linha.classList.remove('hidden');
         } else {
@@ -616,7 +616,7 @@ document.addEventListener('DOMContentLoaded', function() {
             aplicarFiltros();
         });
     }
-    
+
     // Filtro de turno
     var filtroTurno = document.getElementById('filtro-turno');
     if (filtroTurno) {
@@ -624,7 +624,7 @@ document.addEventListener('DOMContentLoaded', function() {
             aplicarFiltros();
         });
     }
-    
+
     // Filtro de status
     var filtroStatus = document.getElementById('filtro-status');
     if (filtroStatus) {
@@ -632,7 +632,7 @@ document.addEventListener('DOMContentLoaded', function() {
             aplicarFiltros();
         });
     }
-    
+
     // Limpar filtros
     var btnLimpar = document.getElementById('btn-limpar-filtros');
     if (btnLimpar) {
