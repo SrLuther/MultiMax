@@ -29,6 +29,15 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 - Com o ajuste, chamadas com `Authorization: Bearer <token>` a `http://127.0.0.1:5000/dev/whatsapp/enviar` retornam JSON e não redirecionam
 
+## [3.2.12] - 2026-01-24
+
+### Corrigido
+
+- fix(whatsapp): aceitar token via `Authorization`/`X-Service-Token`/form e retornar 403 JSON quando inválido, evitando redirecionamento 302 para `/login` em chamadas de serviço
+- melhora de compatibilidade para integrações (Node) que não enviam `Authorization: Bearer` padronizado
+
+---
+
 ## [3.2.11] - 2026-01-24
 
 ### ♻️ Refactor

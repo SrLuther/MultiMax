@@ -58,6 +58,28 @@ def _is_local_service_call(auth_header: str, remote_ip: str, token: str) -> bool
     return provided == token
 
 
+def _extract_provided_token(req) -> str:
+    """Extrai o token fornecido pela chamada do serviço.
+
+    Aceita:
+    - Header Authorization: Bearer <token>
+    - Header X-Service-Token / X-WhatsApp-Service-Token
+    - Campo de formulário 'token' (fallback)
+    """
+    auth = (req.headers.get("Authorization") or "").strip()
+    if auth.lower().startswith("bearer "):
+        return auth.split(" ", 1)[1].strip()
+    # Headers alternativos para compatibilidade
+    alt = (req.headers.get("X-Service-Token") or req.headers.get("X-WhatsApp-Service-Token") or "").strip()
+    if alt:
+        return alt
+    # Fallback em form
+    form_token = (req.form.get("token") or "").strip()
+    if form_token:
+        return form_token
+    return ""
+
+
 @bp.route("/", methods=["GET"], strict_slashes=False)
 @login_required
 def painel():
@@ -75,9 +97,13 @@ def painel():
 @bp.route("/enviar", methods=["POST"], strict_slashes=False)
 def enviar():
     token = _load_service_token()
-    bearer_ok = _is_local_service_call(request.headers.get("Authorization", ""), request.remote_addr or "", token)
+    provided = _extract_provided_token(request)
+    bearer_ok = bool(token) and bool(provided) and provided == token
 
     if not bearer_ok:
+        # Se um header/token foi enviado mas inválido, responder em JSON 403 para serviço
+        if provided:
+            return jsonify({"ok": False, "error": "token inválido"}), 403
         # Fluxo web tradicional: exigir login DEV
         if not current_user.is_authenticated:
             return redirect(url_for("auth.login"))
