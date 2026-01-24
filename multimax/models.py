@@ -436,6 +436,37 @@ class Holiday(db.Model):
     kind = db.Column(db.String(20))
 
 
+class SpecialSchedule(db.Model):
+    """Escalas especiais para datas/períodos específicos"""
+    __tablename__ = "special_schedule"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)  # Ex: "Limpeza Segunda", "Feriado Redistribuído"
+    description = db.Column(db.Text)  # Descrição detalhada
+    schedule_type = db.Column(db.String(30), nullable=False)  # limpeza, feriado, redistribuicao, custom
+    
+    # Período de aplicação
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date)  # NULL para datas únicas
+    days_of_week = db.Column(db.String(50))  # "1,2,3" para seg,ter,qua (0=dom, 6=sab)
+    
+    # Configuração de turnos
+    shift_config = db.Column(db.JSON)  # {"type": "todos", "turno": "Limpeza", "observacao": "..."}
+    
+    # Divisão por equipe
+    team_split = db.Column(db.String(20))  # "nenhuma", "igual", "custom"
+    team1_shift = db.Column(db.String(50))  # Turno equipe 1
+    team2_shift = db.Column(db.String(50))  # Turno equipe 2
+    
+    # Aplicação
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    created_by = db.Column(db.Integer, db.ForeignKey("user.id"))
+    
+    def __repr__(self):
+        return f"<SpecialSchedule {self.name} ({self.schedule_type})>"
+
+
 class NotificacaoDiaria(db.Model):
     __tablename__ = "notificacao_diaria"
     id = db.Column(db.Integer, primary_key=True)

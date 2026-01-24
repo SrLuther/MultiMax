@@ -1211,3 +1211,138 @@ def folga_converter():
             pass
         flash(f"Erro ao registrar conversão: {e}", "danger")
     return redirect(url_for("usuarios.gestao"))
+
+# ===== ESCALAS ESPECIAIS =====
+
+@bp.route("/escala/especiais/criar", methods=["POST"], strict_slashes=False)
+@login_required
+def escala_especial_criar():
+    """Criar nova escala especial"""
+    if current_user.nivel not in ("operador", "admin", "DEV"):
+        return jsonify({"success": False, "message": "Sem permissão"}), 403
+
+    try:
+        from datetime import datetime
+        from multimax.models import SpecialSchedule
+
+        name = request.form.get("name", "").strip()
+        description = request.form.get("description", "").strip()
+        schedule_type = request.form.get("schedule_type", "").strip()
+        start_date_str = request.form.get("start_date", "").strip()
+        end_date_str = request.form.get("end_date", "").strip()
+        aplicacao = request.form.get("aplicacao", "todos")
+        turno_principal = request.form.get("turno_principal", "").strip()
+        turno_equipe1 = request.form.get("turno_equipe1", "").strip()
+        turno_equipe2 = request.form.get("turno_equipe2", "").strip()
+        observacao = request.form.get("observacao", "").strip()
+
+        if not name or not schedule_type or not start_date_str:
+            return jsonify({"success": False, "message": "Campos obrigatórios faltando"}), 400
+
+        try:
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+            end_date = (
+                datetime.strptime(end_date_str, "%Y-%m-%d").date()
+                if end_date_str
+                else None
+            )
+        except ValueError:
+            return jsonify({"success": False, "message": "Datas inválidas"}), 400
+
+        # Criar escala especial
+        especial = SpecialSchedule()
+        especial.name = name
+        especial.description = description
+        especial.schedule_type = schedule_type
+        especial.start_date = start_date
+        especial.end_date = end_date
+        especial.team_split = "dividido" if aplicacao == "dividido" else "nenhuma"
+        especial.team1_shift = turno_equipe1 if aplicacao == "dividido" else turno_principal
+        especial.team2_shift = turno_equipe2 if aplicacao == "dividido" else turno_principal
+        especial.is_active = True
+        especial.created_by = current_user.id
+
+        # Shift config JSON
+        import json
+
+        especial.shift_config = json.dumps(
+            {
+                "aplicacao": aplicacao,
+                "turno": turno_principal,
+                "observacao": observacao,
+            }
+        )
+
+        db.session.add(especial)
+        db.session.commit()
+
+        return jsonify({"success": True, "message": "Escala especial criada"})
+    except Exception as e:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@bp.route("/escala/especiais/listar", strict_slashes=False)
+@login_required
+def escala_especial_listar():
+    """Listar escalas especiais"""
+    try:
+        from multimax.models import SpecialSchedule
+
+        especiais = SpecialSchedule.query.filter_by(is_active=True).all()
+        data = [
+            {
+                "id": e.id,
+                "name": e.name,
+                "description": e.description,
+                "schedule_type": e.schedule_type,
+                "start_date": e.start_date.isoformat(),
+                "end_date": e.end_date.isoformat() if e.end_date else None,
+                "is_active": e.is_active,
+            }
+            for e in especiais
+        ]
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/escala/especiais/<int:id>/toggle", methods=["POST"], strict_slashes=False)
+@login_required
+def escala_especial_toggle(id: int):
+    """Ativar/desativar escala especial"""
+    if current_user.nivel not in ("operador", "admin", "DEV"):
+        return jsonify({"success": False}), 403
+
+    try:
+        from multimax.models import SpecialSchedule
+
+        especial = SpecialSchedule.query.get_or_404(id)
+        especial.is_active = not especial.is_active
+        db.session.commit()
+        return jsonify({"success": True, "is_active": especial.is_active})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@bp.route("/escala/especiais/<int:id>/deletar", methods=["POST"], strict_slashes=False)
+@login_required
+def escala_especial_deletar(id: int):
+    """Deletar escala especial"""
+    if current_user.nivel not in ("operador", "admin", "DEV"):
+        return jsonify({"success": False}), 403
+
+    try:
+        from multimax.models import SpecialSchedule
+
+        especial = SpecialSchedule.query.get_or_404(id)
+        db.session.delete(especial)
+        db.session.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500

@@ -42,6 +42,10 @@
             <i class="bi bi-calendar-heart"></i>
             <span>Feriados</span>
         </button>
+        <button class="escala-tab" data-tab="especiais">
+            <i class="bi bi-star"></i>
+            <span>Escalas Especiais</span>
+        </button>
         <button class="escala-tab" data-tab="config">
             <i class="bi bi-gear"></i>
             <span>Configurações</span>
@@ -267,6 +271,47 @@
         </div>
     </div>
 
+    <!-- Tab: Escalas Especiais -->
+    <div id="tab-especiais" class="escala-tab-content">
+        <div class="especiais-card">
+            <div class="especiais-header">
+                <h3 class="especiais-title">
+                    <i class="bi bi-star"></i>
+                    Escalas Especiais
+                </h3>
+                <button class="btn-escala btn-escala-primary" id="btnNovaEspecial" data-bs-toggle="modal" data-bs-target="#modalEspecial">
+                    <i class="bi bi-plus-lg"></i>
+                    Nova Escala Especial
+                </button>
+            </div>
+
+            <!-- Info Cards -->
+            <div class="info-resumo">
+                <div class="info-card">
+                    <div class="info-card-value" id="totalEspeciais">0</div>
+                    <div class="info-card-label">Escalas Ativas</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-value">{{ dias_semana|length }}</div>
+                    <div class="info-card-label">Dias na Semana</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-value">{{ colaboradores|length }}</div>
+                    <div class="info-card-label">Colaboradores</div>
+                </div>
+            </div>
+
+            <!-- Lista de Escalas Especiais -->
+            <div class="especiais-list">
+                <div class="especiais-empty">
+                    <i class="bi bi-star"></i>
+                    <h4>Nenhuma escala especial criada</h4>
+                    <p>Crie uma nova escala especial para limpezas, redistribuições por feriado ou outras situações.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Tab: Configurações -->
     <div id="tab-config" class="escala-tab-content">
         <div class="config-card">
@@ -372,6 +417,145 @@
                     </div>
                 </form>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Escala Especial -->
+<div class="modal fade" id="modalEspecial" tabindex="-1" aria-labelledby="modalEspecialLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" action="{{ url_for('colaboradores.escala_especial_criar') }}" id="formEspecial">
+                <div class="modal-header bg-gradient">
+                    <h5 class="modal-title" id="modalEspecialLabel">
+                        <i class="bi bi-star"></i>
+                        Nova Escala Especial
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Nome e Tipo -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="especNome" class="form-label">
+                                <i class="bi bi-pencil"></i>
+                                Nome da Escala <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="name" id="especNome" class="form-control" placeholder="Ex: Limpeza Segunda" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="especTipo" class="form-label">
+                                <i class="bi bi-tag"></i>
+                                Tipo <span class="text-danger">*</span>
+                            </label>
+                            <select name="schedule_type" id="especTipo" class="form-select" required onchange="alterarTipoEspecial()">
+                                <option value="">Selecione...</option>
+                                <option value="limpeza">Limpeza</option>
+                                <option value="feriado">Redistribuição por Feriado</option>
+                                <option value="evento">Evento Especial</option>
+                                <option value="custom">Customizado</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Descrição -->
+                    <div class="mb-3">
+                        <label for="especDesc" class="form-label">
+                            <i class="bi bi-chat-left-text"></i>
+                            Descrição
+                        </label>
+                        <textarea name="description" id="especDesc" class="form-control" rows="2" placeholder="Detalhe a escala especial..."></textarea>
+                    </div>
+
+                    <!-- Período -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="especDataInicio" class="form-label">
+                                <i class="bi bi-calendar-event"></i>
+                                Data de Início <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" name="start_date" id="especDataInicio" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="especDataFim" class="form-label">
+                                <i class="bi bi-calendar-event"></i>
+                                Data de Fim (opcional)
+                            </label>
+                            <input type="date" name="end_date" id="especDataFim" class="form-control">
+                        </div>
+                    </div>
+
+                    <!-- Configuração de Turnos -->
+                    <div class="especial-section" id="secaoTurnos">
+                        <h6 class="section-title">
+                            <i class="bi bi-clock"></i>
+                            Configuração de Turnos
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="especTurno" class="form-label">Turno <span class="text-danger">*</span></label>
+                                <select name="turno_principal" id="especTurno" class="form-select">
+                                    <option value="">Selecione...</option>
+                                    <option value="Abertura 5h">Abertura 5h</option>
+                                    <option value="Abertura 6h">Abertura 6h</option>
+                                    <option value="Tarde">Tarde</option>
+                                    <option value="Domingo 5h">Domingo 5h</option>
+                                    <option value="Domingo 6h">Domingo 6h</option>
+                                    <option value="Limpeza">Limpeza</option>
+                                    <option value="Folga">Folga</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="especAplicacao" class="form-label">Aplicar para <span class="text-danger">*</span></label>
+                                <select name="aplicacao" id="especAplicacao" class="form-select" onchange="alterarAplicacao()">
+                                    <option value="todos">Todos os Colaboradores</option>
+                                    <option value="equipe1">Apenas Equipe 1</option>
+                                    <option value="equipe2">Apenas Equipe 2</option>
+                                    <option value="dividido">Dividir entre Equipes</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Turnos divididos por equipe -->
+                        <div id="turnosDivididos" style="display: none;" class="mb-3">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="especTurno1" class="form-label">Turno Equipe 1</label>
+                                    <select name="turno_equipe1" id="especTurno1" class="form-select">
+                                        <option value="Abertura 5h">Abertura 5h</option>
+                                        <option value="Abertura 6h">Abertura 6h</option>
+                                        <option value="Tarde">Tarde</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="especTurno2" class="form-label">Turno Equipe 2</label>
+                                    <select name="turno_equipe2" id="especTurno2" class="form-select">
+                                        <option value="Tarde">Tarde</option>
+                                        <option value="Abertura 5h">Abertura 5h</option>
+                                        <option value="Abertura 6h">Abertura 6h</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Observação -->
+                    <div class="mb-3">
+                        <label for="especObs" class="form-label">
+                            <i class="bi bi-chat-dots"></i>
+                            Observação
+                        </label>
+                        <input type="text" name="observacao" id="especObs" class="form-control" placeholder="Ex: Todos alocados para limpeza às 19h">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i>
+                        Criar Escala
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -641,6 +825,158 @@ document.addEventListener('DOMContentLoaded', function() {
             if (filtroTurno) filtroTurno.value = '';
             if (filtroStatus) filtroStatus.value = '';
             aplicarFiltros();
+        });
+    }
+});
+
+/* ===== ESCALAS ESPECIAIS ===== */
+function alterarTipoEspecial() {
+    var tipo = document.getElementById('especTipo').value;
+    var secaoTurnos = document.getElementById('secaoTurnos');
+    
+    // Mostrar/ocultar seção de turnos conforme tipo
+    if (tipo === 'limpeza' || tipo === 'evento') {
+        secaoTurnos.style.display = 'block';
+    } else if (tipo === 'feriado') {
+        secaoTurnos.style.display = 'block';
+    } else {
+        secaoTurnos.style.display = 'none';
+    }
+}
+
+function alterarAplicacao() {
+    var aplicacao = document.getElementById('especAplicacao').value;
+    var turnosDivididos = document.getElementById('turnosDivididos');
+    var especTurno = document.getElementById('especTurno');
+    
+    if (aplicacao === 'dividido') {
+        turnosDivididos.style.display = 'block';
+        especTurno.parentElement.parentElement.style.display = 'none';
+    } else {
+        turnosDivididos.style.display = 'none';
+        especTurno.parentElement.parentElement.style.display = 'block';
+    }
+}
+
+// Carregar escalas especiais via AJAX (quando a tab for ativada)
+function carregarEscalasEspeciais() {
+    fetch('/escala/especiais/listar')
+        .then(response => response.json())
+        .then(data => {
+            var container = document.querySelector('.especiais-list');
+            if (!container) return;
+            
+            if (data.length === 0) {
+                container.innerHTML = `
+                    <div class="especiais-empty">
+                        <i class="bi bi-star"></i>
+                        <h4>Nenhuma escala especial criada</h4>
+                        <p>Crie uma nova escala especial para limpezas, redistribuições por feriado ou outras situações.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Montar cards das escalas especiais
+            var html = '';
+            data.forEach(escala => {
+                var dataInicio = new Date(escala.start_date).toLocaleDateString('pt-BR');
+                var dataFim = escala.end_date ? new Date(escala.end_date).toLocaleDateString('pt-BR') : 'Não definido';
+                var statusBadge = escala.is_active ? '✓ Ativa' : '✗ Inativa';
+                var statusColor = escala.is_active ? '#10b981' : '#6b7280';
+                
+                html += `
+                    <div class="especial-item">
+                        <div class="especial-item-header">
+                            <h4 class="especial-item-title">${escala.name}</h4>
+                            <span class="especial-item-type ${escala.schedule_type}">${escala.schedule_type}</span>
+                        </div>
+                        ${escala.description ? `<p class="especial-item-desc">${escala.description}</p>` : ''}
+                        <div class="especial-item-meta">
+                            <span><i class="bi bi-calendar-event"></i> ${dataInicio} até ${dataFim}</span>
+                        </div>
+                        <div class="especial-item-meta">
+                            <span style="color: ${statusColor};">${statusBadge}</span>
+                        </div>
+                        <div class="especial-item-actions">
+                            <button class="btn-especial-toggle" onclick="toggleEscalaEspecial(${escala.id})">
+                                <i class="bi bi-toggle2-on"></i>
+                                ${escala.is_active ? 'Desativar' : 'Ativar'}
+                            </button>
+                            <button class="btn-especial-edit" onclick="editarEscalaEspecial(${escala.id})">
+                                <i class="bi bi-pencil"></i>
+                                Editar
+                            </button>
+                            <button class="btn-especial-delete" onclick="deletarEscalaEspecial(${escala.id})">
+                                <i class="bi bi-trash"></i>
+                                Deletar
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            document.getElementById('totalEspeciais').textContent = data.filter(e => e.is_active).length;
+        })
+        .catch(error => console.error('Erro ao carregar escalas especiais:', error));
+}
+
+function toggleEscalaEspecial(id) {
+    if (confirm('Tem certeza que deseja alterar o status desta escala especial?')) {
+        fetch(`/escala/especiais/${id}/toggle`, { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    carregarEscalasEspeciais();
+                }
+            });
+    }
+}
+
+function editarEscalaEspecial(id) {
+    // Implementar edição
+    alert('Edição de escala especial (em desenvolvimento)');
+}
+
+function deletarEscalaEspecial(id) {
+    if (confirm('Tem certeza que deseja deletar esta escala especial?')) {
+        fetch(`/escala/especiais/${id}/deletar`, { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    carregarEscalasEspeciais();
+                }
+            });
+    }
+}
+
+// Carregar escalas especiais quando a tab for ativada
+document.addEventListener('DOMContentLoaded', function() {
+    var tabEspeciais = document.querySelector('[data-tab="especiais"]');
+    if (tabEspeciais) {
+        tabEspeciais.addEventListener('click', carregarEscalasEspeciais);
+    }
+    
+    // Atualizar ao submeter o form
+    var formEspecial = document.getElementById('formEspecial');
+    if (formEspecial) {
+        formEspecial.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            var formData = new FormData(this);
+            fetch('/escala/especiais/criar', { method: 'POST', body: formData })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        var modalEspecial = bootstrap.Modal.getInstance(document.getElementById('modalEspecial'));
+                        modalEspecial.hide();
+                        formEspecial.reset();
+                        carregarEscalasEspeciais();
+                    } else {
+                        alert('Erro ao criar escala especial: ' + data.message);
+                    }
+                });
         });
     }
 });
@@ -1579,6 +1915,255 @@ document.addEventListener('DOMContentLoaded', function() {
         padding: 0.75rem 1rem;
         font-size: 0.875rem;
     }
+}
+
+/* ===== ESCALAS ESPECIAIS ===== */
+.especiais-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.75rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+.especiais-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.especiais-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.especiais-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.especiais-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem 2rem;
+    background: linear-gradient(135deg, #f8f9fb, #f0f4f8);
+    border-radius: 12px;
+    border: 2px dashed #d1d5db;
+}
+
+.especiais-empty i {
+    font-size: 3rem;
+    color: #d1d5db;
+    margin-bottom: 1rem;
+}
+
+.especiais-empty h4 {
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+}
+
+.especiais-empty p {
+    color: #9ca3af;
+    margin: 0;
+}
+
+.especial-item {
+    background: linear-gradient(135deg, #f8f9fb, #f0f4f8);
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.especial-item:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+    transform: translateY(-2px);
+}
+
+.especial-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 1rem;
+}
+
+.especial-item-title {
+    font-weight: 700;
+    color: #1f2937;
+    font-size: 1.125rem;
+    margin: 0;
+}
+
+.especial-item-type {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: #667eea;
+    color: white;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.especial-item-type.limpeza { background: #f59e0b; }
+.especial-item-type.feriado { background: #3b82f6; }
+.especial-item-type.evento { background: #8b5cf6; }
+
+.especial-item-desc {
+    color: #6b7280;
+    font-size: 0.875rem;
+    margin: 0.75rem 0;
+    line-height: 1.5;
+}
+
+.especial-item-meta {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.especial-item-meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.especial-item-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.btn-especial-edit,
+.btn-especial-toggle,
+.btn-especial-delete {
+    flex: 1;
+    padding: 0.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-especial-edit {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-especial-edit:hover {
+    background: #2563eb;
+}
+
+.btn-especial-toggle {
+    background: #10b981;
+    color: white;
+}
+
+.btn-especial-toggle:hover {
+    background: #059669;
+}
+
+.btn-especial-delete {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-especial-delete:hover {
+    background: #dc2626;
+}
+
+.especial-section {
+    background: #f9fafb;
+    padding: 1.25rem;
+    border-radius: 10px;
+    margin: 1rem 0;
+}
+
+.section-title {
+    font-weight: 600;
+    color: #374151;
+    margin: 0 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.bg-gradient {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.bg-gradient .modal-title {
+    color: white;
+}
+
+/* Modal melhorado */
+#modalEspecial .modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+#modalEspecial .form-label {
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#modalEspecial .form-control,
+#modalEspecial .form-select {
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+#modalEspecial .form-control:focus,
+#modalEspecial .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Dark mode */
+[data-theme="dark"] .especiais-card {
+    background: #1f2937;
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .especiais-title {
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .especial-item {
+    background: #374151;
+    border-color: #4b5563;
+}
+
+[data-theme="dark"] .especial-item-title {
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .especial-item-desc,
+[data-theme="dark"] .especial-item-meta {
+    color: #d1d5db;
 }
 </style>
 
