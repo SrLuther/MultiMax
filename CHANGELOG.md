@@ -4,6 +4,19 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 > **Nota**: A partir da versão 3.2.0, todas as datas de versão incluem a hora exata local (formato: `YYYY-MM-DD HH:MM:SS`) para rastreabilidade precisa dos releases.
 
+## [3.2.4] - 2026-01-24 23:32:00
+
+### Adicionado
+
+- docs(whatsapp): guia de proteção do endpoint e script de diagnóstico
+  - [docs/WHATSAPP_SERVICE_GUARD.md](docs/WHATSAPP_SERVICE_GUARD.md)
+  - [scripts/diagnostico-whatsapp-service.sh](scripts/diagnostico-whatsapp-service.sh)
+
+### Segurança
+
+- Passos para restringir `/dev/whatsapp/enviar` a localhost via Nginx
+- Validação do fluxo com token (Authorization: Bearer) e testes via curl
+
 ## [3.2.3] - 2026-01-24 23:20:00
 
 ### Mudado
