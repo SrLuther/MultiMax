@@ -16,10 +16,36 @@ services:
       - PORT=5000
       - DEBUG=false
       - GIT_REPO_DIR=/opt/multimax
+      - WHATSAPP_NOTIFY_URL=http://whatsapp-service:3001/notify
     restart: unless-stopped
+    depends_on:
+      - whatsapp-service
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000').read()"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  whatsapp-service:
+    build:
+      context: ./whatsapp-service
+      dockerfile: Dockerfile
+    container_name: whatsapp-service
+    ports:
+      - "3001:3001"
+    volumes:
+      - whatsapp-auth:/app/auth
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  whatsapp-auth:

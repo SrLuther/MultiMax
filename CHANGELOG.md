@@ -1,4 +1,26 @@
+# Changelog
+
+Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
+
+> **Nota**: A partir da versão 3.2.0, todas as datas de versão incluem a hora exata local (formato: `YYYY-MM-DD HH:MM:SS`) para rastreabilidade precisa dos releases.
+
 ## [Unreleased]
+
+## [3.2.0] - 2026-01-24 19:48:00
+
+### Adicionado
+
+- fix: correção crítica do erro 502 Bad Gateway
+  - Remoção da classe SpecialSchedule duplicada com erro de sintaxe
+  - Adição de `extend_existing=True` na classe User para prevenir redefinições
+  - Consolidação em única implementação EscalaEspecial correta
+
+### Mudanças
+
+- **NOVO PADRÃO CHANGELOG**: Inclusão da hora exata local (HH:MM:SS) nas versões
+  - Formato agora: `## [VERSÃO] - YYYY-MM-DD HH:MM:SS`
+  - Permite rastreabilidade precisa do momento do release
+  - Facilita auditoria temporal de mudanças
 
 ## [3.1.6] - 2026-01-24
 

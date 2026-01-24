@@ -1,0 +1,701 @@
+{% extends "base.html" %}
+
+{% block title %}Escalas Especiais{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="mb-0">
+                <i class="fas fa-calendar-check text-primary"></i> Escalas Especiais
+            </h1>
+            <p class="text-muted small mt-2">Gerenciar escalas especiais, limpeza, feriados e redistribuições</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovaEscala">
+                <i class="fas fa-plus"></i> Nova Escala Especial
+            </button>
+        </div>
+    </div>
+
+    <!-- Nav Tabs para filtros -->
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-todas" data-bs-toggle="tab" data-bs-target="#todas" type="button" role="tab">
+                <i class="fas fa-list"></i> Todas
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-ativas" data-bs-toggle="tab" data-bs-target="#ativas" type="button" role="tab">
+                <i class="fas fa-check-circle"></i> Ativas
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-futuras" data-bs-toggle="tab" data-bs-target="#futuras" type="button" role="tab">
+                <i class="fas fa-clock"></i> Futuras
+            </button>
+        </li>
+    </ul>
+
+    <!-- Conteúdo das abas -->
+    <div class="tab-content">
+        <!-- Todas as escalas -->
+        <div class="tab-pane fade show active" id="todas" role="tabpanel">
+            <div id="lista-escalas-todas" class="escalas-container">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p class="mt-3 text-muted">Carregando escalas especiais...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Escalas ativas -->
+        <div class="tab-pane fade" id="ativas" role="tabpanel">
+            <div id="lista-escalas-ativas" class="escalas-container">
+                <div class="text-center py-5">
+                    <p class="text-muted">Nenhuma escala ativa no momento</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Escalas futuras -->
+        <div class="tab-pane fade" id="futuras" role="tabpanel">
+            <div id="lista-escalas-futuras" class="escalas-container">
+                <div class="text-center py-5">
+                    <p class="text-muted">Nenhuma escala futura agendada</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nova Escala -->
+<div class="modal fade" id="modalNovaEscala" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus-circle text-primary"></i> Nova Escala Especial
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formNovaEscala" class="needs-validation" novalidate>
+                <div class="modal-body">
+                    <!-- Básico -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nome da Escala <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="nome" name="nome" required
+                                   placeholder="Ex: Limpeza Segunda-feira">
+                            <div class="invalid-feedback">Nome é obrigatório</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo <span class="text-danger">*</span></label>
+                            <select class="form-select" id="tipo" name="tipo" required>
+                                <option value="">Selecione um tipo...</option>
+                            </select>
+                            <div class="invalid-feedback">Tipo é obrigatório</div>
+                        </div>
+                    </div>
+
+                    <!-- Descrição -->
+                    <div class="mb-3">
+                        <label class="form-label">Descrição</label>
+                        <textarea class="form-control" id="descricao" name="descricao" rows="2"
+                                  placeholder="Detalhes adicionais sobre essa escala especial"></textarea>
+                    </div>
+
+                    <!-- Datas -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Data Início <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="data_inicio" name="data_inicio" required>
+                            <div class="invalid-feedback">Data início é obrigatória</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Data Fim <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="data_fim" name="data_fim" required>
+                            <div class="invalid-feedback">Data fim é obrigatória</div>
+                        </div>
+                    </div>
+
+                    <!-- Turno -->
+                    <div class="mb-3">
+                        <label class="form-label">Turno Customizado</label>
+                        <input type="text" class="form-control" id="turno_customizado" name="turno_customizado"
+                               placeholder="Ex: 08:00-17:00 ou deixe em branco para usar padrão">
+                    </div>
+
+                    <!-- Critério de Atribuição -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Critério de Atribuição <span class="text-danger">*</span></label>
+                            <select class="form-select" id="criterio_atribuicao" name="criterio_atribuicao" required>
+                                <option value="">Selecione um critério...</option>
+                            </select>
+                            <div class="invalid-feedback">Critério é obrigatório</div>
+                        </div>
+
+                        <!-- Campos opcionais baseados no critério -->
+                        <div class="col-md-6">
+                            <!-- Por Equipe -->
+                            <div id="campo-equipe" style="display: none;">
+                                <label class="form-label">Equipe/Setor</label>
+                                <select class="form-select" id="equipe_id" name="equipe_id">
+                                    <option value="">Selecione uma equipe...</option>
+                                </select>
+                            </div>
+
+                            <!-- Por Número -->
+                            <div id="campo-numero" style="display: none;">
+                                <label class="form-label">Número de Pessoas</label>
+                                <input type="number" class="form-control" id="numero_pessoas" name="numero_pessoas"
+                                       min="1" placeholder="Quantas pessoas?">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Manual -->
+                    <div id="campo-manual" style="display: none; margin-top: 15px;">
+                        <label class="form-label">Selecione os Colaboradores</label>
+                        <div id="lista-colaboradores" class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                            <p class="text-muted small">Carregando colaboradores...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Criar Escala
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Escala -->
+<div class="modal fade" id="modalEditarEscala" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit text-primary"></i> Editar Escala Especial
+                </h5>
+                <button type="button" class-"btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formEditarEscala" class="needs-validation" novalidate>
+                <div class="modal-body">
+                    <input type="hidden" id="editar-id" name="id">
+
+                    <!-- Similar ao formulário de criação -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nome da Escala</label>
+                            <input type="text" class="form-control" id="editar-nome" name="nome" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo</label>
+                            <select class="form-select" id="editar-tipo" name="tipo" required>
+                                <option value="">Selecione um tipo...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Descrição</label>
+                        <textarea class="form-control" id="editar-descricao" name="descricao" rows="2"></textarea>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Data Início</label>
+                            <input type="date" class="form-control" id="editar-data_inicio" name="data_inicio" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Data Fim</label>
+                            <input type="date" class="form-control" id="editar-data_fim" name="data_fim" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Turno Customizado</label>
+                        <input type="text" class="form-control" id="editar-turno_customizado" name="turno_customizado">
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="editar-ativo" name="ativo">
+                        <label class="form-check-label" for="editar-ativo">
+                            Ativa
+                        </label>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Salvar Alterações
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Card de Escala -->
+<template id="template-escala-card">
+    <div class="col-md-6 col-lg-4 escala-card-container">
+        <div class="card h-100 border-left-4 escala-card">
+            <div class="card-header bg-light">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h5 class="card-title mb-1">
+                            <span class="escala-nome"></span>
+                        </h5>
+                        <small class="text-muted escala-tipo"></small>
+                    </div>
+                    <div>
+                        <span class="badge bg-success escala-status-badge">Ativa</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="card-text text-muted small escala-descricao"></p>
+
+                <div class="mb-3">
+                    <small class="d-block mb-1">
+                        <strong><i class="far fa-calendar"></i> Período:</strong>
+                    </small>
+                    <small class="escala-periodo text-dark"></small>
+                </div>
+
+                <div class="mb-3">
+                    <small class="d-block mb-1">
+                        <strong><i class="far fa-clock"></i> Turno:</strong>
+                    </small>
+                    <small class="escala-turno text-dark"></small>
+                </div>
+
+                <div class="mb-3">
+                    <small class="d-block mb-1">
+                        <strong><i class="fas fa-users"></i> Atribuição:</strong>
+                    </small>
+                    <small class="escala-criterio text-dark"></small>
+                </div>
+
+                <div class="mb-3">
+                    <small class="d-block mb-1">
+                        <strong><i class="fas fa-user"></i> Criado por:</strong>
+                    </small>
+                    <small class="escala-criado_por text-dark"></small>
+                </div>
+            </div>
+            <div class="card-footer bg-light">
+                <div class="btn-group btn-group-sm w-100" role="group">
+                    <button type="button" class="btn btn-outline-primary btn-editar">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    <button type="button" class="btn btn-outline-success btn-aplicar">
+                        <i class="fas fa-check"></i> Aplicar
+                    </button>
+                    <button type="button" class="btn btn-outline-danger btn-deletar">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<style>
+.escala-card {
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.escala-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+}
+
+.border-left-4 {
+    border-left: 4px solid;
+}
+
+.escalas-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+.btn-group-sm {
+    gap: 5px;
+}
+
+.btn-group-sm .btn {
+    flex: 1;
+    font-size: 0.875rem;
+}
+</style>
+
+<script>
+let tiposEscala = [];
+let criteriosAtribuicao = [];
+let colaboradores = [];
+let setores = [];
+
+document.addEventListener('DOMContentLoaded', async function() {
+    await carregarDados();
+    await carregarEscalasEspeciais();
+    configurarFormularios();
+});
+
+async function carregarDados() {
+    try {
+        // Carrega tipos
+        const respTipos = await fetch('/api/escala-especial/tipos');
+        const dataTipos = await respTipos.json();
+        tiposEscala = dataTipos.data || [];
+
+        // Carrega critérios
+        const respCriterios = await fetch('/api/escala-especial/criterios');
+        const dataCriterios = await respCriterios.json();
+        criteriosAtribuicao = dataCriterios.data || [];
+
+        // Preenche selects
+        preencherSelect('tipo', tiposEscala);
+        preencherSelect('editar-tipo', tiposEscala);
+        preencherSelect('criterio_atribuicao', criteriosAtribuicao);
+
+        // Carrega colaboradores (se necessário)
+        // await carregarColaboradores();
+        // await carregarSetores();
+    } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        mostrarAlerta('Erro ao carregar dados', 'danger');
+    }
+}
+
+function preencherSelect(selectId, dados) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+
+    dados.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.nome;
+        select.appendChild(option);
+    });
+}
+
+async function carregarEscalasEspeciais() {
+    try {
+        const response = await fetch('/api/escala-especial/');
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            renderizarEscalas(data.data || []);
+        }
+    } catch (error) {
+        console.error('Erro ao carregar escalas:', error);
+        mostrarAlerta('Erro ao carregar escalas', 'danger');
+    }
+}
+
+function renderizarEscalas(escalas) {
+    const todosContainer = document.getElementById('lista-escalas-todas');
+    const aviasContainer = document.getElementById('lista-escalas-ativas');
+    const futurasContainer = document.getElementById('lista-escalas-futuras');
+
+    const hoje = new Date().toISOString().split('T')[0];
+
+    // Limpa containers
+    todosContainer.innerHTML = '';
+    aviasContainer.innerHTML = '';
+    futurasContainer.innerHTML = '';
+
+    if (escalas.length === 0) {
+        todosContainer.innerHTML = `
+            <div class="text-center py-5">
+                <i class="fas fa-inbox text-muted" style="font-size: 3rem;"></i>
+                <p class="mt-3 text-muted">Nenhuma escala especial criada ainda</p>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalNovaEscala">
+                    Criar a primeira escala
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    const container = document.createElement('div');
+    container.className = 'row';
+
+    escalas.forEach(escala => {
+        const card = criarCardEscala(escala);
+        container.appendChild(card);
+
+        // Adiciona aos containers apropriados
+        if (escala.ativo) {
+            aviasContainer.appendChild(card.cloneNode(true));
+        }
+
+        if (escala.data_inicio > hoje) {
+            futurasContainer.appendChild(card.cloneNode(true));
+        }
+    });
+
+    todosContainer.appendChild(container);
+
+    // Re-adiciona event listeners
+    document.querySelectorAll('.btn-editar').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const card = this.closest('.escala-card');
+            const id = card.dataset.id;
+            editarEscala(id);
+        });
+    });
+
+    document.querySelectorAll('.btn-deletar').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const card = this.closest('.escala-card');
+            const id = card.dataset.id;
+            const nome = card.querySelector('.escala-nome').textContent;
+            deletarEscala(id, nome);
+        });
+    });
+
+    document.querySelectorAll('.btn-aplicar').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const card = this.closest('.escala-card');
+            const id = card.dataset.id;
+            const nome = card.querySelector('.escala-nome').textContent;
+            aplicarEscala(id, nome);
+        });
+    });
+}
+
+function criarCardEscala(escala) {
+    const template = document.querySelector('#template-escala-card');
+    const clone = template.content.cloneNode(true);
+    const cardDiv = clone.querySelector('.escala-card');
+
+    cardDiv.dataset.id = escala.id;
+
+    // Preenche dados
+    clone.querySelector('.escala-nome').textContent = escala.nome;
+    clone.querySelector('.escala-tipo').textContent = `Tipo: ${escala.tipo}`;
+    clone.querySelector('.escala-descricao').textContent = escala.descricao || 'Sem descrição';
+    clone.querySelector('.escala-periodo').textContent = `${formatarData(escala.data_inicio)} a ${formatarData(escala.data_fim)}`;
+    clone.querySelector('.escala-turno').textContent = escala.turno_customizado || 'Padrão';
+    clone.querySelector('.escala-criterio').textContent = escala.criterio_atribuicao;
+    clone.querySelector('.escala-criado_por').textContent = escala.criado_por;
+
+    // Status
+    const badge = clone.querySelector('.escala-status-badge');
+    if (escala.ativo) {
+        badge.textContent = 'Ativa';
+        badge.className = 'badge bg-success';
+    } else {
+        badge.textContent = 'Inativa';
+        badge.className = 'badge bg-secondary';
+    }
+
+    // Cor da borda baseada no tipo
+    const card = clone.querySelector('.escala-card');
+    const cores = {
+        'limpeza': '#ffc107',
+        'feriado': '#dc3545',
+        'redistribuicao': '#17a2b8',
+        'evento': '#6f42c1',
+        'manutencao': '#fd7e14',
+        'outro': '#6c757d'
+    };
+    card.style.borderLeftColor = cores[escala.tipo] || '#6c757d';
+
+    const container = document.createElement('div');
+    container.appendChild(clone);
+    return container.firstElementChild;
+}
+
+function configurarFormularios() {
+    // Novo formulário
+    document.getElementById('formNovaEscala').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        if (!this.checkValidity()) {
+            e.stopPropagation();
+            this.classList.add('was-validated');
+            return;
+        }
+
+        await criarEscalaEspecial();
+    });
+
+    // Editar formulário
+    document.getElementById('formEditarEscala').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        if (!this.checkValidity()) {
+            e.stopPropagation();
+            this.classList.add('was-validated');
+            return;
+        }
+
+        await atualizarEscalaEspecial();
+    });
+
+    // Mudança de critério
+    document.getElementById('criterio_atribuicao').addEventListener('change', function() {
+        document.getElementById('campo-equipe').style.display = this.value === 'por_equipe' ? 'block' : 'none';
+        document.getElementById('campo-numero').style.display = this.value === 'por_numero' ? 'block' : 'none';
+        document.getElementById('campo-manual').style.display = this.value === 'manual' ? 'block' : 'none';
+    });
+}
+
+async function criarEscalaEspecial() {
+    const formData = new FormData(document.getElementById('formNovaEscala'));
+    const dados = Object.fromEntries(formData);
+
+    try {
+        const response = await fetch('/api/escala-especial/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dados)
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            mostrarAlerta('Escala criada com sucesso!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('modalNovaEscala')).hide();
+            document.getElementById('formNovaEscala').reset();
+            await carregarEscalasEspeciais();
+        } else {
+            mostrarAlerta(result.message, 'danger');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarAlerta('Erro ao criar escala', 'danger');
+    }
+}
+
+async function atualizarEscalaEspecial() {
+    const id = document.getElementById('editar-id').value;
+    const formData = new FormData(document.getElementById('formEditarEscala'));
+    const dados = Object.fromEntries(formData);
+    delete dados.id;
+
+    try {
+        const response = await fetch(`/api/escala-especial/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dados)
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            mostrarAlerta('Escala atualizada com sucesso!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('modalEditarEscala')).hide();
+            await carregarEscalasEspeciais();
+        } else {
+            mostrarAlerta(result.message, 'danger');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarAlerta('Erro ao atualizar escala', 'danger');
+    }
+}
+
+async function editarEscala(id) {
+    try {
+        const response = await fetch(`/api/escala-especial/${id}`);
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            const escala = data.data;
+
+            document.getElementById('editar-id').value = id;
+            document.getElementById('editar-nome').value = escala.nome;
+            document.getElementById('editar-tipo').value = escala.tipo;
+            document.getElementById('editar-descricao').value = escala.descricao || '';
+            document.getElementById('editar-data_inicio').value = escala.data_inicio;
+            document.getElementById('editar-data_fim').value = escala.data_fim;
+            document.getElementById('editar-turno_customizado').value = escala.turno_customizado || '';
+            document.getElementById('editar-ativo').checked = escala.ativo;
+
+            const modal = new bootstrap.Modal(document.getElementById('modalEditarEscala'));
+            modal.show();
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarAlerta('Erro ao carregar escala', 'danger');
+    }
+}
+
+async function deletarEscala(id, nome) {
+    if (!confirm(`Deseja realmente deletar a escala "${nome}"?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/escala-especial/${id}`, { method: 'DELETE' });
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            mostrarAlerta('Escala deletada com sucesso!', 'success');
+            await carregarEscalasEspeciais();
+        } else {
+            mostrarAlerta(result.message, 'danger');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarAlerta('Erro ao deletar escala', 'danger');
+    }
+}
+
+async function aplicarEscala(id, nome) {
+    if (!confirm(`Aplicar escala "${nome}" aos colaboradores?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/escala-especial/aplicar/${id}`, { method: 'POST' });
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            mostrarAlerta(`${result.message}`, 'success');
+            await carregarEscalasEspeciais();
+        } else {
+            mostrarAlerta(result.message, 'danger');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarAlerta('Erro ao aplicar escala', 'danger');
+    }
+}
+
+function formatarData(data) {
+    return new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
+}
+
+function mostrarAlerta(mensagem, tipo) {
+    // Cria alerta Bootstrap dinâmico
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${tipo} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${mensagem}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    const container = document.querySelector('.container');
+    container.insertBefore(alertDiv, container.firstChild);
+
+    // Remove após 5 segundos
+    setTimeout(() => alertDiv.remove(), 5000);
+}
+</script>
+{% endblock %}

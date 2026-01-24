@@ -120,6 +120,8 @@ def _register_blueprints(app: Flask) -> tuple[bool, None]:
     from .routes.ciclos import bp as ciclos_bp
     from .routes.colaboradores import bp as colaboradores_bp
     from .routes.cronograma import bp as cronograma_bp
+    from .routes.escala_especial import api_bp as escala_especial_api_bp
+    from .routes.escala_especial import bp as escala_especial_bp
     from .routes.estoque_producao import bp as estoque_producao_bp
     from .routes.exportacao import bp as exportacao_bp
     from .routes.home import bp as home_bp
@@ -151,6 +153,8 @@ def _register_blueprints(app: Flask) -> tuple[bool, None]:
     app.register_blueprint(home_bp)
     app.register_blueprint(estoque_producao_bp)
     app.register_blueprint(cronograma_bp)
+    app.register_blueprint(escala_especial_bp)
+    app.register_blueprint(escala_especial_api_bp)
     app.register_blueprint(exportacao_bp)
     app.register_blueprint(usuarios_bp)
     app.register_blueprint(carnes_bp)

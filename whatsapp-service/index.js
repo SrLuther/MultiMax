@@ -147,8 +147,12 @@ function setupHttpServer() {
   const app = express();
   app.use(express.json());
 
+  app.get("/health", (req, res) => {
+    res.status(200).json({ status: "ok", service: "whatsapp-service" });
+  });
+
   app.post("/notify", async (req, res) => {
-    const { mensagem } = req.body;
+    const { mensagem, origin } = req.body;
 
     if (!mensagem) {
       logger.warn("Requisição /notify sem mensagem");
@@ -156,10 +160,12 @@ function setupHttpServer() {
     }
 
     try {
+      const originStr = origin ? ` (origin: ${origin})` : "";
+      logger.info({ origem: origin || "unknown", tamanho: mensagem.length }, "Processando envio de mensagem");
       await sendToNotifyGroup(mensagem);
       res.status(200).json({ sucesso: true, mensagem: "Enviado para grupo Notify" });
     } catch (err) {
-      logger.error({ err }, "Erro ao processar /notify");
+      logger.error({ err, origin }, "Erro ao processar /notify");
       res.status(500).json({ erro: err.message || "Falha ao enviar mensagem" });
     }
   });
