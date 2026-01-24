@@ -74,6 +74,47 @@
             </div>
         </div>
 
+        <!-- Filtros Avançados -->
+        <div class="filtros-container">
+            <div class="filtro-group">
+                <label for="filtro-colab" class="filtro-label">
+                    <i class="bi bi-funnel"></i>
+                    Filtrar Colaborador
+                </label>
+                <input type="text" id="filtro-colab" class="filtro-input" placeholder="Buscar por nome...">
+            </div>
+            <div class="filtro-group">
+                <label for="filtro-turno" class="filtro-label">
+                    <i class="bi bi-clock"></i>
+                    Turno
+                </label>
+                <select id="filtro-turno" class="filtro-select">
+                    <option value="">Todos os turnos</option>
+                    <option value="Abertura 5h">Abertura 5h</option>
+                    <option value="Abertura 6h">Abertura 6h</option>
+                    <option value="Tarde">Tarde</option>
+                    <option value="Domingo 5h">Domingo 5h</option>
+                    <option value="Domingo 6h">Domingo 6h</option>
+                    <option value="Folga">Folga</option>
+                </select>
+            </div>
+            <div class="filtro-group">
+                <label for="filtro-status" class="filtro-label">
+                    <i class="bi bi-circle-fill"></i>
+                    Status
+                </label>
+                <select id="filtro-status" class="filtro-select">
+                    <option value="">Todos</option>
+                    <option value="Férias">Férias</option>
+                    <option value="Folga">Folga</option>
+                    <option value="Atestado">Atestado</option>
+                </select>
+            </div>
+            <button id="btn-limpar-filtros" class="btn-limpar-filtros" title="Limpar filtros">
+                <i class="bi bi-x-circle"></i>
+            </button>
+        </div>
+
         <!-- Grade -->
         <div class="grade-card">
             <div class="grade-table-wrapper">
@@ -516,12 +557,115 @@ function excluirTurno() {
         form.submit();
     }
 }
+
+/* ===== FILTROS AVANÇADOS ===== */
+function aplicarFiltros() {
+    var filtroColab = document.getElementById('filtro-colab')?.value.toLowerCase() || '';
+    var filtroTurno = document.getElementById('filtro-turno')?.value || '';
+    var filtroStatus = document.getElementById('filtro-status')?.value || '';
+    
+    var linhas = document.querySelectorAll('.grade-row');
+    
+    linhas.forEach(function(linha) {
+        var nomeColab = linha.querySelector('.grade-colab-nome')?.textContent.toLowerCase() || '';
+        var visivel = true;
+        
+        // Filtro por nome
+        if (filtroColab && !nomeColab.includes(filtroColab)) {
+            visivel = false;
+        }
+        
+        // Filtro por turno ou status
+        if ((filtroTurno || filtroStatus) && visivel) {
+            var encontrouTurnoOuStatus = false;
+            var celulas = linha.querySelectorAll('.grade-turno-cell');
+            
+            celulas.forEach(function(celula) {
+                var badge = celula.querySelector('.grade-turno-badge');
+                if (badge) {
+                    var textoBadge = badge.textContent.trim();
+                    var ehStatus = badge.classList.contains('grade-turno-status');
+                    
+                    if (filtroTurno && !ehStatus && textoBadge === filtroTurno) {
+                        encontrouTurnoOuStatus = true;
+                    }
+                    if (filtroStatus && ehStatus && textoBadge === filtroStatus) {
+                        encontrouTurnoOuStatus = true;
+                    }
+                }
+            });
+            
+            if ((filtroTurno || filtroStatus) && !encontrouTurnoOuStatus) {
+                visivel = false;
+            }
+        }
+        
+        if (visivel) {
+            linha.classList.remove('hidden');
+        } else {
+            linha.classList.add('hidden');
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Filtro de colaborador
+    var filtroColab = document.getElementById('filtro-colab');
+    if (filtroColab) {
+        filtroColab.addEventListener('input', function() {
+            aplicarFiltros();
+        });
+    }
+    
+    // Filtro de turno
+    var filtroTurno = document.getElementById('filtro-turno');
+    if (filtroTurno) {
+        filtroTurno.addEventListener('change', function() {
+            aplicarFiltros();
+        });
+    }
+    
+    // Filtro de status
+    var filtroStatus = document.getElementById('filtro-status');
+    if (filtroStatus) {
+        filtroStatus.addEventListener('change', function() {
+            aplicarFiltros();
+        });
+    }
+    
+    // Limpar filtros
+    var btnLimpar = document.getElementById('btn-limpar-filtros');
+    if (btnLimpar) {
+        btnLimpar.addEventListener('click', function() {
+            if (filtroColab) filtroColab.value = '';
+            if (filtroTurno) filtroTurno.value = '';
+            if (filtroStatus) filtroStatus.value = '';
+            aplicarFiltros();
+        });
+    }
+});
 </script>
 
 <style>
+/* ===== VARIÁVEIS E RESET ===== */
+:root {
+    --primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --primary-dark: #667eea;
+    --secondary: #764ba2;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --info: #0ea5e9;
+    --bg-light: #f9fafb;
+    --bg-white: #ffffff;
+    --border-light: #e5e7eb;
+    --text-primary: #1f2937;
+    --text-secondary: #6b7280;
+}
+
 .escala-container {
     padding: 2rem;
-    max-width: 1800px;
+    max-width: 1900px;
     margin: 0 auto;
 }
 
@@ -1202,6 +1346,241 @@ function excluirTurno() {
     background: #1e3a5f;
     border-color: #0ea5e9;
 }
+
+/* ===== FILTROS AVANÇADOS ===== */
+.filtros-container {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, #f8f9fb, #f0f4f8);
+    border-radius: 12px;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.filtro-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 200px;
+}
+
+.filtro-label {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filtro-input,
+.filtro-select {
+    padding: 0.75rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 0.875rem;
+    background: white;
+    color: #1f2937;
+    transition: all 0.3s ease;
+}
+
+.filtro-input:focus,
+.filtro-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.filtro-input::placeholder {
+    color: #9ca3af;
+}
+
+.btn-limpar-filtros {
+    padding: 0.75rem 1.25rem;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.btn-limpar-filtros:hover {
+    background: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* Filtrado - estilo para linhas ocultas */
+.grade-row.hidden {
+    display: none;
+}
+
+/* ===== TOOLTIPS PREMIUM ===== */
+.grade-turno-editable {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.grade-turno-editable::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: rgba(255,255,255,0.2);
+    transition: left 0.3s ease;
+}
+
+.grade-turno-editable:hover::before {
+    left: 100%;
+}
+
+.grade-turno-editable:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* Animações de entrada */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.grade-card {
+    animation: slideIn 0.3s ease forwards;
+}
+
+.filtros-container {
+    animation: slideIn 0.3s ease forwards;
+    animation-delay: 0.1s;
+}
+
+/* Info Box no config */
+.info-resumo {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-card {
+    background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+    border: 2px solid #0ea5e9;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.info-card-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0c4a6e;
+    margin-bottom: 0.5rem;
+}
+
+.info-card-label {
+    font-size: 0.875rem;
+    color: #0ea5e9;
+    font-weight: 600;
+}
+
+/* Melhorias na tabela responsiva */
+@media (max-width: 1024px) {
+    .filtros-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filtro-group {
+        min-width: unset;
+    }
+
+    .grade-table {
+        min-width: 100%;
+    }
+
+    .escala-header-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .semana-nav {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .semana-buttons {
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 768px) {
+    .escala-container {
+        padding: 1rem;
+    }
+
+    .escala-title {
+        font-size: 1.5rem;
+    }
+
+    .semana-title {
+        font-size: 1.25rem;
+    }
+
+    .grade-card {
+        padding: 1rem;
+    }
+
+    .grade-table-wrapper {
+        margin-left: -1rem;
+        margin-right: -1rem;
+        padding: 0 1rem;
+    }
+
+    .grade-colab-details {
+        display: none;
+    }
+
+    .grade-dia-header {
+        min-width: 100px;
+        padding: 0.75rem 0.5rem;
+    }
+
+    .grade-turno-cell {
+        padding: 0.5rem 0.25rem;
+    }
+
+    .filtro-group {
+        width: 100%;
+    }
+
+    .escala-tabs {
+        gap: 0.25rem;
+    }
+
+    .escala-tab {
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+    }
+}
+</style>
 
 [data-theme="dark"] .config-info-box strong {
     color: #93c5fd;

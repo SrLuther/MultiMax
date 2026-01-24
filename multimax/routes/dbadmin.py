@@ -1952,9 +1952,18 @@ def backup_now():
 
     ok = False
     try:
+        # Primeiro tenta a função registrada no app
         fn = getattr(current_app, "perform_backup", None)
         if callable(fn):
             ok = bool(fn(retain_count=20, force=True))
+        # Fallback: chama implementação interna diretamente
+        if not ok:
+            try:
+                from .. import _perform_backup as __perform_backup  # type: ignore
+
+                ok = bool(__perform_backup(current_app, retain_count=20, force=True, daily=False))
+            except Exception:
+                ok = False
     except Exception:
         ok = False
     flash("Backup criado." if ok else "Falha ao criar backup.", "success" if ok else "danger")

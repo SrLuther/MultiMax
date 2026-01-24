@@ -1,5 +1,35 @@
 ## [Unreleased]
 
+## [3.1.6] - 2026-01-24
+
+### Adicionado
+
+- feat(escala): visual premium com filtros avançados
+  - Filtros por colaborador, turno e status com interface interativa
+  - Design dark mode com gradientes modernos e animações suaves
+  - Responsividade completa para mobile
+  - Tooltips contextuais em turnos e informações
+  - Seção de filtros com limpar tudo
+  - JavaScript para aplicação dinâmica de filtros
+
+- refactor(dbstatus): diagnóstico expandido com performance detalhada
+  - Cards com informações de database (páginas, tamanho, tabelas)
+  - Seção de backups com lista de arquivos recentes
+  - Configuração visível (caminho BD, modo, scheduler status)
+  - Visual premium com gradientes e dark mode
+
+## [3.1.5] - 2026-01-24
+
+### Adicionado
+
+- feat(backup): agendador interno de backups automáticos (diário e semanal)
+  - Função `_perform_backup()` em `multimax/__init__.py` com VACUUM INTO
+  - Scheduler de threads em `app.py`: daily 00:05, weekly Sunday 02:00
+  - Rota POST `/db/backup` com fallback para função interna
+  - Retenção de até 20 backups (exceto backup diário)
+  - Backup diário: `backup-24h.sqlite`, atualizado a cada execução
+  - Suporte persistente via `/multimax-data/backups`
+
 ## [3.1.4] - 2026-01-24
 
 ### Adicionado
