@@ -78,7 +78,7 @@ def registrar_saldo(
         CicloSaldo: Registro criado ou atualizado
     """
     # Tentar encontrar saldo existente
-    saldo_existente = CicloSaldo.query.filter(
+    saldo_existente: Optional[CicloSaldo] = CicloSaldo.query.filter(
         and_(CicloSaldo.collaborator_id == collaborator_id, CicloSaldo.mes_ano == mes_ano)
     ).first()
 
@@ -91,7 +91,7 @@ def registrar_saldo(
         return saldo_existente
     else:
         # Criar novo saldo
-        novo_saldo = CicloSaldo()
+        novo_saldo: CicloSaldo = CicloSaldo()
         novo_saldo.collaborator_id = collaborator_id
         novo_saldo.mes_ano = mes_ano
         novo_saldo.saldo = Decimal(str(round(saldo, 1)))

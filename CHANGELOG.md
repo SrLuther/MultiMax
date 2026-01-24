@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+## [3.1.3] - 2026-01-24
+
+### Corrigido
+
+- fix(mypy): adicionar type hints explícitas para CicloSaldo.query
+  - Resolvido erro de retorno Any em registrar_saldo()
+  - Adicionadas anotações de tipo para variáveis intermediárias
+
 ## [3.1.2] - 2026-01-24
 
 ### Corrigido
