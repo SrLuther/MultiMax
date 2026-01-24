@@ -6,7 +6,7 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ## [Unreleased]
 
-## [3.3.0] - 2026-01-24 20:15:00
+## [3.2.1] - 2026-01-24 20:15:00
 
 ### Adicionado
 
