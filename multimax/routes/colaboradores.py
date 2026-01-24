@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from .. import db
@@ -1212,7 +1212,9 @@ def folga_converter():
         flash(f"Erro ao registrar conversão: {e}", "danger")
     return redirect(url_for("usuarios.gestao"))
 
+
 # ===== ESCALAS ESPECIAIS =====
+
 
 @bp.route("/escala/especiais/criar", methods=["POST"], strict_slashes=False)
 @login_required
@@ -1223,6 +1225,7 @@ def escala_especial_criar():
 
     try:
         from datetime import datetime
+
         from multimax.models import SpecialSchedule
 
         name = request.form.get("name", "").strip()
@@ -1241,11 +1244,7 @@ def escala_especial_criar():
 
         try:
             start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-            end_date = (
-                datetime.strptime(end_date_str, "%Y-%m-%d").date()
-                if end_date_str
-                else None
-            )
+            end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date() if end_date_str else None
         except ValueError:
             return jsonify({"success": False, "message": "Datas inválidas"}), 400
 

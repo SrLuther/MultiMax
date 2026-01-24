@@ -29,6 +29,15 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 - Com o ajuste, chamadas com `Authorization: Bearer <token>` a `http://127.0.0.1:5000/dev/whatsapp/enviar` retornam JSON e não redirecionam
 
+## [3.2.10] - 2026-01-24
+
+### 🐛 Fixes
+
+- **Lint Errors**: Resolve all flake8 CI errors: missing jsonify import, unused variables, excessive line length
+- **Code Quality**: Fix E501, F841, F811, F821 violations; apply black/isort auto-formatting
+
+---
+
 ## [3.2.9] - 2026-01-24
 
 ### 🔒 Security

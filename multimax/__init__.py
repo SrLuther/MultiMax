@@ -310,7 +310,6 @@ def _setup_main_routes(app: Flask) -> None:
 
             # Dados básicos
             user_count = User.query.count()
-            uri = app.config.get("SQLALCHEMY_DATABASE_URI", "")
             db_file_path = app.config.get("DB_FILE_PATH", "")
             backup_dir = app.config.get("BACKUP_DIR", "")
 
@@ -359,8 +358,6 @@ def _setup_main_routes(app: Flask) -> None:
                 recent_backups = recent_backups[:5]
 
             # Uptime
-            import time
-
             uptime_sec = int(time.time() - app.config.get("_startup_time", time.time()))
             uptime_min = uptime_sec // 60
             uptime_h = uptime_min // 60
@@ -369,7 +366,12 @@ def _setup_main_routes(app: Flask) -> None:
             backup_list_html = ""
             for fname, size, mtime in recent_backups:
                 dt = datetime.fromtimestamp(mtime).strftime("%d/%m %H:%M")
-                backup_list_html += f'<div class="backup-item"><span class="backup-name">{fname}</span><span class="backup-meta">{size} MB • {dt}</span></div>'
+                backup_list_html += (
+                    f'<div class="backup-item">'
+                    f'<span class="backup-name">{fname}</span>'
+                    f'<span class="backup-meta">{size} MB • {dt}</span>'
+                    f"</div>"
+                )
 
             html = f"""
             <!DOCTYPE html>
@@ -382,7 +384,8 @@ def _setup_main_routes(app: Flask) -> None:
                     * {{ margin: 0; padding: 0; box-sizing: border-box; }}
 
                     body {{
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                                     'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
                         background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
                         color: #e2e8f0;
                         padding: 24px;
@@ -663,7 +666,9 @@ def _setup_main_routes(app: Flask) -> None:
                                 <span class="card-icon">📋</span>
                                 Backups Recentes
                             </div>
-                            {backup_list_html if backup_list_html else '<div style="color: #94a3b8; font-size: 13px;">Nenhum backup encontrado</div>'}
+                            {backup_list_html if backup_list_html else
+                             '<div style="color: #94a3b8; font-size: 13px;">'
+                             'Nenhum backup encontrado</div>'}
                         </div>
 
                         <!-- Card: Configuração -->
@@ -691,7 +696,7 @@ def _setup_main_routes(app: Flask) -> None:
             </html>
             """
             return html
-        except Exception as e:
+        except Exception:
             import traceback
 
             html = f"""
