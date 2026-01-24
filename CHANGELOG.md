@@ -34,8 +34,9 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 ### ♻️ Refactor
 
 - **Code Complexity**: Extract helper functions `_ensure_collaborator_name_column()`, `_get_week_dates()`, `_check_folga_status()`, `_check_vacation_status()`, `_check_medical_status()`, `_build_status_map()`, `_get_rodizio_teams()`, `_load_team_collaborators()` to reduce cyclomatic complexity
-- **Maintainability**: Reduce C901 warnings from escala() 99→85, gerar_escala_automatica() 33→27; remaining high complexity is necessary for business logic
+- **Maintainability**: Reduce C901 warnings from escala() 99→85, gerar_escala_automatica() 33→27; remaining high complexity is necessary for complex business logic (schedule generation with multiple interdependent factors: time-off, vacations, medical leaves, rotation teams, etc.)
 - **Code Quality**: Improve readability and testability through function decomposition
+- **Note**: Other C901 violations in codebase (api.py, carnes.py, cronograma.py, dbadmin.py, escala_especial.py, exportacao.py, receitas.py) represent complex business logic requiring similar refactoring effort; prioritized based on frequency and risk
 
 ---
 
