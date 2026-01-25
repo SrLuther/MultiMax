@@ -1,4 +1,10 @@
 # Changelog
+## [3.2.32] - 2026-01-25 19:30:00
+
+### Corrigido
+- fix(whatsapp): removido `{% endblock %}` duplicado no final do template whatsapp_admin.html
+  - Corrige erro de sintaxe Jinja2 e erro 500 em produção
+
 ## [3.2.31] - 2026-01-25 19:15:00
 
 ### Corrigido
