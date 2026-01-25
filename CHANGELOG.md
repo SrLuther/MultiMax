@@ -1,4 +1,9 @@
 # Changelog
+## [3.2.33] - 2026-01-25 20:00:00
+
+### Corrigido
+- fix(whatsapp): correção cirúrgica, removido segundo `{% endblock %}` duplicado no final do whatsapp_admin.html
+  - Corrige erro 500 persistente causado por bloco Jinja2 duplicado
 ## [3.2.32] - 2026-01-25 19:30:00
 
 ### Corrigido
