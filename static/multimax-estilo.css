@@ -5,6 +5,13 @@
 /* Fonte Ubuntu */
 @import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap');
 
+/* Contraste aprimorado para textos de estado vazio no modo escuro (Escalas Especiais) */
+[data-theme="dark"] .text-muted,
+.dark .text-muted {
+    color: #e0e0e0 !important;
+    text-shadow: 0 1px 2px #0008;
+}
+
 /* Forçar fonte no login (login intacto) */
 body, input, button, .card, .alert, .form-control {
     font-family: "Ubuntu", sans-serif !important;

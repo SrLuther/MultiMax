@@ -1,3 +1,4 @@
+import logging
 import math
 import os
 import re
@@ -9,7 +10,7 @@ from zoneinfo import ZoneInfo
 
 from flask import Blueprint, flash, jsonify, make_response, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
-from sqlalchemy import func
+from sqlalchemy import func, or_
 
 from .. import db
 from ..models import (
@@ -36,6 +37,20 @@ except Exception:
     # (especialmente no Windows onde DLLs podem não estar disponíveis)
     WEASYPRINT_AVAILABLE = False
     HTML = None  # type: ignore
+
+
+def safe_date(value, fmt="%d/%m/%Y"):
+    if hasattr(value, "strftime"):
+        try:
+            return value.strftime(fmt)
+        except Exception:
+            return str(value)
+    return value or "-"
+
+
+def register_jinja_filters(app):
+    app.jinja_env.filters["safe_date"] = safe_date
+
 
 bp = Blueprint("ciclos", __name__, url_prefix="/ciclos")
 
@@ -87,8 +102,6 @@ def _calculate_collaborator_balance(collaborator_id):
     total_horas_float = float(total_horas)
 
     # Debug: log para verificar o cálculo
-    import logging
-
     logger = logging.getLogger(__name__)
     logger.debug(f"Colaborador {collaborator_id}: total_horas = {total_horas_float}")
 
@@ -125,8 +138,6 @@ def _calculate_collaborator_balance_range(
     )
     if setor_id:
         # Incluir: registros com setor_id preenchido OU registros antigos (NULL) do colaborador neste setor
-        from sqlalchemy import or_
-
         q = q.filter(
             or_(Ciclo.setor_id == setor_id, (Ciclo.setor_id.is_(None) & (Collaborator.setor_id == setor_id)))
         ).join(Collaborator)
@@ -3101,6 +3112,9 @@ def _gerar_pdf_ciclo_aberto_bytes():
         logo_header = None
     logo_footer = None
 
+    from flask import current_app
+
+    register_jinja_filters(current_app)
     html = render_template(
         "ciclos/pdf_geral.html",
         colaboradores_resumo=colaboradores_resumo,

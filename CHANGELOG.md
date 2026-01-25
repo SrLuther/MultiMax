@@ -1,4 +1,9 @@
 # Changelog
+## [3.2.45] - 2026-01-25
+
+### Corrigido
+- fix(pdf): filtro seguro para datas nos templates PDF evita erro de strftime em string
+  - Garante que PDFs de ciclos nunca quebrem caso algum campo de data venha como string.
 ## [3.2.44] - 2026-01-25
 
 ### Corrigido

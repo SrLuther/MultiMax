@@ -193,7 +193,7 @@
 
         {% for semana in resumo.semanas %}
             <div class="week-header">
-                {{ semana.label }} — {{ semana.week_start.strftime('%d/%m/%Y') }} a {{ semana.week_end.strftime('%d/%m/%Y') }}
+                {{ semana.label }} — {{ semana.week_start|safe_date }} a {{ semana.week_end|safe_date }}
             </div>
 
             {% if (semana.folgas and semana.folgas|length > 0) or (semana.horas and semana.horas|length > 0) or (semana.ocorrencias and semana.ocorrencias|length > 0) %}
@@ -210,7 +210,7 @@
                 <tbody>
                     {% for f in (semana.folgas or []) %}
                     <tr>
-                        <td>{{ f.data_folga.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ f.data_folga|safe_date }}</td>
                         <td>Folga</td>
                         <td>{{ 'Folga adicional' if f.tipo == 'adicional' else 'Folga usada' }}</td>
                         <td>{% if f.tipo == 'uso' and f.valor_horas is defined %}{{ "%.1f"|format(f.valor_horas) }}h{% else %}{{ f.dias }} dia(s){% endif %}</td>
@@ -219,7 +219,7 @@
                     {% endfor %}
                     {% for reg in (semana.horas or []) %}
                     <tr>
-                        <td>{{ reg.data_lancamento.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ reg.data_lancamento|safe_date }}</td>
                         <td>Horas Extras</td>
                         <td>{{ reg.origem }}</td>
                         <td>{{ "%.1f"|format(reg.valor_horas) }}h</td>
@@ -228,7 +228,7 @@
                     {% endfor %}
                     {% for o in (semana.ocorrencias or []) %}
                     <tr>
-                        <td>{{ o.data_ocorrencia.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ o.data_ocorrencia|safe_date }}</td>
                         <td>Ocorrência</td>
                         <td>{{ o.tipo }}</td>
                         <td>-</td>
@@ -257,7 +257,7 @@
     {% endfor %}
 
     <div class="footer">
-        <p>Documento gerado automaticamente pelo sistema MultiMax em {{ data_geracao.strftime('%d/%m/%Y às %H:%M') }}</p>
+        <p>Documento gerado automaticamente pelo sistema MultiMax em {{ data_geracao|safe_date('%d/%m/%Y às %H:%M') }}</p>
         <p class="footer-url">www.multimax.tec.br</p>
     </div>
 </body>
