@@ -73,6 +73,27 @@ def _notify_url() -> str:
     return (os.getenv("WHATSAPP_NOTIFY_URL") or "https://www.multimax.tec.br/notify").strip()
 
 
+def _candidate_urls(primary: str) -> list[str]:
+    """Retorna URLs candidatas para o gateway de WhatsApp.
+
+    Ordem de tentativa:
+    1. URL primária configurada
+    2. Fallback local: 127.0.0.1
+    3. Fallback local: localhost
+    """
+    fallbacks = [
+        "http://127.0.0.1:3001/notify",
+        "http://localhost:3001/notify",
+    ]
+    urls: list[str] = []
+    if primary:
+        urls.append(primary)
+    for fb in fallbacks:
+        if fb not in urls:
+            urls.append(fb)
+    return urls
+
+
 def get_gateway_display_url() -> str:
     url = _notify_url()
     if not url:
@@ -105,15 +126,23 @@ def send_whatsapp_message(message: str, actor: str | None = None, origin: str = 
 
     payload = {"mensagem": msg, "origin": origin}
     headers = {"Content-Type": "application/json"}
-    try:
-        resp = requests.post(
-            url, json=payload, headers=headers, timeout=_timeout_seconds()
-        )  # nosec B113: timeout definido explicitamente
-        if resp.status_code >= 400:
-            snippet = (resp.text or "").strip().replace("\n", " ")[:200]
-            return False, f"Erro do serviço ({resp.status_code}): {snippet or 'resposta vazia'}"
-    except requests.RequestException as exc:
-        return False, f"Falha ao contatar serviço WhatsApp: {exc}"
+    last_error: str = ""
+    for candidate in _candidate_urls(url):
+        try:
+            resp = requests.post(
+                candidate, json=payload, headers=headers, timeout=_timeout_seconds()
+            )  # nosec B113: timeout definido explicitamente
+            if resp.status_code >= 400:
+                snippet = (resp.text or "").strip().replace("\n", " ")[:200]
+                last_error = f"Erro do serviço ({resp.status_code}): {snippet or 'resposta vazia'}"
+                continue
+            # sucesso
+            _log_system("manual_send", f"Mensagem enviada via gateway ({len(msg)} chars)", actor)
+            return True, ""
+        except requests.RequestException as exc:
+            last_error = f"Falha ao contatar serviço WhatsApp: {exc}"
+            continue
 
-    _log_system("manual_send", f"Mensagem enviada via gateway ({len(msg)} chars)", actor)
-    return True, ""
+    if last_error:
+        return False, last_error
+    return False, "Falha ao contatar serviço WhatsApp: erro desconhecido"

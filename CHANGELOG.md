@@ -38,6 +38,16 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ---
 
+## [3.2.13] - 2026-01-24
+
+### Corrigido
+
+- fix(whatsapp): adicionar fallback de URL do gateway com tentativas sequenciais
+  - Ordem: `WHATSAPP_NOTIFY_URL` → `http://127.0.0.1:3001/notify` → `http://localhost:3001/notify`
+  - Evita NameResolutionError (DNS) quando `whatsapp-service` não resolve em ambientes fora do Docker
+
+---
+
 ## [3.2.11] - 2026-01-24
 
 ### ♻️ Refactor
