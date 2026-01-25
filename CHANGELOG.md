@@ -1,4 +1,9 @@
 # Changelog
+## [3.2.41] - 2026-01-25 23:10:00
+
+### Corrigido
+- fix(whatsapp-admin): fechamento robusto do modal Ciclo Aberto com fallback manual
+  - Garante que o modal sempre fecha, mesmo se houver falha do Bootstrap ou conflito de instância.
 ## [3.2.40] - 2026-01-25 23:00:00
 
 ### Corrigido

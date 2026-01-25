@@ -305,11 +305,18 @@ function toggleAutoNotificacoes() {
 
                         function fecharModalCicloAberto() {
                             const modalEl = document.getElementById('modalCicloAberto');
-                            let modal = bootstrap.Modal.getInstance(modalEl);
-                            if (!modal) {
-                                modal = new bootstrap.Modal(modalEl);
+                            try {
+                                // Sempre cria ou obtém a instância para garantir o controle
+                                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                                modal.hide();
+                            } catch (e) {
+                                // Fallback manual caso Bootstrap falhe
+                                modalEl.classList.remove('show');
+                                modalEl.style.display = 'none';
+                                document.body.classList.remove('modal-open');
+                                const backdrop = document.querySelector('.modal-backdrop');
+                                if (backdrop) backdrop.remove();
                             }
-                            modal.hide();
                         }
 
                         function showNotification(title, message, type) {
