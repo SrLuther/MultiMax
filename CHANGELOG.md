@@ -6,6 +6,12 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ## [Unreleased]
 
+## [3.2.19] - 2026-01-25
+
+### Corrigido
+
+- refactor(colaboradores): extrair helpers para reduzir complexidade das rotas de escala e manter cálculo de feriados/rodízio intacto
+
 ## [3.2.18] - 2026-01-25
 
 ### Corrigido

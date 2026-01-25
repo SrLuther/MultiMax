@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
@@ -133,96 +133,36 @@ def _build_status_map(cols, dias_semana):
     return status_map
 
 
-@bp.route("/escala", strict_slashes=False)
-@login_required
-def escala():
-    from datetime import timedelta
-
-    _ensure_collaborator_name_column()
-    cols = CollaboratorModel.query.filter_by(active=True).order_by(CollaboratorModel.name.asc()).all()
-    today = date.today()
-
-    semana_param = request.args.get("semana", "")
-    semana_inicio, semana_fim = _get_week_dates(semana_param, today)
-    semana_anterior = (semana_inicio - timedelta(days=7)).strftime("%Y-%m-%d")
-    semana_proxima = (semana_inicio + timedelta(days=7)).strftime("%Y-%m-%d")
-
+def _build_dias_semana(semana_inicio, today):
     dias_nomes = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"]
     dias_semana = []
     for i in range(7):
         d = semana_inicio + timedelta(days=i)
         dias_semana.append({"data": d, "nome": dias_nomes[i], "is_today": d == today})
+    return dias_semana
 
+
+def _calculate_semana_context(semana_param, today):
+    semana_inicio, semana_fim = _get_week_dates(semana_param, today)
+    semana_anterior = (semana_inicio - timedelta(days=7)).strftime("%Y-%m-%d")
+    semana_proxima = (semana_inicio + timedelta(days=7)).strftime("%Y-%m-%d")
+    dias_semana = _build_dias_semana(semana_inicio, today)
+    return semana_inicio, semana_fim, semana_anterior, semana_proxima, dias_semana
+
+
+def _load_turnos_for_week(semana_inicio, semana_fim):
     turnos_semana = Shift.query.filter(Shift.date >= semana_inicio, Shift.date <= semana_fim).all()
+    turnos_map = {(t.collaborator_id, t.date.isoformat()): t for t in turnos_semana}
+    return turnos_semana, turnos_map
 
-    turnos_map = {}
-    for t in turnos_semana:
-        key = (t.collaborator_id, t.date.isoformat())
-        turnos_map[key] = t
 
-    # Mapa de status (Folga, Férias, Atestado) por colaborador e data
-    status_map = {}
-    for colab in cols:
-        for dia in dias_semana:
-            key = (colab.id, dia["data"].isoformat())
-            status = None
-
-            # Verificar Folga (folga_usada)
-            try:
-                folgas = (
-                    TimeOffRecord.query.filter(
-                        TimeOffRecord.collaborator_id == colab.id,
-                        TimeOffRecord.record_type == "folga_usada",
-                        TimeOffRecord.date <= dia["data"],
-                    )
-                    .order_by(TimeOffRecord.date.desc())
-                    .limit(5)
-                    .all()
-                )
-                for folga in folgas:
-                    days = max(1, int(folga.days or 1))
-                    end_date = folga.date + timedelta(days=days - 1)
-                    if folga.date <= dia["data"] <= end_date:
-                        status = "Folga"
-                        break
-            except Exception:
-                pass
-
-            # Verificar Férias (prioridade sobre folga)
-            if not status:
-                try:
-                    vac = VacationModel.query.filter(
-                        VacationModel.collaborator_id == colab.id,
-                        VacationModel.data_inicio <= dia["data"],
-                        VacationModel.data_fim >= dia["data"],
-                    ).first()
-                    if vac:
-                        status = "Férias"
-                except Exception:
-                    pass
-
-            # Verificar Atestado (prioridade sobre férias e folga)
-            if not status:
-                try:
-                    mc = MedicalCertificate.query.filter(
-                        MedicalCertificate.collaborator_id == colab.id,
-                        MedicalCertificate.data_inicio <= dia["data"],
-                        MedicalCertificate.data_fim >= dia["data"],
-                    ).first()
-                    if mc:
-                        status = "Atestado"
-                except Exception:
-                    pass
-
-            if status:
-                status_map[key] = status
-
+def _calculate_horas_semana(cols, dias_semana, turnos_map):
     horas_turno = {
-        "Abertura 5h": 8,  # 5h-11h e 13h-15h (2 pessoas)
-        "Abertura 6h": 8,  # 6h-11h e 13h-16h (1 pessoa)
-        "Tarde": 8,  # 9h30-13h e 15h-19h30 (3 pessoas)
-        "Domingo 5h": 8,  # 5h-13h (2 pessoas)
-        "Domingo 6h": 7,  # 6h-13h (1 pessoa)
+        "Abertura 5h": 8,
+        "Abertura 6h": 8,
+        "Tarde": 8,
+        "Domingo 5h": 8,
+        "Domingo 6h": 7,
         "Folga": 0,
     }
     horas_semana = {}
@@ -234,8 +174,10 @@ def escala():
                 turno = turnos_map[key].turno or ""
                 total += horas_turno.get(turno, 0)
         horas_semana[c.id] = total
+    return horas_semana
 
-    total_turnos_semana = len(turnos_semana)
+
+def _load_rodizio_weeks(today):
     current_monday = today - timedelta(days=today.weekday())
     try:
         ref_monday_setting = AppSetting.query.filter_by(key="rodizio_ref_monday").first()
@@ -257,7 +199,6 @@ def escala():
         open_ref = ref_open_setting.value.strip() if ref_open_setting and ref_open_setting.value else "1"
         if open_ref not in ("1", "2"):
             open_ref = "1"
-        # auto-avance semanal: se referência ficou para trás, atualiza e alterna
         if ref_monday < current_monday:
             weeks_diff = (current_monday - ref_monday).days // 7
             if weeks_diff % 2 == 1:
@@ -280,16 +221,13 @@ def escala():
             we = ws + timedelta(days=5)
             open_team = open_ref if (i % 2 == 0) else ("2" if open_ref == "1" else "1")
             close_team = "2" if open_team == "1" else "1"
-            weeks.append(
-                {
-                    "start": ws,
-                    "end": we,
-                    "open": f"Equipe {open_team}",
-                    "close": f"Equipe {close_team}",
-                }
-            )
+            weeks.append({"start": ws, "end": we, "open": f"Equipe {open_team}", "close": f"Equipe {close_team}"})
+        return weeks, open_ref
     except Exception:
-        weeks = []
+        return [], "1"
+
+
+def _load_domingo_config():
     try:
         sun_team_setting = AppSetting.query.filter_by(key="domingo_team_ref").first()
         sun_ref_setting = AppSetting.query.filter_by(key="domingo_ref_sunday").first()
@@ -303,7 +241,10 @@ def escala():
     except Exception:
         domingo_team = "1"
         domingo_ref_date = ""
-    events = []
+    return domingo_team, domingo_ref_date
+
+
+def _collect_conflicts(turnos_semana, cols):
     conflicts = []
     try:
         name_by_id = {c.id: c.name for c in cols}
@@ -311,7 +252,6 @@ def escala():
             cid = t.collaborator_id
             d = t.date
             nm = name_by_id.get(cid) or f"ID {cid}"
-            # Folga agendada
             try:
                 las = (
                     TimeOffRecord.query.filter(
@@ -331,16 +271,16 @@ def escala():
                         break
             except Exception:
                 pass
-            # Férias
             try:
                 vac = VacationModel.query.filter(
-                    VacationModel.collaborator_id == cid, VacationModel.data_inicio <= d, VacationModel.data_fim >= d
+                    VacationModel.collaborator_id == cid,
+                    VacationModel.data_inicio <= d,
+                    VacationModel.data_fim >= d,
                 ).first()
                 if vac:
                     conflicts.append({"type": "Férias", "name": nm, "date": d})
             except Exception:
                 pass
-            # Atestado
             try:
                 mc = MedicalCertificate.query.filter(
                     MedicalCertificate.collaborator_id == cid,
@@ -353,9 +293,12 @@ def escala():
                 pass
     except Exception:
         conflicts = []
-    try:
-        from datetime import timedelta
+    return conflicts
 
+
+def _sunday_events(current_monday, domingo_team, domingo_ref_date):
+    events = []
+    try:
         base_team = domingo_team if domingo_team in ("1", "2") else "1"
         ref_sun = None
         if domingo_ref_date:
@@ -386,85 +329,81 @@ def escala():
             )
     except Exception:
         pass
+    return events
+
+
+def _ensure_fixed_holidays(today):
+    y = today.year
+    fixed = [
+        (date(y, 2, 2), "Padroeiro de Umbaúba"),
+        (date(y, 2, 6), "Aniversário de Umbaúba"),
+        (date(y + 1, 2, 2), "Padroeiro de Umbaúba"),
+        (date(y + 1, 2, 6), "Aniversário de Umbaúba"),
+    ]
+    for dt, nm in fixed:
+        h = Holiday.query.filter_by(date=dt).first()
+        if h:
+            h.name = nm
+            h.kind = "municipal-Umbaúba"
+        else:
+            hh = Holiday()
+            hh.date = dt
+            hh.name = nm
+            hh.kind = "municipal-Umbaúba"
+            db.session.add(hh)
+
+
+def _ensure_national_holidays(ano):
+    fixes = [
+        (date(ano, 1, 1), "Confraternização Universal"),
+        (date(ano, 4, 21), "Tiradentes"),
+        (date(ano, 5, 1), "Dia do Trabalho"),
+        (date(ano, 9, 7), "Independência do Brasil"),
+        (date(ano, 10, 12), "Nossa Senhora Aparecida"),
+        (date(ano, 11, 2), "Finados"),
+        (date(ano, 11, 15), "Proclamação da República"),
+        (date(ano, 11, 20), "Consciência Negra"),
+        (date(ano, 12, 25), "Natal"),
+    ]
+
+    def easter(y):
+        a = y % 19
+        b = y // 100
+        c = y % 100
+        d = (19 * a + b - (b // 4) - ((b - ((b + 8) // 25) + 1) // 3) + 15) % 30
+        e = (32 + 2 * (b % 4) + 2 * (c // 4) - d - (c % 4)) % 7
+        f = d + e - 7 * ((a + 11 * d + 22 * e) // 451) + 114
+        month = f // 31
+        day = (f % 31) + 1
+        return date(y, month, day)
+
     try:
-        y = today.year
-        fixed = [
-            (date(y, 2, 2), "Padroeiro de Umbaúba"),
-            (date(y, 2, 6), "Aniversário de Umbaúba"),
-            (date(y + 1, 2, 2), "Padroeiro de Umbaúba"),
-            (date(y + 1, 2, 6), "Aniversário de Umbaúba"),
-        ]
-        for dt, nm in fixed:
-            h = Holiday.query.filter_by(date=dt).first()
-            if h:
-                h.name = nm
-                h.kind = "municipal-Umbaúba"
-            else:
-                hh = Holiday()
-                hh.date = dt
-                hh.name = nm
-                hh.kind = "municipal-Umbaúba"
-                db.session.add(hh)
-        db.session.commit()
+        gf = easter(ano) - timedelta(days=2)
+        fixes.append((gf, "Sexta-Feira Santa"))
+        cc = easter(ano) + timedelta(days=60)
+        fixes.append((cc, "Corpus Christi"))
     except Exception:
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
-    try:
-        ano = 2026
-        fixes = [
-            (date(ano, 1, 1), "Confraternização Universal"),
-            (date(ano, 4, 21), "Tiradentes"),
-            (date(ano, 5, 1), "Dia do Trabalho"),
-            (date(ano, 9, 7), "Independência do Brasil"),
-            (date(ano, 10, 12), "Nossa Senhora Aparecida"),
-            (date(ano, 11, 2), "Finados"),
-            (date(ano, 11, 15), "Proclamação da República"),
-            (date(ano, 11, 20), "Consciência Negra"),
-            (date(ano, 12, 25), "Natal"),
-        ]
+        pass
 
-        def easter(y):
-            a = y % 19
-            b = y // 100
-            c = y % 100
-            d = (19 * a + b - (b // 4) - ((b - ((b + 8) // 25) + 1) // 3) + 15) % 30
-            e = (32 + 2 * (b % 4) + 2 * (c // 4) - d - (c % 4)) % 7
-            f = d + e - 7 * ((a + 11 * d + 22 * e) // 451) + 114
-            month = f // 31
-            day = (f % 31) + 1
-            return date(y, month, day)
+    for dt, nm in fixes:
+        h = Holiday.query.filter_by(date=dt).first()
+        if h:
+            h.name = nm
+            h.kind = "nacional"
+        else:
+            hh = Holiday()
+            hh.date = dt
+            hh.name = nm
+            hh.kind = "nacional"
+            db.session.add(hh)
 
-        gf = easter(ano)
-        try:
-            from datetime import timedelta as _timedelta
 
-            gf = gf - _timedelta(days=2)
-            fixes.append((gf, "Sexta-Feira Santa"))
-            cc = easter(ano) + _timedelta(days=60)
-            fixes.append((cc, "Corpus Christi"))
-        except Exception:
-            pass
-        for dt, nm in fixes:
-            h = Holiday.query.filter_by(date=dt).first()
-            if h:
-                h.name = nm
-                h.kind = "nacional"
-            else:
-                hh = Holiday()
-                hh.date = dt
-                hh.name = nm
-                hh.kind = "nacional"
-                db.session.add(hh)
-        db.session.commit()
-    except Exception:
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
+def _collect_holiday_events():
+    events = []
+    feriados = []
     try:
         hs = Holiday.query.order_by(Holiday.date.asc()).all()
+        feriados = hs
         color_map = {
             "nacional": "#20c997",
             "movel": "#198754",
@@ -487,6 +426,24 @@ def escala():
             )
     except Exception:
         pass
+    return events, feriados
+
+
+def _holiday_events(today):
+    try:
+        _ensure_fixed_holidays(today)
+        _ensure_national_holidays(2026)
+        db.session.commit()
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+    return _collect_holiday_events()
+
+
+def _folga_events(cols):
+    events = []
     try:
         las = (
             TimeOffRecord.query.filter(TimeOffRecord.record_type == "folga_usada")
@@ -494,8 +451,6 @@ def escala():
             .all()
         )
         name_by_id = {c.id: c.name for c in cols}
-        from datetime import timedelta
-
         for la in las:
             base = la.date
             days = max(1, int(la.days_used or 1))
@@ -513,6 +468,11 @@ def escala():
                 )
     except Exception:
         pass
+    return events
+
+
+def _turno_events(cols, turnos_semana):
+    events = []
     try:
         turno_colors = {
             "Abertura 5h": "#22c55e",
@@ -536,6 +496,228 @@ def escala():
             )
     except Exception:
         pass
+    return events
+
+
+def _build_calendar_events(today, current_monday, cols, turnos_semana, domingo_team, domingo_ref_date):
+    events = []
+    events.extend(_sunday_events(current_monday, domingo_team, domingo_ref_date))
+    holiday_events, feriados = _holiday_events(today)
+    events.extend(holiday_events)
+    events.extend(_folga_events(cols))
+    events.extend(_turno_events(cols, turnos_semana))
+    return events, feriados
+
+
+def _parse_semana_inicio(semana_str):
+    try:
+        if semana_str:
+            semana_inicio = datetime.strptime(semana_str, "%Y-%m-%d").date()
+            return semana_inicio - timedelta(days=semana_inicio.weekday())
+        today = date.today()
+        return today - timedelta(days=today.weekday())
+    except Exception:
+        today = date.today()
+        return today - timedelta(days=today.weekday())
+
+
+def _create_shift_record(
+    collaborator_id, dia, turno, shift_type, start_hour, start_min, end_hour, end_min, tz, observacao, is_sunday=False
+):
+    existing = Shift.query.filter_by(collaborator_id=collaborator_id, date=dia).first()
+    if existing:
+        return 0
+
+    shift = Shift()
+    shift.collaborator_id = collaborator_id
+    shift.date = dia
+    shift.turno = turno
+    shift.shift_type = shift_type
+    shift.auto_generated = True
+    shift.is_sunday_holiday = is_sunday
+    shift.start_dt = datetime(dia.year, dia.month, dia.day, start_hour, start_min, tzinfo=tz)
+    shift.end_dt = datetime(dia.year, dia.month, dia.day, end_hour, end_min, tzinfo=tz)
+    shift.observacao = observacao
+    db.session.add(shift)
+    return 1
+
+
+def _create_domingo_credits(colab_id, domingo, is_turno_5h):
+    from ..models import TemporaryEntry
+
+    if is_turno_5h:
+        existing_b = TemporaryEntry.query.filter_by(
+            kind="folga_hour_both", collaborator_id=colab_id, date=domingo
+        ).first()
+        if not existing_b:
+            tb = TemporaryEntry()
+            tb.kind = "folga_hour_both"
+            tb.collaborator_id = colab_id
+            tb.date = domingo
+            tb.amount_days = 1
+            tb.hours = 1.0
+            tb.source = "domingo"
+            tb.reason = "Folga + 1h extra (domingo 5h)"
+            db.session.add(tb)
+    else:
+        existing_lc = TemporaryEntry.query.filter_by(
+            kind="folga_credit", collaborator_id=colab_id, date=domingo
+        ).first()
+        if not existing_lc:
+            te = TemporaryEntry()
+            te.kind = "folga_credit"
+            te.collaborator_id = colab_id
+            te.date = domingo
+            te.amount_days = 1
+            te.source = "domingo"
+            te.reason = f'Trabalho no domingo {domingo.strftime("%d/%m/%Y")}'
+            db.session.add(te)
+
+
+def _create_week_shifts(semana_inicio, equipe_abertura, equipe_fechamento, tz):
+    turnos_criados = 0
+    for day_offset in range(6):
+        dia = semana_inicio + timedelta(days=day_offset)
+
+        for i, colab in enumerate(equipe_abertura[:3]):
+            if i < 2:
+                turnos_criados += _create_shift_record(
+                    colab.id,
+                    dia,
+                    "Abertura 5h",
+                    "abertura_5h",
+                    5,
+                    0,
+                    15,
+                    0,
+                    tz,
+                    "05:00-11:00 almoco 13:00-15:00",
+                )
+            else:
+                turnos_criados += _create_shift_record(
+                    colab.id,
+                    dia,
+                    "Abertura 6h",
+                    "abertura_6h",
+                    6,
+                    0,
+                    16,
+                    0,
+                    tz,
+                    "06:00-11:00 almoco 13:00-16:00",
+                )
+
+        for colab in equipe_fechamento[:3]:
+            turnos_criados += _create_shift_record(
+                colab.id,
+                dia,
+                "Tarde",
+                "tarde",
+                9,
+                30,
+                19,
+                30,
+                tz,
+                "09:30-13:00 almoco 15:00-19:30",
+            )
+    return turnos_criados
+
+
+def _resolve_domingo_team(domingo):
+    sun_team_setting = AppSetting.query.filter_by(key="domingo_team_ref").first()
+    sun_ref_setting = AppSetting.query.filter_by(key="domingo_ref_sunday").first()
+
+    domingo_team = sun_team_setting.value.strip() if sun_team_setting and sun_team_setting.value else "1"
+    if domingo_team not in ("1", "2"):
+        domingo_team = "1"
+
+    ref_sun = None
+    if sun_ref_setting and sun_ref_setting.value:
+        try:
+            ref_sun = datetime.strptime(sun_ref_setting.value.strip(), "%Y-%m-%d").date()
+        except Exception:
+            ref_sun = None
+
+    if ref_sun:
+        weeks_diff_sun = (domingo - ref_sun).days // 7
+        if weeks_diff_sun % 2 == 1:
+            domingo_team = "2" if domingo_team == "1" else "1"
+    return domingo_team
+
+
+def _create_domingo_shifts(semana_inicio, tz):
+    domingo = semana_inicio + timedelta(days=6)
+    domingo_team = _resolve_domingo_team(domingo)
+    equipe_domingo = (
+        CollaboratorModel.query.filter_by(active=True, regular_team=domingo_team)
+        .order_by(CollaboratorModel.team_position.asc())
+        .all()[:3]
+    )
+
+    turnos_criados = 0
+    for i, colab in enumerate(equipe_domingo):
+        if i < 2:
+            created = _create_shift_record(
+                colab.id,
+                domingo,
+                "Domingo 5h",
+                "domingo_5h",
+                5,
+                0,
+                13,
+                0,
+                tz,
+                "05:00-13:00 (+1 folga +1h extra)",
+                is_sunday=True,
+            )
+            turnos_criados += created
+            if created:
+                _create_domingo_credits(colab.id, domingo, is_turno_5h=True)
+        else:
+            created = _create_shift_record(
+                colab.id,
+                domingo,
+                "Domingo 6h",
+                "domingo_6h",
+                6,
+                0,
+                13,
+                0,
+                tz,
+                "06:00-13:00 (+1 folga)",
+                is_sunday=True,
+            )
+            turnos_criados += created
+            if created:
+                _create_domingo_credits(colab.id, domingo, is_turno_5h=False)
+    return turnos_criados
+
+
+@bp.route("/escala", strict_slashes=False)
+@login_required
+def escala():
+    _ensure_collaborator_name_column()
+    cols = CollaboratorModel.query.filter_by(active=True).order_by(CollaboratorModel.name.asc()).all()
+    today = date.today()
+
+    semana_param = request.args.get("semana", "")
+    semana_inicio, semana_fim, semana_anterior, semana_proxima, dias_semana = _calculate_semana_context(
+        semana_param, today
+    )
+
+    turnos_semana, turnos_map = _load_turnos_for_week(semana_inicio, semana_fim)
+    status_map = _build_status_map(cols, dias_semana)
+    horas_semana = _calculate_horas_semana(cols, dias_semana, turnos_map)
+    total_turnos_semana = len(turnos_semana)
+
+    weeks, open_ref = _load_rodizio_weeks(today)
+    domingo_team, domingo_ref_date = _load_domingo_config()
+    conflicts = _collect_conflicts(turnos_semana, cols)
+    current_monday = today - timedelta(days=today.weekday())
+    events, feriados = _build_calendar_events(
+        today, current_monday, cols, turnos_semana, domingo_team, domingo_ref_date
+    )
+
     return render_template(
         "escala.html",
         colaboradores=cols,
@@ -544,7 +726,7 @@ def escala():
         domingo_team=domingo_team,
         domingo_ref_date=domingo_ref_date,
         events=events,
-        feriados=hs if "hs" in locals() else [],
+        feriados=feriados,
         active_page="escala",
         semana_inicio=semana_inicio,
         semana_fim=semana_fim,
@@ -812,21 +994,9 @@ def gerar_escala_automatica():
         flash("Voce nao tem permissao para gerar escalas.", "danger")
         return redirect(url_for("colaboradores.escala"))
 
-    from datetime import timedelta as td
-
     semana_str = request.form.get("semana", "").strip()
     incluir_domingo = request.form.get("incluir_domingo") == "on"
-
-    try:
-        if semana_str:
-            semana_inicio = datetime.strptime(semana_str, "%Y-%m-%d").date()
-            semana_inicio = semana_inicio - td(days=semana_inicio.weekday())
-        else:
-            today = date.today()
-            semana_inicio = today - td(days=today.weekday())
-    except Exception:
-        flash("Data invalida.", "warning")
-        return redirect(url_for("colaboradores.escala"))
+    semana_inicio = _parse_semana_inicio(semana_str)
 
     open_team, close_team = _get_rodizio_teams(semana_inicio)
     equipe_abertura = _load_team_collaborators(open_team)
@@ -844,139 +1014,9 @@ def gerar_escala_automatica():
     turnos_criados = 0
 
     try:
-        for day_offset in range(6):
-            dia = semana_inicio + td(days=day_offset)
-
-            for i, colab in enumerate(equipe_abertura[:3]):
-                existing = Shift.query.filter_by(collaborator_id=colab.id, date=dia).first()
-                if existing:
-                    continue
-
-                shift = Shift()
-                shift.collaborator_id = colab.id
-                shift.date = dia
-                shift.auto_generated = True
-
-                if i < 2:
-                    shift.turno = "Abertura 5h"
-                    shift.shift_type = "abertura_5h"
-                    shift.start_dt = datetime(dia.year, dia.month, dia.day, 5, 0, tzinfo=tz)
-                    shift.end_dt = datetime(dia.year, dia.month, dia.day, 15, 0, tzinfo=tz)
-                    shift.observacao = "05:00-11:00 almoco 13:00-15:00"
-                else:
-                    shift.turno = "Abertura 6h"
-                    shift.shift_type = "abertura_6h"
-                    shift.start_dt = datetime(dia.year, dia.month, dia.day, 6, 0, tzinfo=tz)
-                    shift.end_dt = datetime(dia.year, dia.month, dia.day, 16, 0, tzinfo=tz)
-                    shift.observacao = "06:00-11:00 almoco 13:00-16:00"
-
-                db.session.add(shift)
-                turnos_criados += 1
-
-            for colab in equipe_fechamento[:3]:
-                existing = Shift.query.filter_by(collaborator_id=colab.id, date=dia).first()
-                if existing:
-                    continue
-
-                shift = Shift()
-                shift.collaborator_id = colab.id
-                shift.date = dia
-                shift.turno = "Tarde"
-                shift.shift_type = "tarde"
-                shift.auto_generated = True
-                shift.start_dt = datetime(dia.year, dia.month, dia.day, 9, 30, tzinfo=tz)
-                shift.end_dt = datetime(dia.year, dia.month, dia.day, 19, 30, tzinfo=tz)
-                shift.observacao = "09:30-13:00 almoco 15:00-19:30"
-                db.session.add(shift)
-                turnos_criados += 1
-
+        turnos_criados += _create_week_shifts(semana_inicio, equipe_abertura, equipe_fechamento, tz)
         if incluir_domingo:
-            domingo = semana_inicio + td(days=6)
-
-            sun_team_setting = AppSetting.query.filter_by(key="domingo_team_ref").first()
-            sun_ref_setting = AppSetting.query.filter_by(key="domingo_ref_sunday").first()
-
-            domingo_team = sun_team_setting.value.strip() if sun_team_setting and sun_team_setting.value else "1"
-            if domingo_team not in ("1", "2"):
-                domingo_team = "1"
-
-            ref_sun = None
-            if sun_ref_setting and sun_ref_setting.value:
-                try:
-                    ref_sun = datetime.strptime(sun_ref_setting.value.strip(), "%Y-%m-%d").date()
-                except Exception:
-                    pass
-
-            if ref_sun:
-                weeks_diff_sun = (domingo - ref_sun).days // 7
-                if weeks_diff_sun % 2 == 1:
-                    domingo_team = "2" if domingo_team == "1" else "1"
-
-            equipe_domingo = (
-                CollaboratorModel.query.filter_by(active=True, regular_team=domingo_team)
-                .order_by(CollaboratorModel.team_position.asc())
-                .all()[:3]
-            )
-
-            for i, colab in enumerate(equipe_domingo):
-                existing = Shift.query.filter_by(collaborator_id=colab.id, date=domingo).first()
-                if existing:
-                    continue
-
-                shift = Shift()
-                shift.collaborator_id = colab.id
-                shift.date = domingo
-                shift.auto_generated = True
-                shift.is_sunday_holiday = True
-
-                if i < 2:
-                    shift.turno = "Domingo 5h"
-                    shift.shift_type = "domingo_5h"
-                    shift.start_dt = datetime(domingo.year, domingo.month, domingo.day, 5, 0, tzinfo=tz)
-                    shift.end_dt = datetime(domingo.year, domingo.month, domingo.day, 13, 0, tzinfo=tz)
-                    shift.observacao = "05:00-13:00 (+1 folga +1h extra)"
-
-                    # já coberto pelo combinado acima
-                else:
-                    shift.turno = "Domingo 6h"
-                    shift.shift_type = "domingo_6h"
-                    shift.start_dt = datetime(domingo.year, domingo.month, domingo.day, 6, 0, tzinfo=tz)
-                    shift.end_dt = datetime(domingo.year, domingo.month, domingo.day, 13, 0, tzinfo=tz)
-                    shift.observacao = "06:00-13:00 (+1 folga)"
-
-                db.session.add(shift)
-                turnos_criados += 1
-
-                from ..models import TemporaryEntry
-
-                # Para 5h: crédito combinado (folga + 1h). Para 6h: apenas folga.
-                if i < 2:
-                    existing_b = TemporaryEntry.query.filter_by(
-                        kind="folga_hour_both", collaborator_id=colab.id, date=domingo
-                    ).first()
-                    if not existing_b:
-                        tb = TemporaryEntry()
-                        tb.kind = "folga_hour_both"
-                        tb.collaborator_id = colab.id
-                        tb.date = domingo
-                        tb.amount_days = 1
-                        tb.hours = 1.0
-                        tb.source = "domingo"
-                        tb.reason = "Folga + 1h extra (domingo 5h)"
-                        db.session.add(tb)
-                else:
-                    existing_lc = TemporaryEntry.query.filter_by(
-                        kind="folga_credit", collaborator_id=colab.id, date=domingo
-                    ).first()
-                    if not existing_lc:
-                        te = TemporaryEntry()
-                        te.kind = "folga_credit"
-                        te.collaborator_id = colab.id
-                        te.date = domingo
-                        te.amount_days = 1
-                        te.source = "domingo"
-                        te.reason = f'Trabalho no domingo {domingo.strftime("%d/%m/%Y")}'
-                        db.session.add(te)
+            turnos_criados += _create_domingo_shifts(semana_inicio, tz)
 
         db.session.commit()
         msg = (
@@ -984,10 +1024,7 @@ def gerar_escala_automatica():
             f"Equipe {open_team} na abertura (2x Abertura 5h + 1x Abertura 6h), "
             f"Equipe {close_team} no turno Tarde (3 pessoas)."
         )
-        flash(
-            msg,
-            "success",
-        )
+        flash(msg, "success")
     except Exception as e:
         db.session.rollback()
         flash(f"Erro ao gerar escala: {e}", "danger")
