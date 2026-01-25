@@ -8,25 +8,88 @@
 
 {% block content %}
 {% set auto_enabled = auto_enabled %}
-<div class="container-fluid py-3 py-lg-4">
-    <!-- Banner Premium -->
-    <div class="whatsapp-hero mb-4">
-        <div class="whatsapp-hero-content d-flex align-items-center gap-3">
-            <div class="whatsapp-hero-icon">
-                <i class="bi bi-whatsapp"></i>
-            </div>
-            <div>
-                <h1 class="whatsapp-title mb-1">Central de Notificações WhatsApp</h1>
-                <p class="whatsapp-subtitle mb-0">Envie alertas diretamente para o gateway local. O MultiMax não conhece nem armazena IDs de grupos.</p>
-            </div>
-        </div>
-        <div class="whatsapp-hero-badges mt-3 d-flex gap-2 flex-wrap">
-            <span class="badge {% if auto_enabled %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
-                Automáticas: {% if auto_enabled %}ativadas{% else %}desativadas{% endif %}
-            </span>
-            <span class="badge bg-light text-dark border">Endpoint local: {{ gateway_url or 'não configurado' }}</span>
-        </div>
+<style>
+  .whatsapp-hero-premium {
+    background: linear-gradient(90deg, #5f72bd 0%, #9a5be4 100%);
+    border-radius: 1.5rem;
+    box-shadow: 0 4px 32px 0 rgba(80, 80, 160, 0.10);
+    padding: 2.5rem 2rem 2rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+    margin-bottom: 2.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .whatsapp-hero-premium .whatsapp-hero-icon {
+    font-size: 4.5rem;
+    color: #fff;
+    background: rgba(0,0,0,0.10);
+    border-radius: 1rem;
+    padding: 1.2rem 1.5rem;
+    box-shadow: 0 2px 12px 0 rgba(80, 80, 160, 0.10);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .whatsapp-hero-premium .whatsapp-title {
+    color: #fff;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    letter-spacing: -1px;
+  }
+  .whatsapp-hero-premium .whatsapp-subtitle {
+    color: #e0e0ff;
+    font-size: 1.15rem;
+    margin-bottom: 0.5rem;
+  }
+  .whatsapp-hero-premium .whatsapp-hero-badges {
+    margin-top: 1.2rem;
+    display: flex;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+  }
+  .whatsapp-hero-premium .whatsapp-hero-action {
+    margin-top: 1.5rem;
+  }
+  @media (max-width: 900px) {
+    .whatsapp-hero-premium {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 1.5rem 1rem 1.5rem 1rem;
+      gap: 1.2rem;
+    }
+    .whatsapp-hero-premium .whatsapp-title {
+      font-size: 2rem;
+    }
+    .whatsapp-hero-premium .whatsapp-hero-icon {
+      font-size: 2.5rem;
+      padding: 0.7rem 1rem;
+    }
+  }
+</style>
+<!-- Banner Hero Premium -->
+<div class="whatsapp-hero-premium">
+  <div class="whatsapp-hero-icon">
+    <i class="bi bi-whatsapp"></i>
+  </div>
+  <div style="flex:1;min-width:0;">
+    <h1 class="whatsapp-title mb-1">Central de Notificações WhatsApp</h1>
+    <p class="whatsapp-subtitle mb-0">Envie alertas diretamente para o gateway local. O MultiMax não conhece nem armazena IDs de grupos.</p>
+    <div class="whatsapp-hero-badges">
+      <span class="badge {% if auto_enabled %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+        Automáticas: {% if auto_enabled %}ativadas{% else %}desativadas{% endif %}
+      </span>
+      <span class="badge bg-light text-dark border">Endpoint local: {{ gateway_url or 'não configurado' }}</span>
     </div>
+    <div class="whatsapp-hero-action">
+      <a href="#blocoA" class="btn btn-light btn-lg px-4 shadow-sm" style="font-weight:600;">
+        <i class="bi bi-broadcast me-2"></i>Disparar mensagem agora
+      </a>
+    </div>
+  </div>
+</div>
 
     {% if current_user.is_authenticated and current_user.nivel == "DEV" %}
         <div class="alert alert-success mb-3 premium-alert" role="alert">
@@ -40,7 +103,7 @@
 
     <div class="row g-4">
         <!-- Bloco A - Envio Manual -->
-        <div class="col-12 col-lg-7">
+        <div class="col-12 col-lg-7" id="blocoA">
             <div class="card whatsapp-card-premium shadow-sm border-0 h-100">
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-start mb-3">

@@ -7,6 +7,12 @@
 
 ## [3.2.36] - 2026-01-25 21:10:00
 
+## [3.2.37] - 2026-01-25 21:30:00
+
+### Visual
+- feat(whatsapp): banner hero premium com gradiente, ícone grande, título centralizado e botão de ação no whatsapp_admin.html
+  - Visual alinhado ao dashboard premium do MultiMax.
+
 ### Corrigido
 - fix(whatsapp): removido filtro Jinja2 inexistente | bool do template whatsapp_admin.html
   - Agora o template carrega normalmente em qualquer ambiente Jinja2 padrão. Garantir auto_enabled booleano no backend.
