@@ -6,12 +6,19 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ## [Unreleased]
 
+## [3.2.18] - 2026-01-25
+
+### Corrigido
+
+- docs(vps): ajustar script e guia para enviar payload como form field `message` no endpoint /dev/whatsapp/enviar
+
 ## [3.2.17] - 2026-01-25
 
 ### Corrigido
 
 - docs(vps): atualizar script de teste do WhatsApp para usar docker-compose exec, resolução via getent e health check com curl instalado no container
 - docs(vps): alinhar guia de teste com alias `ssh multimax` e novos comandos de diagnóstico
+- docs(vps): corrigir payload do teste para enviar campo form `message` (endpoint não aceita JSON)
 
 ## [3.2.16] - 2026-01-24
 

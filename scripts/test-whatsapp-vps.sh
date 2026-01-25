@@ -126,8 +126,8 @@ fi
 # Teste interno (dentro do container multimax)
 TEST_RESPONSE=$(docker-compose exec multimax sh -lc "apt-get update >/dev/null && apt-get install -y curl >/dev/null && curl -s -X POST \\
     -H 'Authorization: Bearer $TOKEN' \\
-    -H 'Content-Type: application/json' \\
-    -d '{\"numero\":\"5511999999999\",\"mensagem\":\"[TESTE VPS] Gateway funcionando apos correcao de fallbacks Docker\"}' \\
+    -H 'Content-Type: application/x-www-form-urlencoded' \\
+    -d 'message=[TESTE VPS] Gateway funcionando apos correcao de fallbacks Docker' \\
     http://localhost:5000/dev/whatsapp/enviar" 2>/dev/null || echo "error")
 
 echo "   Resposta: $TEST_RESPONSE"

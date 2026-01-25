@@ -104,8 +104,8 @@ TOKEN=$(docker-compose exec multimax printenv WHATSAPP_SERVICE_TOKEN)
 # Enviar mensagem de teste (instala curl se necessário)
 docker-compose exec multimax sh -lc "apt-get update >/dev/null && apt-get install -y curl >/dev/null && curl -s -X POST \\
   -H 'Authorization: Bearer $TOKEN' \\
-  -H 'Content-Type: application/json' \\
-  -d '{\"numero\":\"5511999999999\",\"mensagem\":\"[TESTE VPS] Gateway funcionando!\"}' \\
+  -H 'Content-Type: application/x-www-form-urlencoded' \\
+  -d 'message=[TESTE VPS] Gateway funcionando!' \\
   http://localhost:5000/dev/whatsapp/enviar"
 ```
 
