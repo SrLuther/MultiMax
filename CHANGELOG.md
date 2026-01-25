@@ -1,4 +1,9 @@
 # Changelog
+## [3.2.39] - 2026-01-25 22:30:00
+
+### Corrigido
+- fix(whatsapp-admin): modal Ciclo Aberto agora funciona corretamente (JS do Bootstrap incluído)
+  - Corrige travamento e impossibilidade de fechar/interagir com o modal Ciclo Aberto. Modal agora abre e fecha normalmente.
 ## [3.2.38] - 2026-01-25 22:00:00
 
 ### Visual
