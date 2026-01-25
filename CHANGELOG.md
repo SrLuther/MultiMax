@@ -4,6 +4,13 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 > **Nota**: A partir da versão 3.2.0, todas as datas de versão **DEVEM** incluir a hora exata local (formato: `YYYY-MM-DD HH:MM:SS`) para rastreabilidade precisa dos releases. Esta validação é obrigatória no pre-commit hook.
 
+## [3.2.26] - 2026-01-25 03:40:00
+
+### Corrigido
+
+- fix(ui): corrigido fechamento do modal Ciclo Aberto (não exige refresh)
+  - Modal agora fecha corretamente após ação, mesmo em erro, sem necessidade de atualizar a página
+
 ## [3.2.25] - 2026-01-25 03:30:00
 
 ### Corrigido

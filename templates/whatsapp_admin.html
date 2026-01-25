@@ -125,7 +125,7 @@
 
                         <!-- Modal para confirmação do envio de Ciclo Aberto -->
                         <div class="modal fade" id="modalCicloAberto" tabindex="-1" role="dialog">
-                            <div class="modal-dialog" role="document">
+                            <div class="modal-dialog modal-dialog-centered" role="document">
                                 <div class="modal-content">
                                     <div class="modal-header">
                                         <h5 class="modal-title">Enviar PDF de Ciclo Aberto</h5>
@@ -165,7 +165,13 @@
                             })
                             .then(response => response.json())
                             .then(data => {
-                                const modal = bootstrap.Modal.getInstance(document.getElementById('modalCicloAberto'));
+
+                                // Corrigir fechamento do modal de forma robusta
+                                const modalEl = document.getElementById('modalCicloAberto');
+                                let modal = bootstrap.Modal.getInstance(modalEl);
+                                if (!modal) {
+                                    modal = new bootstrap.Modal(modalEl);
+                                }
                                 modal.hide();
 
                                 if (data.ok) {
@@ -175,7 +181,12 @@
                                 }
                             })
                             .catch(error => {
-                                const modal = bootstrap.Modal.getInstance(document.getElementById('modalCicloAberto'));
+                                // Corrigir fechamento do modal de forma robusta também em erro
+                                const modalEl = document.getElementById('modalCicloAberto');
+                                let modal = bootstrap.Modal.getInstance(modalEl);
+                                if (!modal) {
+                                    modal = new bootstrap.Modal(modalEl);
+                                }
                                 modal.hide();
                                 showNotification('Erro', 'Falha na comunicação: ' + error.message, 'danger');
                             })
