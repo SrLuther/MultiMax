@@ -48,6 +48,14 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ---
 
+## [3.2.14] - 2026-01-24
+
+### Corrigido
+
+- types(dbstatus): inicializar métricas float como `0.0` em `multimax/__init__.py` para satisfazer MyPy (resultados de `round()` são `float`).
+
+---
+
 ## [3.2.11] - 2026-01-24
 
 ### ♻️ Refactor

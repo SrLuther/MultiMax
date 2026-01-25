@@ -314,7 +314,7 @@ def _setup_main_routes(app: Flask) -> None:
             backup_dir = app.config.get("BACKUP_DIR", "")
 
             # Estatísticas do banco SQLite
-            db_size_mb = 0
+            db_size_mb = 0.0
             page_count = 0
             page_size = 0
             table_count = 0
@@ -337,7 +337,7 @@ def _setup_main_routes(app: Flask) -> None:
 
             # Backups detalhados
             backup_count = 0
-            backup_size_mb = 0
+            backup_size_mb = 0.0
             backup_24h = False
             recent_backups = []
 
