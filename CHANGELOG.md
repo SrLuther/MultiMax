@@ -4,6 +4,16 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 > **Nota**: A partir da versão 3.2.0, todas as datas de versão **DEVEM** incluir a hora exata local (formato: `YYYY-MM-DD HH:MM:SS`) para rastreabilidade precisa dos releases. Esta validação é obrigatória no pre-commit hook.
 
+
+## [3.2.24] - 2026-01-25 02:30:00
+
+### Interno
+
+- debug(whatsapp): adicionar logs detalhados no painel DEV e toggle do Bloco B
+  - Loga usuário, nível e estado do Bloco B ao acessar o painel WhatsApp
+  - Loga usuário, novo estado e resultado ao ativar/desativar notificações automáticas
+  - Facilita rastreamento de bugs e inconsistências no fluxo de ativação
+
 ## [Unreleased]
 
 ## [3.2.23] - 2026-01-25 19:45:00

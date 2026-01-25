@@ -84,7 +84,13 @@ def _extract_provided_token(req) -> str:
 @login_required
 def painel():
     _require_dev()
+    print(
+        f"[DEBUG] Painel WhatsApp acessado por: "
+        f"{getattr(current_user, 'username', None)} "
+        f"(nivel={getattr(current_user, 'nivel', None)})"
+    )
     auto_enabled = get_auto_notifications_enabled()
+    print(f"[DEBUG] Estado atual do Bloco B (auto_enabled): {auto_enabled}")
     gateway_url = get_gateway_display_url()
     return render_template(
         "whatsapp_admin.html",
@@ -134,7 +140,14 @@ def enviar():
 def toggle_auto():
     _require_dev()
     desired_state = (request.form.get("auto_enabled") or "").lower() == "on"
+    print(
+        f"[DEBUG] Toggle Bloco B solicitado por: "
+        f"{getattr(current_user, 'username', None)} "
+        f"(nivel={getattr(current_user, 'nivel', None)}), "
+        f"novo estado: {desired_state}"
+    )
     set_auto_notifications_enabled(desired_state, actor=current_user.username)
+    print(f"[DEBUG] Estado do Bloco B após toggle: {get_auto_notifications_enabled()}")
     if desired_state:
         flash("Notificações automáticas foram ativadas.", "success")
     else:
