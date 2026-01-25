@@ -135,21 +135,24 @@ def enviar():
     return redirect(url_for("whatsapp_admin.painel"))
 
 
-@bp.route("/auto", methods=["POST"], strict_slashes=False)
+@bp.route("/auto/toggle", methods=["POST"], strict_slashes=False)
 @login_required
-def toggle_auto():
+def toggle_auto_rest():
     _require_dev()
-    desired_state = (request.form.get("auto_enabled") or "").lower() == "on"
-    print(
-        f"[DEBUG] Toggle Bloco B solicitado por: "
-        f"{getattr(current_user, 'username', None)} "
-        f"(nivel={getattr(current_user, 'nivel', None)}), "
-        f"novo estado: {desired_state}"
-    )
-    set_auto_notifications_enabled(desired_state, actor=current_user.username)
-    print(f"[DEBUG] Estado do Bloco B após toggle: {get_auto_notifications_enabled()}")
-    if desired_state:
-        flash("Notificações automáticas foram ativadas.", "success")
+    # Aceita JSON ou form
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+        desired_state = bool(data.get("enabled"))
     else:
-        flash("Notificações automáticas foram desativadas. Envio manual continua disponível.", "info")
-    return redirect(url_for("whatsapp_admin.painel"))
+        desired_state = (request.form.get("auto_enabled") or "").lower() == "on"
+    try:
+        set_auto_notifications_enabled(desired_state, actor=current_user.username)
+        new_state = get_auto_notifications_enabled()
+        msg = (
+            "Notificações automáticas ativadas."
+            if new_state
+            else "Notificações automáticas desativadas. Envio manual continua disponível."
+        )
+        return jsonify({"ok": True, "enabled": new_state, "message": msg}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500

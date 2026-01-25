@@ -1,5 +1,17 @@
 # Changelog
+## [3.2.27] - 2026-01-25 04:00:00
 
+### Refatorado
+
+- **refactor(whatsapp): reconstrução completa dos Blocos B e C (painel DEV)**
+  - Bloco B agora usa API RESTful autenticada para ativar/desativar notificações automáticas, com resposta JSON, persistência robusta e logging detalhado (SystemLog)
+  - Frontend do Bloco B usa AJAX/fetch, feedback visual imediato, loading, erro/sucesso, e sincronização do estado do switch e badge
+  - Bloco C padronizado: feedback visual robusto (toast/modal/spinner), tratamento de erro consistente, fechamento de modal garantido
+  - Código preparado para automação de testes e integração contínua
+
+### Interno
+
+- docs: documentação detalhada da reconstrução salva em documentation/REBUILD_WHATSAPP_BLOCKS.md
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 > **Nota**: A partir da versão 3.2.0, todas as datas de versão **DEVEM** incluir a hora exata local (formato: `YYYY-MM-DD HH:MM:SS`) para rastreabilidade precisa dos releases. Esta validação é obrigatória no pre-commit hook.
