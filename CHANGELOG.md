@@ -1,4 +1,10 @@
 # Changelog
+## [3.2.30] - 2026-01-25 19:10:00
+
+### Corrigido
+- fix(whatsapp): removido `{% endif %}` extra no final do template whatsapp_admin.html
+  - Corrige erro de sintaxe Jinja2 e erro 500 em produção
+
 ## [3.2.29] - 2026-01-25 19:00:00
 
 ### Corrigido
