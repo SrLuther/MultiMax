@@ -1,4 +1,12 @@
 # Changelog
+## [3.2.29] - 2026-01-25 19:00:00
+
+### Corrigido
+- fix(whatsapp): corrigida sintaxe Jinja2 no template whatsapp_admin.html
+  - Fechamento correto do bloco if para evitar erro 500 em produção
+  - Deploy imediato após correção
+
+# Changelog
 ## [3.2.28] - 2026-01-25 18:30:00
 
 ### Adicionado
