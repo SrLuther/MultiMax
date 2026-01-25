@@ -5,25 +5,21 @@
     <span>Notificações WhatsApp</span>
 {% endblock %}
 
+
 {% block content %}
 <div class="container-fluid py-3 py-lg-4">
-    {% if current_user.is_authenticated and current_user.nivel == "DEV" %}
-        <!-- Feedback DEV -->
-        <div class="alert alert-success mb-3" role="alert">
-            <i class="bi bi-person-badge"></i> Modo desenvolvedor ativo: todos os blocos visíveis e logs detalhados.
+    <!-- Banner Premium -->
+    <div class="whatsapp-hero mb-4">
+        <div class="whatsapp-hero-content d-flex align-items-center gap-3">
+            <div class="whatsapp-hero-icon">
+                <i class="bi bi-whatsapp"></i>
+            </div>
+            <div>
+                <h1 class="whatsapp-title mb-1">Central de Notificações WhatsApp</h1>
+                <p class="whatsapp-subtitle mb-0">Envie alertas diretamente para o gateway local. O MultiMax não conhece nem armazena IDs de grupos.</p>
+            </div>
         </div>
-    {% else %}
-        <div class="alert alert-danger mb-3" role="alert">
-            <i class="bi bi-exclamation-triangle"></i> Atenção: apenas usuários DEV podem acessar todos os recursos deste painel.
-        </div>
-    {% endif %}
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-        <div>
-            <p class="text-uppercase text-secondary small mb-1">Central de notificações</p>
-            <h1 class="h3 mb-2">WhatsApp (Baileys local)</h1>
-            <p class="text-secondary mb-0">Envie alertas diretamente para o gateway local. O MultiMax não conhece nem armazena IDs de grupos.</p>
-        </div>
-        <div class="d-flex align-items-center gap-2 flex-wrap">
+        <div class="whatsapp-hero-badges mt-3 d-flex gap-2 flex-wrap">
             <span class="badge {% if auto_enabled %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
                 Automáticas: {% if auto_enabled %}ativadas{% else %}desativadas{% endif %}
             </span>
@@ -31,15 +27,25 @@
         </div>
     </div>
 
+    {% if current_user.is_authenticated and current_user.nivel == "DEV" %}
+        <div class="alert alert-success mb-3 premium-alert" role="alert">
+            <i class="bi bi-person-badge"></i> Modo desenvolvedor ativo: todos os blocos visíveis e logs detalhados.
+        </div>
+    {% else %}
+        <div class="alert alert-danger mb-3 premium-alert" role="alert">
+            <i class="bi bi-exclamation-triangle"></i> Atenção: apenas usuários DEV podem acessar todos os recursos deste painel.
+        </div>
+    {% endif %}
+
     <div class="row g-4">
         <!-- Bloco A - Envio Manual -->
         <div class="col-12 col-lg-7">
-            <div class="card shadow-sm border-0 h-100">
+            <div class="card whatsapp-card-premium shadow-sm border-0 h-100">
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
                             <p class="text-uppercase text-secondary small mb-1">Bloco A — envio manual</p>
-                            <h4 class="mb-2">Disparar mensagem agora</h4>
+                            <h3 class="whatsapp-card-title mb-2"><i class="bi bi-broadcast me-2"></i>Disparar mensagem agora</h3>
                             <p class="text-secondary mb-0">Entrega imediata para todos os grupos configurados no serviço Baileys. Ignora qualquer bloqueio ou agendamento.</p>
                         </div>
                         <span class="badge bg-primary-subtle text-primary">Envio prioritário</span>
@@ -53,7 +59,7 @@
                             <div class="text-secondary small">
                                 Enviado para todos os grupos mantidos pelo serviço local. O MultiMax não envia IDs nem escolhe grupos.
                             </div>
-                            <button type="submit" class="btn btn-success px-4">
+                            <button type="submit" class="btn btn-success px-4 whatsapp-btn-premium">
                                 <i class="bi bi-send me-1"></i> Enviar mensagem
                             </button>
                         </div>
@@ -63,12 +69,12 @@
         </div>
 
         <!-- Bloco B - Controle Automático -->
-            <div class="col-12 col-lg-5">
-                {% if current_user.is_authenticated and current_user.nivel == "DEV" %}
-            <div class="card shadow-sm border-0 h-100">
+        <div class="col-12 col-lg-5">
+            {% if current_user.is_authenticated and current_user.nivel == "DEV" %}
+            <div class="card whatsapp-card-premium shadow-sm border-0 h-100">
                 <div class="card-body p-4 d-flex flex-column">
                     <p class="text-uppercase text-secondary small mb-1">Bloco B — controle automático</p>
-                    <h4 class="mb-2">Notificações automáticas do sistema</h4>
+                    <h3 class="whatsapp-card-title mb-2"><i class="bi bi-robot me-2"></i>Notificações automáticas do sistema</h3>
                     <p class="text-secondary">Ligue ou pause envios gerados por automações (estoque, rotinas, ciclos abertos aos sábados). O envio manual permanece sempre liberado.</p>
 
                     <form id="formToggleAuto" class="mt-3" autocomplete="off" onsubmit="return false;">
@@ -78,7 +84,7 @@
                             <label class="form-check-label" for="autoSwitch">Ativar notificações automáticas</label>
                         </div>
                         <div class="d-flex align-items-center gap-3 flex-wrap">
-                            <button type="button" class="btn btn-outline-primary" id="btnToggleAuto" onclick="toggleAutoNotificacoes()">
+                            <button type="button" class="btn btn-outline-primary whatsapp-btn-premium" id="btnToggleAuto" onclick="toggleAutoNotificacoes()">
                                 <i class="bi bi-save me-1"></i> Salvar estado
                             </button>
                             <span id="badgeAutoState" class="badge {% if auto_enabled %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
@@ -132,10 +138,10 @@ function toggleAutoNotificacoes() {
 }
 </script>
 
-                    <div class="alert alert-info mt-4 mb-0" role="alert" style="background-color: rgba(13, 110, 253, 0.1); border-color: rgba(13, 110, 253, 0.3);">
+                    <div class="alert alert-info mt-4 mb-0 whatsapp-alert-premium" role="alert">
                         <div class="d-flex align-items-start gap-2">
                             <i class="bi bi-shield-lock text-info fs-5"></i>
-                            <div class="small" style="color: #9ecbff;">
+                            <div class="small" style="color: #0d6efd;">
                                 Acesso restrito a DEV. O endpoint local ({{ gateway_url }}) concentra toda lógica de entrega e grupos. Se desligado, nenhuma automação enviará mensagens (ciclo aberto, estoque, etc).
                             </div>
                         </div>
@@ -144,23 +150,23 @@ function toggleAutoNotificacoes() {
             </div>
         </div>
 
+
         <!-- Bloco C - Ações Rápidas -->
-            <div class="col-12">
-                {% if current_user.is_authenticated and current_user.nivel == "DEV" %}
-            <div class="card shadow-sm border-0">
+        <div class="col-12">
+            {% if current_user.is_authenticated and current_user.nivel == "DEV" %}
+            <div class="card whatsapp-card-premium shadow-sm border-0">
                 <div class="card-body p-4">
                     <div class="mb-3">
                         <p class="text-uppercase text-secondary small mb-1">Bloco C — ações rápidas</p>
-                        <h4 class="mb-2">Executar ações de envio sob demanda</h4>
+                        <h3 class="whatsapp-card-title mb-2"><i class="bi bi-lightning-charge me-2"></i>Executar ações de envio sob demanda</h3>
                         <p class="text-secondary">Dispare ações específicas via WhatsApp independentemente do Bloco B. Útil para testes e execução manual de tarefas automáticas.</p>
                     </div>
 
                     <div class="d-flex flex-wrap gap-3">
                         <!-- Botão: Ciclo Aberto -->
-            {% endif %}
                         <button
                             type="button"
-                            class="btn btn-outline-success"
+                            class="btn btn-outline-success whatsapp-btn-premium"
                             data-bs-toggle="modal"
                             data-bs-target="#modalCicloAberto"
                             title="Enviar PDF com registro de ciclo aberto para colaboradores"
@@ -181,10 +187,10 @@ function toggleAutoNotificacoes() {
                                         <p class="text-secondary small mb-0"><strong>⚠️ Nota:</strong> Esta ação enviará o PDF para <strong>todos os grupos</strong> configurados no WhatsApp.</p>
                                     </div>
                                     <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="button" class="btn btn-secondary whatsapp-btn-premium" data-bs-dismiss="modal">Cancelar</button>
                                         <button
                                             type="button"
-                                            class="btn btn-success"
+                                            class="btn btn-success whatsapp-btn-premium"
                                             id="btnEnviarCicloAberto"
                                             onclick="enviarCicloAberto()"
                                         >

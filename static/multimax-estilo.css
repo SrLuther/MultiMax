@@ -274,6 +274,96 @@ body.login-page {
 @media (max-width: 360px) {
     .brand-logo-img-lg { height: 64px; }
 }
+
+/* ============================= */
+/* ===== WHATSAPP PREMIUM ====== */
+/* ============================= */
+
+.whatsapp-hero {
+    background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+    border-radius: 22px;
+    box-shadow: 0 6px 24px rgba(18,140,126,0.13);
+    padding: 2.2rem 2rem 1.2rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+.whatsapp-hero-content {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+.whatsapp-hero-icon {
+    background: rgba(255,255,255,0.18);
+    border-radius: 50%;
+    box-shadow: 0 2px 12px rgba(18,140,126,0.18);
+    padding: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.2rem;
+    color: #fff;
+}
+.whatsapp-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 2px 12px rgba(18,140,126,0.18);
+}
+.whatsapp-subtitle {
+    font-size: 1.15rem;
+    color: #eafaf6;
+    font-weight: 400;
+}
+.whatsapp-hero-badges .badge {
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 10px;
+    padding: 0.5rem 1.1rem;
+    box-shadow: 0 2px 8px rgba(18,140,126,0.10);
+}
+
+.whatsapp-card-premium {
+    background: linear-gradient(135deg, #f8fffa 0%, #eafaf6 100%);
+    border-radius: 18px;
+    box-shadow: 0 4px 18px rgba(18,140,126,0.10);
+    border: 1px solid rgba(18,140,126,0.08);
+    backdrop-filter: blur(2px);
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+.whatsapp-card-premium:hover {
+    box-shadow: 0 8px 32px rgba(18,140,126,0.16);
+    transform: translateY(-2px);
+}
+.whatsapp-card-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #128c7e;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.whatsapp-btn-premium {
+    box-shadow: 0 2px 8px rgba(18,140,126,0.10);
+    border-radius: 10px !important;
+    font-weight: 600;
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+.whatsapp-btn-premium:hover {
+    box-shadow: 0 4px 16px rgba(18,140,126,0.18);
+    transform: translateY(-1px);
+}
+.whatsapp-alert-premium {
+    border-radius: 14px;
+    background: linear-gradient(90deg, #eafaf6 0%, #f8fffa 100%);
+    border: 1px solid rgba(18,140,126,0.10);
+    color: #128c7e !important;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(18,140,126,0.08);
+}
 .header-animated {
     background: linear-gradient(135deg, #0d0f10, #141719, #0f1112);
     background-size: 300% 300%;

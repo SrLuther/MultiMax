@@ -1,4 +1,19 @@
 # Changelog
+## [3.2.28] - 2026-01-25 18:30:00
+
+### Adicionado
+- style(whatsapp): visual premium aplicado à página de Notificações WhatsApp
+  - Banner/hero com gradiente, ícone grande e título destacado
+  - Cards premium com gradiente, sombra, borda arredondada e destaque nos blocos A, B e C
+  - Títulos grandes, ícones e botões estilizados
+  - Badges e alertas com visual moderno e contraste elevado
+  - Responsividade e animação sutil
+  - Classes CSS exclusivas para WhatsApp adicionadas em static/multimax-estilo.css
+  - HTML da página whatsapp_admin.html totalmente adaptado para o novo padrão visual
+
+### Interno
+- Registro minucioso conforme exigido pelo fluxo de versionamento e pre-commit hook
+
 ## [3.2.27] - 2026-01-25 04:00:00
 
 ### Refatorado
@@ -10,7 +25,7 @@
   - Código preparado para automação de testes e integração contínua
 
 ### Interno
-
+ok
 - docs: documentação detalhada da reconstrução salva em documentation/REBUILD_WHATSAPP_BLOCKS.md
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
