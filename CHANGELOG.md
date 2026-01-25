@@ -4,6 +4,14 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 > **Nota**: A partir da versão 3.2.0, todas as datas de versão **DEVEM** incluir a hora exata local (formato: `YYYY-MM-DD HH:MM:SS`) para rastreabilidade precisa dos releases. Esta validação é obrigatória no pre-commit hook.
 
+## [3.2.25] - 2026-01-25 03:30:00
+
+### Corrigido
+
+- fix(ui): sincronizar whatsapp_admin.html com o repositório remoto
+  - Arquivo atualizado e commitado para garantir consistência entre ambiente local e remoto
+  - Nenhuma alteração funcional, apenas sincronização de versão
+
 
 ## [3.2.24] - 2026-01-25 02:30:00
 

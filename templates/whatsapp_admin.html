@@ -7,6 +7,16 @@
 
 {% block content %}
 <div class="container-fluid py-3 py-lg-4">
+    {% if current_user.is_authenticated and current_user.nivel == "DEV" %}
+        <!-- Feedback DEV -->
+        <div class="alert alert-success mb-3" role="alert">
+            <i class="bi bi-person-badge"></i> Modo desenvolvedor ativo: todos os blocos visíveis e logs detalhados.
+        </div>
+    {% else %}
+        <div class="alert alert-danger mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle"></i> Atenção: apenas usuários DEV podem acessar todos os recursos deste painel.
+        </div>
+    {% endif %}
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
             <p class="text-uppercase text-secondary small mb-1">Central de notificações</p>
@@ -53,7 +63,8 @@
         </div>
 
         <!-- Bloco B - Controle Automático -->
-        <div class="col-12 col-lg-5">
+            <div class="col-12 col-lg-5">
+                {% if current_user.is_authenticated and current_user.nivel == "DEV" %}
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-body p-4 d-flex flex-column">
                     <p class="text-uppercase text-secondary small mb-1">Bloco B — controle automático</p>
@@ -89,7 +100,8 @@
         </div>
 
         <!-- Bloco C - Ações Rápidas -->
-        <div class="col-12">
+            <div class="col-12">
+                {% if current_user.is_authenticated and current_user.nivel == "DEV" %}
             <div class="card shadow-sm border-0">
                 <div class="card-body p-4">
                     <div class="mb-3">
@@ -100,6 +112,7 @@
 
                     <div class="d-flex flex-wrap gap-3">
                         <!-- Botão: Ciclo Aberto -->
+            {% endif %}
                         <button
                             type="button"
                             class="btn btn-outline-success"
@@ -155,10 +168,10 @@
                                 const modal = bootstrap.Modal.getInstance(document.getElementById('modalCicloAberto'));
                                 modal.hide();
 
-                                if (data.success) {
+                                if (data.ok) {
                                     showNotification('Sucesso!', data.message, 'success');
                                 } else {
-                                    showNotification('Erro', data.message || 'Falha ao enviar PDF', 'danger');
+                                    showNotification('Erro', data.error || data.message || 'Falha ao enviar PDF', 'danger');
                                 }
                             })
                             .catch(error => {
