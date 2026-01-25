@@ -78,19 +78,30 @@ def _candidate_urls(primary: str) -> list[str]:
 
     Ordem de tentativa:
     1. URL primária configurada
-    2. Fallback local: 127.0.0.1
-    3. Fallback local: localhost
+    2. Fallback local: 127.0.0.1 (apenas se NÃO estiver em Docker)
+    3. Fallback local: localhost (apenas se NÃO estiver em Docker)
+
+    Em ambiente Docker, localhost/127.0.0.1 referem-se ao próprio
+    container e não ao serviço whatsapp-service, então os fallbacks
+    locais são desabilitados quando detectamos execução em Docker.
     """
-    fallbacks = [
-        "http://127.0.0.1:3001/notify",
-        "http://localhost:3001/notify",
-    ]
     urls: list[str] = []
     if primary:
         urls.append(primary)
-    for fb in fallbacks:
-        if fb not in urls:
-            urls.append(fb)
+
+    # Detectar se estamos em Docker: verifica se existe /.dockerenv
+    in_docker = os.path.exists("/.dockerenv")
+
+    # Apenas adicionar fallbacks locais se NÃO estiver em Docker
+    if not in_docker:
+        fallbacks = [
+            "http://127.0.0.1:3001/notify",
+            "http://localhost:3001/notify",
+        ]
+        for fb in fallbacks:
+            if fb not in urls:
+                urls.append(fb)
+
     return urls
 
 

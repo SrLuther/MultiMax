@@ -4,6 +4,15 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 > **Nota**: A partir da versão 3.2.0, todas as datas de versão incluem a hora exata local (formato: `YYYY-MM-DD HH:MM:SS`) para rastreabilidade precisa dos releases.
 
+## [3.2.15] - 2026-01-24 (em desenvolvimento)
+
+### Corrigido
+
+- fix(whatsapp): desabilitar fallbacks locais (localhost/127.0.0.1) em ambiente Docker
+  - Detecta execução em container via `/.dockerenv`
+  - Evita tentativas de conexão inválidas quando `whatsapp-service` falha
+  - Fallbacks locais permanecem ativos em desenvolvimento local
+
 ## [3.2.4] - 2026-01-24 23:32:00
 
 ### Adicionado
