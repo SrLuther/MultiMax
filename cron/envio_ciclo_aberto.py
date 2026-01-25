@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from multimax import create_app, db  # noqa: E402
 from multimax.models import SystemLog  # noqa: E402
 from multimax.routes.ciclos import _gerar_pdf_ciclo_aberto_bytes  # noqa: E402
-from multimax.services.whatsapp_gateway import send_whatsapp_message  # noqa: E402
+from multimax.services.whatsapp_gateway import get_auto_notifications_enabled, send_whatsapp_message  # noqa: E402
 
 
 def log_system(event: str, details: str) -> None:
@@ -67,10 +67,12 @@ def main():
                 log_system("agendamento_ignorado", f"Execução ignorada: hora atual {hora}h, esperado 19h-20h")
                 return
 
-            print(f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] Iniciando envio automático de PDF de ciclo aberto...")
+            # Verificar se Bloco B (Controle Automático) está ativado
+            if not get_auto_notifications_enabled():
+                print("⚠️  Bloco B (Controle Automático) desativado. Envio automático suspenso.")
+                log_system("agendamento_ignorado", "Execução ignorada: Bloco B (Controle Automático) desativado")
+                return
 
-            # Gerar PDF
-            print("Gerando PDF de ciclo aberto...")
             pdf_bytes, ciclo_id, mes_inicio = _gerar_pdf_ciclo_aberto_bytes()
 
             if pdf_bytes is None:

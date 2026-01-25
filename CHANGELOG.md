@@ -6,6 +6,41 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ## [Unreleased]
 
+## [3.2.22] - 2026-01-25 19:15:00
+
+### Adicionado
+
+- **feat(whatsapp): Bloco B controla envio automático de ciclo aberto via cron**
+  - Cron `cron/envio_ciclo_aberto.py` agora verifica `get_auto_notifications_enabled()` antes de enviar
+  - Se Bloco B (Controle Automático) estiver desativado, envio automático é suspenso com log informativo
+  - Botão "Ciclo Aberto" (Bloco C) continua funcionando independentemente do Bloco B
+  
+- **feat(ui): novo Bloco C com ações rápidas executáveis**
+  - Card "Bloco C — ações rápidas" na página de Notificações WhatsApp
+  - Botão "Ciclo Aberto" para disparo manual do envio de PDF
+  - Modal de confirmação antes de executar ação
+  - Feedback visual com loading spinner durante execução
+  - Preparado para futuras ações (estoque, relatórios, etc.)
+
+- **fix(ui): correção de legibilidade em modo dark (dark mode)**
+  - Altera classes `text-muted` para `text-secondary` em labels e descrições
+  - Melhora contraste de cores em alerts e badges
+  - Ajusta cores de links e textos para melhor visibilidade no tema escuro
+  - Atualiza descrição do Bloco B para mencionar "ciclos abertos aos sábados"
+
+### Melhorias
+
+- **ux(whatsapp)**: Bloco C oferece forma rápida para testar envios sob demanda
+- **logging(ciclos)**: Cron registra quando Bloco B está desativado (suspensão informativa)
+- **accessibility(ui)**: Cores do modo dark agora atendem melhor critérios de contraste WCAG
+
+### Status
+
+- ✅ Ciclo aberto cron respeitando estado do Bloco B
+- ✅ Botão manual sempre disponível (independente de Bloco B)
+- ✅ Cores dark mode legíveis em todos os componentes
+- ✅ Interface Bloco C pronta para expansão
+
 ## [3.2.21] - 2026-01-25 17:30:00
 
 ### Adicionado

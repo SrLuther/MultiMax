@@ -9,27 +9,28 @@
 <div class="container-fluid py-3 py-lg-4">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
-            <p class="text-uppercase text-muted small mb-1">Central de notificações</p>
+            <p class="text-uppercase text-secondary small mb-1">Central de notificações</p>
             <h1 class="h3 mb-2">WhatsApp (Baileys local)</h1>
-            <p class="text-muted mb-0">Envie alertas diretamente para o gateway local. O MultiMax não conhece nem armazena IDs de grupos.</p>
+            <p class="text-secondary mb-0">Envie alertas diretamente para o gateway local. O MultiMax não conhece nem armazena IDs de grupos.</p>
         </div>
         <div class="d-flex align-items-center gap-2 flex-wrap">
             <span class="badge {% if auto_enabled %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
                 Automáticas: {% if auto_enabled %}ativadas{% else %}desativadas{% endif %}
             </span>
-            <span class="badge bg-light text-muted border">Endpoint local: {{ gateway_url }}</span>
+            <span class="badge bg-light text-dark border">Endpoint local: {{ gateway_url }}</span>
         </div>
     </div>
 
     <div class="row g-4">
+        <!-- Bloco A - Envio Manual -->
         <div class="col-12 col-lg-7">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
-                            <p class="text-uppercase text-muted small mb-1">Bloco A — envio manual</p>
+                            <p class="text-uppercase text-secondary small mb-1">Bloco A — envio manual</p>
                             <h4 class="mb-2">Disparar mensagem agora</h4>
-                            <p class="text-muted mb-0">Entrega imediata para todos os grupos configurados no serviço Baileys. Ignora qualquer bloqueio ou agendamento.</p>
+                            <p class="text-secondary mb-0">Entrega imediata para todos os grupos configurados no serviço Baileys. Ignora qualquer bloqueio ou agendamento.</p>
                         </div>
                         <span class="badge bg-primary-subtle text-primary">Envio prioritário</span>
                     </div>
@@ -39,7 +40,7 @@
                             <label for="mensagem">Mensagem para o(s) grupo(s)</label>
                         </div>
                         <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
-                            <div class="text-muted small">
+                            <div class="text-secondary small">
                                 Enviado para todos os grupos mantidos pelo serviço local. O MultiMax não envia IDs nem escolhe grupos.
                             </div>
                             <button type="submit" class="btn btn-success px-4">
@@ -50,12 +51,14 @@
                 </div>
             </div>
         </div>
+
+        <!-- Bloco B - Controle Automático -->
         <div class="col-12 col-lg-5">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-body p-4 d-flex flex-column">
-                    <p class="text-uppercase text-muted small mb-1">Bloco B — controle automático</p>
+                    <p class="text-uppercase text-secondary small mb-1">Bloco B — controle automático</p>
                     <h4 class="mb-2">Notificações automáticas do sistema</h4>
-                    <p class="text-muted">Ligue ou pause envios gerados por automações (estoque, rotinas, futuros bots). O envio manual permanece sempre liberado.</p>
+                    <p class="text-secondary">Ligue ou pause envios gerados por automações (estoque, rotinas, ciclos abertos aos sábados). O envio manual permanece sempre liberado.</p>
 
                     <form method="post" action="{{ url_for('whatsapp_admin.toggle_auto') }}" class="mt-3">
                         <input type="hidden" name="auto_enabled" value="off">
@@ -73,14 +76,107 @@
                         </div>
                     </form>
 
-                    <div class="alert alert-info mt-4 mb-0" role="alert">
+                    <div class="alert alert-info mt-4 mb-0" role="alert" style="background-color: rgba(13, 110, 253, 0.1); border-color: rgba(13, 110, 253, 0.3);">
                         <div class="d-flex align-items-start gap-2">
                             <i class="bi bi-shield-lock text-info fs-5"></i>
-                            <div class="small text-muted">
-                                Acesso restrito a DEV. O endpoint local ({{ gateway_url }}) concentra toda lógica de entrega e grupos. Se desligado, nenhuma automação enviará mensagens.
+                            <div class="small" style="color: #9ecbff;">
+                                Acesso restrito a DEV. O endpoint local ({{ gateway_url }}) concentra toda lógica de entrega e grupos. Se desligado, nenhuma automação enviará mensagens (ciclo aberto, estoque, etc).
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bloco C - Ações Rápidas -->
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <div class="mb-3">
+                        <p class="text-uppercase text-secondary small mb-1">Bloco C — ações rápidas</p>
+                        <h4 class="mb-2">Executar ações de envio sob demanda</h4>
+                        <p class="text-secondary">Dispare ações específicas via WhatsApp independentemente do Bloco B. Útil para testes e execução manual de tarefas automáticas.</p>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-3">
+                        <!-- Botão: Ciclo Aberto -->
+                        <button
+                            type="button"
+                            class="btn btn-outline-success"
+                            data-bs-toggle="modal"
+                            data-bs-target="#modalCicloAberto"
+                            title="Enviar PDF com registro de ciclo aberto para colaboradores"
+                        >
+                            <i class="bi bi-file-pdf me-2"></i> Ciclo Aberto
+                        </button>
+
+                        <!-- Modal para confirmação do envio de Ciclo Aberto -->
+                        <div class="modal fade" id="modalCicloAberto" tabindex="-1" role="dialog">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Enviar PDF de Ciclo Aberto</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p class="text-secondary">Tem certeza que deseja enviar o PDF de ciclo aberto agora?</p>
+                                        <p class="text-secondary small mb-0"><strong>⚠️ Nota:</strong> Esta ação enviará o PDF para <strong>todos os grupos</strong> configurados no WhatsApp.</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <button
+                                            type="button"
+                                            class="btn btn-success"
+                                            id="btnEnviarCicloAberto"
+                                            onclick="enviarCicloAberto()"
+                                        >
+                                            <i class="bi bi-send me-1"></i> Enviar Agora
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <script>
+                        function enviarCicloAberto() {
+                            const btn = document.getElementById('btnEnviarCicloAberto');
+                            btn.disabled = true;
+                            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+
+                            fetch('/ciclos/enviar_pdf_ciclo_aberto', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                }
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                const modal = bootstrap.Modal.getInstance(document.getElementById('modalCicloAberto'));
+                                modal.hide();
+
+                                if (data.success) {
+                                    showNotification('Sucesso!', data.message, 'success');
+                                } else {
+                                    showNotification('Erro', data.message || 'Falha ao enviar PDF', 'danger');
+                                }
+                            })
+                            .catch(error => {
+                                const modal = bootstrap.Modal.getInstance(document.getElementById('modalCicloAberto'));
+                                modal.hide();
+                                showNotification('Erro', 'Falha na comunicação: ' + error.message, 'danger');
+                            })
+                            .finally(() => {
+                                btn.disabled = false;
+                                btn.innerHTML = '<i class="bi bi-send me-1"></i> Enviar Agora';
+                            });
+                        }
+
+                        function showNotification(title, message, type) {
+                            // Usar toast ou alert do sistema existente
+                            alert((title ? title + '\n' : '') + message);
+                        }
+                    </script>
                 </div>
             </div>
         </div>
