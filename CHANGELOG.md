@@ -1,4 +1,9 @@
 # Changelog
+## [3.2.38] - 2026-01-25 22:00:00
+
+### Visual
+- fix(whatsapp-admin): realce de cor clara nos textos principais dos blocos para melhor legibilidade
+  - Títulos e descrições dos blocos "Disparar mensagem agora", "Executar ações de envio sob demanda", "Notificações automáticas do sistema" e "Ativar notificações automáticas" agora aparecem em branco ou branco translúcido para contraste premium.
 ## [3.2.34] - 2026-01-25 20:15:00
 
 ### Corrigido

@@ -108,9 +108,9 @@
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
-                            <p class="text-uppercase text-secondary small mb-1">Bloco A — envio manual</p>
-                            <h3 class="whatsapp-card-title mb-2"><i class="bi bi-broadcast me-2"></i>Disparar mensagem agora</h3>
-                            <p class="text-secondary mb-0">Entrega imediata para todos os grupos configurados no serviço Baileys. Ignora qualquer bloqueio ou agendamento.</p>
+                            <p class="text-uppercase text-white small mb-1">Bloco A — envio manual</p>
+                            <h3 class="whatsapp-card-title mb-2 text-white"><i class="bi bi-broadcast me-2"></i>Disparar mensagem agora</h3>
+                            <p class="text-white-50 mb-0">Entrega imediata para todos os grupos configurados no serviço Baileys. Ignora qualquer bloqueio ou agendamento.</p>
                         </div>
                         <span class="badge bg-primary-subtle text-primary">Envio prioritário</span>
                     </div>
@@ -120,7 +120,7 @@
                             <label for="mensagem">Mensagem para o(s) grupo(s)</label>
                         </div>
                         <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
-                            <div class="text-secondary small">
+                            <div class="text-white-50 small">
                                 Enviado para todos os grupos mantidos pelo serviço local. O MultiMax não envia IDs nem escolhe grupos.
                             </div>
                             <button type="submit" class="btn btn-success px-4 whatsapp-btn-premium">
@@ -137,15 +137,15 @@
         <div class="col-12 col-lg-5">
             <div class="card whatsapp-card-premium shadow-sm border-0 h-100">
                 <div class="card-body p-4 d-flex flex-column">
-                    <p class="text-uppercase text-secondary small mb-1">Bloco B — controle automático</p>
-                    <h3 class="whatsapp-card-title mb-2"><i class="bi bi-robot me-2"></i>Notificações automáticas do sistema</h3>
-                    <p class="text-secondary">Ligue ou pause envios gerados por automações (estoque, rotinas, ciclos abertos aos sábados). O envio manual permanece sempre liberado.</p>
+                    <p class="text-uppercase text-white small mb-1">Bloco B — controle automático</p>
+                    <h3 class="whatsapp-card-title mb-2 text-white"><i class="bi bi-robot me-2"></i>Notificações automáticas do sistema</h3>
+                    <p class="text-white-50">Ligue ou pause envios gerados por automações (estoque, rotinas, ciclos abertos aos sábados). O envio manual permanece sempre liberado.</p>
 
                     <form id="formToggleAuto" class="mt-3" autocomplete="off" onsubmit="return false;">
                         <input type="hidden" name="auto_enabled" value="off">
                         <div class="form-check form-switch fs-5 mb-3">
                             <input class="form-check-input" type="checkbox" role="switch" id="autoSwitch" name="auto_enabled" value="on" {% if auto_enabled %}checked{% endif %}>
-                            <label class="form-check-label" for="autoSwitch">Ativar notificações automáticas</label>
+                            <label class="form-check-label text-white" for="autoSwitch">Ativar notificações automáticas</label>
                         </div>
                         <div class="d-flex align-items-center gap-3 flex-wrap">
                             <button type="button" class="btn btn-outline-primary whatsapp-btn-premium" id="btnToggleAuto" onclick="toggleAutoNotificacoes()">
@@ -202,10 +202,10 @@ function toggleAutoNotificacoes() {
 }
 </script>
 
-                    <div class="alert alert-info mt-4 mb-0 whatsapp-alert-premium" role="alert">
+                    <div class="alert alert-info mt-4 mb-0 whatsapp-alert-premium" role="alert" style="background:rgba(13,110,253,0.15);color:#fff;">
                         <div class="d-flex align-items-start gap-2">
-                            <i class="bi bi-shield-lock text-info fs-5"></i>
-                            <div class="small" style="color: #0d6efd;">
+                            <i class="bi bi-shield-lock text-white fs-5"></i>
+                            <div class="small" style="color: #fff;">
                                 Acesso restrito a DEV. O endpoint local ({{ gateway_url or 'não configurado' }}) concentra toda lógica de entrega e grupos. Se desligado, nenhuma automação enviará mensagens (ciclo aberto, estoque, etc).
                             </div>
                         </div>
@@ -221,9 +221,9 @@ function toggleAutoNotificacoes() {
             <div class="card whatsapp-card-premium shadow-sm border-0">
                 <div class="card-body p-4">
                     <div class="mb-3">
-                        <p class="text-uppercase text-secondary small mb-1">Bloco C — ações rápidas</p>
-                        <h3 class="whatsapp-card-title mb-2"><i class="bi bi-lightning-charge me-2"></i>Executar ações de envio sob demanda</h3>
-                        <p class="text-secondary">Dispare ações específicas via WhatsApp independentemente do Bloco B. Útil para testes e execução manual de tarefas automáticas.</p>
+                        <p class="text-uppercase text-white small mb-1">Bloco C — ações rápidas</p>
+                        <h3 class="whatsapp-card-title mb-2 text-white"><i class="bi bi-lightning-charge me-2"></i>Executar ações de envio sob demanda</h3>
+                        <p class="text-white-50">Dispare ações específicas via WhatsApp independentemente do Bloco B. Útil para testes e execução manual de tarefas automáticas.</p>
                     </div>
 
                     <div class="d-flex flex-wrap gap-3">
