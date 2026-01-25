@@ -6,6 +6,12 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ## [Unreleased]
 
+## [3.2.16] - 2026-01-24
+
+### Adicionado
+
+- docs(ssh): registrar alias oficial `ssh multimax` e chave `id_ed25519_nopass` em [documentacao/CAPACIDADES_SSH_COPILOT.md](documentacao/CAPACIDADES_SSH_COPILOT.md)
+
 ## [3.2.15] - 2026-01-24
 
 ### Corrigido
