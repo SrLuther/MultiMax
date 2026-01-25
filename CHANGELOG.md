@@ -1,4 +1,10 @@
 # Changelog
+## [3.2.34] - 2026-01-25 20:15:00
+
+### Corrigido
+- fix(whatsapp): adicionado `{% endif %}` após Bloco B no whatsapp_admin.html
+  - Corrige erro de sintaxe Jinja2 e erro 500 na rota /dev/whatsapp/
+# Changelog
 ## [3.2.33] - 2026-01-25 20:00:00
 
 ### Corrigido
