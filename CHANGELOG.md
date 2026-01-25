@@ -1,4 +1,9 @@
 # Changelog
+## [3.2.40] - 2026-01-25 23:00:00
+
+### Corrigido
+- fix(base): bloco scripts movido para após </body> garantindo execução correta dos scripts de modais
+  - Corrige ordem de execução dos scripts, garantindo funcionamento dos modais Bootstrap em todas as páginas que herdam base.html.
 ## [3.2.39] - 2026-01-25 22:30:00
 
 ### Corrigido
