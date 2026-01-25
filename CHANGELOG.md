@@ -6,6 +6,15 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ## [Unreleased]
 
+## [3.2.23] - 2026-01-25 19:45:00
+
+### Corrigido
+
+- fix(linting): usar raw string no docstring do cron para evitar erro D301
+  - Docstring em `cron/envio_ciclo_aberto.py` continha backslashes que causavam warning
+  - Alterado para raw string (r""") para escape correto de caracteres especiais
+  - Todos os testes flake8 passam sem erros
+
 ## [3.2.22] - 2026-01-25 19:15:00
 
 ### Adicionado

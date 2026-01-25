@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""
+r"""
 Script cron para envio automático do PDF de ciclos abertos via WhatsApp.
 Executa todo sábado às 20h (horário de Brasília).
 
@@ -7,7 +7,7 @@ Uso:
     python cron/envio_ciclo_aberto.py
 
 Configuração no crontab:
-    0 20 * * 6 cd /opt/multimax && /opt/multimax/.venv/bin/python3 \\
+    0 20 * * 6 cd /opt/multimax && /opt/multimax/.venv/bin/python3 \
         cron/envio_ciclo_aberto.py >> /var/log/multimax/cron_ciclo_aberto.log 2>&1
 """
 
