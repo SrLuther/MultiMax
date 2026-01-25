@@ -2,8 +2,12 @@
 ## [3.2.34] - 2026-01-25 20:15:00
 
 ### Corrigido
-- fix(whatsapp): adicionado `{% endif %}` após Bloco B no whatsapp_admin.html
   - Corrige erro de sintaxe Jinja2 e erro 500 na rota /dev/whatsapp/
+## [3.2.35] - 2026-01-25 21:00:00
+
+### Corrigido
+- fix(whatsapp): robustez defensiva Jinja2 (auto_enabled boolean, gateway_url blindado, colunas DEV sem vazios)
+  - Garante que auto_enabled sempre é booleano, gateway_url nunca é None, e Bloco B/C só aparecem para DEV sem colunas vazias. Estrutura Jinja2 revisada para máxima robustez em produção.
 # Changelog
 ## [3.2.33] - 2026-01-25 20:00:00
 

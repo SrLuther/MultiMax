@@ -7,6 +7,7 @@
 
 
 {% block content %}
+{% set auto_enabled = auto_enabled | bool %}
 <div class="container-fluid py-3 py-lg-4">
     <!-- Banner Premium -->
     <div class="whatsapp-hero mb-4">
@@ -23,7 +24,7 @@
             <span class="badge {% if auto_enabled %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
                 Automáticas: {% if auto_enabled %}ativadas{% else %}desativadas{% endif %}
             </span>
-            <span class="badge bg-light text-dark border">Endpoint local: {{ gateway_url }}</span>
+            <span class="badge bg-light text-dark border">Endpoint local: {{ gateway_url or 'não configurado' }}</span>
         </div>
     </div>
 
@@ -69,8 +70,8 @@
         </div>
 
         <!-- Bloco B - Controle Automático -->
+        {% if current_user.is_authenticated and current_user.nivel == "DEV" %}
         <div class="col-12 col-lg-5">
-            {% if current_user.is_authenticated and current_user.nivel == "DEV" %}
             <div class="card whatsapp-card-premium shadow-sm border-0 h-100">
                 <div class="card-body p-4 d-flex flex-column">
                     <p class="text-uppercase text-secondary small mb-1">Bloco B — controle automático</p>
@@ -142,7 +143,7 @@ function toggleAutoNotificacoes() {
                         <div class="d-flex align-items-start gap-2">
                             <i class="bi bi-shield-lock text-info fs-5"></i>
                             <div class="small" style="color: #0d6efd;">
-                                Acesso restrito a DEV. O endpoint local ({{ gateway_url }}) concentra toda lógica de entrega e grupos. Se desligado, nenhuma automação enviará mensagens (ciclo aberto, estoque, etc).
+                                Acesso restrito a DEV. O endpoint local ({{ gateway_url or 'não configurado' }}) concentra toda lógica de entrega e grupos. Se desligado, nenhuma automação enviará mensagens (ciclo aberto, estoque, etc).
                             </div>
                         </div>
                     </div>
@@ -152,8 +153,8 @@ function toggleAutoNotificacoes() {
         {% endif %}
 
         <!-- Bloco C - Ações Rápidas -->
+        {% if current_user.is_authenticated and current_user.nivel == "DEV" %}
         <div class="col-12">
-            {% if current_user.is_authenticated and current_user.nivel == "DEV" %}
             <div class="card whatsapp-card-premium shadow-sm border-0">
                 <div class="card-body p-4">
                     <div class="mb-3">
@@ -251,5 +252,5 @@ function toggleAutoNotificacoes() {
                 </div>
             </div>
         </div>
-    </div>
+        {% endif %}
 {% endblock %}
