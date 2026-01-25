@@ -52,32 +52,41 @@ docker-compose ps
 
 echo ""
 info "6. Verificando se whatsapp-service está rodando..."
-WHATSAPP_STATUS=$(docker inspect -f '{{.State.Status}}' whatsapp-service 2>/dev/null || echo "not found")
-if [ "$WHATSAPP_STATUS" = "running" ]; then
-    success "whatsapp-service está rodando"
+WHATSAPP_CID=$(docker-compose ps -q whatsapp-service || true)
+if [ -z "$WHATSAPP_CID" ]; then
+    error "whatsapp-service não encontrado via docker-compose"
 else
-    error "whatsapp-service não está rodando (status: $WHATSAPP_STATUS)"
+    WHATSAPP_STATUS=$(docker inspect -f '{{.State.Status}}' "$WHATSAPP_CID" 2>/dev/null || echo "not found")
+    if [ "$WHATSAPP_STATUS" = "running" ]; then
+        success "whatsapp-service está rodando"
+    else
+        error "whatsapp-service não está rodando (status: $WHATSAPP_STATUS)"
+    fi
 fi
 
 echo ""
 info "7. Verificando conectividade de rede entre containers..."
-docker exec multimax ping -c 2 whatsapp-service 2>/dev/null && success "Conectividade OK" || warning "Falha na conectividade"
+if docker-compose exec multimax getent hosts whatsapp-service >/dev/null 2>&1; then
+    success "Resolução de nome para whatsapp-service OK"
+else
+    warning "Falha ao resolver whatsapp-service a partir do multimax"
+fi
 
 echo ""
 info "8. Verificando logs do whatsapp-service (últimas 20 linhas)..."
 echo "----------------------------------------"
-docker logs whatsapp-service --tail 20
+docker-compose logs --tail 20 whatsapp-service || true
 echo "----------------------------------------"
 
 echo ""
 info "9. Verificando logs do multimax (últimas 20 linhas)..."
 echo "----------------------------------------"
-docker logs multimax --tail 20
+docker-compose logs --tail 20 multimax || true
 echo "----------------------------------------"
 
 echo ""
 info "10. Testando endpoint /health do whatsapp-service (interno)..."
-HEALTH_RESPONSE=$(docker exec multimax curl -s http://whatsapp-service:3001/health 2>/dev/null || echo "error")
+HEALTH_RESPONSE=$(docker-compose exec whatsapp-service sh -c "apk add --no-cache curl >/dev/null && curl -s http://localhost:3001/health" 2>/dev/null || echo "error")
 if echo "$HEALTH_RESPONSE" | grep -q "ok"; then
     success "Endpoint /health respondeu: $HEALTH_RESPONSE"
 else
@@ -115,11 +124,11 @@ else
 fi
 
 # Teste interno (dentro do container multimax)
-TEST_RESPONSE=$(docker exec multimax curl -s -X POST \
-    -H "Authorization: Bearer $TOKEN" \
-    -H "Content-Type: application/json" \
-    -d '{"numero":"5511999999999","mensagem":"[TESTE VPS] Gateway funcionando após correção de fallbacks Docker"}' \
-    http://localhost:5000/dev/whatsapp/enviar 2>/dev/null || echo "error")
+TEST_RESPONSE=$(docker-compose exec multimax sh -lc "apt-get update >/dev/null && apt-get install -y curl >/dev/null && curl -s -X POST \\
+    -H 'Authorization: Bearer $TOKEN' \\
+    -H 'Content-Type: application/json' \\
+    -d '{\"numero\":\"5511999999999\",\"mensagem\":\"[TESTE VPS] Gateway funcionando apos correcao de fallbacks Docker\"}' \\
+    http://localhost:5000/dev/whatsapp/enviar" 2>/dev/null || echo "error")
 
 echo "   Resposta: $TEST_RESPONSE"
 

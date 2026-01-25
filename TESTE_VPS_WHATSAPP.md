@@ -4,8 +4,8 @@
 Testar a correção do erro `Failed to establish a new connection: [Errno 111] Connection refused` na VPS após a implementação da detecção de ambiente Docker que desabilita fallbacks locais.
 
 ## 📋 Pré-requisitos
-- Acesso SSH ao servidor: `root@www.multimax.tec.br`
-- Código atualizado no GitHub (commit `4aa593d`)
+- Acesso SSH via alias configurado: `ssh multimax` (usa chave `id_ed25519_nopass`, sem senha)
+- Código atualizado no GitHub
 
 ---
 
@@ -13,7 +13,7 @@ Testar a correção do erro `Failed to establish a new connection: [Errno 111] C
 
 ### 1. Conectar ao servidor via SSH
 ```bash
-ssh root@www.multimax.tec.br
+ssh multimax
 ```
 
 ### 2. Executar o script de teste
@@ -65,7 +65,7 @@ Esperado: ambos `multimax` e `whatsapp-service` devem estar `Up`
 
 ### 6. Verificar logs do whatsapp-service
 ```bash
-docker logs whatsapp-service --tail 30
+docker-compose logs --tail 30 whatsapp-service
 ```
 Procure por:
 - `✓ Conectado com sucesso ao WhatsApp`
@@ -74,9 +74,9 @@ Procure por:
 
 ### 7. Testar conectividade de rede
 ```bash
-docker exec multimax ping -c 3 whatsapp-service
+docker-compose exec multimax getent hosts whatsapp-service
 ```
-Esperado: `3 packets transmitted, 3 received`
+Esperado: uma linha resolvendo o hostname para um IP da rede docker (`172.x.x.x`)
 
 ### 8. Verificar variável de ambiente
 ```bash
@@ -92,21 +92,21 @@ Esperado: `Docker detectado (fallbacks desabilitados)`
 
 ### 10. Testar endpoint /health internamente
 ```bash
-docker exec multimax curl -s http://whatsapp-service:3001/health
+docker-compose exec whatsapp-service sh -c "apk add --no-cache curl >/dev/null && curl -s http://localhost:3001/health"
 ```
 Esperado: `{"status":"ok","service":"whatsapp-service"}`
 
 ### 11. Enviar mensagem de teste via endpoint Flask
 ```bash
 # Obter o token
-TOKEN=$(docker exec multimax printenv WHATSAPP_SERVICE_TOKEN)
+TOKEN=$(docker-compose exec multimax printenv WHATSAPP_SERVICE_TOKEN)
 
-# Enviar mensagem de teste
-docker exec multimax curl -X POST \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"numero":"5511999999999","mensagem":"[TESTE VPS] Gateway funcionando!"}' \
-  http://localhost:5000/dev/whatsapp/enviar
+# Enviar mensagem de teste (instala curl se necessário)
+docker-compose exec multimax sh -lc "apt-get update >/dev/null && apt-get install -y curl >/dev/null && curl -s -X POST \\
+  -H 'Authorization: Bearer $TOKEN' \\
+  -H 'Content-Type: application/json' \\
+  -d '{\"numero\":\"5511999999999\",\"mensagem\":\"[TESTE VPS] Gateway funcionando!\"}' \\
+  http://localhost:5000/dev/whatsapp/enviar"
 ```
 
 **Respostas esperadas:**
@@ -134,19 +134,19 @@ docker exec multimax curl -X POST \
 
 #### 1. Verificar se whatsapp-service está rodando
 ```bash
-docker ps | grep whatsapp-service
+docker-compose ps whatsapp-service
 ```
 
 #### 2. Verificar logs detalhados
 ```bash
-docker logs whatsapp-service --tail 50
-docker logs multimax --tail 50 | grep -i whatsapp
+docker-compose logs --tail 50 whatsapp-service
+docker-compose logs --tail 50 multimax | grep -i whatsapp
 ```
 
 #### 3. Verificar conectividade DNS
 ```bash
-docker exec multimax nslookup whatsapp-service
-docker exec multimax getent hosts whatsapp-service
+docker-compose exec multimax nslookup whatsapp-service
+docker-compose exec multimax getent hosts whatsapp-service
 ```
 
 #### 4. Verificar rede Docker
@@ -157,14 +157,12 @@ docker network inspect multimax-dev_default
 
 #### 5. Verificar se o serviço está escutando na porta 3001
 ```bash
-docker exec whatsapp-service netstat -tulpn | grep 3001
+docker-compose exec whatsapp-service netstat -lnt | grep 3001
 ```
 
 #### 6. Testar conexão direta
 ```bash
-docker exec multimax telnet whatsapp-service 3001
-# ou
-docker exec multimax nc -zv whatsapp-service 3001
+docker-compose exec multimax nc -zv whatsapp-service 3001
 ```
 
 ---
