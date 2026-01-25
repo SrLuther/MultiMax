@@ -50,6 +50,29 @@ ssh usuario@www.multimax.tec.br
 ssh usuario@IP
 ```
 
+
+## 📁 Caminho oficial do projeto na VPS
+
+Todo comando de deploy, atualização ou manutenção deve ser executado dentro do diretório:
+
+```
+/opt/multimax
+```
+
+Banco de dados está localizado em:
+
+```
+/opt/multimax-data
+```
+
+Exemplo de uso:
+
+```
+ssh multimax "cd /opt/multimax && <comando>"
+```
+
+---
+
 ### Motivo técnico
 
 Apenas o alias `multimax` utiliza a chave correta:

@@ -3002,6 +3002,9 @@ def _gerar_pdf_ciclo_aberto_bytes():
 
     current_date = _get_open_cycle_current_date()
     mes_inicio = _month_name_pt(current_date.month)
+    # Garantir que mes_inicio seja sempre string
+    if not isinstance(mes_inicio, str):
+        mes_inicio = str(mes_inicio)
     semanas = _weekly_cycles_for_open_month(current_date)
 
     for colab in colaboradores:
@@ -3163,8 +3166,18 @@ def enviar_pdf_ciclo_aberto():
             "_[Essa mensagem é enviada por um sistema automatizado existente em www.multimax.tec.br]_"
         )
 
-        # Enviar via WhatsApp com arquivo PDF anexado
-        nome_arquivo = f"Ciclos_{mes_inicio.strftime('%m_%Y')}.pdf"
+        # Garantir que mes_inicio seja string e formatar nome_arquivo corretamente
+        # mes_inicio pode ser, por exemplo, "Janeiro" ou "Janeiro 2024"
+        # Vamos remover espaços e caracteres especiais para o nome do arquivo
+        import re
+
+        # Garantir que mes_inicio seja string e nunca usar .strftime()
+        if not isinstance(mes_inicio, str):
+            mes_inicio_str = str(mes_inicio)
+        else:
+            mes_inicio_str = mes_inicio
+        nome_arquivo_base = re.sub(r"[^a-zA-Z0-9_]+", "_", mes_inicio_str.strip())
+        nome_arquivo = f"Ciclos_{nome_arquivo_base}.pdf"
         sucesso, erro = send_whatsapp_message(
             message=mensagem,
             actor=current_user.username if hasattr(current_user, "username") else None,

@@ -1,4 +1,10 @@
 # Changelog
+## [3.2.42] - 2026-01-25
+
+### Corrigido
+- fix(ciclos): corrigido bug no envio do PDF de ciclo aberto via WhatsApp
+  - O nome do arquivo PDF agora é sempre válido, mesmo quando mes_inicio é uma string (ex: "Janeiro 2026").
+  - Evita erro 500 ao enviar PDF de ciclos abertos.
 ## [3.2.41] - 2026-01-25 23:10:00
 
 ### Corrigido
