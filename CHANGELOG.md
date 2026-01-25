@@ -4,7 +4,9 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 > **Nota**: A partir da versão 3.2.0, todas as datas de versão incluem a hora exata local (formato: `YYYY-MM-DD HH:MM:SS`) para rastreabilidade precisa dos releases.
 
-## [3.2.15] - 2026-01-24 (em desenvolvimento)
+## [Unreleased]
+
+## [3.2.15] - 2026-01-24
 
 ### Corrigido
 
@@ -12,6 +14,15 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
   - Detecta execução em container via `/.dockerenv`
   - Evita tentativas de conexão inválidas quando `whatsapp-service` falha
   - Fallbacks locais permanecem ativos em desenvolvimento local
+
+### Adicionado
+
+- docs(vps): script automatizado de teste do WhatsApp Gateway (`scripts/test-whatsapp-vps.sh`)
+  - Atualiza código, rebuild containers, testa conectividade e endpoint
+- docs(vps): guia completo de testes e diagnóstico na VPS (`TESTE_VPS_WHATSAPP.md`)
+  - Métodos automatizado e manual
+  - Comandos de diagnóstico detalhados
+  - Cenários de sucesso e falha
 
 ## [3.2.4] - 2026-01-24 23:32:00
 
