@@ -2,9 +2,71 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
-> **Nota**: A partir da versão 3.2.0, todas as datas de versão incluem a hora exata local (formato: `YYYY-MM-DD HH:MM:SS`) para rastreabilidade precisa dos releases.
+> **Nota**: A partir da versão 3.2.0, todas as datas de versão **DEVEM** incluir a hora exata local (formato: `YYYY-MM-DD HH:MM:SS`) para rastreabilidade precisa dos releases. Esta validação é obrigatória no pre-commit hook.
 
 ## [Unreleased]
+
+## [3.2.21] - 2026-01-25 17:30:00
+
+### Adicionado
+
+- **feat(whatsapp): suporte a envio de PDF como arquivo anexado**
+  - Modificado serviço WhatsApp (Node.js) para aceitar campo `arquivo_base64` e `nome_arquivo`
+  - Função `sendToNotifyGroup()` agora suporta envio de arquivo PDF junto com mensagem de texto
+  - Arquivo é enviado como documento via Baileys (messageContent.document)
+- **feat(gateway): expansão de `send_whatsapp_message()` para suporte a arquivos**
+  - Novos parâmetros opcionais: `arquivo_bytes` (bytes) e `nome_arquivo` (string)
+  - Converte arquivo em base64 antes de enviar ao serviço WhatsApp
+  - Logging melhorado mostrando tamanho do arquivo em bytes
+  - Validação: permite mensagem vazia se arquivo fornecido
+- **feat(ciclos): envio de PDF como arquivo em vez de mensagem única**
+  - Endpoint `/ciclos/enviar_pdf_ciclo_aberto` agora envia arquivo PDF anexado
+  - Nome do arquivo: `Ciclos_MM_YYYY.pdf` (e.g., Ciclos_01_2026.pdf)
+  - Script cron `cron/envio_ciclo_aberto.py` também envia com arquivo anexado
+  - SystemLog registra tamanho do arquivo (em bytes) para auditoria
+
+### Melhorias
+
+- **performance(whatsapp)**: Reduz tráfego de dados usando código base64 em payloads JSON
+- **logging(ciclos)**: Detalhes de envio incluem tamanho exato do arquivo em bytes
+- **ux(ciclos)**: Usuários recebem PDF diretamente no WhatsApp, sem necessidade de clicar links
+
+### Status
+
+- ✅ Envio manual (botão) com arquivo PDF
+- ✅ Envio automático (cron sábado 20h) com arquivo PDF
+- ✅ Compatível com Baileys e todos os clientes WhatsApp
+- ✅ Logging completo de tamanho de arquivo
+- ✅ Sem erros de linting ou type checking
+
+## [3.2.20] - 2026-01-25 16:45:00
+
+### Adicionado
+
+- feat(ciclos): sistema de envio automático de PDF de ciclos abertos via WhatsApp
+  - Novo endpoint `POST /ciclos/enviar_pdf_ciclo_aberto` para envio manual
+  - Botão "Ciclo Aberto" (verde, ícone WhatsApp) na interface de ciclos
+  - Script cron `cron/envio_ciclo_aberto.py` para envio automático todo sábado às 20h (horário de Brasília)
+  - Mensagem padronizada com instrução para colaboradores conferirem seus registros
+  - Logs de execução no SystemLog (origem: `cron_ciclo_aberto` e `ciclos`)
+  - Validação de horário e dia da semana no script cron
+- docs(ciclos): guia completo de configuração do envio automático
+  - Instruções para crontab e systemd timer
+  - Exemplos de teste manual e verificação de logs
+  - Troubleshooting de problemas comuns
+  - Documentação em `documentacao/ENVIO_AUTOMATICO_CICLO_ABERTO.md`
+- **feat(changelog): validação obrigatória de formato de hora em versões >= 3.2.0**
+  - Pre-commit hook agora valida formato `YYYY-MM-DD HH:MM:SS` obrigatório
+  - Bloqueia commits se versões >= 3.2.0 não tiverem hora especificada
+  - Mensagem de erro detalhada com exemplos de formato correto
+  - Garante rastreabilidade temporal precisa de todos os releases
+
+### Interno
+
+- refactor(ciclos): extrair função `_gerar_pdf_ciclo_aberto_bytes()` para reutilização
+  - Compartilhada entre endpoint web e script cron
+  - Retorna tupla (pdf_bytes, ciclo_id, mes_inicio)
+  - Reduz duplicação de código de geração de PDF
 
 ## [3.2.19] - 2026-01-25
 

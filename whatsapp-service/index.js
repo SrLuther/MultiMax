@@ -53,7 +53,7 @@ async function listGroups(sock) {
 /**
  * Envia mensagem para o grupo Notify
  */
-async function sendToNotifyGroup(mensagem) {
+async function sendToNotifyGroup(mensagem, arquivoBase64, nomeArquivo) {
   if (!globalSocket) {
     throw new Error("WhatsApp não está conectado");
   }
@@ -63,8 +63,26 @@ async function sendToNotifyGroup(mensagem) {
   }
 
   try {
-    await globalSocket.sendMessage(notifyGroupId, { text: mensagem });
-    logger.info({ grupo: "Notify", tamanho: mensagem.length }, "Mensagem enviada com sucesso");
+    const messageContent = {};
+
+    // Adicionar texto da mensagem
+    if (mensagem) {
+      messageContent.text = mensagem;
+    }
+
+    // Adicionar arquivo se fornecido
+    if (arquivoBase64 && nomeArquivo) {
+      const buffer = Buffer.from(arquivoBase64, "base64");
+      messageContent.document = buffer;
+      messageContent.fileName = nomeArquivo;
+      messageContent.mimetype = "application/pdf";
+    }
+
+    await globalSocket.sendMessage(notifyGroupId, messageContent);
+    const logMsg = arquivoBase64
+      ? `Mensagem com arquivo (${nomeArquivo}) enviada com sucesso`
+      : "Mensagem enviada com sucesso";
+    logger.info({ grupo: "Notify", tamanho: mensagem?.length || 0, arquivo: nomeArquivo }, logMsg);
     return true;
   } catch (err) {
     // Ignorar erros de histórico do WhatsApp
@@ -152,17 +170,22 @@ function setupHttpServer() {
   });
 
   app.post("/notify", async (req, res) => {
-    const { mensagem, origin } = req.body;
+    const { mensagem, origin, arquivo_base64, nome_arquivo } = req.body;
 
-    if (!mensagem) {
-      logger.warn("Requisição /notify sem mensagem");
-      return res.status(400).json({ erro: "Campo 'mensagem' é obrigatório" });
+    if (!mensagem && !arquivo_base64) {
+      logger.warn("Requisição /notify sem mensagem ou arquivo");
+      return res.status(400).json({ erro: "Campo 'mensagem' ou 'arquivo_base64' é obrigatório" });
     }
 
     try {
       const originStr = origin ? ` (origin: ${origin})` : "";
-      logger.info({ origem: origin || "unknown", tamanho: mensagem.length }, "Processando envio de mensagem");
-      await sendToNotifyGroup(mensagem);
+      const tamanhoMsg = mensagem?.length || 0;
+      const tamanhoArq = arquivo_base64?.length || 0;
+      logger.info(
+        { origem: origin || "unknown", tamanho_msg: tamanhoMsg, tamanho_arquivo: tamanhoArq },
+        "Processando envio de mensagem"
+      );
+      await sendToNotifyGroup(mensagem, arquivo_base64, nome_arquivo);
       res.status(200).json({ sucesso: true, mensagem: "Enviado para grupo Notify" });
     } catch (err) {
       logger.error({ err, origin }, "Erro ao processar /notify");

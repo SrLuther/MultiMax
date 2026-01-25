@@ -35,6 +35,12 @@
                     <span>Registrar Pagamento</span>
                 </button>
                 {% endif %}
+                {% if can_edit %}
+                <button type="button" class="btn-action btn-action-success" id="btnEnviarCicloAberto" title="Enviar PDF do ciclo aberto via WhatsApp">
+                    <i class="bi bi-whatsapp"></i>
+                    <span>Ciclo Aberto</span>
+                </button>
+                {% endif %}
                 <a href="{{ url_for('ciclos.pesquisa') }}" class="btn-action btn-action-secondary" style="text-decoration:none;">
                     <i class="bi bi-search"></i>
                     <span>Pesquisar Ciclos</span>
@@ -1044,6 +1050,18 @@
 .btn-action-primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+.btn-action-success {
+    background: #10b981;
+    color: white;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.btn-action-success:hover {
+    background: #059669;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
 }
 
 .btn-action-secondary {

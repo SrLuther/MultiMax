@@ -577,6 +577,46 @@
             });
         }
 
+        // Botão Enviar Ciclo Aberto via WhatsApp
+        const btnEnviarCicloAberto = document.getElementById('btnEnviarCicloAberto');
+        if (btnEnviarCicloAberto) {
+            btnEnviarCicloAberto.addEventListener('click', function() {
+                if (!confirm('Deseja enviar o PDF do ciclo aberto via WhatsApp?')) {
+                    return;
+                }
+
+                // Desabilitar botão e mostrar loading
+                const btnTexto = btnEnviarCicloAberto.querySelector('span');
+                const textoOriginal = btnTexto.textContent;
+                btnEnviarCicloAberto.disabled = true;
+                btnTexto.textContent = 'Enviando...';
+
+                // Fazer requisição POST
+                fetch('/ciclos/enviar_pdf_ciclo_aberto', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ok) {
+                        alert('✅ ' + (data.message || 'PDF enviado com sucesso via WhatsApp!'));
+                    } else {
+                        alert('❌ Erro: ' + (data.error || 'Falha ao enviar PDF'));
+                    }
+                })
+                .catch(error => {
+                    alert('❌ Erro ao enviar: ' + error.message);
+                })
+                .finally(() => {
+                    // Reabilitar botão
+                    btnEnviarCicloAberto.disabled = false;
+                    btnTexto.textContent = textoOriginal;
+                });
+            });
+        }
+
         // Botão Confirmar Fechamento
         const btnConfirmarFechamento = document.getElementById('btnConfirmarFechamento');
         if (btnConfirmarFechamento) {

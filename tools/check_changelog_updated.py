@@ -124,6 +124,38 @@ def check_version_format(versions, allow_legacy=True):
     return True, None
 
 
+def check_version_date_format(changelog_content):
+    """Validate that version dates include time (HH:MM:SS) as required since 3.2.0.
+
+    Returns:
+        tuple: (is_valid, error_message)
+    """
+    # Pattern to find version headers with dates
+    # Format: ## [X.Y.Z] - YYYY-MM-DD HH:MM:SS
+    version_date_pattern = r"^## \[(\d+\.\d+\.\d+)\] - (\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}:\d{2})?)"
+
+    issues = []
+    for match in re.finditer(version_date_pattern, changelog_content, re.MULTILINE):
+        version = match.group(1)
+        date_str = match.group(2)
+
+        # Parse version to check if >= 3.2.0
+        try:
+            major, minor, patch = map(int, version.split("."))
+            # Only enforce time format for versions >= 3.2.0
+            if (major > 3) or (major == 3 and minor > 2) or (major == 3 and minor == 2 and patch >= 0):
+                # Check if time is present (format: YYYY-MM-DD HH:MM:SS)
+                if not re.match(r"^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}$", date_str):
+                    issues.append(f"Version [{version}] missing required time format (must be: YYYY-MM-DD HH:MM:SS)")
+        except ValueError:
+            # Skip invalid version format (will be caught by other validation)
+            continue
+
+    if issues:
+        return False, issues
+    return True, []
+
+
 def main():
     """Main hook logic."""
     staged_files = get_staged_files()
@@ -169,6 +201,37 @@ def main():
         print("Valid formats: MAJOR.MINOR.PATCH (e.g., 2.7.4) or 'Unreleased'")
         print("=" * 80 + "\n")
         return 1
+
+    # Check 1.5: Validate date format includes time (since 3.2.0)
+    try:
+        result = subprocess.run(
+            ["git", "show", ":CHANGELOG.md"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+        if result.returncode == 0:
+            valid_dates, date_issues = check_version_date_format(result.stdout)
+            if not valid_dates:
+                print("\n" + "=" * 80)
+                print("[ERROR] Version date format validation failed")
+                print("=" * 80)
+                print("\nSince version 3.2.0, ALL versions MUST include time:")
+                print("   Format: ## [X.Y.Z] - YYYY-MM-DD HH:MM:SS")
+                print("\nIssues found:")
+                for issue in date_issues:
+                    print(f"   ❌ {issue}")
+                print("\nExample:")
+                print("   ## [3.2.20] - 2026-01-25 14:30:00")
+                print("\nNOTE: This is mandatory for versions >= 3.2.0")
+                print("=" * 80 + "\n")
+                return 1
+    except Exception as e:
+        print(f"[WARNING] Could not validate date format: {e}")
+        # Don't block commit on validation error, just warn
+        pass
 
     # Check 2: Prevent modification of existing versions
     # A version should only be removed if it's being replaced by a new one

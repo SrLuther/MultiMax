@@ -126,18 +126,51 @@ def _timeout_seconds() -> float:
         return 8.0
 
 
-def send_whatsapp_message(message: str, actor: str | None = None, origin: str = "manual") -> Tuple[bool, str]:
+def send_whatsapp_message(
+    message: str = "",
+    actor: str | None = None,
+    origin: str = "manual",
+    arquivo_bytes: bytes | None = None,
+    nome_arquivo: str = "documento.pdf",
+) -> Tuple[bool, str]:
+    """Envia mensagem de texto e/ou arquivo PDF via WhatsApp.
+
+    Args:
+        message: Mensagem de texto (pode ser vazia se arquivo_bytes fornecido)
+        actor: Usuário que enviou (para logging)
+        origin: Origem do envio (manual, cron, etc)
+        arquivo_bytes: Bytes do arquivo PDF (opcional)
+        nome_arquivo: Nome do arquivo (padrão: documento.pdf)
+
+    Returns:
+        Tuple[bool, str]: (sucesso, mensagem_erro)
+    """
     msg = (message or "").strip()
-    if not msg:
-        return False, "Mensagem vazia."
+
+    # Validar que pelo menos mensagem ou arquivo foi fornecido
+    if not msg and not arquivo_bytes:
+        return False, "Mensagem e arquivo vazios."
 
     url = _notify_url()
     if not url:
         return False, "Endpoint do serviço WhatsApp não configurado."
 
-    payload = {"mensagem": msg, "origin": origin}
+    # Converter arquivo para base64 se fornecido
+    arquivo_base64 = ""
+    if arquivo_bytes:
+        import base64
+
+        arquivo_base64 = base64.b64encode(arquivo_bytes).decode("utf-8")
+
+    payload = {
+        "mensagem": msg,
+        "origin": origin,
+        "arquivo_base64": arquivo_base64,
+        "nome_arquivo": nome_arquivo if arquivo_bytes else "",
+    }
     headers = {"Content-Type": "application/json"}
     last_error: str = ""
+
     for candidate in _candidate_urls(url):
         try:
             resp = requests.post(
@@ -148,7 +181,12 @@ def send_whatsapp_message(message: str, actor: str | None = None, origin: str = 
                 last_error = f"Erro do serviço ({resp.status_code}): {snippet or 'resposta vazia'}"
                 continue
             # sucesso
-            _log_system("manual_send", f"Mensagem enviada via gateway ({len(msg)} chars)", actor)
+            log_msg = "Mensagem"
+            if arquivo_base64:
+                tamanho_bytes = len(arquivo_bytes) if arquivo_bytes else 0
+                log_msg += f" + arquivo ({nome_arquivo}, {tamanho_bytes} bytes)"
+            log_msg += f" enviada via gateway ({len(msg)} chars)"
+            _log_system("manual_send", log_msg, actor)
             return True, ""
         except requests.RequestException as exc:
             last_error = f"Falha ao contatar serviço WhatsApp: {exc}"

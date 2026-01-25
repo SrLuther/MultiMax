@@ -2980,3 +2980,217 @@ def setores_api():
     """API para obter lista de setores ativos"""
     setores = Setor.query.filter_by(ativo=True).order_by(Setor.nome.asc()).all()
     return jsonify([setor.to_dict() for setor in setores])
+
+
+def _gerar_pdf_ciclo_aberto_bytes():
+    """
+    Helper: Gera bytes do PDF de ciclo aberto (sem salvar em arquivo).
+    Retorna tupla (pdf_bytes, ciclo_id, mes_inicio) ou (None, None, None) em caso de erro.
+    """
+    import sys
+
+    base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
+    colaboradores = _get_all_collaborators()
+    colaboradores_resumo = []
+
+    valor_dia = _get_valor_dia()
+
+    # Ciclo mensal atual
+    ultimo_fechamento = CicloFechamento.query.order_by(CicloFechamento.ciclo_id.desc()).first()
+    ciclo_id = (ultimo_fechamento.ciclo_id + 1) if ultimo_fechamento else 1
+
+    current_date = _get_open_cycle_current_date()
+    mes_inicio = _month_name_pt(current_date.month)
+    semanas = _weekly_cycles_for_open_month(current_date)
+
+    for colab in colaboradores:
+        balance = _calculate_collaborator_balance(colab.id)
+
+        semanas_detalhadas = []
+        tem_algo = False
+        for s in semanas:
+            week_start = s["week_start"]
+            week_end = s["week_end"]
+            horas = (
+                _get_active_ciclos_query(colab.id)
+                .filter(
+                    Ciclo.data_lancamento >= week_start,
+                    Ciclo.data_lancamento <= week_end,
+                    Ciclo.origem != "Folga utilizada",
+                )
+                .order_by(Ciclo.data_lancamento.asc(), Ciclo.id.asc())
+                .all()
+            )
+            folgas = (
+                CicloFolga.query.filter(
+                    CicloFolga.collaborator_id == colab.id,
+                    CicloFolga.setor_id == colab.setor_id,
+                    CicloFolga.status_ciclo == "ativo",
+                    CicloFolga.data_folga >= week_start,
+                    CicloFolga.data_folga <= week_end,
+                )
+                .order_by(CicloFolga.data_folga.asc(), CicloFolga.id.asc())
+                .all()
+            )
+            # Buscar "Folgas utilizadas" da tabela Ciclo separadamente
+            folgas_utilizadas_ciclo = (
+                _get_active_ciclos_query(colab.id)
+                .filter(
+                    Ciclo.data_lancamento >= week_start,
+                    Ciclo.data_lancamento <= week_end,
+                    Ciclo.origem == "Folga utilizada",
+                )
+                .order_by(Ciclo.data_lancamento.asc(), Ciclo.id.asc())
+                .all()
+            )
+            # Criar objetos similares a CicloFolga para mesclar
+            for h in folgas_utilizadas_ciclo:
+                folga_ciclo = SimpleNamespace(
+                    nome_colaborador=h.nome_colaborador,
+                    data_folga=h.data_lancamento,
+                    tipo="uso",
+                    dias=1,
+                    observacao=h.descricao or "Folga utilizada via lançamento de horas",
+                    ciclo_id=None,
+                    status_ciclo=h.status_ciclo,
+                )
+                folgas = list(folgas) + [folga_ciclo]
+            folgas = sorted(folgas, key=lambda f: (f.data_folga, getattr(f, "id", 0)))
+            ocorrencias = (
+                CicloOcorrencia.query.filter(
+                    CicloOcorrencia.collaborator_id == colab.id,
+                    CicloOcorrencia.status_ciclo == "ativo",
+                    CicloOcorrencia.data_ocorrencia >= week_start,
+                    CicloOcorrencia.data_ocorrencia <= week_end,
+                )
+                .order_by(CicloOcorrencia.data_ocorrencia.asc(), CicloOcorrencia.id.asc())
+                .all()
+            )
+            if horas or folgas or ocorrencias:
+                tem_algo = True
+            semanas_detalhadas.append(
+                {
+                    "label": s["label"],
+                    "week_start": week_start,
+                    "week_end": week_end,
+                    "horas": horas,
+                    "folgas": folgas,
+                    "ocorrencias": ocorrencias,
+                }
+            )
+
+        if tem_algo:
+            colaboradores_resumo.append(
+                {
+                    "collaborator": colab,
+                    "balance": balance,
+                    "semanas": semanas_detalhadas,
+                }
+            )
+
+    if not colaboradores_resumo:
+        return None, None, None
+
+    # Totais gerais
+    total_horas_geral = sum(r["balance"]["total_horas"] for r in colaboradores_resumo)
+    total_dias_geral = sum(r["balance"]["dias_completos"] for r in colaboradores_resumo)
+    total_horas_restantes_geral = sum(r["balance"]["horas_restantes"] for r in colaboradores_resumo)
+    total_valor_geral = sum(r["balance"]["valor_aproximado"] for r in colaboradores_resumo)
+
+    nome_empresa = _get_nome_empresa()
+
+    logo_header_path = os.path.join(base_dir, "static", "icons", "logo black.png")
+    if os.path.exists(logo_header_path):
+        logo_header = os.path.relpath(logo_header_path, base_dir).replace("\\", "/")
+    else:
+        logo_header = None
+    logo_footer = None
+
+    html = render_template(
+        "ciclos/pdf_geral.html",
+        colaboradores_resumo=colaboradores_resumo,
+        total_horas_geral=total_horas_geral,
+        total_dias_geral=total_dias_geral,
+        total_horas_restantes_geral=total_horas_restantes_geral,
+        total_valor_geral=total_valor_geral,
+        nome_empresa=nome_empresa,
+        valor_dia=valor_dia,
+        ciclo_id=ciclo_id,
+        mes_inicio=mes_inicio,
+        logo_header=logo_header,
+        logo_footer=logo_footer,
+        data_geracao=datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
+
+    if not WEASYPRINT_AVAILABLE or HTML is None:
+        return None, None, None
+
+    base_url = str(base_dir) if base_dir else os.getcwd()
+    pdf_bytes = HTML(string=html, base_url=base_url).write_pdf()
+
+    return pdf_bytes, ciclo_id, mes_inicio
+
+
+@bp.route("/enviar_pdf_ciclo_aberto", methods=["POST"], strict_slashes=False)
+@login_required
+def enviar_pdf_ciclo_aberto():
+    """
+    Endpoint para envio manual/automático do PDF de ciclos abertos via WhatsApp.
+    Gera o PDF geral do ciclo em aberto e envia via WhatsApp com mensagem padronizada.
+    """
+    if current_user.nivel not in ["operador", "admin", "DEV"]:
+        return jsonify({"ok": False, "error": "Acesso negado"}), 403
+
+    if not WEASYPRINT_AVAILABLE:
+        return jsonify({"ok": False, "error": "WeasyPrint não está disponível"}), 500
+
+    try:
+        from ..services.whatsapp_gateway import send_whatsapp_message
+
+        # Gerar PDF
+        pdf_bytes, ciclo_id, mes_inicio = _gerar_pdf_ciclo_aberto_bytes()
+
+        if pdf_bytes is None:
+            return jsonify({"ok": False, "error": "Não há dados de ciclos abertos para enviar"}), 400
+
+        # Preparar mensagem do WhatsApp
+        mensagem = (
+            "📊 *Registro de Ciclos - Colaboradores*\n\n"
+            "Segue anexo do registro de ciclos de todos os colaboradores, por favor, "
+            "confiram seus próprios dias trabalhados, horas extras e todas as informações "
+            "antes da conclusão final de todos os ciclos.\n\n"
+            "_[Essa mensagem é enviada por um sistema automatizado existente em www.multimax.tec.br]_"
+        )
+
+        # Enviar via WhatsApp com arquivo PDF anexado
+        nome_arquivo = f"Ciclos_{mes_inicio.strftime('%m_%Y')}.pdf"
+        sucesso, erro = send_whatsapp_message(
+            message=mensagem,
+            actor=current_user.username if hasattr(current_user, "username") else None,
+            origin="ciclo_aberto",
+            arquivo_bytes=pdf_bytes,
+            nome_arquivo=nome_arquivo,
+        )
+
+        if sucesso:
+            # Registrar no SystemLog
+            log = SystemLog()
+            log.origem = "ciclos"
+            log.evento = "envio_pdf_ciclo_aberto"
+            log.detalhes = (
+                f"PDF de ciclo aberto ({len(pdf_bytes)} bytes) enviado via WhatsApp (Ciclo {ciclo_id}, {mes_inicio})"
+            )
+            log.usuario = current_user.username if hasattr(current_user, "username") else "sistema"
+            db.session.add(log)
+            db.session.commit()
+
+            return jsonify({"ok": True, "message": "PDF enviado com sucesso via WhatsApp"})
+        else:
+            return jsonify({"ok": False, "error": f"Erro ao enviar PDF: {erro}"}), 500
+
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        return jsonify({"ok": False, "error": f"Erro ao processar envio: {str(e)}"}), 500
