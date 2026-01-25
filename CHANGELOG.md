@@ -1,4 +1,10 @@
 # Changelog
+## [3.2.44] - 2026-01-25
+
+### Corrigido
+- fix(ciclos): mes_inicio agora sempre retorna apenas o nome do mês em português (ex: "Janeiro"), nunca ano ou datetime
+  - Corrige definitivamente o erro 500 ao enviar PDF de ciclo aberto via WhatsApp.
+  - Garante compatibilidade em todos os fluxos e templates.
 ## [3.2.43] - 2026-01-25
 
 ### Corrigido

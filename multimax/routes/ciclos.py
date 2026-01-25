@@ -400,15 +400,15 @@ def _infer_reference_month_from_weeks(weeks: list[CicloSemana]) -> str:
     """Tenta inferir mês de referência (PT) a partir das semanas arquivadas no formato 'Mês Ano'."""
     if not weeks:
         now = datetime.now(ZoneInfo("America/Sao_Paulo")).date()
-        return f"{_month_name_pt(now.month)} {now.year}"
+        return _month_name_pt(now.month)
 
     # Preferir o mês do week_end (tende a refletir o mês "atual" do ciclo)
-    counts: dict[tuple[int, int], int] = {}  # (month, year) -> count
+    counts: dict[int, int] = {}  # month -> count
     for w in weeks:
-        key = (w.week_end.month, w.week_end.year)
+        key = w.week_end.month
         counts[key] = counts.get(key, 0) + 1
-    best_month, best_year = max(counts.items(), key=lambda kv: kv[1])[0]
-    return f"{_month_name_pt(best_month)} {best_year}"
+    best_month = max(counts.items(), key=lambda kv: kv[1])[0]
+    return _month_name_pt(best_month)
 
 
 def _calculate_collaborator_balance_for_cycle(collaborator_id: int, ciclo_id: int) -> dict[str, float | int]:
@@ -2360,6 +2360,9 @@ def pdf_individual_ciclo(collaborator_id: int, ciclo_id: int):
 
         weeks = CicloSemana.query.filter(CicloSemana.ciclo_id == ciclo_id).order_by(CicloSemana.week_start.asc()).all()
         mes_inicio = _infer_reference_month_from_weeks(weeks)
+        # Garantir que mes_inicio seja só o nome do mês
+        if isinstance(mes_inicio, str) and " " in mes_inicio:
+            mes_inicio = mes_inicio.split()[0]
 
         semanas_detalhadas = []
         for w in weeks:
@@ -2988,9 +2991,11 @@ def _gerar_pdf_ciclo_aberto_bytes():
 
     current_date = _get_open_cycle_current_date()
     mes_inicio = _month_name_pt(current_date.month)
-    # Garantir que mes_inicio seja sempre string
+    # Garantir que mes_inicio seja sempre string e só o nome do mês
     if not isinstance(mes_inicio, str):
         mes_inicio = str(mes_inicio)
+    if " " in mes_inicio:
+        mes_inicio = mes_inicio.split()[0]
     semanas = _weekly_cycles_for_open_month(current_date)
 
     for colab in colaboradores:
