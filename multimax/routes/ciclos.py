@@ -654,24 +654,10 @@ def index():
             pass
         flash(f"Erro ao carregar Ciclos: {str(e)}", "danger")
         # Retornar página vazia em caso de erro para evitar erro 500
-        ciclo_atual_default = {"ciclo_id": 1, "mes_inicio": datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%B")}
-        meses_pt = {
-            "January": "Janeiro",
-            "February": "Fevereiro",
-            "March": "Março",
-            "April": "Abril",
-            "May": "Maio",
-            "June": "Junho",
-            "July": "Julho",
-            "August": "Agosto",
-            "September": "Setembro",
-            "October": "Outubro",
-            "November": "Novembro",
-            "December": "Dezembro",
-        }
-        ciclo_atual_default["mes_inicio"] = meses_pt.get(
-            ciclo_atual_default["mes_inicio"], ciclo_atual_default["mes_inicio"]
-        )
+        # Garantir que mes_inicio nunca seja datetime, sempre string PT
+        now = datetime.now(ZoneInfo("America/Sao_Paulo"))
+        mes_inicio_pt = _month_name_pt(now.month)
+        ciclo_atual_default = {"ciclo_id": 1, "mes_inicio": mes_inicio_pt}
         now_d = datetime.now(ZoneInfo("America/Sao_Paulo")).date()
         month_start, _month_end = _month_start_end(now_d)
         week_start_raw = _week_start_sunday(now_d)

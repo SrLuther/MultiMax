@@ -1,4 +1,9 @@
 # Changelog
+## [3.2.43] - 2026-01-25
+
+### Corrigido
+- fix(ciclos): fallback de mes_inicio sempre string em português, nunca usa .strftime
+  - Garante que qualquer fluxo de erro ou fallback nunca gere erro de atributo em mes_inicio.
 ## [3.2.42] - 2026-01-25
 
 ### Corrigido
