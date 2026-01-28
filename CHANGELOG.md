@@ -1,4 +1,11 @@
 # Changelog
+
+## [3.2.47] - 2026-01-27 23:20:00
+
+### Adicionado
+- feat(ciclos): botões "Lote Horas" e "Logs" adicionados à tela principal de ciclos para acesso rápido às funções de lançamento coletivo e auditoria.
+
+---
 ## [3.2.46] - 2026-01-27 23:00:00
 
 ### Adicionado

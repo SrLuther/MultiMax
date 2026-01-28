@@ -29,28 +29,38 @@
                 {% endif %}
             </div>
             <div class="ciclos-hero-actions">
-                {% if can_edit and tem_registros_ativos %}
-                <button type="button" class="btn-action btn-action-primary" id="btnRegistrarPagamento">
-                    <i class="bi bi-cash-coin"></i>
-                    <span>Registrar Pagamento</span>
-                </button>
-                {% endif %}
-                {% if can_edit %}
-                <button type="button" class="btn-action btn-action-success" id="btnEnviarCicloAberto" title="Enviar PDF do ciclo aberto via WhatsApp">
-                    <i class="bi bi-whatsapp"></i>
-                    <span>Ciclo Aberto</span>
-                </button>
-                {% endif %}
-                <a href="{{ url_for('ciclos.pesquisa') }}" class="btn-action btn-action-secondary" style="text-decoration:none;">
-                    <i class="bi bi-search"></i>
-                    <span>Pesquisar Ciclos</span>
-                </a>
-                {% if can_edit %}
-                <a href="{{ url_for('ciclos.config') }}" class="btn-action btn-action-secondary">
-                    <i class="bi bi-gear"></i>
-                    <span>Configurações</span>
-                </a>
-                {% endif %}
+                    {% if can_edit and tem_registros_ativos %}
+                    <button type="button" class="btn-action btn-action-primary" id="btnRegistrarPagamento">
+                        <i class="bi bi-cash-coin"></i>
+                        <span>Registrar Pagamento</span>
+                    </button>
+                    {% endif %}
+                    {% if can_edit %}
+                    <button type="button" class="btn-action btn-action-success" id="btnEnviarCicloAberto" title="Enviar PDF do ciclo aberto via WhatsApp">
+                        <i class="bi bi-whatsapp"></i>
+                        <span>Ciclo Aberto</span>
+                    </button>
+                    <!-- Botão Lote Horas -->
+                    <a href="{{ url_for('ciclos.lote_horas') }}" class="btn-action btn-action-warning">
+                        <i class="bi bi-collection"></i>
+                        <span>Lote Horas</span>
+                    </a>
+                    <!-- Botão Logs -->
+                    <a href="{{ url_for('ciclos.lote_horas_logs') }}" class="btn-action btn-action-info">
+                        <i class="bi bi-clipboard-data"></i>
+                        <span>Logs</span>
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('ciclos.pesquisa') }}" class="btn-action btn-action-secondary" style="text-decoration:none;">
+                        <i class="bi bi-search"></i>
+                        <span>Pesquisar Ciclos</span>
+                    </a>
+                    {% if can_edit %}
+                    <a href="{{ url_for('ciclos.config') }}" class="btn-action btn-action-secondary">
+                        <i class="bi bi-gear"></i>
+                        <span>Configurações</span>
+                    </a>
+                    {% endif %}
             </div>
         </div>
     </div>
