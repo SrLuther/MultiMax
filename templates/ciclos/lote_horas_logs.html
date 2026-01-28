@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Logs de Lotes de Horas</h2>
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Data</th>
+            <th>Criado por</th>
+            <th>Tipo</th>
+            <th>Horas</th>
+            <th>Colaboradores</th>
+            <th>Observação</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for lote in lotes %}
+        <tr>
+            <td>{{ lote.id }}</td>
+            <td>{{ lote.created_at.strftime('%d/%m/%Y %H:%M') if lote.created_at else '' }}</td>
+            <td>{{ lote.created_by }}</td>
+            <td>{{ lote.type|capitalize }}</td>
+            <td>{{ lote.hours }}</td>
+            <td>{{ lote.total_collaborators }}</td>
+            <td>{{ lote.observation }}</td>
+            <td>
+                <a href="{{ url_for('ciclos.lote_horas_corrigir', lote_id=lote.id) }}" class="btn btn-warning btn-sm">Corrigir</a>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">Nenhum lote encontrado.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+<a href="{{ url_for('ciclos.lote_horas') }}" class="btn btn-primary">Novo Lote</a>
+{% endblock %}

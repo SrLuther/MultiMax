@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Correção de Lote de Horas</h2>
+<div class="alert alert-info">
+    <strong>Lote original:</strong><br>
+    ID: {{ lote.id }}<br>
+    Data: {{ lote.created_at.strftime('%d/%m/%Y %H:%M') if lote.created_at else '' }}<br>
+    Tipo: {{ lote.type|capitalize }}<br>
+    Horas: {{ lote.hours }}<br>
+    Colaboradores: {{ lote.total_collaborators }}<br>
+    Observação: {{ lote.observation }}
+</div>
+<form method="post">
+    <div class="form-group">
+        <label for="tipo">Tipo:</label>
+        <select name="tipo" id="tipo" class="form-control" required>
+            <option value="">Selecione</option>
+            <option value="acrescimo">Acréscimo</option>
+            <option value="desconto">Desconto</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="horas">Horas:</label>
+        <input type="number" step="0.01" name="horas" id="horas" class="form-control" required>
+    </div>
+    <div class="form-group">
+        <label for="data_personalizada">Data:</label>
+        <input type="date" name="data_personalizada" id="data_personalizada" class="form-control" required>
+    </div>
+    <div class="form-group">
+        <label for="observacao">Observação:</label>
+        <textarea name="observacao" id="observacao" class="form-control"></textarea>
+    </div>
+    <div class="form-group">
+        <label for="colaboradores">Colaboradores:</label>
+        <select name="colaboradores" id="colaboradores" class="form-control" multiple required>
+            {% for c in colaboradores %}
+            <option value="{{ c.id }}">{{ c.name }}</option>
+            {% endfor %}
+        </select>
+        <small>Segure Ctrl para selecionar múltiplos.</small>
+    </div>
+    <button type="submit" class="btn btn-danger">Aplicar Correção</button>
+    <a href="{{ url_for('ciclos.lote_horas_logs') }}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}

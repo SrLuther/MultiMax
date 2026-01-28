@@ -1,4 +1,17 @@
 # Changelog
+## [3.2.46] - 2026-01-27 23:00:00
+
+### Adicionado
+- feat(lote-horas): sistema completo de lote de horas para colaboradores
+  - Permite lançar acréscimos ou descontos em lote para múltiplos colaboradores.
+  - Tela de pré-visualização, confirmação e logs/auditoria de lotes.
+  - Suporte a correção de lotes já lançados.
+  - Integração com TimeOffRecord e histórico de operações.
+
+### Corrigido
+- Ajustes de PEP8, tipagem e padronização em multimax/routes/ciclos.py
+- Correções de mixed line endings e formatação automática (black/isort)
+
 ## [3.2.45] - 2026-01-25
 
 ### Corrigido

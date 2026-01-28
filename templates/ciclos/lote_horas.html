@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Lote de Horas - Novo Lançamento</h2>
+<form method="post">
+    <div class="form-group">
+        <label for="tipo">Tipo:</label>
+        <select name="tipo" id="tipo" class="form-control" required>
+            <option value="">Selecione</option>
+            <option value="acrescimo">Acréscimo</option>
+            <option value="desconto">Desconto</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="horas">Horas:</label>
+        <input type="number" step="0.01" name="horas" id="horas" class="form-control" required>
+    </div>
+    <div class="form-group">
+        <label for="data_personalizada">Data:</label>
+        <input type="date" name="data_personalizada" id="data_personalizada" class="form-control" required>
+    </div>
+    <div class="form-group">
+        <label for="observacao">Observação:</label>
+        <textarea name="observacao" id="observacao" class="form-control"></textarea>
+    </div>
+    <div class="form-group">
+        <label for="colaboradores">Colaboradores:</label>
+        <select name="colaboradores" id="colaboradores" class="form-control" multiple required>
+            {% for c in colaboradores %}
+            <option value="{{ c.id }}">{{ c.name }}</option>
+            {% endfor %}
+        </select>
+        <small>Segure Ctrl para selecionar múltiplos.</small>
+    </div>
+    <button type="submit" class="btn btn-primary">Pré-visualizar</button>
+</form>
+{% endblock %}
