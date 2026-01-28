@@ -30,39 +30,78 @@
             </div>
             <div class="ciclos-hero-actions">
                     {% if can_edit and tem_registros_ativos %}
-                    <button type="button" class="btn-action btn-action-primary" id="btnRegistrarPagamento">
+                    <button type="button" class="btn-action btn-action-primary premium-btn" id="btnRegistrarPagamento">
                         <i class="bi bi-cash-coin"></i>
                         <span>Registrar Pagamento</span>
                     </button>
                     {% endif %}
                     {% if can_edit %}
-                    <button type="button" class="btn-action btn-action-success" id="btnEnviarCicloAberto" title="Enviar PDF do ciclo aberto via WhatsApp">
+                    <button type="button" class="btn-action btn-action-success premium-btn" id="btnEnviarCicloAberto" title="Enviar PDF do ciclo aberto via WhatsApp">
                         <i class="bi bi-whatsapp"></i>
                         <span>Ciclo Aberto</span>
                     </button>
-                    <!-- Botão Lote Horas -->
-                    <a href="{{ url_for('ciclos.lote_horas') }}" class="btn-action btn-action-warning">
+                    <!-- Botão Lote Horas (Premium) -->
+                    <a href="{{ url_for('ciclos.lote_horas') }}" class="btn-action premium-btn btn-action-gradient">
                         <i class="bi bi-collection"></i>
                         <span>Lote Horas</span>
                     </a>
-                    <!-- Botão Logs -->
-                    <a href="{{ url_for('ciclos.lote_horas_logs') }}" class="btn-action btn-action-info">
+                    <!-- Botão Logs (Premium) -->
+                    <a href="{{ url_for('ciclos.lote_horas_logs') }}" class="btn-action premium-btn btn-action-gradient-alt">
                         <i class="bi bi-clipboard-data"></i>
                         <span>Logs</span>
                     </a>
                     {% endif %}
-                    <a href="{{ url_for('ciclos.pesquisa') }}" class="btn-action btn-action-secondary" style="text-decoration:none;">
+                    <a href="{{ url_for('ciclos.pesquisa') }}" class="btn-action btn-action-secondary premium-btn" style="text-decoration:none;">
                         <i class="bi bi-search"></i>
                         <span>Pesquisar Ciclos</span>
                     </a>
                     {% if can_edit %}
-                    <a href="{{ url_for('ciclos.config') }}" class="btn-action btn-action-secondary">
+                    <a href="{{ url_for('ciclos.config') }}" class="btn-action btn-action-secondary premium-btn">
                         <i class="bi bi-gear"></i>
                         <span>Configurações</span>
                     </a>
                     {% endif %}
             </div>
         </div>
+
+            <style>
+                .premium-btn {
+                    min-width: 150px;
+                    min-height: 44px;
+                    font-size: 1.08rem;
+                    font-weight: 600;
+                    border-radius: 0.7rem;
+                    box-shadow: 0 2px 12px 0 rgba(80,120,255,0.10);
+                    transition: all 0.18s cubic-bezier(.4,0,.2,1);
+                    margin-right: 0.5rem;
+                    margin-bottom: 0.5rem;
+                    letter-spacing: 0.01em;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.5em;
+                    padding: 0.6em 1.3em;
+                }
+                .btn-action-gradient {
+                    background: linear-gradient(90deg, #f7b42c 0%, #fc575e 100%);
+                    color: #fff !important;
+                    border: none;
+                }
+                .btn-action-gradient:hover {
+                    background: linear-gradient(90deg, #fc575e 0%, #f7b42c 100%);
+                    color: #fff !important;
+                    box-shadow: 0 4px 18px 0 rgba(252,87,94,0.18);
+                }
+                .btn-action-gradient-alt {
+                    background: linear-gradient(90deg, #36d1c4 0%, #5b86e5 100%);
+                    color: #fff !important;
+                    border: none;
+                }
+                .btn-action-gradient-alt:hover {
+                    background: linear-gradient(90deg, #5b86e5 0%, #36d1c4 100%);
+                    color: #fff !important;
+                    box-shadow: 0 4px 18px 0 rgba(91,134,229,0.18);
+                }
+            </style>
     </div>
 
     <!-- Filtro por Setor -->

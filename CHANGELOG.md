@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.2.48] - 2026-01-27 23:30:00
+
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: GPT-4.1
+
+### Alterado
+- style(ciclos): visual premium para os botões "Lote Horas" e "Logs" na tela de ciclos, com gradiente, sombra, integração visual e responsividade.
+- style(lote-horas): formulário de "Lote de Horas - Novo Lançamento" redesenhado como card premium, com header, ícone, grid responsivo, campos estilizados e botão destacado, alinhado ao design do sistema.
+
+> **Nota**: A partir da versão 3.2.0, todas as datas de versão **DEVEM** incluir a hora exata local (formato: `YYYY-MM-DD HH:MM:SS`) para rastreabilidade precisa dos releases. Esta validação é obrigatória no pre-commit hook.
+>
+> **Nota**: A partir da versão 3.2.48, todo commit enviado por IA **DEVE** informar explicitamente no topo do changelog (antes das entradas de versão):
+> - Nome da IA responsável pelo envio (ex: GitHub Copilot, Gemini, ChatGPT, Grok, etc)
+> - Nome do modelo utilizado (ex: GPT-4.1, Gemini 1.5, etc)
+> Esta validação será obrigatória no pre-commit hook para rastreabilidade e auditoria de automações.
+
 ## [3.2.47] - 2026-01-27 23:20:00
 
 ### Adicionado
