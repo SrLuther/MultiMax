@@ -1,5 +1,27 @@
 # Changelog
 
+## [3.2.58] - 2026-02-02 17:30:00
+
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: Claude Haiku 4.5
+
+### Melhorado
+- test(whatsapp_service): corrige linting errors e adiciona testes abrangentes
+  - Remove imports não utilizados (`pytest`, `datetime.datetime`)
+  - Remove trailing whitespace de todas as linhas
+  - Adiciona 20 testes para cobertura completa do módulo
+  - Atinge 95.24% de cobertura de código (acima do requisito de 90%)
+
+## [3.2.57] - 2026-02-02 17:25:00
+
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
+### Corrigido
+- fix(whatsapp-service): compatibilidade SQLite para timestamps (`NOW()` -> `datetime('now')`)
+
 ## [3.2.56] - 2026-02-02 17:15:00
 
 ### IA responsável pelo envio

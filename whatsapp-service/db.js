@@ -30,7 +30,7 @@ async function initDb() {
   return {
     async query(sql, params = []) {
       const sqlLower = sql.trim().toLowerCase();
-      const normalized = normalizeSql(sql);
+      const normalized = normalizeSql(sql).replace(/NOW\(\)/gi, "datetime('now')");
 
       if (sqlLower.startsWith('select')) {
         const rows = await db.all(normalized, params);
