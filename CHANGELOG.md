@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.3.1] - 2026-02-02
+
+### Correções
+- **fix(imports)**: Bridge de modelos legados para resolução de erros Mypy/Pylance
+  - Implementado importlib.util para carregamento dinâmico de modelos legados
+  - Modelos legados (multimax/models.py) agora re-exportados por multimax/models/__init__.py
+  - AppSetting carregado dinamicamente com fallback seguro em multimax/__init__.py
+  - Removidos type hints problemáticos em ciclos.py (compatibilidade Pylance)
+  - Todos os erros de importação resolvidos - IDE limpo
+
 ## [3.3.0] - 2024-01-15
 
 ### IA responsável pelo envio

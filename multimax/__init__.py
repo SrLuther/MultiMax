@@ -251,10 +251,14 @@ def _setup_context_processors(app: Flask) -> None:
             ver = _get_version_from_git()
         if not ver:
             try:
-                from .models import AppSetting
+                from . import models as models_pkg
 
-                s = AppSetting.query.filter_by(key="app_version").first()
-                ver = (s.value or "").strip() if s else ""
+                app_setting = getattr(models_pkg, "AppSetting", None)
+                if app_setting is not None:
+                    s = app_setting.query.filter_by(key="app_version").first()
+                    ver = (s.value or "").strip() if s else ""
+                else:
+                    ver = ""
             except Exception as e:
                 app.logger.warning(f"Erro ao obter versÃ£o do banco: {e}")
                 ver = ""

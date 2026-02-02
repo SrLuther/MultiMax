@@ -703,7 +703,7 @@ def index():
         setores = Setor.query.filter_by(ativo=True).order_by(Setor.nome.asc()).all()
 
         # Buscar colaboradores ativos (filtrados por setor se houver)
-        colaboradores: list[Collaborator] = _get_collaborators_by_setor(selected_setor_id)
+        colaboradores = _get_collaborators_by_setor(selected_setor_id)
 
         # Calcular saldos para cada colaborador
         colaboradores_stats = []
@@ -1767,7 +1767,7 @@ def resumo_fechamento() -> Any:
         # Filtro por setor (opcional)
         selected_setor_id: int | None = request.args.get("setor_id", type=int)
 
-        colaboradores: list[Collaborator] = _get_collaborators_by_setor(selected_setor_id)
+        colaboradores = _get_collaborators_by_setor(selected_setor_id)
         colaboradores_resumo = []
 
         valor_dia: float = _get_valor_dia()
