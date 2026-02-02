@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.2.61] - 2026-02-02 18:10:00
+
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: Claude Haiku 4.5
+
+### Corrigido
+- fix(whatsapp): melhor visibilidade do botão "Enviar teste" no modo escuro
+  - Alterado de `btn-outline-light` para `btn-success` (verde)
+  - Agora é claramente visível em ambos os modos claro e escuro
+
 ## [3.2.60] - 2026-02-02 18:00:00
 
 ### IA responsável pelo envio
