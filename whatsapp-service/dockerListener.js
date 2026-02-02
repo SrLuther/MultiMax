@@ -30,6 +30,12 @@ class DockerListener {
     try {
       this.process = spawn('docker', ['events', '--format', '{{json .}}']);
 
+      this.process.on('error', (err) => {
+        console.error('[DockerListener] Erro ao iniciar docker events:', err.message);
+        this.isRunning = false;
+        setTimeout(() => this.start(), 10000);
+      });
+
       this.process.stdout.on('data', (data) => {
         this.handleEvent(data.toString());
       });

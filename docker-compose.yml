@@ -37,6 +37,7 @@ services:
       - "3001:3001"
     volumes:
       - whatsapp-auth:/app/auth
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - NODE_ENV=production
       - LOG_LEVEL=info

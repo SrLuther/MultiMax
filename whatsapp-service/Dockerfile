@@ -4,6 +4,9 @@ FROM node:20-alpine
 # Definir diretório de trabalho
 WORKDIR /app
 
+# Instalar docker-cli para docker events
+RUN apk add --no-cache docker-cli
+
 # Copiar package.json e package-lock.json
 COPY package*.json ./
 

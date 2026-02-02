@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.2.55] - 2026-02-02 17:05:00
+
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
+### Corrigido
+- fix(whatsapp-service): evita crash do listener de Docker quando `docker` não está disponível
+- chore(whatsapp-service): instala `docker-cli` na imagem e monta `/var/run/docker.sock`
+
 ## [3.2.54] - 2026-02-02 16:55:00
 
 ### IA responsável pelo envio
