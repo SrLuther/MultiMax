@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.2.53] - 2026-02-02 16:50:00
+
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
+### Corrigido
+- fix(whatsapp-service): inclui módulos auxiliares na imagem Docker
+  - Adiciona `errorWhatsapp.js` e `dockerListener.js` ao build para evitar `MODULE_NOT_FOUND`
+
 ## [3.2.52] - 2026-02-02 16:40:00
 
 ### IA responsável pelo envio

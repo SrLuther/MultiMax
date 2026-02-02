@@ -12,6 +12,8 @@ RUN npm install --production
 
 # Copiar código da aplicação
 COPY index.js .
+COPY errorWhatsapp.js .
+COPY dockerListener.js .
 COPY README.md .
 
 # Criar diretório de autenticação
