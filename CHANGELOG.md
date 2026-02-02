@@ -4,6 +4,11 @@
 - GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.4.4] - 2026-02-02 23:25:00
+
+### Correções
+- **fix(gestao)**: Rollbacks defensivos adicionais para evitar transação abortada em consultas
+
 ## [3.4.3] - 2026-02-02 23:10:00
 
 ### Correções

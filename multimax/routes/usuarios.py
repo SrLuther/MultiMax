@@ -547,12 +547,30 @@ def _gestao_bank_context(colaboradores, per_page: int):
     except Exception:
         bank_balances = {}
 
+    # Resetar transação antes de novas consultas
+    try:
+        db.session.rollback()
+    except Exception:
+        pass
+
     recent_entries = _recent_hour_entries()
     folgas = _calculate_folgas(colaboradores)
+
+    # Resetar transação antes da paginação de colaboradores
+    try:
+        db.session.rollback()
+    except Exception:
+        pass
 
     bh_collab_id = request.args.get("bh_collaborator_id", type=int)
     bh_page = _safe_int_arg("bh_page", 1)
     colaboradores_page, bh_total_pages, bh_page = _paginate_list(_bh_collaborators(bh_collab_id), bh_page, per_page)
+
+    # Resetar transação antes das páginas de folgas
+    try:
+        db.session.rollback()
+    except Exception:
+        pass
 
     lc_collab_id = request.args.get("lc_collaborator_id", type=int)
     lc_page = _safe_int_arg("lc_page", 1)
