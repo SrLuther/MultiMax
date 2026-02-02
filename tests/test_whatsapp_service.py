@@ -8,9 +8,12 @@ from flask import Flask
 from multimax.whatsapp_service import (
     HOSTNAME,
     WHATSAPP_SERVICE_URL,
+    get_alert_phone,
     register_error_handlers,
+    send_alert_phone_test,
     send_error_alert,
     send_test_alert,
+    set_alert_phone,
 )
 
 
@@ -323,3 +326,258 @@ class TestWhatsappServiceConstants:
         """Testa URL padrão do serviço WhatsApp"""
         assert WHATSAPP_SERVICE_URL is not None
         assert "http" in WHATSAPP_SERVICE_URL or "localhost" in WHATSAPP_SERVICE_URL
+
+
+class TestGetAlertPhone:
+    """Testes para a função get_alert_phone"""
+
+    @patch("multimax.whatsapp_service.requests.get")
+    def test_get_alert_phone_success(self, mock_get):
+        """Testa busca de número de alerta com sucesso"""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"phone": "5575983555249"}
+        mock_get.return_value = mock_response
+
+        success, data = get_alert_phone()
+
+        assert success is True
+        assert data == {"phone": "5575983555249"}
+        assert mock_get.called
+        call_args = mock_get.call_args
+        assert "alert-phone" in call_args[0][0]
+
+    @patch("multimax.whatsapp_service.requests.get")
+    def test_get_alert_phone_not_found(self, mock_get):
+        """Testa busca quando número não está configurado"""
+        mock_response = MagicMock()
+        mock_response.status_code = 404
+        mock_response.json.return_value = {"erro": "Número não configurado"}
+        mock_get.return_value = mock_response
+
+        success, data = get_alert_phone()
+
+        assert success is False
+        assert isinstance(data, str)
+        assert "Número não configurado" in data
+
+    @patch("multimax.whatsapp_service.requests.get")
+    def test_get_alert_phone_server_error(self, mock_get):
+        """Testa erro de servidor ao buscar número"""
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        mock_response.json.return_value = {"error": "Erro interno"}
+        mock_get.return_value = mock_response
+
+        success, data = get_alert_phone()
+
+        assert success is False
+        assert isinstance(data, str)
+
+    @patch("multimax.whatsapp_service.requests.get")
+    def test_get_alert_phone_invalid_json_response(self, mock_get):
+        """Testa resposta com JSON inválido"""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.side_effect = ValueError("JSON inválido")
+        mock_get.return_value = mock_response
+
+        success, data = get_alert_phone()
+
+        assert success is False
+        assert "Resposta inválida" in data
+
+    @patch("multimax.whatsapp_service.requests.get")
+    def test_get_alert_phone_connection_error(self, mock_get):
+        """Testa erro de conexão ao buscar número"""
+        mock_get.side_effect = requests.ConnectionError("Conexão recusada")
+
+        success, data = get_alert_phone()
+
+        assert success is False
+        assert "Falha ao contatar" in data
+
+    @patch("multimax.whatsapp_service.requests.get")
+    def test_get_alert_phone_timeout(self, mock_get):
+        """Testa timeout ao buscar número"""
+        mock_get.side_effect = requests.Timeout("Timeout")
+
+        success, data = get_alert_phone()
+
+        assert success is False
+        assert "Falha ao contatar" in data
+
+
+class TestSetAlertPhone:
+    """Testes para a função set_alert_phone"""
+
+    @patch("multimax.whatsapp_service.requests.put")
+    def test_set_alert_phone_success(self, mock_put):
+        """Testa configuração de número de alerta com sucesso"""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"message": "Número configurado", "phone": "5575983555249"}
+        mock_put.return_value = mock_response
+
+        success, data = set_alert_phone("5575983555249")
+
+        assert success is True
+        assert data == {"message": "Número configurado", "phone": "5575983555249"}
+        assert mock_put.called
+        call_args = mock_put.call_args
+        assert "alert-phone" in call_args[0][0]
+        assert call_args.kwargs["json"] == {"phone": "5575983555249"}
+
+    @patch("multimax.whatsapp_service.requests.put")
+    def test_set_alert_phone_invalid_number(self, mock_put):
+        """Testa erro ao configurar número inválido"""
+        mock_response = MagicMock()
+        mock_response.status_code = 400
+        mock_response.json.return_value = {"erro": "Número inválido"}
+        mock_put.return_value = mock_response
+
+        success, data = set_alert_phone("123")
+
+        assert success is False
+        assert isinstance(data, str)
+        assert "Número inválido" in data
+
+    @patch("multimax.whatsapp_service.requests.put")
+    def test_set_alert_phone_server_error(self, mock_put):
+        """Testa erro de servidor ao configurar número"""
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        mock_response.json.return_value = {"error": "Erro interno"}
+        mock_put.return_value = mock_response
+
+        success, data = set_alert_phone("5575983555249")
+
+        assert success is False
+        assert isinstance(data, str)
+
+    @patch("multimax.whatsapp_service.requests.put")
+    def test_set_alert_phone_invalid_json_response(self, mock_put):
+        """Testa resposta com JSON inválido"""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.side_effect = ValueError("JSON inválido")
+        mock_put.return_value = mock_response
+
+        success, data = set_alert_phone("5575983555249")
+
+        assert success is False
+        assert "Resposta inválida" in data
+
+    @patch("multimax.whatsapp_service.requests.put")
+    def test_set_alert_phone_connection_error(self, mock_put):
+        """Testa erro de conexão ao configurar número"""
+        mock_put.side_effect = requests.ConnectionError("Conexão recusada")
+
+        success, data = set_alert_phone("5575983555249")
+
+        assert success is False
+        assert "Falha ao contatar" in data
+
+    @patch("multimax.whatsapp_service.requests.put")
+    def test_set_alert_phone_timeout(self, mock_put):
+        """Testa timeout ao configurar número"""
+        mock_put.side_effect = requests.Timeout("Timeout")
+
+        success, data = set_alert_phone("5575983555249")
+
+        assert success is False
+        assert "Falha ao contatar" in data
+
+
+class TestSendAlertPhoneTest:
+    """Testes para a função send_alert_phone_test"""
+
+    @patch("multimax.whatsapp_service.requests.post")
+    def test_send_alert_phone_test_success(self, mock_post):
+        """Testa envio de teste de alerta com sucesso"""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"message": "Teste enviado"}
+        mock_post.return_value = mock_response
+
+        success, data = send_alert_phone_test()
+
+        assert success is True
+        assert data == {"message": "Teste enviado"}
+        assert mock_post.called
+        call_args = mock_post.call_args
+        assert "test-alert-phone" in call_args[0][0]
+
+    @patch("multimax.whatsapp_service.requests.post")
+    def test_send_alert_phone_test_no_number_configured(self, mock_post):
+        """Testa erro quando nenhum número está configurado"""
+        mock_response = MagicMock()
+        mock_response.status_code = 400
+        mock_response.json.return_value = {"erro": "Nenhum número configurado"}
+        mock_post.return_value = mock_response
+
+        success, data = send_alert_phone_test()
+
+        assert success is False
+        assert isinstance(data, str)
+        assert "Nenhum número configurado" in data
+
+    @patch("multimax.whatsapp_service.requests.post")
+    def test_send_alert_phone_test_server_error(self, mock_post):
+        """Testa erro de servidor ao enviar teste"""
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        mock_response.json.return_value = {"error": "Erro interno"}
+        mock_post.return_value = mock_response
+
+        success, data = send_alert_phone_test()
+
+        assert success is False
+        assert isinstance(data, str)
+
+    @patch("multimax.whatsapp_service.requests.post")
+    def test_send_alert_phone_test_invalid_json_success_response(self, mock_post):
+        """Testa resposta com JSON inválido mas status 200"""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.side_effect = ValueError("JSON inválido")
+        mock_post.return_value = mock_response
+
+        success, data = send_alert_phone_test()
+
+        assert success is True
+        assert data == {"message": "Teste enviado"}
+
+    @patch("multimax.whatsapp_service.requests.post")
+    def test_send_alert_phone_test_invalid_json_error_response(self, mock_post):
+        """Testa resposta com JSON inválido e status erro"""
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        mock_response.json.side_effect = ValueError("JSON inválido")
+        mock_response.text = "Internal Server Error"
+        mock_post.return_value = mock_response
+
+        success, data = send_alert_phone_test()
+
+        assert success is False
+        assert isinstance(data, str)
+
+    @patch("multimax.whatsapp_service.requests.post")
+    def test_send_alert_phone_test_connection_error(self, mock_post):
+        """Testa erro de conexão ao enviar teste"""
+        mock_post.side_effect = requests.ConnectionError("Conexão recusada")
+
+        success, data = send_alert_phone_test()
+
+        assert success is False
+        assert "Falha ao contatar" in data
+
+    @patch("multimax.whatsapp_service.requests.post")
+    def test_send_alert_phone_test_timeout(self, mock_post):
+        """Testa timeout ao enviar teste"""
+        mock_post.side_effect = requests.Timeout("Timeout")
+
+        success, data = send_alert_phone_test()
+
+        assert success is False
+        assert "Falha ao contatar" in data
