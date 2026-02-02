@@ -712,6 +712,9 @@ def index():
         # Filtro por setor (opcional)
         selected_setor_id: int | None = request.args.get("setor_id", type=int)
 
+        # Buscar todos os setores ativos para o filtro
+        setores = Setor.query.filter_by(ativo=True).order_by(Setor.nome.asc()).all()
+
         # Buscar colaboradores ativos (filtrados por setor se houver)
         colaboradores: list[Collaborator] = _get_collaborators_by_setor(selected_setor_id)
 
@@ -776,6 +779,8 @@ def index():
             ciclo_semana_atual=ciclo_semana_atual,
             selected_collaborator=selected_collaborator,
             ferias=ferias,
+            setores=setores,
+            selected_setor_id=selected_setor_id,
         )
     except Exception:
         return render_template(
@@ -794,11 +799,11 @@ def index():
             ciclo_semana_atual=None,
             selected_collaborator=None,
             ferias=[],
+            setores=[],
+            selected_setor_id=None,
         )
 
 
-@bp.route("/pesquisa", methods=["GET"], strict_slashes=False)
-@login_required
 def _summary_from_hours(total_horas_float):
     """Calcula resumo a partir de horas totais."""
     try:
@@ -2557,7 +2562,7 @@ def pdf_individual_ciclo(collaborator_id, ciclo_id):
 
 @bp.route("/pdf/geral", methods=["GET"], strict_slashes=False)
 @login_required
-def pdf_geral():
+def pdf_geral():  # noqa: C901
     """Gera PDF geral com resumo de todos os colaboradores do ciclo"""
     if not WEASYPRINT_AVAILABLE:
         flash("WeasyPrint não está disponível.", "danger")
@@ -2572,7 +2577,12 @@ def pdf_geral():
 
         base_dir: Any | str = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-        colaboradores = _get_all_collaborators()
+        # Filtro por setor (opcional)
+        selected_setor_id: int | None = request.args.get("setor_id", type=int)
+
+        colaboradores = (
+            _get_collaborators_by_setor(selected_setor_id) if selected_setor_id else _get_all_collaborators()
+        )
         colaboradores_resumo = []
 
         valor_dia: float = _get_valor_dia()
@@ -2586,23 +2596,60 @@ def pdf_geral():
         semanas: list[dict[str, object]] = _weekly_cycles_for_open_month(current_date)
 
         for colab in colaboradores:
-            balance = _calculate_collaborator_balance(colab.id)
+            # Calcular saldos apenas do setor selecionado, se houver
+            if selected_setor_id:
+                # Total por setor usando a janela completa (todos registros ativos no setor)
+                query: Query = (
+                    _get_active_ciclos_query(colab.id)
+                    .filter(
+                        or_(
+                            Ciclo.setor_id == selected_setor_id,
+                            (Ciclo.setor_id.is_(None) & (Collaborator.setor_id == selected_setor_id)),
+                        )
+                    )
+                    .join(Collaborator)
+                )
+                total_horas_decimal: Any | Decimal = query.with_entities(
+                    func.coalesce(func.sum(Ciclo.valor_horas), 0)
+                ).scalar() or Decimal("0.0")
+                total_horas = float(Decimal(str(total_horas_decimal)))
+                if total_horas < 0:
+                    dias_completos = 0
+                    horas_restantes = 0.0
+                else:
+                    dias_completos = int(math.floor(total_horas / 8.0))
+                    horas_restantes: float = round(total_horas % 8.0, 1)
+                valor_total = float(Decimal(str(dias_completos)) * Decimal(str(valor_dia)))
+                balance = {
+                    "total_horas": total_horas,
+                    "dias_completos": dias_completos,
+                    "horas_restantes": horas_restantes,
+                    "valor_aproximado": valor_total,
+                }
+            else:
+                balance = _calculate_collaborator_balance(colab.id)
 
             semanas_detalhadas = []
             tem_algo = False
             for s in semanas:
                 week_start: object = s["week_start"]
                 week_end: object = s["week_end"]
-                horas = (
-                    _get_active_ciclos_query(colab.id)
-                    .filter(
-                        Ciclo.data_lancamento >= week_start,
-                        Ciclo.data_lancamento <= week_end,
-                        Ciclo.origem != "Folga utilizada",
-                    )
-                    .order_by(Ciclo.data_lancamento.asc(), Ciclo.id.asc())
-                    .all()
+
+                # Query de horas com filtro de setor se selecionado
+                horas_query = _get_active_ciclos_query(colab.id).filter(
+                    Ciclo.data_lancamento >= week_start,
+                    Ciclo.data_lancamento <= week_end,
+                    Ciclo.origem != "Folga utilizada",
                 )
+                if selected_setor_id:
+                    horas_query = horas_query.filter(
+                        or_(
+                            Ciclo.setor_id == selected_setor_id,
+                            (Ciclo.setor_id.is_(None) & (Collaborator.setor_id == selected_setor_id)),
+                        )
+                    ).join(Collaborator)
+                horas = horas_query.order_by(Ciclo.data_lancamento.asc(), Ciclo.id.asc()).all()
+
                 folgas = (
                     CicloFolga.query.filter(
                         CicloFolga.collaborator_id == colab.id,
@@ -2615,16 +2662,22 @@ def pdf_geral():
                     .all()
                 )
                 # Buscar "Folgas utilizadas" da tabela Ciclo separadamente
-                folgas_utilizadas_ciclo = (
-                    _get_active_ciclos_query(colab.id)
-                    .filter(
-                        Ciclo.data_lancamento >= week_start,
-                        Ciclo.data_lancamento <= week_end,
-                        Ciclo.origem == "Folga utilizada",
-                    )
-                    .order_by(Ciclo.data_lancamento.asc(), Ciclo.id.asc())
-                    .all()
+                folgas_utilizadas_query = _get_active_ciclos_query(colab.id).filter(
+                    Ciclo.data_lancamento >= week_start,
+                    Ciclo.data_lancamento <= week_end,
+                    Ciclo.origem == "Folga utilizada",
                 )
+                if selected_setor_id:
+                    folgas_utilizadas_query = folgas_utilizadas_query.filter(
+                        or_(
+                            Ciclo.setor_id == selected_setor_id,
+                            (Ciclo.setor_id.is_(None) & (Collaborator.setor_id == selected_setor_id)),
+                        )
+                    ).join(Collaborator)
+                folgas_utilizadas_ciclo = folgas_utilizadas_query.order_by(
+                    Ciclo.data_lancamento.asc(), Ciclo.id.asc()
+                ).all()
+
                 # Criar objetos similares a CicloFolga para mesclar
                 for h in folgas_utilizadas_ciclo:
                     folga_ciclo = SimpleNamespace(

@@ -45,6 +45,7 @@
         const urlPdfMeta = document.querySelector('meta[name="ciclos-url-pdf-geral"]');
         if (urlPdfMeta) {
             state.urls.pdfGeral = urlPdfMeta.getAttribute('content');
+            console.log('PDF Geral URL:', state.urls.pdfGeral);
         }
 
         const urlResumoMeta = document.querySelector('meta[name="ciclos-url-resumo-fechamento"]');
@@ -651,7 +652,13 @@
         const btnPDFIndividual = document.getElementById('btnPDFIndividual');
         if (btnPDFIndividual) {
             btnPDFIndividual.addEventListener('click', function() {
-                window.open(`${state.urls.pdfIndividual}/${state.currentCollaboratorId}`, '_blank');
+                const pdfUrl = `${state.urls.pdfIndividual}/${state.currentCollaboratorId}`;
+                console.log('Abrindo PDF Individual:', pdfUrl);
+                if (!pdfUrl || pdfUrl === '' || !state.currentCollaboratorId) {
+                    alert('Erro: Não foi possível gerar o PDF. Por favor, recarregue a página.');
+                    return;
+                }
+                window.open(pdfUrl, '_blank');
             });
         }
 
@@ -659,7 +666,20 @@
         const btnPDFGeral = document.getElementById('btnPDFGeral');
         if (btnPDFGeral) {
             btnPDFGeral.addEventListener('click', function() {
-                window.open(state.urls.pdfGeral, '_blank');
+                let pdfUrl = state.urls.pdfGeral;
+
+                // Adicionar filtro de setor se estiver selecionado
+                if (state.selectedSetorId) {
+                    const separator = pdfUrl.includes('?') ? '&' : '?';
+                    pdfUrl = `${pdfUrl}${separator}setor_id=${encodeURIComponent(state.selectedSetorId)}`;
+                }
+
+                console.log('Abrindo PDF Geral:', pdfUrl);
+                if (!pdfUrl || pdfUrl === '') {
+                    alert('Erro: URL do PDF não está configurada. Por favor, recarregue a página.');
+                    return;
+                }
+                window.open(pdfUrl, '_blank');
             });
         }
 

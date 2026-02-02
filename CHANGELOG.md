@@ -1,5 +1,25 @@
 # Changelog
 
+## [3.2.49] - 2026-02-02 12:04:30
+
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: Claude Sonnet 4.5
+
+### Corrigido
+- fix(ciclos): corrige botão "Visualizar PDF" na modal de Registrar Pagamento
+  - Adiciona filtro de setor ao PDF geral para exibir apenas dados do setor selecionado
+  - Adiciona validação de URL e tratamento de erro nos botões de PDF
+  - Adiciona logs de debug para diagnóstico de URLs
+  - Aplica filtros de setor em todas as queries relevantes do PDF geral
+- fix(ciclos): corrige filtro "Filtrar por Setor" não exibindo setores cadastrados
+  - Adiciona busca de setores ativos na função index()
+  - Passa variável `setores` para o template ciclos/index.html
+  - Adiciona `selected_setor_id` ao contexto do template
+- fix(ciclos): corrige erro 500 ao clicar no botão "Ver ciclos anteriores"
+  - Remove decoradores incorretos `@bp.route` e `@login_required` da função auxiliar `_summary_from_hours`
+  - Função agora é corretamente identificada como helper privado
+
 ## [3.2.48] - 2026-01-27 23:30:00
 
 ### IA responsável pelo envio
