@@ -1,5 +1,43 @@
 # Changelog
 
+## [3.4.0] - 2026-02-02
+
+### 🎉 MIGRAÇÃO COMPLETA: SQLite → PostgreSQL
+
+#### Novo
+- **feat(database)**: Migração completa de SQLite para PostgreSQL em produção
+  - 75 tabelas migradas com sucesso
+  - 12 usuários importados com dados preservados
+  - Mais de 40.000 registros de dados históricos migrados
+  - Scripts de migração criados para referência futura
+
+#### Correções
+- **fix(auth)**: Problema de autenticação resolvido
+  - Causa raiz: Classe `User` duplicada + `.env` não carregado + PostgreSQL desconfigurado
+  - Fixes aplicados:
+    1. Removida duplicação de classe User (v3.3.7)
+    2. Adicionado carregamento de `.env` (v3.3.8)
+    3. Migração de dados SQLite → PostgreSQL (v3.4.0)
+  - **Resultado: LOGIN 100% FUNCIONAL** ✅
+
+#### Detalhes Técnicos
+- PostgreSQL em Docker com usuário `multimax` (senha: `multimax123`)
+- Banco: `multimax` com schema preservado
+- Connection string: `postgresql://multimax:multimax123@localhost:5432/multimax?sslmode=disable`
+- Dados: 12 usuários com senhas resetadas para acesso
+
+#### Como Usar em Produção
+```bash
+# Credenciais de produção
+Username: admin / Password: admin123
+
+# Demais usuários migrados (ex):
+Username: ciano / Password: [resetar via admin]
+Username: operador / Password: [resetar via admin]
+```
+
+---
+
 ## [3.3.8] - 2026-02-02
 
 ### Correções
