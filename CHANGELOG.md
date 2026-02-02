@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.3.3] - 2026-02-02
+
+### Correções
+- **fix(auth)**: Comentado histórico de login (UserLogin model) - será implementado em v3.4.0
+  - Modelo UserLogin não migrado ainda para PostgreSQL
+  - Funcionalidade de login mantém suporte a SystemLog
+  - Deploy em produção agora funcional sem esta dependência
+
+## [3.3.2] - 2026-02-02
+
+### Correções
+- **fix(api)**: Desabilitado temporariamente blueprint de API (routes/api.py) - modelos indefinidos serão migrados em versão futura
+  - Removidas importações de modelos não existentes (CleaningTask, Historico, NotificationRead, Produto, Recipe)
+  - API será reconstruída após migração completa dos modelos de negócio
+  - Aplicação principal (Flask + PostgreSQL + ciclos) mantém funcionalidade completa
+
 ## [3.3.1] - 2026-02-02
 
 ### Correções

@@ -114,7 +114,8 @@ def _register_blueprints(app: Flask) -> tuple[bool, None]:
     """Registra todos os blueprints no app. Retorna (notif_enabled, None)."""
     from flask import Blueprint
 
-    from .routes.api import bp as api_bp
+    # TODO: Reabilitar api_bp após migração completa dos modelos
+    # from .routes.api import bp as api_bp
     from .routes.auth import bp as auth_bp
     from .routes.carnes import bp as carnes_bp
     from .routes.ciclos import bp as ciclos_bp
@@ -163,7 +164,8 @@ def _register_blueprints(app: Flask) -> tuple[bool, None]:
     app.register_blueprint(receitas_bp)
     app.register_blueprint(whatsapp_admin_bp)
     app.register_blueprint(whatsapp_config_bp)  # NovoI: API de configuração WhatsApp
-    app.register_blueprint(api_bp)
+    # TODO: Reabilitar api_bp após migração completa dos modelos
+    # app.register_blueprint(api_bp)
     app.register_blueprint(ciclos_bp)
     if notificacoes_bp:
         app.register_blueprint(notificacoes_bp)
