@@ -77,10 +77,11 @@ def _handle_error(error, status_code, error_type, severity="WARNING", notify=Fal
         notify: Se deve notificar via WhatsApp
     """
     
-    # Log imediato do erro
-    import sys
-    print(f"[ERROR_HANDLER] {error_type}: {error}", file=sys.stderr)
-    print(f"[ERROR_HANDLER] Stack: {traceback.format_exc()}", file=sys.stderr)
+    # Log imediato do erro com logging module
+    import logging
+    _logger = logging.getLogger("error_handler")
+    _logger.critical(f"ERRO CAPTURADO: {error_type}: {error}")
+    _logger.critical(f"Stack trace: {traceback.format_exc()}")
 
     try:
         # Dados do contexto
