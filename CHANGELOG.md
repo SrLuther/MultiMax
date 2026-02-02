@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.2.65] - 2026-02-02 18:32:00
+
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: Claude Haiku 4.5
+
+### Debug
+- debug(whatsapp-service): adicionar logs para debugar salvar alert-phone
+  - Adicionados console.log statements em db.js query() method
+  - Rastreando transformação SQL desde PostgreSQL até SQLite
+  - Logs mostram SQL original, normalizado e final para identificar falha de persistência
+  - Objetivo: visualizar exatamente qual SQL está sendo executado e por que o número não é salvo
+
 ## [3.2.64] - 2026-02-02 18:30:00
 
 ### IA responsável pelo envio

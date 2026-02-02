@@ -32,6 +32,11 @@ async function initDb() {
       const sqlLower = sql.trim().toLowerCase();
       let normalized = normalizeSql(sql).replace(/NOW\(\)/gi, "datetime('now')");
 
+      console.log('[db.js] SQL Original:', sql);
+      console.log('[db.js] SQL Lower:', sqlLower);
+      console.log('[db.js] SQL Normalizado:', normalized);
+      console.log('[db.js] Params:', params);
+
       // Converter ON CONFLICT (PostgreSQL) para INSERT OR REPLACE (SQLite)
       if (normalized.includes('ON CONFLICT')) {
         // Estratégia: substituir todo o ON CONFLICT ... DO UPDATE SET ... por nada
@@ -46,6 +51,8 @@ async function initDb() {
         normalized = normalized.replace(/^INSERT INTO/i, 'INSERT OR REPLACE INTO');
       }
 
+      console.log('[db.js] SQL Final:', normalized);
+
       if (sqlLower.startsWith('select')) {
         const rows = await db.all(normalized, params);
         return { rows };
@@ -53,6 +60,7 @@ async function initDb() {
 
       if (sqlLower.includes('returning')) {
         const stripped = normalized.replace(/returning[\s\S]*/i, '').trim();
+        console.log('[db.js] SQL para executar (RETURNING):', stripped);
         await db.run(stripped, params);
 
         let key = null;
@@ -67,12 +75,14 @@ async function initDb() {
             'SELECT value, updated_at FROM system_settings WHERE key = ? LIMIT 1',
             [key]
           );
+          console.log('[db.js] Valor recuperado do DB:', row);
           return { rows: row ? [row] : [] };
         }
 
         return { rows: [] };
       }
 
+      console.log('[db.js] SQL para executar (normal):', normalized);
       await db.run(normalized, params);
       return { rows: [] };
     },
