@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.2.66] - 2026-02-02 18:37:00
+
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: Claude Haiku 4.5
+
+### Debug
+- debug(whatsapp-service): usar logger pino para debug SQL no db.js
+  - Modificado db.js para receber logger como parâmetro
+  - Substituído console.log por logger.info para visibilidade no docker logs
+  - Adicionados logs em cada etapa de transformação SQL
+  - Logs agora aparecem no padrão JSON do pino para melhor análise
+
 ## [3.2.65] - 2026-02-02 18:32:00
 
 ### IA responsável pelo envio

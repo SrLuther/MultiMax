@@ -508,7 +508,7 @@ async function main() {
   logger.info("Iniciando Central de Notificações MultiMax...");
 
   try {
-    globalDb = await initDb();
+    globalDb = await initDb(logger);
     logger.info("✓ DB SQLite conectado");
   } catch (err) {
     logger.warn({ err }, "DB indisponível, endpoints de settings desativados");

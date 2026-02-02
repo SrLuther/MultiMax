@@ -11,7 +11,7 @@ function normalizeSql(sql) {
   return sql.replace(/\$\d+/g, '?');
 }
 
-async function initDb() {
+async function initDb(logger) {
   const dbFile = process.env.DB_FILE_PATH || '/multimax-data/estoque.db';
   const db = await open({
     filename: dbFile,
@@ -32,10 +32,9 @@ async function initDb() {
       const sqlLower = sql.trim().toLowerCase();
       let normalized = normalizeSql(sql).replace(/NOW\(\)/gi, "datetime('now')");
 
-      console.log('[db.js] SQL Original:', sql);
-      console.log('[db.js] SQL Lower:', sqlLower);
-      console.log('[db.js] SQL Normalizado:', normalized);
-      console.log('[db.js] Params:', params);
+      if (logger) {
+        logger.info({ sql, params }, '[db.js] SQL Original');
+      }
 
       // Converter ON CONFLICT (PostgreSQL) para INSERT OR REPLACE (SQLite)
       if (normalized.includes('ON CONFLICT')) {
@@ -51,7 +50,9 @@ async function initDb() {
         normalized = normalized.replace(/^INSERT INTO/i, 'INSERT OR REPLACE INTO');
       }
 
-      console.log('[db.js] SQL Final:', normalized);
+      if (logger) {
+        logger.info({ sql: normalized }, '[db.js] SQL Final após conversão');
+      }
 
       if (sqlLower.startsWith('select')) {
         const rows = await db.all(normalized, params);
@@ -60,7 +61,9 @@ async function initDb() {
 
       if (sqlLower.includes('returning')) {
         const stripped = normalized.replace(/returning[\s\S]*/i, '').trim();
-        console.log('[db.js] SQL para executar (RETURNING):', stripped);
+        if (logger) {
+          logger.info({ sql: stripped, params }, '[db.js] Executando SQL com RETURNING');
+        }
         await db.run(stripped, params);
 
         let key = null;
@@ -75,14 +78,18 @@ async function initDb() {
             'SELECT value, updated_at FROM system_settings WHERE key = ? LIMIT 1',
             [key]
           );
-          console.log('[db.js] Valor recuperado do DB:', row);
+          if (logger) {
+            logger.info({ key, row }, '[db.js] Valor recuperado do DB');
+          }
           return { rows: row ? [row] : [] };
         }
 
         return { rows: [] };
       }
 
-      console.log('[db.js] SQL para executar (normal):', normalized);
+      if (logger) {
+        logger.info({ sql: normalized, params }, '[db.js] Executando SQL normal');
+      }
       await db.run(normalized, params);
       return { rows: [] };
     },
