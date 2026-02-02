@@ -1,5 +1,23 @@
 # Changelog
 
+## [3.2.52] - 2026-02-02 16:40:00
+
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
+### Adicionado
+- feat(whatsapp-service): central de notificações e observabilidade
+  - Implementa `sendEvent()` com formatação humana, antispam e envio via Baileys
+  - Adiciona captura global de erros (500) e exceções não tratadas
+  - Trata `unhandledRejection` e `uncaughtException` com alerta estruturado
+  - Envia alertas de startup/deploy e heartbeat periódico
+  - Expõe healthcheck de conectividade do WhatsApp
+  - Cria listener de eventos Docker (start/stop/die/restart) com auto-restart
+  - Cria endpoints de configuração do número e teste de envio
+  - Inclui schema de `system_settings` com chave `alert_whatsapp_phone`
+  - Documentação completa de uso, endpoints e testes
+
 ## [3.2.51] - 2026-02-02 16:20:00
 
 ### IA responsável pelo envio
