@@ -6,6 +6,9 @@
 - GitHub Copilot
 - Modelo: Claude Haiku 4.5
 
+### Documentação
+- Adicionado MIGRATION_COMPLETE_SUMMARY.md com sumário completo da refatoração
+
 ### Arquitetura
 - **BREAKING**: Migração completa de SQLite para PostgreSQL
   - PostgreSQL é agora banco único e centralizado
