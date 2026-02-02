@@ -3,11 +3,13 @@ Models: Configurações WhatsApp
 """
 
 from datetime import datetime
+from typing import Any
 
-from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Boolean, DateTime, Integer, String, Text
 
-db = SQLAlchemy()
+from .. import db as app_db
+
+db: Any = app_db
 
 
 class WhatsappConfig(db.Model):

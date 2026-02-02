@@ -3,11 +3,13 @@ Model: Colaboradores
 """
 
 from datetime import datetime
+from typing import Any
 
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import DateTime, Float, Integer, String
 
-db = SQLAlchemy()
+from .. import db as app_db
+
+db: Any = app_db
 
 
 class Colaborador(db.Model):

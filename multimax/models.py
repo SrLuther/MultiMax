@@ -31,13 +31,30 @@ class BulkHourOperation(db.Model):
 
 
 class User(UserMixin, db.Model):
+    __tablename__ = "users"
     __table_args__ = {"extend_existing": True}
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    username = db.Column(db.String(80), unique=True, nullable=False)
+    username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.Text)
     nivel = db.Column(db.String(20), default="visualizador")
+
+    email = db.Column(db.String(120), nullable=True, index=True)
+    role = db.Column(db.String(20), nullable=True)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+        nullable=False,
+    )
+    updated_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+        onupdate=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+        nullable=False,
+    )
 
     @property
     def collaborator_name(self):
@@ -195,7 +212,7 @@ class MeatReception(db.Model):
     reference_code = db.Column(db.String(32), unique=True)
     peso_nota = db.Column(db.Float)
     peso_frango = db.Column(db.Float)
-    recebedor_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    recebedor_id = db.Column(db.Integer, db.ForeignKey("users.id"))
 
 
 class MeatCarrier(db.Model):
@@ -232,7 +249,7 @@ class Collaborator(db.Model):
     regular_team = db.Column(db.String(1))
     sunday_team = db.Column(db.String(1))
     special_team = db.Column(db.String(1))
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     team_position = db.Column(db.Integer, default=1)
     telefone = db.Column(db.String(20), nullable=True)
     data_admissao = db.Column(db.Date, nullable=True)
@@ -753,7 +770,7 @@ class CicloSaldo(db.Model):
 class UserLogin(db.Model):
     __tablename__ = "user_login"
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     username = db.Column(db.String(80))
     ip_address = db.Column(db.String(50))
     user_agent = db.Column(db.String(255))
@@ -996,7 +1013,7 @@ class RegistroJornadaChange(db.Model):
     __tablename__ = "registro_jornada_change"
     id = db.Column(db.Integer, primary_key=True)
     worklog_id = db.Column(db.String(36), db.ForeignKey("registro_jornada.id"), nullable=False)
-    changed_by = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    changed_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     old_tipo = db.Column(db.String(10))
     old_valor = db.Column(db.Numeric(8, 2))
     old_data = db.Column(db.Date)
@@ -1026,7 +1043,7 @@ class ArticleVote(db.Model):
     __tablename__ = "article_vote"
     id = db.Column(db.Integer, primary_key=True)
     article_id = db.Column(db.Integer, db.ForeignKey("help_article.id"), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     util = db.Column(db.Boolean, nullable=False)
     voted_at = db.Column(
         db.DateTime(timezone=True),
@@ -1060,7 +1077,7 @@ class SuggestionVote(db.Model):
     __tablename__ = "suggestion_vote"
     id = db.Column(db.Integer, primary_key=True)
     suggestion_id = db.Column(db.Integer, db.ForeignKey("suggestion.id"), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     voted_at = db.Column(
         db.DateTime(timezone=True),
         default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),

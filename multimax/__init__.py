@@ -114,27 +114,23 @@ def _register_blueprints(app: Flask) -> tuple[bool, None]:
     """Registra todos os blueprints no app. Retorna (notif_enabled, None)."""
     from flask import Blueprint
 
-    # from .routes.whatsapp_admin import bp as whatsapp_admin_bp
-    # from .routes.whatsapp_config import bp as whatsapp_config_bp
-    # Auth route with commented UserLogin dependency
+    from .routes.api import bp as api_bp
+
+    # Auth route
     from .routes.auth import bp as auth_bp
-
-    # Models pending migration to PostgreSQL - these routes disabled in v3.3.3
-    # from .routes.api import bp as api_bp
-    # from .routes.carnes import bp as carnes_bp
+    from .routes.carnes import bp as carnes_bp
     from .routes.ciclos import bp as ciclos_bp
-
-    # from .routes.colaboradores import bp as colaboradores_bp
+    from .routes.colaboradores import bp as colaboradores_bp
     from .routes.cronograma import bp as cronograma_bp
-
-    # from .routes.escala_especial import api_bp as escala_especial_api_bp
-    # from .routes.escala_especial import bp as escala_especial_bp
-    # from .routes.estoque_producao import bp as estoque_producao_bp
-    # from .routes.exportacao import bp as exportacao_bp
+    from .routes.escala_especial import api_bp as escala_especial_api_bp
+    from .routes.escala_especial import bp as escala_especial_bp
+    from .routes.estoque_producao import bp as estoque_producao_bp
+    from .routes.exportacao import bp as exportacao_bp
     from .routes.home import bp as home_bp
-
-    # from .routes.receitas import bp as receitas_bp
+    from .routes.receitas import bp as receitas_bp
     from .routes.usuarios import bp as usuarios_bp
+    from .routes.whatsapp_admin import bp as whatsapp_admin_bp
+    from .routes.whatsapp_config import bp as whatsapp_config_bp
 
     notif_enabled = (os.getenv("NOTIFICACOES_ENABLED", "false") or "false").lower() == "true"
     notificacoes_bp: Blueprint | None = None
@@ -158,18 +154,18 @@ def _register_blueprints(app: Flask) -> tuple[bool, None]:
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(home_bp)
-    # Models pending migration - routes disabled in v3.3.3
-    # app.register_blueprint(estoque_producao_bp)
+    app.register_blueprint(estoque_producao_bp)
     app.register_blueprint(cronograma_bp)
-    # app.register_blueprint(escala_especial_bp)
-    # app.register_blueprint(escala_especial_api_bp)
-    # app.register_blueprint(exportacao_bp)
+    app.register_blueprint(escala_especial_bp)
+    app.register_blueprint(escala_especial_api_bp)
+    app.register_blueprint(exportacao_bp)
     app.register_blueprint(usuarios_bp)
-    # app.register_blueprint(carnes_bp)
-    # app.register_blueprint(colaboradores_bp)
-    # app.register_blueprint(receitas_bp)
-    # app.register_blueprint(whatsapp_admin_bp)
-    # app.register_blueprint(whatsapp_config_bp)
+    app.register_blueprint(carnes_bp)
+    app.register_blueprint(colaboradores_bp)
+    app.register_blueprint(receitas_bp)
+    app.register_blueprint(whatsapp_admin_bp)
+    app.register_blueprint(whatsapp_config_bp)
+    app.register_blueprint(api_bp)
     app.register_blueprint(ciclos_bp)
     if notificacoes_bp:
         app.register_blueprint(notificacoes_bp)

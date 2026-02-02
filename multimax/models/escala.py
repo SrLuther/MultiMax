@@ -3,11 +3,13 @@ Models: Escalas de Trabalho
 """
 
 from datetime import datetime
+from typing import Any
 
-from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text, Time
 
-db = SQLAlchemy()
+from .. import db as app_db
+
+db: Any = app_db
 
 
 class Escala(db.Model):

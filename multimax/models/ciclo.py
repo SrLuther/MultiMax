@@ -3,11 +3,13 @@ Models: Ciclos e Histórico
 """
 
 from datetime import datetime
+from typing import Any
 
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, Text
 
-db = SQLAlchemy()
+from .. import db as app_db
+
+db: Any = app_db
 
 
 class CicloSemanal(db.Model):

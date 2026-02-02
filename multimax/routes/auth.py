@@ -4,7 +4,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
 from .. import db
-from ..models import Collaborator, SystemLog, User
+from ..models import Collaborator, SystemLog, User, UserLogin
 from ..password_hash import check_password_hash, generate_password_hash
 
 logger = logging.getLogger(__name__)
@@ -108,17 +108,16 @@ def _log_user_login(user):
         db.session.add(log)
 
         # Registrar histórico de login
-        # TODO: UserLogin model pending migration to v3.4.0
-        # ip, ua = _get_client_info()
-        # try:
-        #     ul = UserLogin()
-        #     ul.user_id = user.id
-        #     ul.username = user.username
-        #     ul.ip_address = ip
-        #     ul.user_agent = ua
-        #     db.session.add(ul)
-        # except Exception as e:
-        #     logger.warning(f"Erro ao registrar login: {e}")
+        ip, ua = _get_client_info()
+        try:
+            ul = UserLogin()
+            ul.user_id = user.id
+            ul.username = user.username
+            ul.ip_address = ip
+            ul.user_agent = ua
+            db.session.add(ul)
+        except Exception as e:
+            logger.warning(f"Erro ao registrar login: {e}")
 
         db.session.commit()
     except Exception as e:

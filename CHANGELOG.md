@@ -1,7 +1,24 @@
 # Changelog
 
+## [3.3.5] - 2026-02-02
+
+### Correções
+- **fix(routes)**: Desabilitada rota cronograma - modelo CleaningChecklistItem não migrado
+  - Cronograma será reconstruída com suporte a PostgreSQL em v3.4.0
+  - Rotas ativas agora: auth, home, ciclos, usuarios (funcionalidade core)
+
 ## [3.3.4] - 2026-02-02
 
+
+## [3.3.6] - 2026-02-02
+
+### Correções
+- **fix(migration)**: Unificado `db` em todos os models e reexportado legado completo
+  - Modelos `multimax/models/*.py` agora usam o mesmo `db` da aplicação
+  - Exports legados completos em `multimax/models/__init__.py`
+  - `User` alinhado com campos reais do sistema (name, username, nivel)
+  - Foreign keys corrigidos para `users.id`
+  - Rotas reativadas após migração de schema
 ### Correções
 - **fix(routes)**: Múltiplas rotas desabilitadas temporariamente - modelos não migrados para PostgreSQL
   - Desabilitadas: carnes, colaboradores, receitas, whatsapp_admin, whatsapp_config, escala_especial, estoque_producao, exportacao
