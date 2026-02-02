@@ -2,8 +2,6 @@ import uuid
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from flask_login import UserMixin
-
 from . import db
 
 # --- MODELO DE LOTE DE HORAS ---
@@ -30,39 +28,8 @@ class BulkHourOperation(db.Model):
     corrections = db.relationship("BulkHourOperation", backref=db.backref("original_lote", remote_side=[id]), lazy=True)
 
 
-class User(UserMixin, db.Model):
-    __tablename__ = "users"
-    __table_args__ = {"extend_existing": True}
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    username = db.Column(db.String(80), unique=True, nullable=False, index=True)
-    password_hash = db.Column(db.Text)
-    nivel = db.Column(db.String(20), default="visualizador")
-
-    email = db.Column(db.String(120), nullable=True, index=True)
-    role = db.Column(db.String(20), nullable=True)
-    ativo = db.Column(db.Boolean, default=True, nullable=False)
-
-    created_at = db.Column(
-        db.DateTime(timezone=True),
-        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
-        nullable=False,
-    )
-    updated_at = db.Column(
-        db.DateTime(timezone=True),
-        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
-        onupdate=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
-        nullable=False,
-    )
-
-    @property
-    def collaborator_name(self):
-        try:
-            collab = Collaborator.query.filter_by(user_id=self.id).first()
-            return collab.name if collab else None
-        except Exception:
-            return None
+# User class moved to models/user.py to avoid duplication
+# This prevents SQLAlchemy registry conflicts and maintains the new structure
 
 
 class Produto(db.Model):

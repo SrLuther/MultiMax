@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.3.7] - 2026-02-02
+
+### Correções
+- **fix(models)**: Removida classe `User` duplicada em `models.py` que causava conflito no registro SQLAlchemy
+  - Problema: Duas classes `User` registradas (uma em `models.py`, outra em `models/user.py`)
+  - Solução: Removida versão legada de `models.py`, mantendo apenas `models/user.py`
+  - Resultado: Login agora funciona sem erro "Database Error" (SQLAlchemy registry conflict)
+
 ## [3.3.5] - 2026-02-02
 
 ### Correções
