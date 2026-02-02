@@ -1468,6 +1468,12 @@ def gestao():
         except Exception:
             c.display_name = ""
 
+    # Rollback qualquer transação abortada antes de chamar _gestao_bank_context
+    try:
+        db.session.rollback()
+    except Exception:
+        pass
+
     bank_ctx = _gestao_bank_context(colaboradores_colab, per_page=10)
     vps_storage = _vps_storage_info()
 
