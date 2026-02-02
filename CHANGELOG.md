@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.2.62] - 2026-02-02 18:15:00
+
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: Claude Haiku 4.5
+
+### Corrigido
+- fix(whatsapp): usar hostname whatsapp-service em vez de localhost para conectividade Docker
+  - Alterado de `http://localhost:3001` para `http://whatsapp-service:3001`
+  - Habilita comunicação entre containers (multimax → whatsapp-service) em ambiente Docker
+  - Resolve erro "Connection refused" ao enviar teste de alerta telefônico
+
 ## [3.2.61] - 2026-02-02 18:10:00
 
 ### IA responsável pelo envio

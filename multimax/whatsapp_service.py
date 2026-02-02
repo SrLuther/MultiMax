@@ -13,7 +13,7 @@ from datetime import datetime
 import requests
 from flask import g, request
 
-WHATSAPP_SERVICE_URL = os.getenv("WHATSAPP_SERVICE_URL", "http://localhost:3001")
+WHATSAPP_SERVICE_URL = os.getenv("WHATSAPP_SERVICE_URL", "http://whatsapp-service:3001")
 HOSTNAME = socket.gethostname()
 
 
