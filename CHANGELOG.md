@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.2.57] - 2026-02-02 17:25:00
+
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
+### Corrigido
+- fix(whatsapp-service): compatibilidade SQLite para timestamps (`NOW()` -> `datetime('now')`)
+
 ## [3.2.56] - 2026-02-02 17:15:00
 
 ### IA responsável pelo envio
