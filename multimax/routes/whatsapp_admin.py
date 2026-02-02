@@ -9,6 +9,7 @@ from ..services.whatsapp_gateway import (
     send_whatsapp_message,
     set_auto_notifications_enabled,
 )
+from ..whatsapp_service import get_alert_phone, send_alert_phone_test, set_alert_phone
 
 bp = Blueprint("whatsapp_admin", __name__, url_prefix="/dev/whatsapp")
 
@@ -156,3 +157,37 @@ def toggle_auto_rest():
         return jsonify({"ok": True, "enabled": new_state, "message": msg}), 200
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp.route("/alert-phone", methods=["GET"], strict_slashes=False)
+@login_required
+def get_alert_phone_rest():
+    _require_dev()
+    ok, payload = get_alert_phone()
+    if ok:
+        return jsonify({"ok": True, "data": payload}), 200
+    return jsonify({"ok": False, "error": payload}), 502
+
+
+@bp.route("/alert-phone", methods=["PUT"], strict_slashes=False)
+@login_required
+def set_alert_phone_rest():
+    _require_dev()
+    data = request.get_json(silent=True) or {}
+    phone = (data.get("phone") or "").strip()
+    if not phone:
+        return jsonify({"ok": False, "error": "Número obrigatório"}), 400
+    ok, payload = set_alert_phone(phone)
+    if ok:
+        return jsonify({"ok": True, "data": payload}), 200
+    return jsonify({"ok": False, "error": payload}), 502
+
+
+@bp.route("/alert-phone/test", methods=["POST"], strict_slashes=False)
+@login_required
+def test_alert_phone_rest():
+    _require_dev()
+    ok, payload = send_alert_phone_test()
+    if ok:
+        return jsonify({"ok": True, "data": payload}), 200
+    return jsonify({"ok": False, "error": payload}), 502

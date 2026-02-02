@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.2.59] - 2026-02-02 17:45:00
+
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
+### Adicionado
+- feat(whatsapp): Bloco D na Central de Notificações para configurar número de alertas
+  - Endpoint DEV para buscar, salvar e testar número
+  - Ações de UI para carregar, validar, salvar e disparar teste
+
 ## [3.2.58] - 2026-02-02 17:30:00
 
 ### IA responsável pelo envio

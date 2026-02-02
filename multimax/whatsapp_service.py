@@ -140,6 +140,64 @@ def send_test_alert():
         return False
 
 
+def get_alert_phone() -> tuple[bool, dict | str]:
+    """Obtém o número configurado para alertas no whatsapp-service."""
+    try:
+        response = requests.get(f"{WHATSAPP_SERVICE_URL}/settings/alert-phone", timeout=5)
+        if response.status_code >= 400:
+            try:
+                payload = response.json()
+                return False, payload.get("erro") or payload.get("error") or response.text
+            except ValueError:
+                return False, response.text or "Erro ao buscar número"
+        try:
+            return True, response.json()
+        except ValueError:
+            return False, "Resposta inválida do serviço"
+    except requests.RequestException as exc:
+        return False, f"Falha ao contatar serviço WhatsApp: {exc}"
+
+
+def set_alert_phone(phone: str) -> tuple[bool, dict | str]:
+    """Atualiza o número configurado para alertas no whatsapp-service."""
+    try:
+        response = requests.put(
+            f"{WHATSAPP_SERVICE_URL}/settings/alert-phone",
+            json={"phone": phone},
+            timeout=5,
+        )
+        if response.status_code >= 400:
+            try:
+                payload = response.json()
+                return False, payload.get("erro") or payload.get("error") or response.text
+            except ValueError:
+                return False, response.text or "Erro ao atualizar número"
+        try:
+            return True, response.json()
+        except ValueError:
+            return False, "Resposta inválida do serviço"
+    except requests.RequestException as exc:
+        return False, f"Falha ao contatar serviço WhatsApp: {exc}"
+
+
+def send_alert_phone_test() -> tuple[bool, dict | str]:
+    """Dispara teste de alerta usando o número configurado no whatsapp-service."""
+    try:
+        response = requests.post(f"{WHATSAPP_SERVICE_URL}/settings/test-alert-phone", timeout=5)
+        if response.status_code >= 400:
+            try:
+                payload = response.json()
+                return False, payload.get("erro") or payload.get("error") or response.text
+            except ValueError:
+                return False, response.text or "Erro ao enviar teste"
+        try:
+            return True, response.json()
+        except ValueError:
+            return True, {"message": "Teste enviado"}
+    except requests.RequestException as exc:
+        return False, f"Falha ao contatar serviço WhatsApp: {exc}"
+
+
 # ============================================================================
 # Exemplo de uso em app.py
 # ============================================================================
