@@ -1,11 +1,7 @@
-"""
-Testes para o módulo de integração com o serviço WhatsApp
-"""
+"""Testes para o módulo de integração com o serviço WhatsApp."""
 
-from datetime import datetime
 from unittest.mock import MagicMock, patch
 
-import pytest
 import requests
 from flask import Flask
 
