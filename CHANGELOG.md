@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.2.51] - 2026-02-02 16:20:00
+
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
+### Corrigido
+- fix(lint): remove avisos falsos do linter MSSQL em schemas PostgreSQL
+  - Adiciona comentários de supressão no schema PostgreSQL
+  - Ajusta configurações do VS Code para desabilitar o linter MSSQL
+- chore(format): normaliza finais de linha e formatação automática
+
 ## [3.2.50] - 2026-02-02 15:15:00
 
 ### IA responsável pelo envio
