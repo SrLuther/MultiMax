@@ -1424,6 +1424,10 @@ def perfil_senha():
 @bp.route("/gestao", methods=["GET"])
 @login_required
 def gestao():
+    import logging
+
+    logger = logging.getLogger(__name__)
+
     if current_user.nivel not in ("admin", "DEV"):
         flash("Acesso negado. Apenas Administradores.", "danger")
         return redirect(url_for("estoque.index"))
@@ -1433,7 +1437,15 @@ def gestao():
 
     u_page = _safe_int_arg("u_page", 1)
     l_page = _safe_int_arg("l_page", 1)
-    logs = _collect_logs()
+
+    try:
+        logger.info("gestao: iniciando _collect_logs()")
+        logs = _collect_logs()
+        logger.info(f"gestao: _collect_logs() ok, {len(logs)} logs")
+    except Exception as e:
+        logger.error(f"gestao: erro em _collect_logs: {e}", exc_info=True)
+        raise
+
     logs_page, l_total_pages, l_page = _paginate_list(logs, l_page, 2)
 
     # Buscar todos os usuários (com ou sem collaborator)

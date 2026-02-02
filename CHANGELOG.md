@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.4.1] - 2026-02-02
+
+### Correções (Banco de Dados - Sequences)
+- **fix(database)**: Fixar autoincrement de 72 tabelas PostgreSQL
+  - Problema: Colunas `id` sem DEFAULT NEXTVAL após migração
+  - Solução: Criadas sequences para todas as tabelas, aplicados defaults
+  - Afetadas: system_log, log_erros, user_login, e 69 outras tabelas
+- **debug(gestao)**: Adicionado logging detalhado na rota `/gestao` para diagnóstico
+
 ## [3.4.0] - 2026-02-02
 
 ### 🎉 MIGRAÇÃO COMPLETA: SQLite → PostgreSQL
