@@ -34,17 +34,16 @@ async function initDb() {
 
       // Converter ON CONFLICT (PostgreSQL) para INSERT OR REPLACE (SQLite)
       if (normalized.includes('ON CONFLICT')) {
-        // Extrai o valor que será inserido/atualizado
-        // INSERT INTO ... VALUES (...) ON CONFLICT (...) DO UPDATE SET value = $1
-        normalized = normalized.replace(
-          /INSERT INTO (\w+) \(([^)]+)\) VALUES \(([^)]+)\) ON CONFLICT[^D]*DO UPDATE SET[^W]*WHERE/i,
-          'INSERT OR REPLACE INTO $1 ($2) VALUES ($3) WHERE'
-        );
-        // Fallback simples para upserts básicos
-        normalized = normalized.replace(
-          /INSERT INTO (\w+) \(([^)]+)\) VALUES \(([^)]+)\) ON CONFLICT[^D]*DO UPDATE SET[^R]*RETURNING/i,
-          'INSERT OR REPLACE INTO $1 ($2) VALUES ($3) RETURNING'
-        );
+        // Estratégia: substituir todo o ON CONFLICT ... DO UPDATE SET ... por nada
+        // O INSERT OR REPLACE já substitui automaticamente se existir
+        normalized = normalized
+          .replace(/ON CONFLICT[^R]*RETURNING/i, 'RETURNING')
+          .replace(/ON CONFLICT[^;]*$/i, '');
+      }
+
+      // Converter INSERT INTO para INSERT OR REPLACE quando há conflito
+      if (sqlLower.includes('on conflict') || sqlLower.includes('insert or replace')) {
+        normalized = normalized.replace(/^INSERT INTO/i, 'INSERT OR REPLACE INTO');
       }
 
       if (sqlLower.startsWith('select')) {

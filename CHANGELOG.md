@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.2.64] - 2026-02-02 18:30:00
+
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: Claude Haiku 4.5
+
+### Corrigido
+- fix(whatsapp-service): melhorar conversão SQL ON CONFLICT para SQLite
+  - Simplificado regex de conversão de PostgreSQL para SQLite
+  - Permite salvar números de alerta corretamente no banco de dados
+
 ## [3.2.63] - 2026-02-02 18:25:00
 
 ### IA responsável pelo envio
