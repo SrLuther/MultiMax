@@ -32,14 +32,10 @@ async function initDb(logger) {
       const sqlLower = sql.trim().toLowerCase();
       let normalized = normalizeSql(sql).replace(/NOW\(\)/gi, "datetime('now')");
 
-      if (logger) {
-        logger.info({ sql, params }, '[db.js] SQL Original');
-      }
+      if (logger) logger.info(`[db.js] SQL Original: ${sql}`);
 
       // Converter ON CONFLICT (PostgreSQL) para INSERT OR REPLACE (SQLite)
       if (normalized.includes('ON CONFLICT')) {
-        // Estratégia: substituir todo o ON CONFLICT ... DO UPDATE SET ... por nada
-        // O INSERT OR REPLACE já substitui automaticamente se existir
         normalized = normalized
           .replace(/ON CONFLICT[^R]*RETURNING/i, 'RETURNING')
           .replace(/ON CONFLICT[^;]*$/i, '');
@@ -50,9 +46,8 @@ async function initDb(logger) {
         normalized = normalized.replace(/^INSERT INTO/i, 'INSERT OR REPLACE INTO');
       }
 
-      if (logger) {
-        logger.info({ sql: normalized }, '[db.js] SQL Final após conversão');
-      }
+      if (logger) logger.info(`[db.js] SQL Final: ${normalized}`);
+      if (logger) logger.info(`[db.js] Params: ${JSON.stringify(params)}`);
 
       if (sqlLower.startsWith('select')) {
         const rows = await db.all(normalized, params);
@@ -61,9 +56,7 @@ async function initDb(logger) {
 
       if (sqlLower.includes('returning')) {
         const stripped = normalized.replace(/returning[\s\S]*/i, '').trim();
-        if (logger) {
-          logger.info({ sql: stripped, params }, '[db.js] Executando SQL com RETURNING');
-        }
+        if (logger) logger.info(`[db.js] SQL a executar (RETURNING): ${stripped}`);
         await db.run(stripped, params);
 
         let key = null;
@@ -78,18 +71,14 @@ async function initDb(logger) {
             'SELECT value, updated_at FROM system_settings WHERE key = ? LIMIT 1',
             [key]
           );
-          if (logger) {
-            logger.info({ key, row }, '[db.js] Valor recuperado do DB');
-          }
+          if (logger) logger.info(`[db.js] Valor recuperado: ${JSON.stringify(row)} para key: ${key}`);
           return { rows: row ? [row] : [] };
         }
 
         return { rows: [] };
       }
 
-      if (logger) {
-        logger.info({ sql: normalized, params }, '[db.js] Executando SQL normal');
-      }
+      if (logger) logger.info(`[db.js] SQL a executar (normal): ${normalized}`);
       await db.run(normalized, params);
       return { rows: [] };
     },

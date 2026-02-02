@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.2.67] - 2026-02-02 18:41:00
+
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: Claude Haiku 4.5
+
+### Debug
+- debug(whatsapp-service): format debug logs como strings visíveis
+  - Alterado logger.info com objeto JSON para logger.info com string
+  - Logs de debug SQL agora aparecem como strings simples visíveis nos docker logs
+  - Melhor rastreamento de transformação SQL para identificar problema de persistência
+
 ## [3.2.66] - 2026-02-02 18:37:00
 
 ### IA responsável pelo envio
