@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.2.54] - 2026-02-02 16:55:00
+
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
+### Corrigido
+- fix(whatsapp-service): adiciona dependência `dayjs` usada no logger de eventos
+
 ## [3.2.53] - 2026-02-02 16:50:00
 
 ### IA responsável pelo envio
