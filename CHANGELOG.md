@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.2.63] - 2026-02-02 18:25:00
+
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: Claude Haiku 4.5
+
+### Corrigido
+- fix(whatsapp-service): converter SQL ON CONFLICT para INSERT OR REPLACE (SQLite compatibility)
+  - db.js agora converte sintaxe PostgreSQL (ON CONFLICT DO UPDATE) para SQLite (INSERT OR REPLACE)
+  - Permite que números de alerta sejam salvos corretamente no banco de dados
+  - Resolve erro silencioso ao clicar "Salvar número"
+
 ## [3.2.62] - 2026-02-02 18:15:00
 
 ### IA responsável pelo envio

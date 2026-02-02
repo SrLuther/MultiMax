@@ -30,7 +30,22 @@ async function initDb() {
   return {
     async query(sql, params = []) {
       const sqlLower = sql.trim().toLowerCase();
-      const normalized = normalizeSql(sql).replace(/NOW\(\)/gi, "datetime('now')");
+      let normalized = normalizeSql(sql).replace(/NOW\(\)/gi, "datetime('now')");
+
+      // Converter ON CONFLICT (PostgreSQL) para INSERT OR REPLACE (SQLite)
+      if (normalized.includes('ON CONFLICT')) {
+        // Extrai o valor que será inserido/atualizado
+        // INSERT INTO ... VALUES (...) ON CONFLICT (...) DO UPDATE SET value = $1
+        normalized = normalized.replace(
+          /INSERT INTO (\w+) \(([^)]+)\) VALUES \(([^)]+)\) ON CONFLICT[^D]*DO UPDATE SET[^W]*WHERE/i,
+          'INSERT OR REPLACE INTO $1 ($2) VALUES ($3) WHERE'
+        );
+        // Fallback simples para upserts básicos
+        normalized = normalized.replace(
+          /INSERT INTO (\w+) \(([^)]+)\) VALUES \(([^)]+)\) ON CONFLICT[^D]*DO UPDATE SET[^R]*RETURNING/i,
+          'INSERT OR REPLACE INTO $1 ($2) VALUES ($3) RETURNING'
+        );
+      }
 
       if (sqlLower.startsWith('select')) {
         const rows = await db.all(normalized, params);
