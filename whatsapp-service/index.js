@@ -31,7 +31,28 @@ const { sendEvent, validatePhoneNumber, formatPhoneForWhatsApp } = require("./er
 const DockerListener = require("./dockerListener");
 const { initDb } = require("./db");
 
-const logger = pino({ level: "info" }).child({ module: "whatsapp-service" });
+// Custom logger que garante output em Docker
+const createLogger = (module) => {
+  return {
+    info: (msg) => {
+      const logEntry = JSON.stringify({ level: 30, time: Date.now(), module, msg });
+      console.log(logEntry);
+      process.stdout.write('');
+    },
+    error: (data, msg) => {
+      const logEntry = JSON.stringify({ level: 50, time: Date.now(), module, ...data, msg });
+      console.error(logEntry);
+      process.stderr.write('');
+    },
+    debug: (msg) => {
+      const logEntry = JSON.stringify({ level: 20, time: Date.now(), module, msg });
+      console.log(logEntry);
+      process.stdout.write('');
+    }
+  };
+};
+
+const logger = createLogger("whatsapp-service");
 
 let globalSocket = null;
 let globalDb = null;
@@ -391,6 +412,8 @@ function setupHttpServer(db) {
         return res.status(503).json({ erro: "Banco de dados não disponível" });
       }
 
+      logger.info(`[PUT] Iniciando UPSERT para phone: ${formatted}`);
+
       // Usar UPSERT: INSERT OR UPDATE
       const query = `
         INSERT INTO system_settings (key, value, created_at, updated_at)
@@ -399,9 +422,16 @@ function setupHttpServer(db) {
         RETURNING value, updated_at
       `;
 
+      logger.info(`[PUT] Query: ${query}`);
+      logger.info(`[PUT] Params: ${JSON.stringify([formatted])}`);
+
       const result = await db.query(query, [formatted]);
+
+      logger.info(`[PUT] Resultado da query: ${JSON.stringify(result)}`);
+
       const newPhone = result?.rows?.[0]?.value;
 
+      logger.info(`[PUT] newPhone extraído: ${newPhone}`);
       logger.info({ phone: newPhone }, "alert-phone atualizado");
 
       res.status(200).json({

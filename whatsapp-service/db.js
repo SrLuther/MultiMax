@@ -18,6 +18,24 @@ async function initDb(logger) {
     driver: sqlite3.Database,
   });
 
+  // Fallback logger se não fornecido
+  if (!logger) {
+    logger = {
+      info: (msg) => {
+        console.log(`[db.js] ${msg}`);
+        process.stdout.write('');
+      },
+      error: (msg) => {
+        console.error(`[db.js] ERROR: ${msg}`);
+        process.stderr.write('');
+      },
+      debug: (msg) => {
+        console.log(`[db.js] DEBUG: ${msg}`);
+        process.stdout.write('');
+      }
+    };
+  }
+
   await db.exec(`
     CREATE TABLE IF NOT EXISTS system_settings (
       key TEXT PRIMARY KEY,

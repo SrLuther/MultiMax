@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.2.68] - 2026-02-02 18:44:00
+
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: Claude Haiku 4.5
+
+### Debug
+- debug(whatsapp-service): adicionar logs detalhados no endpoint PUT alert-phone
+  - Adicionados logs [PUT] em cada etapa do processamento
+  - Logs mostram valores intermediários do SQL, params e resultado
+  - Permite rastrear completo do fluxo de salvar número
+
 ## [3.2.67] - 2026-02-02 18:41:00
 
 ### IA responsável pelo envio
