@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.3.8] - 2026-02-02
+
+### Correções
+- **fix(env)**: Adicionar carregamento de `.env` file em `create_app()` para leitura de `DATABASE_URL` e outras configs
+  - Problema: App estava usando SQLite em produção em vez de PostgreSQL
+  - Causa: `.env` file não estava sendo carregado (apenas `.env.txt` era carregado)
+  - Solução: Adicionar `_load_env(".env")` antes de `.env.txt`
+  - Resultado: LOGIN agora funciona normalmente (User query retorna admin corretamente)
+
 ## [3.3.7] - 2026-02-02
 
 ### Correções

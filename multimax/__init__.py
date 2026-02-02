@@ -855,8 +855,10 @@ def _setup_maintenance_mode(app: Flask) -> None:
 
 
 def create_app():
-    """FunÃ§Ã£o principal de criaÃ§Ã£o da aplicaÃ§Ã£o Flask."""
+    """Função principal de criação da aplicação Flask."""
     base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(__file__)))
+    # Carregar .env e .env.txt (preferindo .env se ambos existirem)
+    _load_env(os.path.join(base_dir, ".env"))
     _load_env(os.path.join(base_dir, ".env.txt"))
 
     app = _create_flask_app(base_dir)
