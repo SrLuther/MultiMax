@@ -1,6 +1,21 @@
 # Changelog
 
-## [3.4.1] - 2026-02-02
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
+## [3.4.3] - 2026-02-02 23:10:00
+
+### Correções
+- **fix(gestao)**: Rollback preventivo para evitar transação abortada antes das consultas
+
+## [3.4.2] - 2026-02-02 22:50:00
+
+### Correções
+- **fix(changelog)**: Exigir cabeçalho de IA e modelo no topo do CHANGELOG
+- **fix(pre-commit)**: Validar cabeçalho de IA antes das entradas de versão
+
+## [3.4.1] - 2026-02-02 22:10:00
 
 ### Correções (Banco de Dados - Sequences)
 - **fix(database)**: Fixar autoincrement de 72 tabelas PostgreSQL

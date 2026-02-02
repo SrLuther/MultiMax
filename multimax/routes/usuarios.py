@@ -1435,6 +1435,12 @@ def gestao():
     view = (request.args.get("view") or "").strip()
     _ensure_collaborator_schema()
 
+    # Resetar qualquer transação abortada antes de iniciar as consultas
+    try:
+        db.session.rollback()
+    except Exception:
+        pass
+
     u_page = _safe_int_arg("u_page", 1)
     l_page = _safe_int_arg("l_page", 1)
 

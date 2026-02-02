@@ -156,7 +156,33 @@ def check_version_date_format(changelog_content):
     return True, []
 
 
-def main():
+def check_ai_header(changelog_content):
+    """Validate AI header exists before first version entry.
+
+    Required (before any ## [X.Y.Z] entry):
+      - "IA responsável pelo envio"
+      - "Modelo:"
+    """
+    version_header = re.search(r"^## \[", changelog_content, re.MULTILINE)
+    header_block = changelog_content
+    if version_header:
+        header_block = changelog_content[: version_header.start()]
+
+    has_ai_line = re.search(r"IA responsável pelo envio", header_block, re.IGNORECASE)
+    has_model_line = re.search(r"Modelo:\s*\S+", header_block, re.IGNORECASE)
+
+    if has_ai_line and has_model_line:
+        return True, []
+
+    issues = []
+    if not has_ai_line:
+        issues.append("Cabeçalho obrigatório: 'IA responsável pelo envio'")
+    if not has_model_line:
+        issues.append("Cabeçalho obrigatório: 'Modelo: <nome>'")
+    return False, issues
+
+
+def main():  # noqa: C901
     """Main hook logic."""
     staged_files = get_staged_files()
 
@@ -179,7 +205,7 @@ def main():
         print("\nPlease:")
         print("   1. Open CHANGELOG.md")
         print("   2. ADD NEW VERSION at the top (never edit existing versions)")
-        print("   3. Follow format: ## [X.Y.Z] - YYYY-MM-DD")
+        print("   3. Follow format: ## [X.Y.Z] - YYYY-MM-DD HH:MM:SS")
         print("   4. Run: git add CHANGELOG.md")
         print("   5. Run commit again: git commit")
         print("\nTip: Use semantic versioning (MAJOR.MINOR.PATCH)")
@@ -232,6 +258,37 @@ def main():
         print(f"[WARNING] Could not validate date format: {e}")
         # Don't block commit on validation error, just warn
         pass
+
+    # Check 1.6: Validate AI header before any version entry
+    try:
+        result = subprocess.run(
+            ["git", "show", ":CHANGELOG.md"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+        if result.returncode == 0:
+            valid_ai, ai_issues = check_ai_header(result.stdout)
+            if not valid_ai:
+                print("\n" + "=" * 80)
+                print("[ERROR] Cabeçalho de IA ausente no topo do CHANGELOG")
+                print("=" * 80)
+                print("\nObrigatório antes das versões:")
+                print("  - IA responsável pelo envio")
+                print("  - Modelo: <nome do modelo>")
+                print("\nProblemas encontrados:")
+                for issue in ai_issues:
+                    print(f"   ❌ {issue}")
+                print("\nExemplo:")
+                print("  ### IA responsável pelo envio")
+                print("  - GitHub Copilot")
+                print("  - Modelo: GPT-5.2-Codex")
+                print("=" * 80 + "\n")
+                return 1
+    except Exception as e:
+        print(f"[WARNING] Could not validate AI header: {e}")
 
     # Check 2: Prevent modification of existing versions
     # A version should only be removed if it's being replaced by a new one
