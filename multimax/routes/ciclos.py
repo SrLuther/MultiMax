@@ -45,19 +45,6 @@ except Exception:
     HTML = None  # type: ignore
 
 
-def safe_date(value, fmt="%d/%m/%Y"):
-    if hasattr(value, "strftime"):
-        try:
-            return value.strftime(fmt)
-        except Exception:
-            return str(value)
-    return value or "-"
-
-
-def register_jinja_filters(app):
-    app.jinja_env.filters["safe_date"] = safe_date
-
-
 bp = Blueprint("ciclos", __name__, url_prefix="/ciclos")
 
 
@@ -3232,9 +3219,6 @@ def _gerar_pdf_ciclo_aberto_bytes():
         logo_header = ""
     logo_footer = None
 
-    from flask import current_app
-
-    register_jinja_filters(current_app)
     html: str = render_template(
         "ciclos/pdf_geral.html",
         colaboradores_resumo=colaboradores_resumo,

@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.2.50] - 2026-02-02 15:15:00
+
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: Claude Sonnet 4.5
+
+### Corrigido
+- fix(ciclos): corrige erro "No filter named 'safe_date'" ao gerar PDF
+  - Move registro do filtro safe_date para __init__.py na função _setup_template_filters()
+  - Remove código duplicado de registro de filtro em ciclos.py
+  - Garante que o filtro esteja disponível globalmente em todos os templates
+
 ## [3.2.49] - 2026-02-02 12:04:30
 
 ### IA responsável pelo envio

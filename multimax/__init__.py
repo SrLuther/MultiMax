@@ -282,6 +282,17 @@ def _setup_template_filters(app: Flask) -> None:
     """Configura filtros de template da aplicaÃ§Ã£o."""
     _create_format_date_filter(app)
 
+    # Registra o filtro safe_date usado em templates de PDF
+    @app.template_filter("safe_date")
+    def safe_date(value, fmt="%d/%m/%Y"):
+        """Formata datas de forma segura, retornando '-' se valor for None."""
+        if hasattr(value, "strftime"):
+            try:
+                return value.strftime(fmt)
+            except Exception:
+                return str(value)
+        return value or "-"
+
 
 def _setup_main_routes(app: Flask) -> None:
     """Configura rotas principais da aplicaÃ§Ã£o."""
