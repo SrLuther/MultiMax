@@ -128,6 +128,7 @@ def _register_blueprints(app: Flask) -> tuple[bool, None]:
     from .routes.receitas import bp as receitas_bp
     from .routes.usuarios import bp as usuarios_bp
     from .routes.whatsapp_admin import bp as whatsapp_admin_bp
+    from .routes.whatsapp_config import bp as whatsapp_config_bp
 
     notif_enabled = (os.getenv("NOTIFICACOES_ENABLED", "false") or "false").lower() == "true"
     notificacoes_bp: Blueprint | None = None
@@ -161,6 +162,7 @@ def _register_blueprints(app: Flask) -> tuple[bool, None]:
     app.register_blueprint(colaboradores_bp)
     app.register_blueprint(receitas_bp)
     app.register_blueprint(whatsapp_admin_bp)
+    app.register_blueprint(whatsapp_config_bp)  # NovoI: API de configuração WhatsApp
     app.register_blueprint(api_bp)
     app.register_blueprint(ciclos_bp)
     if notificacoes_bp:
@@ -872,6 +874,11 @@ def create_app():
     _setup_context_processors(app)
     _setup_template_filters(app)
     _setup_main_routes(app)
+
+    # Inicializar error handlers globais (PostgreSQL logging)
+    from .utils.error_handlers import init_error_handlers
+
+    init_error_handlers(app)
 
     with app.app_context():
         try:

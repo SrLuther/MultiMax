@@ -1,0 +1,257 @@
+<!-- Central de Notificações WhatsApp - Card no Dashboard -->
+<div class="card card-primary card-outline collapsed-box">
+    <div class="card-header with-border">
+        <h3 class="card-title">
+            <i class="fas fa-bell"></i> Central de Notificações WhatsApp
+        </h3>
+        <div class="card-tools pull-right">
+            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-plus"></i></button>
+        </div>
+    </div>
+    <!-- /.card-header -->
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="alert_phone">Telefone de Alerta</label>
+                    <div class="input-group">
+                        <input
+                            type="tel"
+                            class="form-control"
+                            id="alert_phone"
+                            name="alert_phone"
+                            placeholder="+55 11 98765-4321"
+                            pattern="[0-9\+\s\-\(\)]+"
+                        >
+                        <span class="input-group-btn">
+                            <button
+                                class="btn btn-info btn-flat"
+                                type="button"
+                                id="load_phone_btn"
+                                title="Carregar telefone salvo"
+                            >
+                                <i class="fas fa-sync-alt"></i> Carregar
+                            </button>
+                        </span>
+                    </div>
+                    <small class="form-text text-muted">
+                        Telefone para onde os alertas críticos serão enviados
+                    </small>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="alert_description">Descrição</label>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="alert_description"
+                        name="alert_description"
+                        placeholder="Ex: Gerente de Turno"
+                    >
+                    <small class="form-text text-muted">
+                        Identificação do responsável
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div id="alert_message" class="alert alert-dismissible" style="display: none;">
+                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                    <h4><i class="icon fa fa-flag"></i> Alert!</h4>
+                    <span id="alert_text"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- /.card-body -->
+    <div class="card-footer">
+        <button
+            class="btn btn-success"
+            id="save_phone_btn"
+            type="button"
+        >
+            <i class="fas fa-save"></i> Salvar
+        </button>
+        <button
+            class="btn btn-info"
+            id="test_phone_btn"
+            type="button"
+            title="Enviar mensagem de teste"
+        >
+            <i class="fas fa-paper-plane"></i> Teste
+        </button>
+        <button
+            class="btn btn-warning"
+            id="clear_phone_btn"
+            type="button"
+            title="Limpar campos"
+        >
+            <i class="fas fa-eraser"></i> Limpar
+        </button>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const phoneInput = document.getElementById('alert_phone');
+    const descInput = document.getElementById('alert_description');
+    const loadBtn = document.getElementById('load_phone_btn');
+    const saveBtn = document.getElementById('save_phone_btn');
+    const testBtn = document.getElementById('test_phone_btn');
+    const clearBtn = document.getElementById('clear_phone_btn');
+    const alertDiv = document.getElementById('alert_message');
+    const alertText = document.getElementById('alert_text');
+
+    // Carregar telefone salvo
+    loadBtn.addEventListener('click', async function() {
+        try {
+            loadBtn.disabled = true;
+            loadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando...';
+
+            const response = await fetch('/api/settings/alert-phone');
+            const data = await response.json();
+
+            if (data.status === 'success' && data.data) {
+                phoneInput.value = data.data.phone || '';
+                descInput.value = data.data.description || '';
+                showAlert('success', '✅ Telefone carregado com sucesso!');
+            } else {
+                showAlert('warning', '⚠️ Nenhum telefone configurado ainda.');
+            }
+        } catch (error) {
+            showAlert('danger', `❌ Erro ao carregar: ${error.message}`);
+        } finally {
+            loadBtn.disabled = false;
+            loadBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Carregar';
+        }
+    });
+
+    // Salvar telefone
+    saveBtn.addEventListener('click', async function() {
+        const phone = phoneInput.value.trim();
+        const description = descInput.value.trim();
+
+        if (!phone) {
+            showAlert('danger', '❌ Por favor, insira um telefone válido');
+            return;
+        }
+
+        try {
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+
+            const response = await fetch('/api/settings/alert-phone', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    phone: phone,
+                    description: description
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                showAlert('success', '✅ Telefone salvo com sucesso!');
+            } else {
+                showAlert('danger', `❌ ${data.message || 'Erro ao salvar'}`);
+            }
+        } catch (error) {
+            showAlert('danger', `❌ Erro ao salvar: ${error.message}`);
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Salvar';
+        }
+    });
+
+    // Enviar teste
+    testBtn.addEventListener('click', async function() {
+        const phone = phoneInput.value.trim();
+
+        if (!phone) {
+            showAlert('danger', '❌ Por favor, configure um telefone primeiro');
+            return;
+        }
+
+        try {
+            testBtn.disabled = true;
+            testBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+
+            const response = await fetch('/api/settings/alert-phone/test', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                showAlert('success', `✅ ${data.message}`);
+            } else {
+                showAlert('danger', `❌ ${data.message || 'Erro ao enviar teste'}`);
+            }
+        } catch (error) {
+            showAlert('danger', `❌ Erro ao enviar: ${error.message}`);
+        } finally {
+            testBtn.disabled = false;
+            testBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Teste';
+        }
+    });
+
+    // Limpar campos
+    clearBtn.addEventListener('click', function() {
+        phoneInput.value = '';
+        descInput.value = '';
+        alertDiv.style.display = 'none';
+    });
+
+    // Mostrar alerta
+    function showAlert(type, message) {
+        alertDiv.className = `alert alert-${type} alert-dismissible`;
+        alertText.textContent = message;
+        alertDiv.style.display = 'block';
+
+        // Auto-hide após 5 segundos
+        setTimeout(() => {
+            alertDiv.style.display = 'none';
+        }, 5000);
+    }
+
+    // Carregar dados ao iniciar
+    loadBtn.click();
+});
+</script>
+
+<style>
+#alert_phone {
+    font-family: monospace;
+}
+
+.card-footer {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.card-footer button {
+    flex: 1;
+    min-width: 100px;
+}
+
+@media (max-width: 768px) {
+    .card-footer {
+        flex-direction: column;
+    }
+
+    .card-footer button {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+}
+</style>

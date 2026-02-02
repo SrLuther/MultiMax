@@ -12,6 +12,18 @@ bandit-report.json
 .venv/
 venv/
 
+# Database (PostgreSQL volumes - NUNCA versionados)
+postgres_data/
+postgres-data/
+*.dump
+*.sql
+backups/
+
+# SQLite (legado - NUNCA versionado)
+*.db
+*.sqlite
+*.sqlite3
+
 # OS / IDE
 .DS_Store
 Thumbs.db

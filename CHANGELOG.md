@@ -1,5 +1,67 @@
 # Changelog
 
+## [3.3.0] - 2024-01-15
+
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: Claude Haiku 4.5
+
+### Arquitetura
+- **BREAKING**: Migração completa de SQLite para PostgreSQL
+  - PostgreSQL é agora banco único e centralizado
+  - SQLite descontinuado - todos os dados em PostgreSQL
+  - Node.js é apenas executor HTTP (sem lógica de banco)
+  - Flask é controlador central da aplicação
+
+### Novos Componentes
+- **Modelos SQLAlchemy**: User, Colaborador, Ciclos, Escala, WhatsappConfig, Logs, Heartbeat
+  - 12 tabelas com timestamps e auditoria completa
+  - Índices estratégicos para performance
+  - Foreign keys para integridade referencial
+
+- **Alembic**: Sistema de versionamento de schema
+  - Primeira migration criada (001_initial_tables)
+  - Suporta upgrade/downgrade automático
+  - Environment sensível a DATABASE_URL
+
+- **API REST**: Endpoints para configuração WhatsApp
+  - GET /api/settings/alert-phone (ler telefone)
+  - PUT /api/settings/alert-phone (atualizar)
+  - POST /api/settings/alert-phone/test (enviar teste)
+
+- **Middleware Global**: Logging centralizado de erros
+  - Todos os erros salvos em log_erros
+  - Request ID único para rastreamento
+  - Notificação WhatsApp automática para críticos
+  - Stack traces completos
+
+- **UI Central de Notificações**:
+  - Card dashboard para gerenciar telefone de alerta
+  - Formulário com validação
+  - Botões: Carregar, Salvar, Teste, Limpar
+  - Feedback visual de operações
+
+### Docker Compose
+- PostgreSQL 15 com health checks
+- Serviço pg_backup para backups automáticos (diários)
+- Volumes externos para dados persistentes
+- Suporte a DATABASE_URL via env
+
+### Configuração
+- .env.example atualizado com DATABASE_URL
+- requirements.txt com python-dotenv adicionado
+- db.js refatorado para stub (força uso de Flask API)
+
+### Documentação
+- MIGRATION_POSTGRESQL_v3.3.0.md com guia completo
+- Instruções de deploy no VPS
+- Troubleshooting e checklist de validação
+
+### Script de Seed
+- scripts/seed_database.py para inicializar dados padrão
+- Cria usuário admin
+- Configura telefone de alerta padrão
+
 ## [3.2.68] - 2026-02-02 18:44:00
 
 ### IA responsável pelo envio
