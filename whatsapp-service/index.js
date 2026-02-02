@@ -29,6 +29,7 @@ const {
 
 const { sendEvent, validatePhoneNumber, formatPhoneForWhatsApp } = require("./errorWhatsapp");
 const DockerListener = require("./dockerListener");
+const { initDb } = require("./db");
 
 const logger = pino({ level: "info" }).child({ module: "whatsapp-service" });
 
@@ -506,9 +507,13 @@ function setupHttpServer(db) {
 async function main() {
   logger.info("Iniciando Central de Notificações MultiMax...");
 
-  // TODO: conectar DB quando multimax compartilhar conexão
-  // Por enquanto, DB é opcional para alguns recursos
-  globalDb = null;
+  try {
+    globalDb = await initDb();
+    logger.info("✓ DB SQLite conectado");
+  } catch (err) {
+    logger.warn({ err }, "DB indisponível, endpoints de settings desativados");
+    globalDb = null;
+  }
 
   // Inicializar docker listener (mas não iniciar ainda, espera Baileys conectar)
   dockerListener = new DockerListener(globalSocket, globalDb);

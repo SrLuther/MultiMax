@@ -38,6 +38,7 @@ services:
     volumes:
       - whatsapp-auth:/app/auth
       - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/multimax-data:/multimax-data
     environment:
       - NODE_ENV=production
       - LOG_LEVEL=info

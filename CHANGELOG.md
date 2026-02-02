@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.2.56] - 2026-02-02 17:15:00
+
+### IA responsável pelo envio
+- GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
+### Corrigido
+- fix(whatsapp-service): conecta ao SQLite do MultiMax para salvar `system_settings`
+  - Adiciona camada de DB e cria tabela se necessário
+  - Monta volume /opt/multimax-data em /multimax-data
+  - Copia `db.js` no build e adiciona dependências sqlite
+
 ## [3.2.55] - 2026-02-02 17:05:00
 
 ### IA responsável pelo envio
