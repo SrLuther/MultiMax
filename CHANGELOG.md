@@ -4,6 +4,11 @@
 - GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.4.5] - 2026-02-02 23:35:00
+
+### Correções
+- **fix(gestao)**: Rollback e fallback defensivo em consultas de colaboradores e páginas de folgas
+
 ## [3.4.4] - 2026-02-02 23:25:00
 
 ### Correções

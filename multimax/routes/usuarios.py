@@ -823,18 +823,40 @@ def _calculate_folgas(colaboradores):
 
 
 def _bh_collaborators(bh_collab_id):
-    bh_q = Collaborator.query.order_by(Collaborator.name.asc())
-    if bh_collab_id:
-        bh_q = bh_q.filter(Collaborator.id == bh_collab_id)
-    return bh_q.all()
+    try:
+        db.session.rollback()
+    except Exception:
+        pass
+    try:
+        bh_q = Collaborator.query.order_by(Collaborator.name.asc())
+        if bh_collab_id:
+            bh_q = bh_q.filter(Collaborator.id == bh_collab_id)
+        return bh_q.all()
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        return []
 
 
 def _timeoff_page(record_type: str, collab_id, page: int, per_page: int):
-    q = TimeOffRecord.query.filter(TimeOffRecord.record_type == record_type).order_by(TimeOffRecord.date.desc())
-    if collab_id:
-        q = q.filter(TimeOffRecord.collaborator_id == collab_id)
-    all_items = q.all()
-    return _paginate_list(all_items, page, per_page)
+    try:
+        db.session.rollback()
+    except Exception:
+        pass
+    try:
+        q = TimeOffRecord.query.filter(TimeOffRecord.record_type == record_type).order_by(TimeOffRecord.date.desc())
+        if collab_id:
+            q = q.filter(TimeOffRecord.collaborator_id == collab_id)
+        all_items = q.all()
+        return _paginate_list(all_items, page, per_page)
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        return _paginate_list([], page, per_page)
 
 
 def _vps_storage_info():
