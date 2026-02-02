@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.3.4] - 2026-02-02
+
+### Correções
+- **fix(routes)**: Múltiplas rotas desabilitadas temporariamente - modelos não migrados para PostgreSQL
+  - Desabilitadas: carnes, colaboradores, receitas, whatsapp_admin, whatsapp_config, escala_especial, estoque_producao, exportacao
+  - Rotas ativas: auth, home, ciclos, cronograma, usuarios (funcionalidade core preservada)
+  - Todas as rotas desabilitadas serão reconstruídas em v3.4.0 após migração completa dos modelos
+  - Aplicação agora inicia com sucesso em produção
+
 ## [3.3.3] - 2026-02-02
 
 ### Correções
