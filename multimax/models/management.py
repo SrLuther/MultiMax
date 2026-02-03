@@ -56,7 +56,11 @@ class Shift(db.Model):
     is_sunday_holiday = db.Column(db.Boolean, default=False)
     auto_generated = db.Column(db.Boolean, default=False)
 
-    collaborator = db.relationship("Colaborador", backref=db.backref("shifts", lazy=True))
+    collaborator = db.relationship(
+        "Colaborador",
+        foreign_keys=[collaborator_id],
+        backref=db.backref("shifts", lazy=True),
+    )
 
     def __repr__(self):
         return f"<Shift {self.collaborator_id} - {self.date} - {self.turno}>"
@@ -90,7 +94,11 @@ class Vacation(db.Model):
     )
     ativo = db.Column(db.Boolean, default=True)
 
-    collaborator = db.relationship("Colaborador", backref=db.backref("vacations", lazy=True))
+    collaborator = db.relationship(
+        "Colaborador",
+        foreign_keys=[collaborator_id],
+        backref=db.backref("vacations", lazy=True),
+    )
 
     def __repr__(self):
         return f"<Vacation {self.collaborator_id} - {self.data_inicio} a {self.data_fim}>"

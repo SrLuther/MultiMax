@@ -44,7 +44,11 @@ class EstoqueProducao(db.Model):
 
     # Relacionamentos
     produto = db.relationship("Produto", backref=db.backref("estoque_producao", lazy="dynamic"))
-    setor = db.relationship("Setor", backref=db.backref("estoque_producao", lazy="dynamic"))
+    setor = db.relationship(
+        "Setor",
+        foreign_keys=[setor_id],
+        backref=db.backref("estoque_producao", lazy="dynamic"),
+    )
     historico = db.relationship(
         "HistoricoAjusteEstoque",
         backref="estoque",
@@ -107,7 +111,11 @@ class EscalaEspecial(db.Model):
 
     # Se criterio_atribuicao for 'por_equipe'
     equipe_id = db.Column(db.Integer, db.ForeignKey("setor.id"), nullable=True)
-    equipe = db.relationship("Setor", backref="escalas_especiais")
+    equipe = db.relationship(
+        "Setor",
+        foreign_keys=[equipe_id],
+        backref="escalas_especiais",
+    )
 
     # Se criterio_atribuicao for 'por_numero'
     numero_pessoas = db.Column(db.Integer, nullable=True)
