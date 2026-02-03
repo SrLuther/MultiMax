@@ -69,7 +69,7 @@ class TimeOffRecord(db.Model):
         db.String(36), db.ForeignKey("bulk_hour_operations.id"), nullable=True, index=True
     )  # Lote de origem
 
-    collaborator = db.relationship("Collaborator", backref="time_off_records", lazy=True)
+    collaborator = db.relationship("Colaborador", backref="time_off_records", lazy=True)
     bulk_operation = db.relationship("BulkHourOperation", backref="time_off_records", lazy=True)
 
     def __repr__(self):
@@ -166,7 +166,7 @@ class CicloFolga(db.Model):
         default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
     )
 
-    collaborator = db.relationship("Collaborator", backref="ciclos_folgas", lazy=True)
+    collaborator = db.relationship("Colaborador", backref="ciclos_folgas", lazy=True)
     setor = db.relationship("Setor", backref="ciclos_folgas", lazy=True)
 
     def __repr__(self):
@@ -199,7 +199,7 @@ class CicloOcorrencia(db.Model):
     )
     created_by = db.Column(db.String(100), nullable=True)
 
-    collaborator = db.relationship("Collaborator", backref="ciclos_ocorrencias", lazy=True)
+    collaborator = db.relationship("Colaborador", backref="ciclos_ocorrencias", lazy=True)
     setor = db.relationship("Setor", backref="ciclos_ocorrencias", lazy=True)
 
     def __repr__(self):
@@ -277,7 +277,7 @@ class CicloSaldo(db.Model):
     updated_at = db.Column(db.DateTime(timezone=True), nullable=True)
     updated_by = db.Column(db.String(100), nullable=True)
 
-    collaborator = db.relationship("Collaborator", backref="ciclos_saldos", lazy=True)
+    collaborator = db.relationship("Colaborador", backref="ciclos_saldos", lazy=True)
 
     __table_args__ = (db.UniqueConstraint("collaborator_id", "mes_ano", name="uq_ciclo_saldo_collab_mesano"),)
 
@@ -304,7 +304,7 @@ class RegistroJornada(db.Model):
     )
     observacao = db.Column(db.String(255))
 
-    collaborator = db.relationship("Collaborator", backref="registros_jornada", lazy=True)
+    collaborator = db.relationship("Colaborador", backref="registros_jornada", lazy=True)
 
     def __repr__(self):
         return f"<RegistroJornada {self.collaborator_id} - {self.tipo_registro} - {self.valor}>"
