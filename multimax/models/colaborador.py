@@ -40,5 +40,13 @@ class Colaborador(db.Model):
     created_at = db.Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
+    @property
+    def name(self):
+        return self.nome
+
+    @name.setter
+    def name(self, value):
+        self.nome = value
+
     def __repr__(self):
         return f"<Colaborador {self.nome}>"
