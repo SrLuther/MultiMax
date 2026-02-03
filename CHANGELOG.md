@@ -8,7 +8,28 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 ---
 ### IA responsável pelo envio
 - Nome da IA: GitHub Copilot
-- Modelo: Claude Sonnet 4.5
+- Modelo: Claude Haiku 4.5
+
+## [3.7.25] - 2026-02-03 14:45:00
+
+### Fixed
+- Corrigidas docstrings no modelo Colaborador (flake8 D200, D105)
+- Criado PROTOCOLO_COPILOT.md para estabelecer fluxo obrigatório de verificação de erros
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: Claude Haiku 4.5
+
+## [3.7.24] - 2026-02-03 12:30:00
+
+### Fixed
+- Corrigidas docstrings no modelo Colaborador (flake8 D200, D105)
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: Claude Haiku 4.5
 
 ## [3.7.23] - 2026-02-03 12:15:00
 

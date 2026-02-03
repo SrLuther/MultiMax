@@ -1,6 +1,4 @@
-"""
-Model: Colaboradores
-"""
+"""Model: Colaboradores"""
 
 from datetime import datetime
 from typing import Any
@@ -41,6 +39,7 @@ class Colaborador(db.Model):
     updated_at = db.Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     def __repr__(self):
+        """String representation of Colaborador."""
         return f"<Colaborador {self.nome}>"
 
     @property
