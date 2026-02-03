@@ -4,6 +4,13 @@
 - GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.6.4] - 2026-02-03 03:35:00
+
+### 🐛 Critical Fix: SQLAlchemy Registry Conflict Resolution
+- **fix(models)**: Remove all legacy model attributes to prevent registry conflicts
+- **fix(database)**: Eliminate "Multiple classes found for path User" error completely
+- **improvement**: Simplify model imports and exports for clean initialization
+
 ## [3.6.3] - 2026-02-03 03:30:00
 
 ### 🐛 Fix: Collaborator Model Reference
