@@ -4,6 +4,12 @@
 - GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.6.5] - 2026-02-03 03:40:00
+
+### 🔧 Logging Optimization
+- **chore(logging)**: Add SQLAlchemy User registry warning filter
+- **improvement**: Suppress non-critical warnings for cleaner logs
+
 ## [3.6.4] - 2026-02-03 03:35:00
 
 ### 🐛 Critical Fix: SQLAlchemy Registry Conflict Resolution

@@ -8,9 +8,23 @@ from urllib.error import HTTPError, URLError
 
 from multimax import create_app
 
+
+class SQLAlchemyFilter(logging.Filter):
+    """Filtra avisos específicos do SQLAlchemy"""
+
+    def filter(self, record):
+        # Suprimir aviso sobre múltiplas classes User no registry
+        if "Multiple classes found for path" in record.getMessage():
+            return False
+        return True
+
+
 # Configurar logging antes de criar o app
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
+# Adicionar filtro para suprimir avisos do SQLAlchemy
+logging.getLogger("sqlalchemy").addFilter(SQLAlchemyFilter())
 
 # Criar app com tratamento de erros
 try:
