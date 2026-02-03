@@ -10,6 +10,17 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.14] - 2026-02-03 04:40:00
+
+### Fixed
+- Aplicação agora usa o banco SQLite existente em /opt/multimax-data/estoque.db para restaurar dados
+
+---
+
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.13] - 2026-02-03 04:30:00
 
 ### Fixed

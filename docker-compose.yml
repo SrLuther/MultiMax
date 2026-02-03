@@ -60,13 +60,14 @@ services:
       - "5000:5000"
     volumes:
       - /opt/multimax:/opt/multimax:ro
+      - /opt/multimax-data:/opt/multimax-data:rw
     environment:
       - HOST=0.0.0.0
       - PORT=5000
       - DEBUG=false
       - GIT_REPO_DIR=/opt/multimax
-      # PostgreSQL é o único banco
-      - DATABASE_URL=postgresql://multimax:multimax123@postgres:5432/multimax
+      # SQLite legacy (recuperação de dados)
+      - DATABASE_URL=sqlite:////opt/multimax-data/estoque.db
       # WhatsApp
       - WHATSAPP_NOTIFY_URL=http://whatsapp-service:3001/notify
       - WHATSAPP_SERVICE_TOKEN=MaxWhatsTK@963
