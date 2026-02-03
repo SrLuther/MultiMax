@@ -10,6 +10,18 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: Claude Haiku 4.5
 
+## [3.7.30] - 2026-02-03 22:45:00
+
+### Fixed
+- **CRÍTICO - RECUPERAÇÃO DE DADOS**: Restaurados 1035 registros perdidos do banco estoque_original.db
+- Recuperados: 5 colaboradores, 275 shifts, 10 setores, 26 semanas, 32 ciclos, 275 turnos, 19 feriados, 6 receitas, 40 ingredientes, 104 jornadas
+- Banco agora possui dados completos de operações, históricos e configurações
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: Claude Haiku 4.5
+
 ## [3.7.29] - 2026-02-03 22:30:00
 
 ### Fixed
