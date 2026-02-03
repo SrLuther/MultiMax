@@ -18,6 +18,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Removido find_version.py (arquivo sem propósito)
 - Corrigido encoding UTF-8 em js_safety_check.py para Windows
 - Corrigidos flake8 errors (D202 - blank line after docstring, E501 - line too long)
+- Corrigido erro 'property' object has no attribute 'asc' ao trocar order_by(name.asc()) por order_by(nome.asc())
 
 ---
 ### IA responsável pelo envio

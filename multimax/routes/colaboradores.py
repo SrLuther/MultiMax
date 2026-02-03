@@ -697,7 +697,7 @@ def _create_domingo_shifts(semana_inicio, tz):
 @login_required
 def escala():
     _ensure_collaborator_name_column()
-    cols = CollaboratorModel.query.filter_by(active=True).order_by(CollaboratorModel.name.asc()).all()
+    cols = CollaboratorModel.query.filter_by(active=True).order_by(CollaboratorModel.nome.asc()).all()
     today = date.today()
 
     semana_param = request.args.get("semana", "")

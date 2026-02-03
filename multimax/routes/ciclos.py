@@ -90,7 +90,7 @@ def lote_horas():
         )
 
     # GET: exibe formulário
-    colaboradores = Collaborator.query.filter_by(active=True).order_by(Collaborator.name.asc()).all()
+    colaboradores = Collaborator.query.filter_by(active=True).order_by(Collaborator.nome.asc()).all()
     return render_template("ciclos/lote_horas.html", colaboradores=colaboradores)
 
 
@@ -211,14 +211,14 @@ def lote_horas_corrigir(lote_id):
 
 def _get_all_collaborators():
     """Retorna todos os colaboradores ativos"""
-    return Collaborator.query.filter_by(active=True).order_by(Collaborator.name.asc()).all()
+    return Collaborator.query.filter_by(active=True).order_by(Collaborator.nome.asc()).all()
 
 
 def _get_collaborators_by_setor(setor_id):
     """Retorna colaboradores ativos filtrados por setor."""
     if setor_id:
         # Filtra apenas colaboradores do setor selecionado
-        return Collaborator.query.filter_by(active=True, setor_id=setor_id).order_by(Collaborator.name.asc()).all()
+        return Collaborator.query.filter_by(active=True, setor_id=setor_id).order_by(Collaborator.nome.asc()).all()
     else:
         # Se nenhum setor selecionado, retorna todos
         return _get_all_collaborators()

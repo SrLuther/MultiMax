@@ -424,7 +424,7 @@ def _collect_logs():
 
 def _collaborators_with_display(q: str):
     try:
-        colaboradores = Collaborator.query.order_by(Collaborator.name.asc()).all()
+        colaboradores = Collaborator.query.order_by(Collaborator.nome.asc()).all()
     except Exception as e:
         import logging
 
@@ -497,7 +497,7 @@ def _all_users_for_display(q: str):
 
         # Buscar Colaboradores sem Usuário associado
         collaborators_without_user = (
-            Collaborator.query.filter(Collaborator.user_id.is_(None)).order_by(Collaborator.name.asc()).all()
+            Collaborator.query.filter(Collaborator.user_id.is_(None)).order_by(Collaborator.nome.asc()).all()
         )
 
         for collab in collaborators_without_user:
@@ -844,7 +844,7 @@ def _bh_collaborators(bh_collab_id):
     except Exception:
         pass
     try:
-        bh_q = Collaborator.query.order_by(Collaborator.name.asc())
+        bh_q = Collaborator.query.order_by(Collaborator.nome.asc())
         if bh_collab_id:
             bh_q = bh_q.filter(Collaborator.id == bh_collab_id)
         return bh_q.all()
@@ -1534,7 +1534,7 @@ def gestao():  # noqa: C901
 
         # Colaboradores (com ou sem usuário)
         c_page = _safe_int_arg("c_page", 1)
-        colaboradores_all = Collaborator.query.order_by(Collaborator.name.asc()).all()
+        colaboradores_all = Collaborator.query.order_by(Collaborator.nome.asc()).all()
         for c in colaboradores_all:
             try:
                 c.display_name = _get_display_name(c)
