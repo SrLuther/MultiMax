@@ -3,9 +3,12 @@ Modelos para Gestão de Recebimento de Carnes
 """
 
 from datetime import datetime
+from typing import Any
 from zoneinfo import ZoneInfo
 
-from . import db
+from .. import db as app_db
+
+db: Any = app_db
 
 
 class MeatReception(db.Model):

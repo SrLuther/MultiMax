@@ -3,9 +3,12 @@ Modelos para Estoque de Produção e Escalas Especiais
 """
 
 from datetime import datetime
+from typing import Any
 from zoneinfo import ZoneInfo
 
-from . import db
+from .. import db as app_db
+
+db: Any = app_db
 
 
 class EstoqueProducao(db.Model):

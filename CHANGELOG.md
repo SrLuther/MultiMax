@@ -4,6 +4,14 @@
 - GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.2] - 2026-02-03 06:00:00
+
+### 🔧 Fix: Circular Import Resolution
+- **fix(models)**: Resolve circular import issue in all 9 model modules
+- **fix(imports)**: Change from `from . import db` to proper parent package import
+- **improvement**: Follow SQLAlchemy best practices for model organization
+- **chore**: Update all model files to use `from .. import db as app_db` pattern
+
 ## [3.7.1] - 2026-02-03 05:30:00
 
 ### 🔧 Model Files: Complete Implementation
