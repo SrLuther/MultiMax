@@ -4,6 +4,13 @@
 - GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.6.2] - 2026-02-03 03:25:00
+
+### 🐛 Fix: SQLAlchemy Registry Conflict Resolution
+- **fix(models)**: Disable legacy models loading to prevent SQLAlchemy registry conflicts
+- **fix(database)**: Resolve "Multiple classes found for path User" error
+- **improvement**: All mappers now initialize correctly for database queries
+
 ## [3.6.1] - 2026-02-03 03:20:00
 
 ### 🐛 Fix: PostgreSQL SSL Configuration

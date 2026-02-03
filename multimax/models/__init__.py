@@ -24,13 +24,10 @@ db: SQLAlchemy = app_db
 Base = db.Model
 
 # Legacy models (multimax/models.py) - compatibilidade
-_LEGACY_PATH = Path(__file__).resolve().parent.parent / "models.py"
+# DESABILITADO: Carregamento de legacy models causa conflito no registry do SQLAlchemy
+# Modelos novos em models/ devem ser usados em seu lugar
+_LEGACY_PATH = None
 _legacy = None
-if _LEGACY_PATH.exists():
-    spec = importlib.util.spec_from_file_location("multimax._legacy_models", _LEGACY_PATH)
-    if spec and spec.loader:
-        _legacy = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(_legacy)
 
 
 def _legacy_attr(name: str) -> Any:
