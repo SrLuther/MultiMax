@@ -8,7 +8,18 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 ---
 ### IA responsável pelo envio
 - Nome da IA: GitHub Copilot
-- Modelo: GPT-5.2-Codex
+- Modelo: Claude Haiku 4.5
+
+## [3.7.20] - 2026-02-03 11:00:00
+
+### Fixed
+- Corrigido layout e indentação das seções "Gerenciar Usuários" e "Gerenciar Colaboradores" na página de gestão
+- Removido formulário de filtro duplicado que estava bagunçando o layout do resumo de saldo
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: Claude Haiku 4.5
 
 ## [3.7.19] - 2026-02-03 10:30:00
 
