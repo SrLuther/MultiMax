@@ -46,7 +46,7 @@ class TimeOffRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     collaborator_id = db.Column(
         db.Integer,
-        db.ForeignKey("collaborator.id"),
+        db.ForeignKey("colaborador.id"),
         nullable=False,
         index=True,
     )
@@ -152,7 +152,7 @@ class CicloFolga(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     collaborator_id = db.Column(
         db.Integer,
-        db.ForeignKey("collaborator.id"),
+        db.ForeignKey("colaborador.id"),
         nullable=False,
         index=True,
     )
@@ -195,7 +195,7 @@ class CicloOcorrencia(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     collaborator_id = db.Column(
         db.Integer,
-        db.ForeignKey("collaborator.id"),
+        db.ForeignKey("colaborador.id"),
         nullable=False,
         index=True,
     )
@@ -298,7 +298,7 @@ class CicloSaldo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     collaborator_id = db.Column(
         db.Integer,
-        db.ForeignKey("collaborator.id"),
+        db.ForeignKey("colaborador.id"),
         nullable=False,
         index=True,
     )
@@ -330,7 +330,7 @@ class RegistroJornada(db.Model):
 
     __tablename__ = "registro_jornada"
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    collaborator_id = db.Column(db.Integer, db.ForeignKey("collaborator.id"), nullable=False)
+    collaborator_id = db.Column(db.Integer, db.ForeignKey("colaborador.id"), nullable=False)
     tipo_registro = db.Column(db.String(10), nullable=False)
     valor = db.Column(db.Numeric(8, 2), nullable=False)
     data = db.Column(db.Date, nullable=False)
