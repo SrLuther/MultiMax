@@ -20,14 +20,15 @@ REGRAS APLICADAS:
 5. A partir da versão 3.2.0, TODAS as versões precisam conter data + hora:
       ## [X.Y.Z] - YYYY-MM-DD HH:MM:SS
 
-6. A partir da versão 3.2.48, TODA nova versão criada por automação
-   DEVE conter, IMEDIATAMENTE ACIMA da versão:
+6. A partir da versão 3.2.48, TODAS as versões
+   DEVEM conter, IMEDIATAMENTE ACIMA de cada versão:
 
       ### IA responsável pelo envio
       - Nome da IA (ChatGPT, GitHub Copilot, Gemini, Grok, etc)
       - Modelo: <nome do modelo>
 
-   Esta regra existe para rastreabilidade e auditoria de automações.
+   Cada versão possui seu próprio registro.
+   Blocos globais no topo NÃO são aceitos.
 
 7. Commits apenas de documentação/configuração são liberados sem changelog.
 
@@ -42,6 +43,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+
 
 SEMVER_PATTERN = r"\d+\.\d+\.\d+"
 VERSAO_EXIGE_IA = "3.2.48"
@@ -245,8 +247,6 @@ def main():  # noqa: C901
         print("\n[ERRO] Nova versão deve estar no TOPO do CHANGELOG\n")
         return 1
 
-    nova_versao = primeira_real
-
     # --------------------------------------------------------------
     # Validar data com hora (>= 3.2.0)
     # --------------------------------------------------------------
@@ -260,18 +260,26 @@ def main():  # noqa: C901
         return 1
 
     # --------------------------------------------------------------
-    # Validar bloco de IA (>= 3.2.48)
+    # Validar bloco de IA PARA CADA versão >= 3.2.48
     # --------------------------------------------------------------
 
-    if versao_maior_ou_igual(nova_versao, VERSAO_EXIGE_IA):
-        bloco = bloco_acima_da_versao(changelog_staged, nova_versao)
+    for versao in versoes_staged:
+
+        if versao == "Unreleased":
+            continue
+
+        if not versao_maior_ou_igual(versao, VERSAO_EXIGE_IA):
+            continue
+
+        bloco = bloco_acima_da_versao(changelog_staged, versao)
 
         if not validar_bloco_ia(bloco):
-            print("\n[ERRO] Desde a versão 3.2.48 é OBRIGATÓRIO informar antes da versão:\n")
+            print(f"\n[ERRO] A versão {versao} não possui bloco de IA imediatamente acima:\n")
             print("### IA responsável pelo envio")
             print("- Nome da IA (ChatGPT, Copilot, Gemini, Grok...)")
             print("- Modelo: <modelo>\n")
-            print("Regra criada para rastreabilidade e auditoria de automações.\n")
+            print("Cada versão >= 3.2.48 DEVE possuir seu próprio registro de IA.")
+            print("Blocos globais no topo não são permitidos.\n")
             return 1
 
     return 0

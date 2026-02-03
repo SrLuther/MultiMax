@@ -29,11 +29,11 @@ class CustomSchedule(db.Model):
     )
 
     collaborator = db.relationship(
-        "Collaborator",
+        "Colaborador",
         foreign_keys=[collaborator_id],
         backref="custom_schedules",
     )
-    substituto = db.relationship("Collaborator", foreign_keys=[substituto_id])
+    substituto = db.relationship("Colaborador", foreign_keys=[substituto_id])
 
     def __repr__(self):
         return f"<CustomSchedule {self.collaborator_id} - {self.data}>"
