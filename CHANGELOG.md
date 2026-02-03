@@ -7,8 +7,25 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
-**IA responsável pelo envio:** GitHub Copilot (Claude Sonnet 4.5)  
-**Data e hora:** 2026-02-03 03:30:00
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: Claude Sonnet 4.5
+
+## [3.7.9] - 2026-02-03 03:45:00
+
+### Fixed
+- Adicionado import `typing` em `logs_auth.py` para resolver erros de type checking
+- Adicionadas verificações de None em `migrate_sqlite_to_postgres_vps.py` e `migrate_additional.py` para `fetchone()` calls
+- CHANGELOG reorganizado: versões históricas movidas para `arquivo morto/OLD_CHANGELOG.md`
+
+### Changed
+- Estrutura do CHANGELOG simplificada para conformidade com novas políticas de versionamento
+
+---
+
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: Claude Sonnet 4.5
 
 ## [3.7.8] - 2026-02-03 03:30:00
 

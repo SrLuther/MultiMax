@@ -34,7 +34,8 @@ for ciclo_id, mes, ano, data_inicio, data_fim, fechado in ciclos_mes:
 
 pg_conn.commit()
 pg_cursor.execute("SELECT COUNT(*) FROM ciclos_mensais")
-total_mes = pg_cursor.fetchone()[0]
+result = pg_cursor.fetchone()
+total_mes = result[0] if result else 0
 print(f"[OK] Ciclos Mensais no PostgreSQL: {total_mes}\n")
 
 # 2. Verificar dados de time_off_record
@@ -44,7 +45,8 @@ folgas_count = sqlite_cursor.fetchone()[0]
 print(f"  Registros de Folgas: {folgas_count}")
 
 pg_cursor.execute("SELECT COUNT(*) FROM time_off_record")
-folgas_pg = pg_cursor.fetchone()[0]
+result = pg_cursor.fetchone()
+folgas_pg = result[0] if result else 0
 print(f"  No PostgreSQL: {folgas_pg}\n")
 
 # 3. Migrar Holidays/Feriados
@@ -72,7 +74,8 @@ for h_id, h_date, h_name, h_kind in holidays:
 
 pg_conn.commit()
 pg_cursor.execute("SELECT COUNT(*) FROM holiday")
-total_hol = pg_cursor.fetchone()[0]
+result = pg_cursor.fetchone()
+total_hol = result[0] if result else 0
 print(f"[OK] Feriados no PostgreSQL: {total_hol}\n")
 
 print("[OK] Migração adicional concluída!")

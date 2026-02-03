@@ -142,13 +142,16 @@ print("[VERIFICACAO FINAL]")
 print("=" * 50)
 
 pg_cursor.execute("SELECT COUNT(*) FROM public.setor")
-print(f"  Setores: {pg_cursor.fetchone()[0]}")
+result = pg_cursor.fetchone()
+print(f"  Setores: {result[0] if result else 0}")
 
 pg_cursor.execute("SELECT COUNT(*) FROM public.ciclos_semanais")
-print(f"  Ciclos Semanais: {pg_cursor.fetchone()[0]}")
+result = pg_cursor.fetchone()
+print(f"  Ciclos Semanais: {result[0] if result else 0}")
 
 pg_cursor.execute("SELECT COUNT(*) FROM public.colaboradores")
-print(f"  Colaboradores: {pg_cursor.fetchone()[0]}")
+result = pg_cursor.fetchone()
+print(f"  Colaboradores: {result[0] if result else 0}")
 
 print("=" * 50)
 
