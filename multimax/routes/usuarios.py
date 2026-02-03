@@ -1580,7 +1580,6 @@ def gestao():  # noqa: C901
             l_page=l_page,
             l_total_pages=l_total_pages,
             users_page=users_page,
-            users_all=users_all,
             u_page=u_page,
             u_total_pages=u_total_pages,
             q=q,
@@ -1734,31 +1733,12 @@ def gestao_colabs_editar(id: int):
     try:
         _update_collaborator_basic_fields(c)
 
-        # Opção 1: Associar usuário já existente
-        existing_user_id = request.form.get("existing_user_id", "").strip()
-        if existing_user_id:
-            try:
-                existing_user_id = int(existing_user_id)
-                user = User.query.get(existing_user_id)
-                if not user:
-                    flash("Usuário não encontrado.", "danger")
-                    raise ValueError("Usuário inválido")
-                if user.collaborator:
-                    flash(f"Usuário '{user.username}' já tem outro colaborador associado.", "warning")
-                    raise ValueError("Usuário já associado")
-                c.user_id = user.id
-                flash(f"Usuário '{user.username}' associado ao colaborador.", "success")
-            except (ValueError, AttributeError) as e:
-                if not isinstance(e, ValueError):
-                    flash(f"Erro ao associar usuário: {e}", "danger")
-                raise
-        else:
-            # Opção 2: Criar novo usuário
-            username = request.form.get("username", "").strip()
-            password = request.form.get("password", "").strip()
-            nivel = request.form.get("nivel", "").strip()
-            if username:
-                _handle_collaborator_user(c, username, password, nivel)
+        # Criar novo usuário se fornecido login (sem associação de existentes)
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+        nivel = request.form.get("nivel", "").strip()
+        if username:
+            _handle_collaborator_user(c, username, password, nivel)
 
         db.session.commit()
         flash("Colaborador atualizado.", "info")

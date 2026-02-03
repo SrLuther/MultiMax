@@ -482,43 +482,30 @@
                     <div class="gestao-form-group-modern">
                         <label class="gestao-label-modern">
                             <i class="bi bi-person-badge"></i>
-                            Login (usuário existente)
+                            Login
                         </label>
                         <input type="text" class="gestao-input-modern" value="{{ c.user.username }}" disabled>
-                        <small class="gestao-hint-modern">Usuário já existe. Para alterar login/senha, use as ações na tabela.</small>
+                        <small class="gestao-hint-modern">Usuário já associado. Para alterar login/senha, use as ações na tabela Usuários.</small>
                     </div>
                     {% else %}
                     <div class="gestao-form-group-modern">
                         <label class="gestao-label-modern">
                             <i class="bi bi-person-badge"></i>
-                            Associar usuário existente (opcional)
+                            Criar usuário (opcional)
                         </label>
-                        <select name="existing_user_id" class="gestao-select-modern">
-                            <option value="">— Nenhum —</option>
-                            {% for u in users_all %}
-                            <option value="{{ u.id }}">{{ u.name }} ({{ u.username }})</option>
-                            {% endfor %}
-                        </select>
-                        <small class="gestao-hint-modern">Selecione um usuário sem colaborador associado</small>
-                    </div>
-                    <div class="gestao-form-group-modern">
-                        <label class="gestao-label-modern">
-                            <i class="bi bi-person-badge"></i>
-                            Ou criar novo usuário (opcional)
-                        </label>
-                        <input type="text" name="username" class="gestao-input-modern" placeholder="Deixe vazio para manter sem usuário">
+                        <input type="text" name="username" class="gestao-input-modern" placeholder="Login (deixe vazio para apenas colaborador)">
                     </div>
                     <div class="gestao-form-group-modern">
                         <label class="gestao-label-modern">
                             <i class="bi bi-key"></i>
-                            Senha (se criar novo usuário)
+                            Senha
                         </label>
                         <input type="password" name="password" class="gestao-input-modern" placeholder="Obrigatório se login preenchido">
                     </div>
                     <div class="gestao-form-group-modern">
                         <label class="gestao-label-modern">
                             <i class="bi bi-shield-check"></i>
-                            Nível (se criar novo usuário)
+                            Nível
                         </label>
                         <select name="nivel" class="gestao-select-modern">
                             <option value="visualizador">Visualizador</option>

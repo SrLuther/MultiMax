@@ -10,6 +10,19 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: Claude Haiku 4.5
 
+## [3.7.29] - 2026-02-03 22:30:00
+
+### Fixed
+- **SIMPLIFICAÇÃO CRÍTICA**: Removida lógica complicada de "Associar usuário existente" 
+- Usuário e Colaborador agora integrados: ao editar colaborador, pode opcionalmente criar usuário novo
+- Eliminado dropdown de associação manual, validações misteriosas e dropdown de usuários paginados
+- Feature agora SIMPLES: Nome → Cargo → Setor → Opcional (criar usuário) → Salvar
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: Claude Haiku 4.5
+
 ## [3.7.28] - 2026-02-03 19:30:00
 
 ### Fixed
