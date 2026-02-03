@@ -4,6 +4,13 @@
 - GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.6.1] - 2026-02-03 03:20:00
+
+### 🐛 Fix: PostgreSQL SSL Configuration
+- **fix(database)**: Remove automatic sslmode=require to respect explicit sslmode parameter
+- **fix(connection)**: Allow explicit sslmode=disable from docker-compose.yml environment variable
+- **improvement**: Simplify _normalize_db_uri logic for better control
+
 ## [3.6.0] - 2026-02-03 03:15:00
 
 ### 🧹 Limpeza de Arquivos Obsoletos

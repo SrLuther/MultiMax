@@ -40,8 +40,6 @@ def _normalize_db_uri(uri: str | None) -> str | None:
             hostport = "aws-1-sa-east-1.pooler.supabase.com:5432"
             s = pre + "@" + hostport + ("/" + rest if rest else "")
         if s and s.startswith("postgresql+psycopg://"):
-            if "sslmode=" not in s:
-                s = s + ("&sslmode=require" if "?" in s else "?sslmode=require")
             if "connect_timeout=" not in s:
                 s = s + ("&connect_timeout=3" if "?" in s else "?connect_timeout=3")
         return s or uri
