@@ -59,6 +59,7 @@ class Shift(db.Model):
     collaborator = db.relationship(
         "Colaborador",
         foreign_keys=[collaborator_id],
+        primaryjoin="Shift.collaborator_id==Colaborador.id",
         backref=db.backref("shifts", lazy=True),
     )
 
@@ -97,6 +98,7 @@ class Vacation(db.Model):
     collaborator = db.relationship(
         "Colaborador",
         foreign_keys=[collaborator_id],
+        primaryjoin="Vacation.collaborator_id==Colaborador.id",
         backref=db.backref("vacations", lazy=True),
     )
 
@@ -124,7 +126,7 @@ class MedicalCertificate(db.Model):
     )
 
     collaborator = db.relationship(
-        "Colaborador", foreign_keys=[collaborator_id], backref=db.backref("medical_certificates", lazy=True)
+        "Colaborador", foreign_keys=[collaborator_id], primaryjoin="MedicalCertificate.collaborator_id==Colaborador.id", backref=db.backref("medical_certificates", lazy=True)
     )
 
     def __repr__(self):

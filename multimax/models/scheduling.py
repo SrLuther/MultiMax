@@ -72,6 +72,7 @@ class TimeOffRecord(db.Model):
     collaborator = db.relationship(
         "Colaborador",
         foreign_keys=[collaborator_id],
+        primaryjoin="TimeOffRecord.collaborator_id==Colaborador.id",
         backref="time_off_records",
         lazy=True,
     )
@@ -174,12 +175,14 @@ class CicloFolga(db.Model):
     collaborator = db.relationship(
         "Colaborador",
         foreign_keys=[collaborator_id],
+        primaryjoin="CicloFolga.collaborator_id==Colaborador.id",
         backref="ciclos_folgas",
         lazy=True,
     )
     setor = db.relationship(
         "Setor",
         foreign_keys=[setor_id],
+        primaryjoin="CicloFolga.setor_id==Setor.id",
         backref="ciclos_folgas",
         lazy=True,
     )
@@ -217,12 +220,14 @@ class CicloOcorrencia(db.Model):
     collaborator = db.relationship(
         "Colaborador",
         foreign_keys=[collaborator_id],
+        primaryjoin="CicloOcorrencia.collaborator_id==Colaborador.id",
         backref="ciclos_ocorrencias",
         lazy=True,
     )
     setor = db.relationship(
         "Setor",
         foreign_keys=[setor_id],
+        primaryjoin="CicloOcorrencia.setor_id==Setor.id",
         backref="ciclos_ocorrencias",
         lazy=True,
     )
@@ -315,6 +320,7 @@ class CicloSaldo(db.Model):
     collaborator = db.relationship(
         "Colaborador",
         foreign_keys=[collaborator_id],
+        primaryjoin="CicloSaldo.collaborator_id==Colaborador.id",
         backref="ciclos_saldos",
         lazy=True,
     )
@@ -347,6 +353,7 @@ class RegistroJornada(db.Model):
     collaborator = db.relationship(
         "Colaborador",
         foreign_keys=[collaborator_id],
+        primaryjoin="RegistroJornada.collaborator_id==Colaborador.id",
         backref="registros_jornada",
         lazy=True,
     )

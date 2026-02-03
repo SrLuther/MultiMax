@@ -47,6 +47,7 @@ class EstoqueProducao(db.Model):
     setor = db.relationship(
         "Setor",
         foreign_keys=[setor_id],
+        primaryjoin="EstoqueProducao.setor_id==Setor.id",
         backref=db.backref("estoque_producao", lazy="dynamic"),
     )
     historico = db.relationship(
@@ -114,6 +115,7 @@ class EscalaEspecial(db.Model):
     equipe = db.relationship(
         "Setor",
         foreign_keys=[equipe_id],
+        primaryjoin="EscalaEspecial.equipe_id==Setor.id",
         backref="escalas_especiais",
     )
 
