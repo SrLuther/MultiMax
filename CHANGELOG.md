@@ -4,6 +4,13 @@
 - GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.6.3] - 2026-02-03 03:30:00
+
+### 🐛 Fix: Collaborator Model Reference
+- **fix(models)**: Add Collaborator alias for backward compatibility
+- **fix(auth)**: Support existing code using Collaborator instead of Colaborador
+- **improvement**: Maintain API compatibility while using new PostgreSQL models
+
 ## [3.6.2] - 2026-02-03 03:25:00
 
 ### 🐛 Fix: SQLAlchemy Registry Conflict Resolution

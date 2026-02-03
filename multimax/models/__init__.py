@@ -20,6 +20,9 @@ from .logs import Heartbeat, LogDeploy, LogErro, LogWhatsapp
 from .user import User
 from .whatsapp_config import WhatsappConfig, WhatsappMessage
 
+# Aliases para compatibilidade com código existente
+Collaborator = Colaborador
+
 db: SQLAlchemy = app_db
 Base = db.Model
 
@@ -151,6 +154,7 @@ __all__ = [
     "Base",
     "User",
     "Colaborador",
+    "Collaborator",  # Alias para compatibilidade
     "CicloSemanal",
     "CicloMensal",
     "HistoricoColaborador",
