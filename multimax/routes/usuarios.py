@@ -485,11 +485,27 @@ def _all_users_for_display(q: str):
         all_users = User.query.order_by(User.name.asc()).all()
         # Criar lista de wrappers
         display_items = []
+        user_ids_with_collab = set()
+
         for user in all_users:
             # Tenta encontrar um collaborator associado
             collab = Collaborator.query.filter_by(user_id=user.id).first()
+            if collab:
+                user_ids_with_collab.add(user.id)
             wrapper = _CollaboratorUser(user=user, collaborator=collab)
             display_items.append(wrapper)
+
+        # Buscar Colaboradores sem Usuário associado
+        collaborators_without_user = (
+            Collaborator.query.filter(Collaborator.user_id.is_(None)).order_by(Collaborator.name.asc()).all()
+        )
+
+        for collab in collaborators_without_user:
+            wrapper = _CollaboratorUser(user=None, collaborator=collab)
+            display_items.append(wrapper)
+
+        # Reordenar por nome
+        display_items.sort(key=lambda x: x.name.lower() if x.name else "")
 
         if not q:
             return display_items, display_items

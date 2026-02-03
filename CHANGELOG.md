@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.18] - 2026-02-03 10:00:00
+
+### Fixed
+- Corrigido: Colaboradores sem usuários associados agora aparecem na listagem de gerenciamento
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.17] - 2026-02-03 09:00:00
 
 ### Fixed
