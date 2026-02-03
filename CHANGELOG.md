@@ -4,6 +4,28 @@
 - GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.5.0] - 2026-02-03 02:45:00
+
+### ✅ Migração SQLite → PostgreSQL Concluída
+- **feat(migration)**: Completada migração de dados de SQLite para PostgreSQL
+- **docs(migration)**: Adicionado relatório detalhado de migração em `MIGRATION_COMPLETED.md`
+- **data(setor)**: 10 setores migrados com sucesso
+- **data(colaboradores)**: 6 colaboradores migrados com sucesso
+- **data(ciclos_semanais)**: 26 ciclos semanais migrados
+- **data(ciclos_mensais)**: 13 ciclos mensais migrados
+- **data(metric_history)**: 15.011 registros históricos de métricas preservados
+- **data(time_off_record)**: 41 registros de folgas preservados
+- **data(holiday)**: 19 feriados sincronizados
+- **data(user)**: 12 usuários preservados com 62 registros de login
+- **data(alert)**: 226 alertas e 230 incidentes migrados
+
+### Scripts de Migração
+- `migrate_execute.py`: Migração de setores e colaboradores
+- `migrate_ciclos.py`: Migração de ciclos semanais
+- `migrate_additional.py`: Migração de ciclos mensais e feriados
+- `migration_summary.py`: Relatório de migração
+- `check_schema.py`: Verificação de estrutura de tabelas
+
 ## [3.4.5] - 2026-02-02 23:35:00
 
 ### Correções
