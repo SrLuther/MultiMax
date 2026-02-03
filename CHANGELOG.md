@@ -10,6 +10,19 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.15] - 2026-02-03 06:00:00
+
+### Fixed
+- Migrados dados do SQLite para PostgreSQL (colaboradores e setores)
+- DATABASE_URL alterado para PostgreSQL como banco principal
+- Silenciados avisos do linter sobre redeclaração em hybrid_property
+
+---
+
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.14] - 2026-02-03 04:40:00
 
 ### Fixed

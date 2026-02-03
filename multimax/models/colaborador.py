@@ -45,11 +45,11 @@ class Colaborador(db.Model):
     def name(self):
         return self.nome
 
-    @name.setter
+    @name.setter  # type: ignore[no-redef]
     def name(self, value):
         self.nome = value
 
-    @name.expression
+    @name.expression  # type: ignore[no-redef]
     def name(cls):
         return cls.nome
 
