@@ -4,6 +4,12 @@
 - GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.6] - 2026-02-03 07:20:00
+
+### 🔧 Fix: Add Notification Models
+- **fix(models)**: Add missing EventoDoDia, NotificacaoDiaria, NotificacaoPersonalizada models
+- **fix(models)**: Export notification models in __init__.py
+
 ## [3.7.5] - 2026-02-03 07:15:00
 
 ### 🔧 Fix: Add Holiday Model

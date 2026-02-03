@@ -24,6 +24,7 @@ from .logs_auth import SystemLog, UserLogin
 from .management import JobRole, MedicalCertificate, Setor, Shift, Vacation
 from .meats import MeatCarrier, MeatPart, MeatReception
 from .monitoring import Alert, Incident, MaintenanceLog, NotificationRead
+from .notifications import EventoDoDia, NotificacaoDiaria, NotificacaoPersonalizada
 from .operations import (
     CleaningChecklistItem,
     CleaningChecklistTemplate,
@@ -132,6 +133,10 @@ __all__ = [
     "Incident",
     "Alert",
     "MaintenanceLog",
+    # Notificações
+    "EventoDoDia",
+    "NotificacaoDiaria",
+    "NotificacaoPersonalizada",
     # Conteúdo
     "CustomSchedule",
     "HelpArticle",
