@@ -4,6 +4,15 @@
 - GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.5.2] - 2026-02-03 03:00:00
+
+### 🔨 Correcoes de Linting Completas
+- **fix(linting)**: Corrigir imports não utilizados em todos scripts
+- **fix(linting)**: Remover bare except statements
+- **fix(linting)**: Quebrar linhas que excedem 120 caracteres
+- **fix(linting)**: Remover f-strings sem placeholders
+- **fix(linting)**: Reorganizar imports para seguir PEP8 (isort)
+
 ## [3.5.1] - 2026-02-03 02:50:00
 
 ### 🔧 Correciones de Linting
