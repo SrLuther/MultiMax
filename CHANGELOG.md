@@ -4,6 +4,26 @@
 - GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.0] - 2026-02-03 05:00:00
+
+### 🚀 Major Feature: Complete Model Architecture Restoration
+- **feat(models)**: Restore all 50+ missing model definitions from legacy system
+- **refactor(models)**: Organize models into logical modules (meats, management, production, etc)
+- **feat(models)**: Create 9 new model modules for better code organization
+- **improvement**: Complete import/export structure in models/__init__.py
+- **chore**: Maintain backward compatibility with Collaborator alias
+
+### Models Organized By Module:
+- `analytics.py`: MetricHistory, QueryLog, BackupVerification
+- `content.py`: CustomSchedule, HelpArticle, Suggestion, SuggestionVote, ArticleVote
+- `management.py`: Setor, Shift, JobRole, Vacation, MedicalCertificate
+- `meats.py`: MeatReception, MeatCarrier, MeatPart
+- `monitoring.py`: NotificationRead, Incident, Alert, MaintenanceLog
+- `operations.py`: Historico, CleaningTask, CleaningHistory, CleaningChecklistTemplate, CleaningChecklistItem, CleaningHistoryPhoto
+- `production.py`: Produto, Recipe, RecipeIngredient, IngredientCatalog
+- `scheduling.py`: BulkHourOperation, TimeOffRecord, MonthStatus, CicloFolga, CicloOcorrencia, CicloSemana, CicloFechamento, CicloSaldo, RegistroJornada, RegistroJornadaChange
+- `special.py`: EstoqueProducao, HistoricoAjusteEstoque, EscalaEspecial
+
 ## [3.6.6] - 2026-02-03 04:45:00
 
 ### 🔧 Model Migration: Missing Models Restored
