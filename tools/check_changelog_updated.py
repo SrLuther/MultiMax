@@ -1,12 +1,41 @@
 #!/usr/bin/env python3
 """
-Pre-commit hook to ensure CHANGELOG.md is properly updated when code changes are committed.
+Hook de pre-commit para garantir disciplina total no CHANGELOG.md.
 
-Rules:
-1. Blocks commits if code files are staged but CHANGELOG.md is not updated
-2. REQUIRES creation of NEW version (never edit existing versions)
-3. Prevents modification of already-released versions
-4. Allows only appending new versions at the top
+REGRAS APLICADAS:
+
+1. Bloqueia o commit se arquivos de CÓDIGO forem alterados e o CHANGELOG.md
+   não estiver incluído no stage.
+
+2. EXIGE criação de NOVA versão sempre que houver mudança de código.
+   - Versões já lançadas NUNCA podem ser editadas ou removidas.
+   - Apenas [Unreleased] pode ser modificado.
+
+3. Novas versões DEVEM ser adicionadas NO TOPO do changelog
+   (logo abaixo de [Unreleased], caso exista).
+
+4. Formato obrigatório de versão:
+      X.Y.Z   (Semantic Versioning)
+
+5. A partir da versão 3.2.0, TODAS as versões precisam conter data + hora:
+      ## [X.Y.Z] - YYYY-MM-DD HH:MM:SS
+
+6. A partir da versão 3.2.48, TODA nova versão criada por automação
+   DEVE conter, IMEDIATAMENTE ACIMA da versão:
+
+      ### IA responsável pelo envio
+      - Nome da IA (ChatGPT, GitHub Copilot, Gemini, Grok, etc)
+      - Modelo: <nome do modelo>
+
+   Esta regra existe para rastreabilidade e auditoria de automações.
+
+7. Commits apenas de documentação/configuração são liberados sem changelog.
+
+Filosofia do hook:
+- Nunca reescrever histórico
+- Sempre criar novas versões
+- Preservar ordem cronológica
+- Responsabilizar automações
 """
 
 import re
@@ -14,329 +43,236 @@ import subprocess
 import sys
 from pathlib import Path
 
+SEMVER_PATTERN = r"\d+\.\d+\.\d+"
+VERSAO_EXIGE_IA = "3.2.48"
+VERSAO_EXIGE_HORA = "3.2.0"
+
+
+# ---------------------------------------------------------------------
+# Utilitários básicos
+# ---------------------------------------------------------------------
+
+
+def run(cmd):
+    """Executa comando e retorna o resultado."""
+    return subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+
+
+def semver_tuple(version):
+    """Converte X.Y.Z em tupla comparável."""
+    return tuple(map(int, version.split(".")))
+
+
+def versao_maior_ou_igual(a, b):
+    """Retorna True se versão A >= versão B."""
+    return semver_tuple(a) >= semver_tuple(b)
+
+
+# ---------------------------------------------------------------------
+# Funções Git
+# ---------------------------------------------------------------------
+
 
 def get_staged_files():
-    """Get list of staged files from git index."""
-    try:
-        result = subprocess.run(
-            ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        return set(result.stdout.strip().split("\n")) if result.stdout.strip() else set()
-    except Exception as e:
-        print(f"[ERROR] Unable to get staged files: {e}")
-        return set()
+    """Obtém lista de arquivos em stage."""
+    r = run(["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"])
+    return {f for f in r.stdout.splitlines() if f.strip()}
 
 
-def get_changelog_diff():
-    """Get the diff of CHANGELOG.md to see what was added/removed."""
-    try:
-        result = subprocess.run(
-            ["git", "diff", "--cached", "CHANGELOG.md"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        return result.stdout
-    except Exception as e:
-        print(f"[ERROR] Unable to get CHANGELOG diff: {e}")
+def get_versoes_head():
+    """Extrai versões do CHANGELOG já commitado (HEAD)."""
+    r = run(["git", "show", "HEAD:CHANGELOG.md"])
+    if r.returncode != 0:
+        return []
+
+    return re.findall(r"^## \[([^\]]+)\]", r.stdout, re.MULTILINE)
+
+
+def get_changelog_staged():
+    """Obtém conteúdo do CHANGELOG.md em stage."""
+    r = run(["git", "show", ":CHANGELOG.md"])
+    if r.returncode != 0:
         return ""
+    return r.stdout
 
 
-def get_original_changelog_versions():
-    """Get versions from the previous commit (before staging)."""
-    try:
-        result = subprocess.run(
-            ["git", "show", "HEAD:CHANGELOG.md"],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            check=False,
-        )
-        if result.returncode == 0:
-            # Find all version headers like ## [1.2.3] or ## [Unreleased]
-            versions = re.findall(r"^## \[([^\]]+)\]", result.stdout, re.MULTILINE)
-            return set(versions)
-        # If HEAD doesn't exist (first commit), return empty set
-        return set()
-    except Exception:
-        return set()
+# ---------------------------------------------------------------------
+# Classificação de arquivos
+# ---------------------------------------------------------------------
 
 
-def get_staged_changelog_versions():
-    """Get versions from the staged CHANGELOG.md."""
-    try:
-        result = subprocess.run(
-            ["git", "show", ":CHANGELOG.md"],  # Show staged version
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            check=False,
-        )
-        if result.returncode == 0:
-            versions = re.findall(r"^## \[([^\]]+)\]", result.stdout, re.MULTILINE)
-            return set(versions)
-        return set()
-    except Exception:
-        return set()
+def is_documentacao_apenas(staged_files):
+    """
+    Verifica se o commit contém apenas documentação/config.
 
-
-def is_documentation_only(staged_files):
-    """Check if only documentation files are being committed."""
-    code_extensions = {".py", ".html", ".js", ".css", ".sql", ".json"}
-    doc_only_files = {"README.md", "CHANGELOG.md", ".pre-commit-config.yaml", "pyproject.toml"}
+    Qualquer arquivo com extensão de código exige changelog.
+    """
+    extensoes_codigo = {".py", ".html", ".js", ".css", ".sql", ".json"}
 
     for file in staged_files:
-        if file:  # Skip empty strings
-            file_path = Path(file)
-            # Check if it's a code file or other substantial file
-            if file_path.suffix in code_extensions or file not in doc_only_files:
-                if file != "CHANGELOG.md":  # CHANGELOG itself doesn't count as code
-                    return False
+        if Path(file).suffix in extensoes_codigo:
+            return False
+
     return True
 
 
-def check_version_format(versions, allow_legacy=True):
-    """Validate version format (semantic versioning or [Unreleased]).
+# ---------------------------------------------------------------------
+# Parsing do CHANGELOG
+# ---------------------------------------------------------------------
 
-    Args:
-        versions: Set of version strings to check
-        allow_legacy: If True, allows old non-semver formats like 2.0, 2.3 (for backward compat)
+
+def extrair_versoes(texto):
+    """Retorna lista ordenada de versões encontradas."""
+    return re.findall(r"^## \[([^\]]+)\]", texto, re.MULTILINE)
+
+
+def validar_datas(texto):
     """
-    semver_pattern = r"^\d+\.\d+\.\d+$"
-    legacy_pattern = r"^\d+\.\d+$"  # Allow legacy 2.0 format
-
-    for version in versions:
-        if version == "Unreleased":
-            continue
-        # Check strict semver
-        if re.match(semver_pattern, version):
-            continue
-        # Check if legacy format is allowed
-        if allow_legacy and re.match(legacy_pattern, version):
-            continue
-        # Neither semver nor legacy - invalid
-        return False, version
-    return True, None
-
-
-def check_version_date_format(changelog_content):
-    """Validate that version dates include time (HH:MM:SS) as required since 3.2.0.
-
-    Returns:
-        tuple: (is_valid, error_message)
+    Valida presença de hora (HH:MM:SS) em versões >= 3.2.0.
     """
-    # Pattern to find version headers with dates
-    # Format: ## [X.Y.Z] - YYYY-MM-DD HH:MM:SS
-    version_date_pattern = r"^## \[(\d+\.\d+\.\d+)\] - (\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}:\d{2})?)"
+    problemas = []
 
-    issues = []
-    for match in re.finditer(version_date_pattern, changelog_content, re.MULTILINE):
-        version = match.group(1)
-        date_str = match.group(2)
+    for m in re.finditer(rf"^## \[({SEMVER_PATTERN})\] - (.+)$", texto, re.MULTILINE):
+        versao, data = m.group(1), m.group(2)
 
-        # Parse version to check if >= 3.2.0
-        try:
-            major, minor, patch = map(int, version.split("."))
-            # Only enforce time format for versions >= 3.2.0
-            if (major > 3) or (major == 3 and minor > 2) or (major == 3 and minor == 2 and patch >= 0):
-                # Check if time is present (format: YYYY-MM-DD HH:MM:SS)
-                if not re.match(r"^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}$", date_str):
-                    issues.append(f"Version [{version}] missing required time format (must be: YYYY-MM-DD HH:MM:SS)")
-        except ValueError:
-            # Skip invalid version format (will be caught by other validation)
-            continue
+        if versao_maior_ou_igual(versao, VERSAO_EXIGE_HORA):
+            if not re.match(r"\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}$", data):
+                problemas.append(versao)
 
-    if issues:
-        return False, issues
-    return True, []
+    return problemas
 
 
-def check_ai_header(changelog_content):
-    """Validate AI header exists before first version entry.
-
-    Required (before any ## [X.Y.Z] entry):
-      - "IA responsável pelo envio"
-      - "Modelo:"
+def bloco_acima_da_versao(texto, versao, linhas=6):
     """
-    version_header = re.search(r"^## \[", changelog_content, re.MULTILINE)
-    header_block = changelog_content
-    if version_header:
-        header_block = changelog_content[: version_header.start()]
+    Retorna bloco imediatamente acima da versão informada.
+    Usado para validar metadados de IA.
+    """
+    lista = texto.splitlines()
 
-    has_ai_line = re.search(r"IA responsável pelo envio", header_block, re.IGNORECASE)
-    has_model_line = re.search(r"Modelo:\s*\S+", header_block, re.IGNORECASE)
+    for i, linha in enumerate(lista):
+        if linha.startswith(f"## [{versao}]"):
+            inicio = max(0, i - linhas)
+            return "\n".join(lista[inicio:i])
 
-    if has_ai_line and has_model_line:
-        return True, []
+    return ""
 
-    issues = []
-    if not has_ai_line:
-        issues.append("Cabeçalho obrigatório: 'IA responsável pelo envio'")
-    if not has_model_line:
-        issues.append("Cabeçalho obrigatório: 'Modelo: <nome>'")
-    return False, issues
+
+def validar_bloco_ia(bloco):
+    """Confirma presença de IA responsável + modelo."""
+    tem_ia = re.search(r"IA responsável pelo envio", bloco, re.IGNORECASE)
+    tem_modelo = re.search(r"Modelo:\s*\S+", bloco, re.IGNORECASE)
+    return bool(tem_ia and tem_modelo)
+
+
+# ---------------------------------------------------------------------
+# Lógica principal do hook
+# ---------------------------------------------------------------------
 
 
 def main():  # noqa: C901
-    """Main hook logic."""
     staged_files = get_staged_files()
 
-    if not staged_files or not any(staged_files):
-        return 0  # No files staged, allow commit
+    # Nada em stage
+    if not staged_files:
+        return 0
 
-    # Check if this is documentation-only commit
-    if is_documentation_only(staged_files):
-        return 0  # Only docs/config changed, allow commit
+    # Apenas documentação
+    if is_documentacao_apenas(staged_files):
+        return 0
 
-    # Check if CHANGELOG.md is in staged files
+    # Código mudou mas changelog não
     if "CHANGELOG.md" not in staged_files:
-        print("\n" + "=" * 80)
-        print("[ERROR] Code modified but CHANGELOG.md was not updated")
-        print("=" * 80)
-        print("\nModified files (staged):")
-        for f in sorted(staged_files):
-            if f:
-                print(f"   * {f}")
-        print("\nPlease:")
-        print("   1. Open CHANGELOG.md")
-        print("   2. ADD NEW VERSION at the top (never edit existing versions)")
-        print("   3. Follow format: ## [X.Y.Z] - YYYY-MM-DD HH:MM:SS")
-        print("   4. Run: git add CHANGELOG.md")
-        print("   5. Run commit again: git commit")
-        print("\nTip: Use semantic versioning (MAJOR.MINOR.PATCH)")
-        print("=" * 80 + "\n")
+        print("\n[ERRO] Código modificado sem atualização do CHANGELOG.md\n")
         return 1
 
-    # ===== CHANGELOG is staged, now validate it =====
-
-    original_versions = get_original_changelog_versions()
-    staged_versions = get_staged_changelog_versions()
-
-    # Check 1: Version format validation
-    valid_format, bad_version = check_version_format(staged_versions)
-    if not valid_format:
-        print("\n" + "=" * 80)
-        print("[ERROR] Invalid version format in CHANGELOG.md")
-        print("=" * 80)
-        print(f"\nVersion '{bad_version}' does not match semantic versioning (X.Y.Z)")
-        print("Valid formats: MAJOR.MINOR.PATCH (e.g., 2.7.4) or 'Unreleased'")
-        print("=" * 80 + "\n")
+    changelog_staged = get_changelog_staged()
+    if not changelog_staged:
+        print("\n[ERRO] Não foi possível ler CHANGELOG.md staged\n")
         return 1
 
-    # Check 1.5: Validate date format includes time (since 3.2.0)
-    try:
-        result = subprocess.run(
-            ["git", "show", ":CHANGELOG.md"],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            check=False,
-        )
-        if result.returncode == 0:
-            valid_dates, date_issues = check_version_date_format(result.stdout)
-            if not valid_dates:
-                print("\n" + "=" * 80)
-                print("[ERROR] Version date format validation failed")
-                print("=" * 80)
-                print("\nSince version 3.2.0, ALL versions MUST include time:")
-                print("   Format: ## [X.Y.Z] - YYYY-MM-DD HH:MM:SS")
-                print("\nIssues found:")
-                for issue in date_issues:
-                    print(f"   ❌ {issue}")
-                print("\nExample:")
-                print("   ## [3.2.20] - 2026-01-25 14:30:00")
-                print("\nNOTE: This is mandatory for versions >= 3.2.0")
-                print("=" * 80 + "\n")
-                return 1
-    except Exception as e:
-        print(f"[WARNING] Could not validate date format: {e}")
-        # Don't block commit on validation error, just warn
-        pass
+    versoes_head = get_versoes_head()
+    versoes_staged = extrair_versoes(changelog_staged)
 
-    # Check 1.6: Validate AI header before any version entry
-    try:
-        result = subprocess.run(
-            ["git", "show", ":CHANGELOG.md"],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            check=False,
-        )
-        if result.returncode == 0:
-            valid_ai, ai_issues = check_ai_header(result.stdout)
-            if not valid_ai:
-                print("\n" + "=" * 80)
-                print("[ERROR] Cabeçalho de IA ausente no topo do CHANGELOG")
-                print("=" * 80)
-                print("\nObrigatório antes das versões:")
-                print("  - IA responsável pelo envio")
-                print("  - Modelo: <nome do modelo>")
-                print("\nProblemas encontrados:")
-                for issue in ai_issues:
-                    print(f"   ❌ {issue}")
-                print("\nExemplo:")
-                print("  ### IA responsável pelo envio")
-                print("  - GitHub Copilot")
-                print("  - Modelo: GPT-5.2-Codex")
-                print("=" * 80 + "\n")
-                return 1
-    except Exception as e:
-        print(f"[WARNING] Could not validate AI header: {e}")
+    # --------------------------------------------------------------
+    # Validação de formato das versões
+    # --------------------------------------------------------------
 
-    # Check 2: Prevent modification of existing versions
-    # A version should only be removed if it's being replaced by a new one
-    # NOTE: We only check for "removed" versions that have proper semver format
-    # (old badly-formatted versions like 2.0, 2.2 won't affect this check)
-    removed_versions = original_versions - staged_versions
-    # Filter to only care about properly formatted versions
-    semver_pattern = r"^\d+\.\d+\.\d+$"
-    removed_releases = {v for v in removed_versions if re.match(semver_pattern, v) or v == "Unreleased"}
+    for v in versoes_staged:
+        if v != "Unreleased" and not re.match(rf"^{SEMVER_PATTERN}$", v):
+            print(f"\n[ERRO] Versão inválida encontrada: {v}\n")
+            return 1
 
-    if removed_releases and removed_releases != {"Unreleased"}:
-        print("\n" + "=" * 80)
-        print("[ERROR] Cannot remove or modify existing RELEASED versions!")
-        print("=" * 80)
-        print(f"\nRemoved/Modified versions: {', '.join(sorted(removed_releases))}")
-        print("\nRules:")
-        print("  Create NEW versions at the top")
-        print("  Only [Unreleased] can be replaced/removed")
-        print("  Never edit released versions (e.g., 2.7.3, 2.7.2, etc.)")
-        print("\nHowever, if you meant to CREATE a new version from [Unreleased]:")
-        print("  1. Keep [Unreleased] at the top")
-        print("  2. Add your new version BELOW it")
-        print("  3. Move [Unreleased] content to the new version")
-        print("=" * 80 + "\n")
+    # --------------------------------------------------------------
+    # Impedir alteração de versões já lançadas
+    # --------------------------------------------------------------
+
+    removidas = set(versoes_head) - set(versoes_staged)
+    removidas = {v for v in removidas if re.match(rf"^{SEMVER_PATTERN}$", v)}
+
+    if removidas:
+        print("\n[ERRO] Versões já lançadas foram removidas ou alteradas:")
+        for v in removidas:
+            print(f" - {v}")
         return 1
 
-    # Check 3: Ensure at least ONE new version was added
-    new_versions = staged_versions - original_versions
-    if not new_versions:
-        print("\n" + "=" * 80)
-        print("[ERROR] Code modified but NO NEW VERSION was created in CHANGELOG.md")
-        print("=" * 80)
-        print("\nYou must CREATE a new version, not just update existing ones.")
-        print("\nHow to add a new version:")
-        print("  1. Open CHANGELOG.md")
-        print("  2. Add new version entry at the TOP:")
-        print("     ## [X.Y.Z] - YYYY-MM-DD")
-        print("     ### Changed/Added/Fixed")
-        print("     - Description of changes")
-        print("  3. Keep [Unreleased] at the very top for future changes")
-        print("\nExample:")
-        print("  ## [Unreleased]")
-        print("")
-        print("  ## [2.7.5] - 2026-01-20")
-        print("  ### Fixed")
-        print("  - Fixed bug in module registry tests")
-        print("=" * 80 + "\n")
+    # --------------------------------------------------------------
+    # Exigir nova versão
+    # --------------------------------------------------------------
+
+    novas = [v for v in versoes_staged if v not in versoes_head and v != "Unreleased"]
+
+    if not novas:
+        print("\n[ERRO] Nenhuma nova versão foi criada no CHANGELOG\n")
         return 1
+
+    # --------------------------------------------------------------
+    # Nova versão deve estar no topo
+    # --------------------------------------------------------------
+
+    primeira_real = None
+    for v in versoes_staged:
+        if v != "Unreleased":
+            primeira_real = v
+            break
+
+    if primeira_real not in novas:
+        print("\n[ERRO] Nova versão deve estar no TOPO do CHANGELOG\n")
+        return 1
+
+    nova_versao = primeira_real
+
+    # --------------------------------------------------------------
+    # Validar data com hora (>= 3.2.0)
+    # --------------------------------------------------------------
+
+    datas_invalidas = validar_datas(changelog_staged)
+    if datas_invalidas:
+        print("\n[ERRO] Versões >= 3.2.0 exigem data com hora:")
+        for v in datas_invalidas:
+            print(f" - {v}")
+        print("\nFormato: ## [X.Y.Z] - YYYY-MM-DD HH:MM:SS\n")
+        return 1
+
+    # --------------------------------------------------------------
+    # Validar bloco de IA (>= 3.2.48)
+    # --------------------------------------------------------------
+
+    if versao_maior_ou_igual(nova_versao, VERSAO_EXIGE_IA):
+        bloco = bloco_acima_da_versao(changelog_staged, nova_versao)
+
+        if not validar_bloco_ia(bloco):
+            print("\n[ERRO] Desde a versão 3.2.48 é OBRIGATÓRIO informar antes da versão:\n")
+            print("### IA responsável pelo envio")
+            print("- Nome da IA (ChatGPT, Copilot, Gemini, Grok...)")
+            print("- Modelo: <modelo>\n")
+            print("Regra criada para rastreabilidade e auditoria de automações.\n")
+            return 1
 
     return 0
 

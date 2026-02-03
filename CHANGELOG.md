@@ -4,6 +4,18 @@
 - GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.5] - 2026-02-03 07:15:00
+
+### 🔧 Fix: Add Holiday Model
+- **fix(models)**: Add missing Holiday model for feriados management
+- **fix(models)**: Export Holiday in __init__.py
+
+## [3.7.4] - 2026-02-03 06:30:00
+
+### 🔧 Fix: Add Ciclo Alias
+- **fix(models)**: Add Ciclo alias for CicloSemanal backward compatibility
+- **chore**: Update models/__init__.py with Ciclo export
+
 ## [3.7.3] - 2026-02-03 06:15:00
 
 ### 🔧 Fix: Add Missing AppSetting Model

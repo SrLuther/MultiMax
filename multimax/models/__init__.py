@@ -18,6 +18,7 @@ from .ciclo import CicloMensal, CicloSemanal, HistoricoColaborador
 from .colaborador import Colaborador
 from .content import ArticleVote, CustomSchedule, HelpArticle, Suggestion, SuggestionVote
 from .escala import Escala
+from .holidays import Holiday
 from .logs import Heartbeat, LogDeploy, LogErro, LogWhatsapp
 from .logs_auth import SystemLog, UserLogin
 from .management import JobRole, MedicalCertificate, Setor, Shift, Vacation
@@ -50,6 +51,7 @@ from .whatsapp_config import WhatsappConfig, WhatsappMessage
 
 # Aliases para compatibilidade com código existente
 Collaborator = Colaborador
+Ciclo = CicloSemanal
 
 db: SQLAlchemy = app_db
 Base = db.Model
@@ -84,7 +86,7 @@ __all__ = [
     # Ciclos
     "CicloSemanal",
     "CicloMensal",
-    "HistoricoColaborador",
+    "Ciclo",  # Alias para CicloSemanal
     "CicloFolga",
     "CicloOcorrencia",
     "CicloSemana",
@@ -99,6 +101,7 @@ __all__ = [
     "JobRole",
     "Vacation",
     "MedicalCertificate",
+    "Holiday",
     # Carnes
     "MeatReception",
     "MeatCarrier",
