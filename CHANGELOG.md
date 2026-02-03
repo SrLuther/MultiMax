@@ -4,6 +4,13 @@
 - GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.5.1] - 2026-02-03 02:50:00
+
+### 🔧 Correciones de Linting
+- **fix**: Remover imports não utilizados (datetime em migrate_additional.py)
+- **fix**: Corrigir f-strings sem placeholders em populate_setor_ciclos.py
+- **fix**: Adequar código para passar em flake8 e black
+
 ## [3.5.0] - 2026-02-03 02:45:00
 
 ### ✅ Migração SQLite → PostgreSQL Concluída
