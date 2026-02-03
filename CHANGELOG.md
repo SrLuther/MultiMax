@@ -4,6 +4,21 @@
 - GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.1] - 2026-02-03 05:30:00
+
+### 🔧 Model Files: Complete Implementation
+- **feat(models)**: Create 9 complete model modules with all 43 SQLAlchemy classes
+- **feat(analytics)**: MetricHistory, QueryLog, BackupVerification
+- **feat(content)**: CustomSchedule, HelpArticle, Suggestion, ArticleVote, SuggestionVote
+- **feat(management)**: Setor, Shift, JobRole, Vacation, MedicalCertificate
+- **feat(meats)**: MeatReception, MeatCarrier, MeatPart
+- **feat(monitoring)**: NotificationRead, Incident, Alert, MaintenanceLog
+- **feat(operations)**: Historico, CleaningTask, CleaningHistory, CleaningChecklistTemplate, CleaningChecklistItem, CleaningHistoryPhoto
+- **feat(production)**: Produto, Recipe, RecipeIngredient, IngredientCatalog
+- **feat(scheduling)**: BulkHourOperation, TimeOffRecord, MonthStatus, CicloFolga, CicloOcorrencia, CicloSemana, CicloFechamento, CicloSaldo, RegistroJornada, RegistroJornadaChange
+- **feat(special)**: EstoqueProducao, HistoricoAjusteEstoque, EscalaEspecial
+- **fix(lint)**: Correct docstring line length in scheduling.py
+
 ## [3.7.0] - 2026-02-03 05:00:00
 
 ### 🚀 Major Feature: Complete Model Architecture Restoration

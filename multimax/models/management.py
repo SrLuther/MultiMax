@@ -1,0 +1,118 @@
+"""
+Modelos para Gestão de Setores, Turnos, Funções e Folgas
+"""
+
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+from . import db
+
+
+class Setor(db.Model):
+    """Modelo para gerenciar setores da empresa"""
+
+    __tablename__ = "setor"
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False, unique=True, index=True)
+    descricao = db.Column(db.Text, nullable=True)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
+    created_by = db.Column(db.String(100), nullable=True)
+    updated_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    updated_by = db.Column(db.String(100), nullable=True)
+
+    def __repr__(self):
+        return f"<Setor {self.nome}>"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "nome": self.nome,
+            "descricao": self.descricao,
+            "ativo": self.ativo,
+            "created_at": (self.created_at.isoformat() if self.created_at else None),
+            "updated_at": (self.updated_at.isoformat() if self.updated_at else None),
+        }
+
+
+class Shift(db.Model):
+    """Modelo para registrar turnos de colaboradores"""
+
+    __tablename__ = "shift"
+    id = db.Column(db.Integer, primary_key=True)
+    collaborator_id = db.Column(db.Integer, db.ForeignKey("collaborator.id"))
+    date = db.Column(db.Date, nullable=False)
+    turno = db.Column(db.String(20))
+    observacao = db.Column(db.String(255))
+    start_dt = db.Column(db.DateTime(timezone=True))
+    end_dt = db.Column(db.DateTime(timezone=True))
+    shift_type = db.Column(db.String(30))
+    is_sunday_holiday = db.Column(db.Boolean, default=False)
+    auto_generated = db.Column(db.Boolean, default=False)
+
+    collaborator = db.relationship("Collaborator", backref=db.backref("shifts", lazy=True))
+
+    def __repr__(self):
+        return f"<Shift {self.collaborator_id} - {self.date} - {self.turno}>"
+
+
+class JobRole(db.Model):
+    """Modelo para registrar funções/cargos"""
+
+    __tablename__ = "job_role"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    nivel = db.Column(db.String(20), nullable=False)
+
+    def __repr__(self):
+        return f"<JobRole {self.name} - {self.nivel}>"
+
+
+class Vacation(db.Model):
+    """Modelo para registrar férias de colaboradores"""
+
+    __tablename__ = "vacation"
+    id = db.Column(db.Integer, primary_key=True)
+    collaborator_id = db.Column(db.Integer, db.ForeignKey("collaborator.id"), nullable=False)
+    data_inicio = db.Column(db.Date, nullable=False)
+    data_fim = db.Column(db.Date, nullable=False)
+    observacao = db.Column(db.String(255))
+    criado_por = db.Column(db.String(100))
+    criado_em = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
+    ativo = db.Column(db.Boolean, default=True)
+
+    collaborator = db.relationship("Collaborator", backref=db.backref("vacations", lazy=True))
+
+    def __repr__(self):
+        return f"<Vacation {self.collaborator_id} - {self.data_inicio} a {self.data_fim}>"
+
+
+class MedicalCertificate(db.Model):
+    """Modelo para registrar atestados médicos de colaboradores"""
+
+    __tablename__ = "medical_certificate"
+    id = db.Column(db.Integer, primary_key=True)
+    collaborator_id = db.Column(db.Integer, db.ForeignKey("collaborator.id"), nullable=False)
+    data_inicio = db.Column(db.Date, nullable=False)
+    data_fim = db.Column(db.Date, nullable=False)
+    dias = db.Column(db.Integer, default=1)
+    motivo = db.Column(db.String(255))
+    foto_atestado = db.Column(db.String(255))
+    cid = db.Column(db.String(20))
+    medico = db.Column(db.String(100))
+    criado_por = db.Column(db.String(100))
+    criado_em = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
+
+    collaborator = db.relationship("Collaborator", backref=db.backref("medical_certificates", lazy=True))
+
+    def __repr__(self):
+        return f"<MedicalCertificate {self.collaborator_id} - {self.data_inicio} a {self.data_fim}>"
