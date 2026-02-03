@@ -495,7 +495,7 @@
                         </label>
                         <select name="existing_user_id" class="gestao-select-modern">
                             <option value="">— Nenhum —</option>
-                            {% for u in users_page %}
+                            {% for u in users_all %}
                             <option value="{{ u.id }}">{{ u.name }} ({{ u.username }})</option>
                             {% endfor %}
                         </select>

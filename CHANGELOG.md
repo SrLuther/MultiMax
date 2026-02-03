@@ -10,6 +10,17 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: Claude Haiku 4.5
 
+## [3.7.28] - 2026-02-03 19:30:00
+
+### Fixed
+- **CRÍTICO**: Corrigido dropdown "Associar usuário existente" que mostrava apenas usuários paginados (5 usuários) em vez de TODOS os usuários cadastrados
+- Adicionado `users_all` à renderização da página de gestão para suportar dropdown completo
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: Claude Haiku 4.5
+
 ## [3.7.27] - 2026-02-03 15:30:00
 
 ### Fixed

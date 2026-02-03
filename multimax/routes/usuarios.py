@@ -1580,6 +1580,7 @@ def gestao():  # noqa: C901
             l_page=l_page,
             l_total_pages=l_total_pages,
             users_page=users_page,
+            users_all=users_all,
             u_page=u_page,
             u_total_pages=u_total_pages,
             q=q,
