@@ -10,6 +10,18 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: Claude Haiku 4.5
 
+## [3.7.27] - 2026-02-03 15:30:00
+
+### Fixed
+- Adicionada coluna `regular_team` faltando no modelo Colaborador
+- Corrigido erro "'Colaborador' object has no attribute 'regular_team'" ao atualizar colaborador
+- Implementada migração Alembic 003 para adicionar regular_team à tabela colaboradores
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: Claude Haiku 4.5
+
 ## [3.7.26] - 2026-02-03 15:00:00
 
 ### Fixed

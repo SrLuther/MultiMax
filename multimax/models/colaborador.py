@@ -30,6 +30,9 @@ class Colaborador(db.Model):
     data_demissao = db.Column(DateTime, nullable=True)
     ativo = db.Column(db.Boolean, default=True, nullable=False, index=True)
 
+    # Escala/Times
+    regular_team = db.Column(String(1), nullable=True)  # '1' ou '2' para domingo/fins de semana
+
     # Controle de horas
     horas_ciclo = db.Column(Float, default=40.0, nullable=False)  # Horas por ciclo
     saldo_horas = db.Column(Float, default=0.0, nullable=False)
