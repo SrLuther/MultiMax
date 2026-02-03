@@ -14,7 +14,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ### Fixed
 - **CRÍTICO - RECUPERAÇÃO DE DADOS**: Restaurados 1035 registros perdidos do banco estoque_original.db
-- Recuperados: 5 colaboradores, 275 shifts, 10 setores, 26 semanas, 32 ciclos, 275 turnos, 19 feriados, 6 receitas, 40 ingredientes, 104 jornadas
+- Recuperados: 6 colaboradores (Luciano, Diogo, Renato, Edilson, Natalino, Welvins), 275 shifts, 10 setores, 26 semanas, 32 ciclos, 19 feriados, 6 receitas, 40 ingredientes, 104 jornadas
 - Banco agora possui dados completos de operações, históricos e configurações
 
 ---
