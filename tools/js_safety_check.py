@@ -5,10 +5,14 @@ Script de Verificação Preventiva de Segurança JavaScript
 Detecta padrões perigosos que podem causar erros de parsing JavaScript em templates Jinja2
 """
 
-import os
+import io
 import re
 import sys
 from pathlib import Path
+
+# Forçar output UTF-8
+if sys.stdout.encoding != "utf-8":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 # Padrões perigosos a detectar
 PATTERNS = {

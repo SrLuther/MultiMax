@@ -15,6 +15,8 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 ### Fixed
 - Corrigidas docstrings no modelo Colaborador (flake8 D200, D105)
 - Criado PROTOCOLO_COPILOT.md para estabelecer fluxo obrigatório de verificação de erros
+- Removido find_version.py (arquivo sem propósito)
+- Corrigido encoding UTF-8 em js_safety_check.py para Windows
 
 ---
 ### IA responsável pelo envio
