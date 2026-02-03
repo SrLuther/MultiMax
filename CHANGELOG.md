@@ -6,6 +6,19 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: Claude Sonnet 4.5
+
+## [3.7.10] - 2026-02-03 04:00:00
+
+### Fixed
+- Tratamento de erro no endpoint `/gestao` para evitar erro 500 (Internal Server Error)
+- Função `gestao()` agora retorna fallback gracioso ao invés de crashar
+- Logs vazios retornados quando `_collect_logs()` falha
+
+---
+
 
 ### IA responsável pelo envio
 - Nome da IA: GitHub Copilot

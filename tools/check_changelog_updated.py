@@ -20,7 +20,7 @@ REGRAS APLICADAS:
 5. A partir da versão 3.2.0, TODAS as versões precisam conter data + hora:
       ## [X.Y.Z] - YYYY-MM-DD HH:MM:SS
 
-6. A partir da versão 3.2.48, TODAS as versões
+6. A partir da versão 3.7.8, TODAS as versões
    DEVEM conter, IMEDIATAMENTE ACIMA de cada versão:
 
       ### IA responsável pelo envio
@@ -31,6 +31,11 @@ REGRAS APLICADAS:
    Blocos globais no topo NÃO são aceitos.
 
 7. Commits apenas de documentação/configuração são liberados sem changelog.
+
+Além disso:
+
+- Caso o CHANGELOG.md ainda não exista no histórico (bootstrap inicial),
+  o hook permite o primeiro commit sem exigir versões anteriores.
 
 Filosofia do hook:
 - Nunca reescrever histórico
@@ -44,9 +49,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 SEMVER_PATTERN = r"\d+\.\d+\.\d+"
-VERSAO_EXIGE_IA = "3.2.48"
+VERSAO_EXIGE_IA = "3.7.8"
 VERSAO_EXIGE_HORA = "3.2.0"
 
 
@@ -88,8 +92,14 @@ def get_staged_files():
 
 
 def get_versoes_head():
-    """Extrai versões do CHANGELOG já commitado (HEAD)."""
+    """
+    Extrai versões do CHANGELOG já commitado (HEAD).
+
+    Se o arquivo ainda não existir (bootstrap inicial),
+    retorna lista vazia sem erro.
+    """
     r = run(["git", "show", "HEAD:CHANGELOG.md"])
+
     if r.returncode != 0:
         return []
 
@@ -111,7 +121,7 @@ def get_changelog_staged():
 
 def is_documentacao_apenas(staged_files):
     """
-    Verifica se o commit contém apenas documentação/config.
+    Verifica se o commit contém apenas documentação/configuração.
 
     Qualquer arquivo com extensão de código exige changelog.
     """
@@ -152,7 +162,7 @@ def validar_datas(texto):
 
 def bloco_acima_da_versao(texto, versao, linhas=6):
     """
-    Retorna bloco imediatamente acima da versão informada.
+    Retorna o bloco imediatamente acima da versão informada.
     Usado para validar metadados de IA.
     """
     lista = texto.splitlines()
@@ -173,7 +183,7 @@ def validar_bloco_ia(bloco):
 
 
 # ---------------------------------------------------------------------
-# Lógica principal do hook
+# Lógica principal
 # ---------------------------------------------------------------------
 
 
@@ -184,7 +194,7 @@ def main():  # noqa: C901
     if not staged_files:
         return 0
 
-    # Apenas documentação
+    # Apenas documentação/configuração
     if is_documentacao_apenas(staged_files):
         return 0
 
@@ -201,8 +211,11 @@ def main():  # noqa: C901
     versoes_head = get_versoes_head()
     versoes_staged = extrair_versoes(changelog_staged)
 
+    # Bootstrap: CHANGELOG não existia antes
+    bootstrap = not versoes_head
+
     # --------------------------------------------------------------
-    # Validação de formato das versões
+    # Validar formato das versões
     # --------------------------------------------------------------
 
     for v in versoes_staged:
@@ -214,22 +227,23 @@ def main():  # noqa: C901
     # Impedir alteração de versões já lançadas
     # --------------------------------------------------------------
 
-    removidas = set(versoes_head) - set(versoes_staged)
-    removidas = {v for v in removidas if re.match(rf"^{SEMVER_PATTERN}$", v)}
+    if not bootstrap:
+        removidas = set(versoes_head) - set(versoes_staged)
+        removidas = {v for v in removidas if re.match(rf"^{SEMVER_PATTERN}$", v)}
 
-    if removidas:
-        print("\n[ERRO] Versões já lançadas foram removidas ou alteradas:")
-        for v in removidas:
-            print(f" - {v}")
-        return 1
+        if removidas:
+            print("\n[ERRO] Versões já lançadas foram removidas ou alteradas:")
+            for v in removidas:
+                print(f" - {v}")
+            return 1
 
     # --------------------------------------------------------------
-    # Exigir nova versão
+    # Exigir nova versão (exceto bootstrap)
     # --------------------------------------------------------------
 
     novas = [v for v in versoes_staged if v not in versoes_head and v != "Unreleased"]
 
-    if not novas:
+    if not novas and not bootstrap:
         print("\n[ERRO] Nenhuma nova versão foi criada no CHANGELOG\n")
         return 1
 
@@ -237,15 +251,16 @@ def main():  # noqa: C901
     # Nova versão deve estar no topo
     # --------------------------------------------------------------
 
-    primeira_real = None
-    for v in versoes_staged:
-        if v != "Unreleased":
-            primeira_real = v
-            break
+    if not bootstrap:
+        primeira_real = None
+        for v in versoes_staged:
+            if v != "Unreleased":
+                primeira_real = v
+                break
 
-    if primeira_real not in novas:
-        print("\n[ERRO] Nova versão deve estar no TOPO do CHANGELOG\n")
-        return 1
+        if primeira_real not in novas:
+            print("\n[ERRO] Nova versão deve estar no TOPO do CHANGELOG\n")
+            return 1
 
     # --------------------------------------------------------------
     # Validar data com hora (>= 3.2.0)
@@ -260,7 +275,7 @@ def main():  # noqa: C901
         return 1
 
     # --------------------------------------------------------------
-    # Validar bloco de IA PARA CADA versão >= 3.2.48
+    # Validar bloco de IA PARA CADA versão >= 3.7.8
     # --------------------------------------------------------------
 
     for versao in versoes_staged:
@@ -278,7 +293,7 @@ def main():  # noqa: C901
             print("### IA responsável pelo envio")
             print("- Nome da IA (ChatGPT, Copilot, Gemini, Grok...)")
             print("- Modelo: <modelo>\n")
-            print("Cada versão >= 3.2.48 DEVE possuir seu próprio registro de IA.")
+            print("Cada versão >= 3.7.8 DEVE possuir seu próprio registro de IA.")
             print("Blocos globais no topo não são permitidos.\n")
             return 1
 

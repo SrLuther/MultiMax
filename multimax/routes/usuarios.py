@@ -1463,109 +1463,138 @@ def perfil_senha():
 
 @bp.route("/gestao", methods=["GET"])
 @login_required
-def gestao():
+def gestao():  # noqa: C901
     import logging
 
     logger = logging.getLogger(__name__)
 
-    if current_user.nivel not in ("admin", "DEV"):
-        flash("Acesso negado. Apenas Administradores.", "danger")
-        return redirect(url_for("estoque.index"))
-    q = (request.args.get("q") or "").strip()
-    view = (request.args.get("view") or "").strip()
-    _ensure_collaborator_schema()
-
-    # Resetar qualquer transação abortada antes de iniciar as consultas
     try:
-        db.session.rollback()
-    except Exception:
-        pass
+        if current_user.nivel not in ("admin", "DEV"):
+            flash("Acesso negado. Apenas Administradores.", "danger")
+            return redirect(url_for("estoque.index"))
+        q = (request.args.get("q") or "").strip()
+        view = (request.args.get("view") or "").strip()
+        _ensure_collaborator_schema()
 
-    u_page = _safe_int_arg("u_page", 1)
-    l_page = _safe_int_arg("l_page", 1)
-
-    try:
-        logger.info("gestao: iniciando _collect_logs()")
-        logs = _collect_logs()
-        logger.info(f"gestao: _collect_logs() ok, {len(logs)} logs")
-    except Exception as e:
-        logger.error(f"gestao: erro em _collect_logs: {e}", exc_info=True)
-        raise
-
-    logs_page, l_total_pages, l_page = _paginate_list(logs, l_page, 2)
-
-    # Buscar todos os usuários (com ou sem collaborator)
-    all_users_list, filtered_users = _all_users_for_display(q)
-    users_page, u_total_pages, u_page = _paginate_list(filtered_users, u_page, 5)
-    all_users = User.query.all()
-
-    acc_user = (request.args.get("acc_user") or "").strip()
-    access_ctx = _access_logs_context(acc_user)
-
-    senha_sugestao = "123456"
-    roles = JobRole.query.order_by(JobRole.name.asc()).all()
-    setores = Setor.query.filter_by(ativo=True).order_by(Setor.nome.asc()).all()
-
-    # Buscar colaboradores para o banco de horas (apenas que têm collaborator)
-    colaboradores_colab = Collaborator.query.order_by(Collaborator.name.asc()).all()
-    for c in colaboradores_colab:
+        # Resetar qualquer transação abortada antes de iniciar as consultas
         try:
-            c.display_name = _get_display_name(c)
+            db.session.rollback()
         except Exception:
-            c.display_name = ""
+            pass
 
-    # Rollback qualquer transação abortada antes de chamar _gestao_bank_context
-    try:
-        db.session.rollback()
-    except Exception:
-        pass
+        u_page = _safe_int_arg("u_page", 1)
+        l_page = _safe_int_arg("l_page", 1)
 
-    bank_ctx = _gestao_bank_context(colaboradores_colab, per_page=10)
-    vps_storage = _vps_storage_info()
+        try:
+            logger.info("gestao: iniciando _collect_logs()")
+            logs = _collect_logs()
+            logger.info(f"gestao: _collect_logs() ok, {len(logs)} logs")
+        except Exception as e:
+            logger.error(f"gestao: erro em _collect_logs: {e}", exc_info=True)
+            # Retornar logs vazios em caso de erro ao invés de quebrar toda a página
+            logs = []
+            flash("Aviso: Não foi possível carregar o histórico de logs.", "warning")
 
-    return render_template(
-        "gestao.html",
-        active_page="gestao",
-        logs_page=logs_page,
-        l_page=l_page,
-        l_total_pages=l_total_pages,
-        users_page=users_page,
-        u_page=u_page,
-        u_total_pages=u_total_pages,
-        q=q,
-        view=view,
-        senha_sugestao=senha_sugestao,
-        roles=roles,
-        setores=setores,
-        colaboradores=colaboradores_colab,
-        folgas=bank_ctx["folgas"],
-        users=all_users,
-        bank_balances=bank_ctx["bank_balances"],
-        recent_entries=bank_ctx["recent_entries"],
-        access_page=access_ctx["access_page"],
-        acc_page=access_ctx["acc_page"],
-        acc_total_pages=access_ctx["acc_total_pages"],
-        acc_user=acc_user,
-        saldo_collab=bank_ctx["saldo_collab"],
-        saldo_hours=bank_ctx["saldo_hours"],
-        saldo_days=bank_ctx["saldo_days"],
-        saldo_items=bank_ctx["saldo_items"],
-        saldo_start=bank_ctx["saldo_start"],
-        saldo_end=bank_ctx["saldo_end"],
-        vps_storage=vps_storage,
-        colaboradores_page=bank_ctx["colaboradores_page"],
-        bh_page=bank_ctx["bh_page"],
-        bh_total_pages=bank_ctx["bh_total_pages"],
-        bh_collab_id=bank_ctx["bh_collab_id"],
-        leave_credits_page=bank_ctx["leave_credits_page"],
-        lc_page=bank_ctx["lc_page"],
-        lc_total_pages=bank_ctx["lc_total_pages"],
-        lc_collab_id=bank_ctx["lc_collab_id"],
-        leave_assignments_page=bank_ctx["leave_assignments_page"],
-        la_page=bank_ctx["la_page"],
-        la_total_pages=bank_ctx["la_total_pages"],
-        la_collab_id=bank_ctx["la_collab_id"],
-    )
+        logs_page, l_total_pages, l_page = _paginate_list(logs, l_page, 2)
+
+        # Buscar todos os usuários (com ou sem collaborator)
+        all_users_list, filtered_users = _all_users_for_display(q)
+        users_page, u_total_pages, u_page = _paginate_list(filtered_users, u_page, 5)
+        all_users = User.query.all()
+
+        acc_user = (request.args.get("acc_user") or "").strip()
+        access_ctx = _access_logs_context(acc_user)
+
+        senha_sugestao = "123456"
+        roles = JobRole.query.order_by(JobRole.name.asc()).all()
+        setores = Setor.query.filter_by(ativo=True).order_by(Setor.nome.asc()).all()
+
+        # Buscar colaboradores para o banco de horas (apenas que têm collaborator)
+        colaboradores_colab = Collaborator.query.order_by(Collaborator.name.asc()).all()
+        for c in colaboradores_colab:
+            try:
+                c.display_name = _get_display_name(c)
+            except Exception:
+                c.display_name = ""
+
+        # Rollback qualquer transação abortada antes de chamar _gestao_bank_context
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+
+        bank_ctx = _gestao_bank_context(colaboradores_colab, per_page=10)
+        vps_storage = _vps_storage_info()
+
+        return render_template(
+            "gestao.html",
+            active_page="gestao",
+            logs_page=logs_page,
+            l_page=l_page,
+            l_total_pages=l_total_pages,
+            users_page=users_page,
+            u_page=u_page,
+            u_total_pages=u_total_pages,
+            q=q,
+            view=view,
+            senha_sugestao=senha_sugestao,
+            roles=roles,
+            setores=setores,
+            colaboradores=colaboradores_colab,
+            folgas=bank_ctx["folgas"],
+            users=all_users,
+            bank_balances=bank_ctx["bank_balances"],
+            recent_entries=bank_ctx["recent_entries"],
+            access_page=access_ctx["access_page"],
+            acc_page=access_ctx["acc_page"],
+            acc_total_pages=access_ctx["acc_total_pages"],
+            acc_user=acc_user,
+            saldo_collab=bank_ctx["saldo_collab"],
+            saldo_hours=bank_ctx["saldo_hours"],
+            saldo_days=bank_ctx["saldo_days"],
+            saldo_items=bank_ctx["saldo_items"],
+            saldo_start=bank_ctx["saldo_start"],
+            saldo_end=bank_ctx["saldo_end"],
+            vps_storage=vps_storage,
+            colaboradores_page=bank_ctx["colaboradores_page"],
+            bh_page=bank_ctx["bh_page"],
+            bh_total_pages=bank_ctx["bh_total_pages"],
+            bh_collab_id=bank_ctx["bh_collab_id"],
+            leave_credits_page=bank_ctx["leave_credits_page"],
+            lc_page=bank_ctx["lc_page"],
+            lc_total_pages=bank_ctx["lc_total_pages"],
+            lc_collab_id=bank_ctx["lc_collab_id"],
+            leave_assignments_page=bank_ctx["leave_assignments_page"],
+            la_page=bank_ctx["la_page"],
+            la_total_pages=bank_ctx["la_total_pages"],
+            la_collab_id=bank_ctx["la_collab_id"],
+        )
+    except Exception as e:
+        logger.error(f"gestao: erro crítico: {e}", exc_info=True)
+        # Garantir rollback de qualquer transação pendente
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+
+        # Se for requisição que espera JSON, retornar JSON
+        if request.accept_mimetypes.best == "application/json":
+            from flask import jsonify
+
+            return (
+                jsonify(
+                    {
+                        "message": f"Erro ao carregar página de gestão: {str(e)}",
+                        "error_type": type(e).__name__,
+                        "status": "erro",
+                    }
+                ),
+                500,
+            )
+
+        # Caso contrário, mostrar flash e redirecionar
+        flash(f"Erro ao carregar página de gestão: {str(e)}", "danger")
+        return redirect(url_for("home.index"))
 
 
 @bp.route("/gestao/colaboradores/criar", methods=["POST"])
