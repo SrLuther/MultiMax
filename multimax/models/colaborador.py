@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import DateTime, Float, Integer, String
+from sqlalchemy.ext.hybrid import hybrid_property
 
 from .. import db as app_db
 
@@ -40,13 +41,17 @@ class Colaborador(db.Model):
     created_at = db.Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
-    @property
+    @hybrid_property
     def name(self):
         return self.nome
 
     @name.setter
     def name(self, value):
         self.nome = value
+
+    @name.expression
+    def name(cls):
+        return cls.nome
 
     def __repr__(self):
         return f"<Colaborador {self.nome}>"

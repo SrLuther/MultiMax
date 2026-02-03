@@ -10,6 +10,17 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.13] - 2026-02-03 04:30:00
+
+### Fixed
+- `Colaborador.name` agora é híbrido para permitir ordenação em consultas
+
+---
+
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.12] - 2026-02-03 04:20:00
 
 ### Fixed
