@@ -10,6 +10,19 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: Claude Haiku 4.5
 
+## [3.7.26] - 2026-02-03 15:00:00
+
+### Fixed
+- **CRÍTICO**: Adicionadas colunas `setor_id` faltando nas tabelas ciclo_semana, ciclo_folga, ciclo_ocorrencia e ciclo_fechamento
+- Corrigida migração Alembic 001: revision ID agora é "001" em vez de "001_initial_tables" para referência correta
+- Corrigido erro "no such column: ciclo_semana.setor_id" que impedia deletar setores
+- Implementada migração Alembic 002 para adicionar setor_id às tabelas de ciclos
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: Claude Haiku 4.5
+
 ## [3.7.25] - 2026-02-03 14:45:00
 
 ### Fixed
