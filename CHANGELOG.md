@@ -4,6 +4,14 @@
 - GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.6.6] - 2026-02-03 04:45:00
+
+### 🔧 Model Migration: Missing Models Restored
+- **feat(models)**: Add UserLogin and SystemLog models for authentication logging
+- **fix(auth)**: Restore missing model imports that caused startup failure
+- **improvement**: Create new logs_auth.py module to organize auth-related models
+- **chore**: Update models/__init__.py exports to include new authentication models
+
 ## [3.6.5] - 2026-02-03 03:40:00
 
 ### 🔧 Logging Optimization

@@ -17,6 +17,7 @@ from .ciclo import CicloMensal, CicloSemanal, HistoricoColaborador
 from .colaborador import Colaborador
 from .escala import Escala
 from .logs import Heartbeat, LogDeploy, LogErro, LogWhatsapp
+from .logs_auth import SystemLog, UserLogin
 from .user import User
 from .whatsapp_config import WhatsappConfig, WhatsappMessage
 
@@ -46,6 +47,7 @@ __all__ = [
     "db",
     "Base",
     "User",
+    "UserLogin",
     "Colaborador",
     "Collaborator",  # Alias para compatibilidade
     "CicloSemanal",
@@ -58,4 +60,5 @@ __all__ = [
     "LogWhatsapp",
     "LogDeploy",
     "Heartbeat",
+    "SystemLog",
 ]
