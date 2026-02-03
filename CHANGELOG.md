@@ -8,6 +8,18 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 ---
 ### IA responsável pelo envio
 - Nome da IA: GitHub Copilot
+- Modelo: Claude Sonnet 4.5
+
+## [3.7.21] - 2026-02-03 11:30:00
+
+### Fixed
+- Implementado layout Grid para alinhamento perfeito dos cards "Gerenciar Colaboradores" e "Cargos e Permissões" em 50% cada
+- Corrigidas type hints no modelo Colaborador para eliminar warnings de redefinição
+- Unificado layout da página de gestão com estrutura Grid responsiva
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
 - Modelo: Claude Haiku 4.5
 
 ## [3.7.20] - 2026-02-03 11:00:00

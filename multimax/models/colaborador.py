@@ -42,15 +42,15 @@ class Colaborador(db.Model):
     updated_at = db.Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     @hybrid_property
-    def name(self):  # pyright: ignore[reportRedeclaration] # type: ignore[no-redef]
+    def name(self):  # type: ignore[no-redef]
         return self.nome
 
     @name.setter
-    def name(self, value):  # pyright: ignore[reportRedeclaration] # type: ignore[no-redef]
+    def name(self, value):  # type: ignore[no-redef]
         self.nome = value
 
-    @name.expression
-    def name(cls):  # pyright: ignore[reportRedeclaration] # type: ignore[no-redef]
+    @name.expression  # type: ignore[no-redef]
+    def name(cls):
         return cls.nome
 
     def __repr__(self):

@@ -128,7 +128,7 @@
         </div>
     </div>
 
-    <!-- Gerenciar Usuários -->
+    <!-- Seção de Gerenciamento -->
     {% if not view or view == 'usuarios' %}
     <div class="gestao-card-modern" id="gerenciar-usuarios">
         <div class="gestao-card-header-modern">
@@ -248,190 +248,190 @@
             </div>
             <div class="gestao-pagination-modern">
                 <span class="gestao-pagination-info">Página {{ u_page }} de {{ u_total_pages }}</span>
-                            <div class="gestao-pagination-btns">
-                                <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page-1 if u_page>1 else 1 }}&c_page={{ c_page }}&l_page={{ l_page }}&q={{ q }}&view={{ view }}">
-                                    <i class="bi bi-chevron-left"></i>
-                                </a>
-                <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page+1 if u_page<u_total_pages else u_total_pages }}&c_page={{ c_page }}&l_page={{ l_page }}&q={{ q }}&view={{ view }}">
-                    <i class="bi bi-chevron-right"></i>
-                </a>
+                <div class="gestao-pagination-btns">
+                    <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page-1 if u_page>1 else 1 }}&c_page={{ c_page }}&l_page={{ l_page }}&q={{ q }}&view={{ view }}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                    <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page+1 if u_page<u_total_pages else u_total_pages }}&c_page={{ c_page }}&l_page={{ l_page }}&q={{ q }}&view={{ view }}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </div>
             </div>
         </div>
     </div>
-    {% endif %}
 
-    <!-- Gerenciar Colaboradores -->
-    {% if not view or view == 'usuarios' %}
-    <div class="gestao-card-modern" id="gerenciar-colaboradores">
-        <div class="gestao-card-header-modern">
-            <h3 class="gestao-card-title">
-                <i class="bi bi-people"></i>
-                Gerenciar Colaboradores
-            </h3>
-        </div>
-        <div class="gestao-card-body-modern">
-            <div class="gestao-table-wrapper">
-                <table class="gestao-table-modern">
-                    <thead>
-                        <tr>
-                            <th>Nome</th>
-                            <th>Usuário</th>
-                            <th>Status</th>
-                            <th class="text-center">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for c in colabs_page %}
-                        <tr class="gestao-table-row">
-                            <td>
-                                <div class="gestao-colab-info">
-                                    <div class="gestao-colab-avatar-small">
-                                        {{ (c.name or '')[:2].upper() }}
+    <!-- Container Grid para Colaboradores e Cargos -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; width: 100%; align-items: start; margin-bottom: 2rem;">
+        <!-- Gerenciar Colaboradores -->
+        <div class="gestao-card-modern" id="gerenciar-colaboradores" style="margin-bottom: 0;">
+            <div class="gestao-card-header-modern">
+                <h3 class="gestao-card-title">
+                    <i class="bi bi-people"></i>
+                    Gerenciar Colaboradores
+                </h3>
+            </div>
+            <div class="gestao-card-body-modern">
+                <div class="gestao-table-wrapper">
+                    <table class="gestao-table-modern">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Usuário</th>
+                                <th>Status</th>
+                                <th class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in colabs_page %}
+                            <tr class="gestao-table-row">
+                                <td>
+                                    <div class="gestao-colab-info">
+                                        <div class="gestao-colab-avatar-small">
+                                            {{ (c.name or '')[:2].upper() }}
+                                        </div>
+                                        <strong>{{ c.name }}</strong>
                                     </div>
-                                    <strong>{{ c.name }}</strong>
-                                            </div>
-                                        </td>
-                                        <td>{{ c.user.username if c.user else '-' }}</td>
-                                        <td>
-                                            {% if c.user %}
-                                            <span class="gestao-badge gestao-badge-primary">Com usuário</span>
-                                            {% else %}
-                                            <span class="gestao-badge gestao-badge-secondary">Sem usuário</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <div class="gestao-actions-modern">
-                                                <button class="gestao-btn-modern gestao-btn-sm gestao-btn-outline" data-bs-toggle="modal" data-bs-target="#modalEditColab{{ c.id }}" title="Editar">
-                                                    <i class="bi bi-pencil"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                </td>
+                                <td>{{ c.user.username if c.user else '-' }}</td>
+                                <td>
+                                    {% if c.user %}
+                                    <span class="gestao-badge gestao-badge-primary">Com usuário</span>
                                     {% else %}
-                                    <tr>
-                                        <td colspan="4" class="gestao-empty-cell">
-                                            <div class="gestao-empty-state">
-                                                <i class="bi bi-people"></i>
-                                                <span>Nenhum colaborador</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="gestao-pagination-modern">
-                            <span class="gestao-pagination-info">Página {{ c_page }} de {{ c_total_pages }}</span>
-                            <div class="gestao-pagination-btns">
-                                <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?c_page={{ c_page-1 if c_page>1 else 1 }}&u_page={{ u_page }}&l_page={{ l_page }}&q={{ q }}&view={{ view }}">
-                                    <i class="bi bi-chevron-left"></i>
-                                </a>
-                                <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?c_page={{ c_page+1 if c_page<c_total_pages else c_total_pages }}&u_page={{ u_page }}&l_page={{ l_page }}&q={{ q }}&view={{ view }}">
-                                    <i class="bi bi-chevron-right"></i>
-                                </a>
-                            </div>
-                        </div>
+                                    <span class="gestao-badge gestao-badge-secondary">Sem usuário</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="gestao-actions-modern">
+                                        <button class="gestao-btn-modern gestao-btn-sm gestao-btn-outline" data-bs-toggle="modal" data-bs-target="#modalEditColab{{ c.id }}" title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="gestao-empty-cell">
+                                    <div class="gestao-empty-state">
+                                        <i class="bi bi-people"></i>
+                                        <span>Nenhum colaborador</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="gestao-pagination-modern">
+                    <span class="gestao-pagination-info">Página {{ c_page }} de {{ c_total_pages }}</span>
+                    <div class="gestao-pagination-btns">
+                        <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?c_page={{ c_page-1 if c_page>1 else 1 }}&u_page={{ u_page }}&l_page={{ l_page }}&q={{ q }}&view={{ view }}">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                        <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?c_page={{ c_page+1 if c_page<c_total_pages else c_total_pages }}&u_page={{ u_page }}&l_page={{ l_page }}&q={{ q }}&view={{ view }}">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
                     </div>
                 </div>
-                {% endif %}
-
-    <!-- Cargos e Permissões -->
-    {% if not view or view == 'roles' %}
-    <div class="gestao-card-modern" id="cargos-permissoes">
-        <div class="gestao-card-header-modern">
-            <h3 class="gestao-card-title">
-                <i class="bi bi-award"></i>
-                Cargos e Permissões
-            </h3>
+            </div>
         </div>
-        <div class="gestao-card-body-modern">
-            <form method="post" action="{{ url_for('usuarios.gestao_role_criar') }}" class="gestao-role-form-modern">
-                <div class="gestao-form-row-modern">
-                    <div class="gestao-form-group-modern" style="flex: 2;">
-                        <label class="gestao-label-modern">
-                            <i class="bi bi-tag"></i>
-                            Nome do Cargo
-                        </label>
-                        <input type="text" name="name" class="gestao-input-modern" placeholder="Ex: Atendente" required>
-                    </div>
-                    <div class="gestao-form-group-modern">
-                        <label class="gestao-label-modern">
-                            <i class="bi bi-shield-check"></i>
-                            Permissão
-                        </label>
-                        <select name="nivel" class="gestao-select-modern">
-                            <option value="visualizador">Visualizador</option>
-                            <option value="operador">Operador</option>
-                            <option value="admin">Gerente</option>
-                            {% if current_user.nivel == 'DEV' %}
-                            <option value="DEV">Desenvolvedor</option>
-                            {% endif %}
-                        </select>
-                    </div>
-                    <div class="gestao-form-group-modern" style="align-self: end;">
-                        <button class="gestao-btn-modern gestao-btn-primary" type="submit">
-                            <i class="bi bi-plus-lg"></i>
-                            Adicionar
-                        </button>
-                    </div>
-                </div>
-            </form>
 
-            <div class="gestao-table-wrapper">
-                <table class="gestao-table-modern">
-                    <thead>
-                        <tr>
-                            <th>Nome</th>
-                            <th>Permissão</th>
-                            <th class="text-right">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for r in roles %}
-                        <tr class="gestao-table-row">
-                            <td><strong>{{ r.name }}</strong></td>
-                            <td>
-                                {% if r.nivel == 'admin' %}
-                                <span class="gestao-badge gestao-badge-primary">Gerente</span>
-                                {% elif r.nivel == 'operador' %}
-                                <span class="gestao-badge gestao-badge-info">Operador</span>
-                                {% else %}
-                                <span class="gestao-badge gestao-badge-secondary">Visualizador</span>
+        <!-- Cargos e Permissões -->
+        <div class="gestao-card-modern" id="cargos-permissoes" style="margin-bottom: 0;">
+            <div class="gestao-card-header-modern">
+                <h3 class="gestao-card-title">
+                    <i class="bi bi-award"></i>
+                    Cargos e Permissões
+                </h3>
+            </div>
+            <div class="gestao-card-body-modern">
+                <form method="post" action="{{ url_for('usuarios.gestao_role_criar') }}" class="gestao-role-form-modern">
+                    <div class="gestao-form-row-modern">
+                        <div class="gestao-form-group-modern" style="flex: 2;">
+                            <label class="gestao-label-modern">
+                                <i class="bi bi-tag"></i>
+                                Nome do Cargo
+                            </label>
+                            <input type="text" name="name" class="gestao-input-modern" placeholder="Ex: Atendente" required>
+                        </div>
+                        <div class="gestao-form-group-modern">
+                            <label class="gestao-label-modern">
+                                <i class="bi bi-shield-check"></i>
+                                Permissão
+                            </label>
+                            <select name="nivel" class="gestao-select-modern">
+                                <option value="visualizador">Visualizador</option>
+                                <option value="operador">Operador</option>
+                                <option value="admin">Gerente</option>
+                                {% if current_user.nivel == 'DEV' %}
+                                <option value="DEV">Desenvolvedor</option>
                                 {% endif %}
-                            </td>
-                            <td>
-                                <div class="gestao-actions-modern gestao-actions-right">
-                                    <form method="post" action="{{ url_for('usuarios.gestao_role_editar', id=r.id) }}" class="gestao-inline-form">
-                                        <input type="text" name="name" class="gestao-input-modern gestao-input-sm" value="{{ r.name }}">
-                                        <select name="nivel" class="gestao-select-modern gestao-select-sm">
-                                            <option value="visualizador" {% if r.nivel=='visualizador' %}selected{% endif %}>Visualizador</option>
-                                            <option value="operador" {% if r.nivel=='operador' %}selected{% endif %}>Operador</option>
-                                            <option value="admin" {% if r.nivel=='admin' %}selected{% endif %}>Gerente</option>
-                                        </select>
-                                        <button class="gestao-btn-modern gestao-btn-sm gestao-btn-primary" type="submit" title="Salvar">
-                                            <i class="bi bi-save"></i>
-                                        </button>
-                                    </form>
-                                    <form method="post" action="{{ url_for('usuarios.gestao_role_excluir', id=r.id) }}" class="gestao-inline-form" onsubmit="return confirm('Excluir cargo {{ r.name }}?')">
-                                        <button class="gestao-btn-modern gestao-btn-sm gestao-btn-danger" type="submit" title="Excluir">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="3" class="gestao-empty-cell">
-                                <div class="gestao-empty-state">
-                                    <i class="bi bi-award"></i>
-                                    <span>Nenhum cargo</span>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                            </select>
+                        </div>
+                        <div class="gestao-form-group-modern" style="align-self: end;">
+                            <button class="gestao-btn-modern gestao-btn-primary" type="submit">
+                                <i class="bi bi-plus-lg"></i>
+                                Adicionar
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="gestao-table-wrapper">
+                    <table class="gestao-table-modern">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Permissão</th>
+                                <th class="text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in roles %}
+                            <tr class="gestao-table-row">
+                                <td><strong>{{ r.name }}</strong></td>
+                                <td>
+                                    {% if r.nivel == 'admin' %}
+                                    <span class="gestao-badge gestao-badge-primary">Gerente</span>
+                                    {% elif r.nivel == 'operador' %}
+                                    <span class="gestao-badge gestao-badge-info">Operador</span>
+                                    {% else %}
+                                    <span class="gestao-badge gestao-badge-secondary">Visualizador</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="gestao-actions-modern gestao-actions-right">
+                                        <form method="post" action="{{ url_for('usuarios.gestao_role_editar', id=r.id) }}" class="gestao-inline-form">
+                                            <input type="text" name="name" class="gestao-input-modern gestao-input-sm" value="{{ r.name }}">
+                                            <select name="nivel" class="gestao-select-modern gestao-select-sm">
+                                                <option value="visualizador" {% if r.nivel=='visualizador' %}selected{% endif %}>Visualizador</option>
+                                                <option value="operador" {% if r.nivel=='operador' %}selected{% endif %}>Operador</option>
+                                                <option value="admin" {% if r.nivel=='admin' %}selected{% endif %}>Gerente</option>
+                                            </select>
+                                            <button class="gestao-btn-modern gestao-btn-sm gestao-btn-primary" type="submit" title="Salvar">
+                                                <i class="bi bi-save"></i>
+                                            </button>
+                                        </form>
+                                        <form method="post" action="{{ url_for('usuarios.gestao_role_excluir', id=r.id) }}" class="gestao-inline-form" onsubmit="return confirm('Excluir cargo {{ r.name }}?')">
+                                            <button class="gestao-btn-modern gestao-btn-sm gestao-btn-danger" type="submit" title="Excluir">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="gestao-empty-cell">
+                                    <div class="gestao-empty-state">
+                                        <i class="bi bi-award"></i>
+                                        <span>Nenhum cargo</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -439,7 +439,6 @@
 </div>
 
 <!-- Modal Editar Colaborador -->
-{% if not view or view == 'colaboradores' %}
 {% for c in colaboradores %}
 <div class="modal fade" id="modalEditColab{{ c.id }}" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -576,7 +575,6 @@
     </div>
 </div>
 {% endfor %}
-{% endif %}
 
 <!-- Modal Novo Colaborador -->
 <div class="modal fade" id="modalNovoColaborador" tabindex="-1">
