@@ -44,7 +44,7 @@ from .scheduling import (
     RegistroJornadaChange,
     TimeOffRecord,
 )
-from .special import EscalaEspecial, EstoqueProducao, HistoricoAjusteEstoque
+from .special import AppSetting, EscalaEspecial, EstoqueProducao, HistoricoAjusteEstoque
 from .user import User
 from .whatsapp_config import WhatsappConfig, WhatsappMessage
 
@@ -73,6 +73,8 @@ _LEGACY_EXPORTS = []
 __all__ = [
     "db",
     "Base",
+    # App Configuration
+    "AppSetting",
     # User
     "User",
     "UserLogin",

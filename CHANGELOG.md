@@ -4,6 +4,13 @@
 - GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.3] - 2026-02-03 06:15:00
+
+### 🔧 Fix: Add Missing AppSetting Model
+- **feat(models)**: Add AppSetting model for application configuration storage
+- **fix(imports)**: Export AppSetting in models/__init__.py
+- **chore**: Remove temporary backup file (models_backup_v3.6.4.py)
+
 ## [3.7.2] - 2026-02-03 06:00:00
 
 ### 🔧 Fix: Circular Import Resolution
