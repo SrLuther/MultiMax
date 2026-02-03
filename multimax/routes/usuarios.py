@@ -954,11 +954,11 @@ def _load_average_string():
 
 
 def _update_collaborator_basic_fields(collab):
-    collab.name = ((request.form.get("name") or collab.name or "").strip()) or collab.name
-    role_in = request.form.get("role")
-    collab.role = ((role_in or collab.role or "").strip()) or None
+    collab.nome = ((request.form.get("name") or collab.nome or "").strip()) or collab.nome
+    funcao_in = request.form.get("role")
+    collab.funcao = ((funcao_in or collab.funcao or "").strip()) or None
     active_str = request.form.get("active", "on") or "on"
-    collab.active = active_str.lower() in ("on", "true", "1")
+    collab.ativo = active_str.lower() in ("on", "true", "1")
     collab.regular_team = _team_value(request.form.get("regular_team"), collab.regular_team)
     collab.sunday_team = _team_value(request.form.get("sunday_team"), collab.sunday_team)
     collab.special_team = _team_value(request.form.get("special_team"), collab.special_team)

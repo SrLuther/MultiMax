@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: Claude Sonnet 4.5
 
+## [3.7.23] - 2026-02-03 12:15:00
+
+### Fixed
+- Corrigidos nomes de campos do modelo Colaborador na função de atualização (nome, funcao, ativo)
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: Claude Sonnet 4.5
+
 ## [3.7.22] - 2026-02-03 12:00:00
 
 ### Added
