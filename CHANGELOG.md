@@ -10,13 +10,24 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.17] - 2026-02-03 09:00:00
+
+### Fixed
+- Corrigido erro de redeclaração em `Colaborador.name` usando `type: ignore[no-redef]` para Mypy
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.16] - 2026-02-03 08:00:00
 
 ### Fixed
-- Corrigido erro de redeclaração em `Colaborador.name` usando `pyright: ignore`
+- Corrigido erro de redeclaração em `Colaborador.name` usando `pyright: ignore` e `type: ignore[no-redef]`
 - Migrados 89 registros de jornada dos 6 açougueiros
 - Migrados 41 registros de folgas dos 6 açougueiros
 - Banco PostgreSQL agora contém todos os dados dos colaboradores principais
+- Removidos 10 scripts de migração temporários do repositório
 
 ---
 ### IA responsável pelo envio
