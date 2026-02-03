@@ -75,7 +75,6 @@ def _handle_error(error, status_code, error_type, severity="WARNING", notify=Fal
         severity: Nível de severidade (DEBUG, INFO, WARNING, ERROR, CRITICAL)
         notify: Se deve notificar via WhatsApp
     """
-
     # Log imediato do erro com logging module
     import logging
 

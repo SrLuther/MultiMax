@@ -126,7 +126,10 @@ class MedicalCertificate(db.Model):
     )
 
     collaborator = db.relationship(
-        "Colaborador", foreign_keys=[collaborator_id], primaryjoin="MedicalCertificate.collaborator_id==Colaborador.id", backref=db.backref("medical_certificates", lazy=True)
+        "Colaborador",
+        foreign_keys=[collaborator_id],
+        primaryjoin="MedicalCertificate.collaborator_id==Colaborador.id",
+        backref=db.backref("medical_certificates", lazy=True),
     )
 
     def __repr__(self):
