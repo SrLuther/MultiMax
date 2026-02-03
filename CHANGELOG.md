@@ -4,6 +4,20 @@
 - GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.6.0] - 2026-02-03 03:15:00
+
+### 🧹 Limpeza de Arquivos Obsoletos
+- **chore(cleanup)**: Remover 14 scripts de teste e migração descontinuados
+- **chore(cleanup)**: Remover 13 documentos obsoletos de versões anteriores
+- **docs**: Adicionar `CLEANUP_ANALYSIS.md` com análise de arquivos obsoletos
+- **chore**: Manter projeto limpo removendo soluções momentâneas
+
+Arquivos removidos:
+- Scripts de migração antigos: `migrate_users.py`, etc
+- Scripts de teste descontinuados: `test_*.py`, `check_tables.py`, etc
+- Documentação obsoleta de v3.3.0 e versões anteriores
+- Documentos de sincronização local (BANCO_SINCRONIZADO.md, SYNC_*.md, etc)
+
 ## [3.5.2] - 2026-02-03 03:00:00
 
 ### 🔨 Correcoes de Linting Completas
