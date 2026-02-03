@@ -8,6 +8,7 @@
   "reportOperatorIssue": false,
   "reportOptionalMemberAccess": false,
   "reportArgumentType": false,
+  "reportRedeclaration": false,
   "useLibraryCodeForTypes": true,
   "exclude": [
     "dist",

@@ -42,14 +42,14 @@ class Colaborador(db.Model):
     updated_at = db.Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     @hybrid_property
-    def name(self):  # type: ignore[no-redef]
+    def name(self):
         return self.nome
 
     @name.setter
-    def name(self, value):  # type: ignore[no-redef]
+    def name(self, value):
         self.nome = value
 
-    @name.expression  # type: ignore[no-redef]
+    @name.expression
     def name(cls):
         return cls.nome
 

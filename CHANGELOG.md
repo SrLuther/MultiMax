@@ -10,11 +10,24 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: Claude Sonnet 4.5
 
+## [3.7.22] - 2026-02-03 12:00:00
+
+### Added
+- Possibilidade de associar usuários já existentes a colaboradores já existentes no modal de edição
+
+### Fixed
+- Adicionada seleção de usuário existente como alternativa ao criar novo usuário ao editar colaborador
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: Claude Sonnet 4.5
+
 ## [3.7.21] - 2026-02-03 11:30:00
 
 ### Fixed
 - Implementado layout Grid para alinhamento perfeito dos cards "Gerenciar Colaboradores" e "Cargos e Permissões" em 50% cada
-- Corrigidas type hints no modelo Colaborador para eliminar warnings de redefinição
+- Corrigidas type hints no modelo Colaborador para eliminar warnings de redefinição (movendo type ignore para decorators)
 - Unificado layout da página de gestão com estrutura Grid responsiva
 
 ---

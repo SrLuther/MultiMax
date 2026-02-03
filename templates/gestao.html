@@ -491,21 +491,34 @@
                     <div class="gestao-form-group-modern">
                         <label class="gestao-label-modern">
                             <i class="bi bi-person-badge"></i>
-                            Login (opcional - cria usuário se preenchido)
+                            Associar usuário existente (opcional)
+                        </label>
+                        <select name="existing_user_id" class="gestao-select-modern">
+                            <option value="">— Nenhum —</option>
+                            {% for u in users_page %}
+                            <option value="{{ u.id }}">{{ u.name }} ({{ u.username }})</option>
+                            {% endfor %}
+                        </select>
+                        <small class="gestao-hint-modern">Selecione um usuário sem colaborador associado</small>
+                    </div>
+                    <div class="gestao-form-group-modern">
+                        <label class="gestao-label-modern">
+                            <i class="bi bi-person-badge"></i>
+                            Ou criar novo usuário (opcional)
                         </label>
                         <input type="text" name="username" class="gestao-input-modern" placeholder="Deixe vazio para manter sem usuário">
                     </div>
                     <div class="gestao-form-group-modern">
                         <label class="gestao-label-modern">
                             <i class="bi bi-key"></i>
-                            Senha (se criar usuário)
+                            Senha (se criar novo usuário)
                         </label>
                         <input type="password" name="password" class="gestao-input-modern" placeholder="Obrigatório se login preenchido">
                     </div>
                     <div class="gestao-form-group-modern">
                         <label class="gestao-label-modern">
                             <i class="bi bi-shield-check"></i>
-                            Nível (se criar usuário)
+                            Nível (se criar novo usuário)
                         </label>
                         <select name="nivel" class="gestao-select-modern">
                             <option value="visualizador">Visualizador</option>
