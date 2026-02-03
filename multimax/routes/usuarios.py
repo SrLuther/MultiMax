@@ -1513,10 +1513,46 @@ def gestao():  # noqa: C901
 
         logs_page, l_total_pages, l_page = _paginate_list(logs, l_page, 2)
 
-        # Buscar todos os usuários (com ou sem collaborator)
-        all_users_list, filtered_users = _all_users_for_display(q)
-        users_page, u_total_pages, u_page = _paginate_list(filtered_users, u_page, 5)
-        all_users = User.query.all()
+        q_lower = q.lower()
+
+        # Usuários (com login)
+        users_all = User.query.order_by(User.name.asc()).all()
+        for user in users_all:
+            try:
+                user._collaborator = Collaborator.query.filter_by(user_id=user.id).first()
+            except Exception:
+                user._collaborator = None
+
+        if q:
+            users_filtered = [
+                u for u in users_all if q_lower in (u.name or "").lower() or q_lower in (u.username or "").lower()
+            ]
+        else:
+            users_filtered = users_all
+
+        users_page, u_total_pages, u_page = _paginate_list(users_filtered, u_page, 5)
+
+        # Colaboradores (com ou sem usuário)
+        c_page = _safe_int_arg("c_page", 1)
+        colaboradores_all = Collaborator.query.order_by(Collaborator.name.asc()).all()
+        for c in colaboradores_all:
+            try:
+                c.display_name = _get_display_name(c)
+            except Exception:
+                c.display_name = ""
+            try:
+                c.user = User.query.filter_by(id=c.user_id).first() if c.user_id else None
+            except Exception:
+                c.user = None
+
+        if q:
+            colaboradores_filtered = [
+                c for c in colaboradores_all if q_lower in ((c.display_name or c.name or "").lower())
+            ]
+        else:
+            colaboradores_filtered = colaboradores_all
+
+        colabs_page, c_total_pages, c_page = _paginate_list(colaboradores_filtered, c_page, 5)
 
         acc_user = (request.args.get("acc_user") or "").strip()
         access_ctx = _access_logs_context(acc_user)
@@ -1525,13 +1561,8 @@ def gestao():  # noqa: C901
         roles = JobRole.query.order_by(JobRole.name.asc()).all()
         setores = Setor.query.filter_by(ativo=True).order_by(Setor.nome.asc()).all()
 
-        # Buscar colaboradores para o banco de horas (apenas que têm collaborator)
-        colaboradores_colab = Collaborator.query.order_by(Collaborator.name.asc()).all()
-        for c in colaboradores_colab:
-            try:
-                c.display_name = _get_display_name(c)
-            except Exception:
-                c.display_name = ""
+        # Buscar colaboradores para o banco de horas
+        colaboradores_colab = colaboradores_all
 
         # Rollback qualquer transação abortada antes de chamar _gestao_bank_context
         try:
@@ -1558,7 +1589,9 @@ def gestao():  # noqa: C901
             setores=setores,
             colaboradores=colaboradores_colab,
             folgas=bank_ctx["folgas"],
-            users=all_users,
+            c_page=c_page,
+            c_total_pages=c_total_pages,
+            colabs_page=colabs_page,
             bank_balances=bank_ctx["bank_balances"],
             recent_entries=bank_ctx["recent_entries"],
             access_page=access_ctx["access_page"],

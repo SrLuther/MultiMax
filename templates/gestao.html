@@ -104,10 +104,10 @@
             <div class="gestao-pagination-modern">
                 <span class="gestao-pagination-info">Página {{ l_page }} de {{ l_total_pages }}</span>
                 <div class="gestao-pagination-btns">
-                    <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?l_page={{ l_page-1 if l_page>1 else 1 }}&u_page={{ u_page }}&q={{ q }}&view={{ view }}">
+                    <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?l_page={{ l_page-1 if l_page>1 else 1 }}&u_page={{ u_page }}&c_page={{ c_page }}&q={{ q }}&view={{ view }}">
                         <i class="bi bi-chevron-left"></i>
                     </a>
-                    <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?l_page={{ l_page+1 if l_page<l_total_pages else l_total_pages }}&u_page={{ u_page }}&q={{ q }}&view={{ view }}">
+                    <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?l_page={{ l_page+1 if l_page<l_total_pages else l_total_pages }}&u_page={{ u_page }}&c_page={{ c_page }}&q={{ q }}&view={{ view }}">
                         <i class="bi bi-chevron-right"></i>
                     </a>
                 </div>
@@ -123,277 +123,211 @@
                 Resumo de Saldo por Colaborador
             </h3>
             <form method="get" action="{{ url_for('usuarios.gestao') }}" class="gestao-saldo-filters">
-                <input type="hidden" name="u_page" value="{{ u_page }}">
-                <input type="hidden" name="l_page" value="{{ l_page }}">
-                <input type="hidden" name="view" value="">
-                <select name="saldo_collaborator_id" class="gestao-select-modern">
-                    <option value="">— selecionar colaborador —</option>
-                    {% for c in colaboradores %}
-                    <option value="{{ c.id }}" {% if saldo_collab and saldo_collab.id == c.id %}selected{% endif %}>{{ c.user.name if c.user else c.name }}</option>
-                    {% endfor %}
-                </select>
-                <input type="date" name="saldo_start" class="gestao-input-modern" value="{{ saldo_start and saldo_start.strftime('%Y-%m-%d') or '' }}">
-                <input type="date" name="saldo_end" class="gestao-input-modern" value="{{ saldo_end and saldo_end.strftime('%Y-%m-%d') or '' }}">
-                <button type="submit" class="gestao-btn-modern gestao-btn-primary">
-                    <i class="bi bi-search"></i>
-                    Buscar
-                </button>
-            </form>
-        </div>
-        <div class="gestao-card-body-modern">
-            {% if saldo_collab %}
-            <div class="gestao-saldo-info-modern">
-                <div class="gestao-saldo-header-modern">
-                    <div class="gestao-saldo-avatar-modern">
-                        {{ (saldo_collab.user.name if saldo_collab.user else saldo_collab.name)[:2].upper() }}
-                    </div>
-                    <div>
-                        <h4 class="gestao-saldo-name-modern">{{ saldo_collab.user.name if saldo_collab.user else saldo_collab.name }}</h4>
-                        {% if saldo_collab.role %}
-                        <div class="gestao-saldo-role-modern">{{ saldo_collab.role }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="gestao-saldo-badges-modern">
-                    <div class="gestao-saldo-badge-item">
-                        <i class="bi bi-calendar-check"></i>
-                        <div>
-                            <div class="gestao-saldo-badge-label">Dias de Folga</div>
-                            <div class="gestao-saldo-badge-value">{{ saldo_days }}</div>
+                <!-- Gerenciar Usuários -->
+                {% if not view or view == 'usuarios' %}
+                <div class="gestao-card-modern" id="gerenciar-usuarios">
+                    <div class="gestao-card-header-modern">
+                        <h3 class="gestao-card-title">
+                            <i class="bi bi-person-badge"></i>
+                            Gerenciar Usuários
+                        </h3>
+                        <div class="gestao-header-actions">
+                            <form method="get" action="{{ url_for('usuarios.gestao') }}" class="gestao-search-form">
+                                <input type="hidden" name="u_page" value="1">
+                                <input type="hidden" name="c_page" value="{{ c_page }}">
+                                <input type="hidden" name="l_page" value="{{ l_page }}">
+                                <input type="hidden" name="view" value="{{ view }}">
+                                <input type="text" name="q" class="gestao-input-modern gestao-search-input" placeholder="Buscar por nome" value="{{ q }}">
+                                <button type="submit" class="gestao-btn-modern gestao-btn-search">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </form>
+                            <button class="gestao-btn-modern gestao-btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovoColaborador">
+                                <i class="bi bi-plus-lg"></i>
+                                Novo Usuário/Colaborador
+                            </button>
                         </div>
                     </div>
-                    <div class="gestao-saldo-badge-item {% if saldo_hours > 0 %}gestao-badge-success{% elif saldo_hours < 0 %}gestao-badge-danger{% endif %}">
-                        <i class="bi bi-clock"></i>
-                        <div>
-                            <div class="gestao-saldo-badge-label">Horas Residuais</div>
-                            <div class="gestao-saldo-badge-value">{{ '%.2f'|format(saldo_hours or 0.0) }}h</div>
+                    <div class="gestao-card-body-modern">
+                        <div class="gestao-table-wrapper">
+                            <table class="gestao-table-modern">
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>Login</th>
+                                        <th>Nível</th>
+                                        <th class="text-center">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for u in users_page %}
+                                    <tr class="gestao-table-row">
+                                        <td>
+                                            <div class="gestao-colab-info">
+                                                <div class="gestao-colab-avatar-small">
+                                                    {{ (u.name or '')[:2].upper() }}
+                                                </div>
+                                                <strong>{{ u.name }}</strong>
+                                            </div>
+                                        </td>
+                                        <td>{{ u.username }}</td>
+                                        <td>
+                                            {% if u.nivel == 'DEV' %}
+                                            <span class="gestao-badge gestao-badge-dev">Desenvolvedor</span>
+                                            {% elif u.nivel == 'admin' %}
+                                            <span class="gestao-badge gestao-badge-primary">Gerente</span>
+                                            {% elif u.nivel == 'operador' %}
+                                            <span class="gestao-badge gestao-badge-info">Operador</span>
+                                            {% else %}
+                                            <span class="gestao-badge gestao-badge-secondary">Visualizador</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="gestao-actions-modern">
+                                                <div class="gestao-action-group">
+                                                    <form method="post" action="{{ url_for('usuarios.update_level', user_id=u.id) }}" class="gestao-inline-form">
+                                                        <select name="nivel" class="gestao-select-modern gestao-select-sm">
+                                                            <option value="visualizador" {% if u.nivel == 'visualizador' %}selected{% endif %}>Visualizador</option>
+                                                            <option value="operador" {% if u.nivel == 'operador' %}selected{% endif %}>Operador</option>
+                                                            <option value="admin" {% if u.nivel == 'admin' %}selected{% endif %}>Gerente</option>
+                                                            {% if current_user.nivel == 'DEV' %}
+                                                            <option value="DEV" {% if u.nivel == 'DEV' %}selected{% endif %}>Desenvolvedor</option>
+                                                            {% endif %}
+                                                        </select>
+                                                        <button type="submit" class="gestao-btn-modern gestao-btn-sm gestao-btn-primary" title="Atualizar nível">
+                                                            <i class="bi bi-check"></i>
+                                                        </button>
+                                                    </form>
+                                                    <form method="post" action="{{ url_for('usuarios.update_password', user_id=u.id) }}" class="gestao-inline-form">
+                                                        <input type="password" name="new_password" class="gestao-input-modern gestao-input-sm" placeholder="Nova senha" required>
+                                                        <button type="submit" class="gestao-btn-modern gestao-btn-sm gestao-btn-outline" title="Alterar senha">
+                                                            <i class="bi bi-key"></i>
+                                                        </button>
+                                                    </form>
+                                                    <form method="post" action="{{ url_for('usuarios.reset_password', user_id=u.id) }}" class="gestao-inline-form">
+                                                        <button type="submit" class="gestao-btn-modern gestao-btn-sm gestao-btn-outline" title="Redefinir senha">
+                                                            <i class="bi bi-arrow-clockwise"></i>
+                                                        </button>
+                                                    </form>
+                                                    {% if u.id != current_user.id %}
+                                                    <form method="post" action="{{ url_for('usuarios.excluir_user', user_id=u.id) }}" class="gestao-inline-form" onsubmit="return confirm('Excluir {{ u.name }} ({{ u.username }})?')">
+                                                        <button type="submit" class="gestao-btn-modern gestao-btn-sm gestao-btn-danger" title="Excluir">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                    {% else %}
+                                                    <span class="gestao-badge gestao-badge-warning">Você</span>
+                                                    {% endif %}
+                                                    {% if not u._collaborator %}
+                                                    <button class="gestao-btn-modern gestao-btn-sm gestao-btn-primary" data-bs-toggle="modal" data-bs-target="#modalCriarColabUser{{ u.id }}" title="Criar Collaborator para gerenciar em Ciclos">
+                                                        <i class="bi bi-plus"></i>
+                                                        Criar Colab
+                                                    </button>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="4" class="gestao-empty-cell">
+                                            <div class="gestao-empty-state">
+                                                <i class="bi bi-people"></i>
+                                                <span>Nenhum usuário</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="gestao-pagination-modern">
+                            <span class="gestao-pagination-info">Página {{ u_page }} de {{ u_total_pages }}</span>
+                            <div class="gestao-pagination-btns">
+                                <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page-1 if u_page>1 else 1 }}&c_page={{ c_page }}&l_page={{ l_page }}&q={{ q }}&view={{ view }}">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                                <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page+1 if u_page<u_total_pages else u_total_pages }}&c_page={{ c_page }}&l_page={{ l_page }}&q={{ q }}&view={{ view }}">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="gestao-saldo-rule-modern">
-                    <i class="bi bi-info-circle"></i>
-                    <span>Regra: a cada 8h acumuladas vira +1 dia e as horas são reiniciadas.</span>
-                </div>
-                {% if current_user.nivel in ['admin', 'DEV'] %}
-                <form method="post" action="{{ url_for('usuarios.gestao_colabs_horas_verificar_conversao') }}" class="gestao-converter-form-modern" onsubmit="return confirm('Converter horas em dias? O sistema verificará quantas horas já foram convertidas e converterá apenas as horas que faltam (8h = 1 dia).');">
-                    <input type="hidden" name="collaborator_id" value="{{ saldo_collab.id }}">
-                    <button type="submit" class="gestao-btn-modern gestao-btn-converter">
-                        <i class="bi bi-arrow-repeat"></i>
-                        Converter Horas em Dias
-                    </button>
-                </form>
-                {% endif %}
-            </div>
-            <div class="gestao-saldo-table-wrapper">
-                <table class="gestao-table-modern">
-                    <thead>
-                        <tr>
-                            <th>Tipo</th>
-                            <th>Data</th>
-                            <th class="text-center">Valor</th>
-                            <th>Motivo</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for it in saldo_items %}
-                        <tr class="gestao-table-row">
-                            <td>
-                                {% if it.tipo == 'horas' %}
-                                <span class="gestao-badge gestao-badge-info">Horas</span>
-                                {% elif it.tipo == 'credito' %}
-                                <span class="gestao-badge gestao-badge-success">Crédito</span>
-                                {% else %}
-                                <span class="gestao-badge gestao-badge-danger">Uso</span>
-                                {% endif %}
-                            </td>
-                            <td class="gestao-table-date">
-                                <i class="bi bi-calendar3"></i>
-                                {{ it.date.strftime('%d/%m/%Y') }}
-                            </td>
-                            <td class="text-center">
-                                {% if it.unit == 'h' %}
-                                <strong>{{ '%.2f'|format(it.amount) }}h</strong>
-                                {% else %}
-                                {% if it.amount >= 0 %}
-                                <span class="gestao-badge gestao-badge-success">+{{ it.amount }}</span>
-                                {% else %}
-                                <span class="gestao-badge gestao-badge-danger">{{ it.amount }}</span>
-                                {% endif %}
-                                {% endif %}
-                            </td>
-                            <td class="gestao-table-details">{{ it.motivo or '-' }}</td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="4" class="gestao-empty-cell">
-                                <div class="gestao-empty-state">
-                                    <i class="bi bi-list"></i>
-                                    <span>Nenhum registro no período selecionado</span>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="gestao-empty-state-large">
-                <i class="bi bi-person-circle"></i>
-                <h3>Selecione um colaborador</h3>
-                <p>Selecione um colaborador para ver o saldo de horas e folgas.</p>
-            </div>
-            {% endif %}
-        </div>
-    </div>
 
-    <!-- Gerenciar Colaboradores -->
-    {% if not view or view == 'usuarios' %}
-    <div class="gestao-card-modern" id="gerenciar-usuarios">
-        <div class="gestao-card-header-modern">
-            <h3 class="gestao-card-title">
-                <i class="bi bi-people"></i>
-                Gerenciar Colaboradores/Usuários
-            </h3>
-            <div class="gestao-header-actions">
-                <form method="get" action="{{ url_for('usuarios.gestao') }}" class="gestao-search-form">
-                    <input type="hidden" name="u_page" value="1">
-                    <input type="hidden" name="l_page" value="{{ l_page }}">
-                    <input type="hidden" name="view" value="{{ view }}">
-                    <input type="text" name="q" class="gestao-input-modern gestao-search-input" placeholder="Buscar por nome" value="{{ q }}">
-                    <button type="submit" class="gestao-btn-modern gestao-btn-search">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </form>
-                <button class="gestao-btn-modern gestao-btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovoColaborador">
-                    <i class="bi bi-plus-lg"></i>
-                    Novo Colaborador/Usuário
-                </button>
-            </div>
-        </div>
-        <div class="gestao-card-body-modern">
-            <div class="gestao-table-wrapper">
-                <table class="gestao-table-modern">
-                    <thead>
-                        <tr>
-                            <th>Nome</th>
-                            <th>Login</th>
-                            <th>Nível</th>
-                            <th class="text-center">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for c in users_page %}
-                        {% set u = c.user %}
-                        <tr class="gestao-table-row">
-                            <td>
-                                <div class="gestao-colab-info">
-                                    <div class="gestao-colab-avatar-small">
-                                        {{ (u.name if u else c.name)[:2].upper() }}
-                                    </div>
-                                    <strong>{{ u.name if u else c.name }}</strong>
-                                </div>
-                            </td>
-                            <td>{{ u.username if u else '-' }}</td>
-                            <td>
-                                {% if u %}
-                                    {% if u.nivel == 'DEV' %}
-                                    <span class="gestao-badge gestao-badge-dev">Desenvolvedor</span>
-                                    {% elif u.nivel == 'admin' %}
-                                    <span class="gestao-badge gestao-badge-primary">Gerente</span>
-                                    {% elif u.nivel == 'operador' %}
-                                    <span class="gestao-badge gestao-badge-info">Operador</span>
+                <!-- Gerenciar Colaboradores -->
+                <div class="gestao-card-modern" id="gerenciar-colaboradores">
+                    <div class="gestao-card-header-modern">
+                        <h3 class="gestao-card-title">
+                            <i class="bi bi-people"></i>
+                            Gerenciar Colaboradores
+                        </h3>
+                    </div>
+                    <div class="gestao-card-body-modern">
+                        <div class="gestao-table-wrapper">
+                            <table class="gestao-table-modern">
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>Usuário</th>
+                                        <th>Status</th>
+                                        <th class="text-center">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for c in colabs_page %}
+                                    <tr class="gestao-table-row">
+                                        <td>
+                                            <div class="gestao-colab-info">
+                                                <div class="gestao-colab-avatar-small">
+                                                    {{ (c.name or '')[:2].upper() }}
+                                                </div>
+                                                <strong>{{ c.name }}</strong>
+                                            </div>
+                                        </td>
+                                        <td>{{ c.user.username if c.user else '-' }}</td>
+                                        <td>
+                                            {% if c.user %}
+                                            <span class="gestao-badge gestao-badge-primary">Com usuário</span>
+                                            {% else %}
+                                            <span class="gestao-badge gestao-badge-secondary">Sem usuário</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="gestao-actions-modern">
+                                                <button class="gestao-btn-modern gestao-btn-sm gestao-btn-outline" data-bs-toggle="modal" data-bs-target="#modalEditColab{{ c.id }}" title="Editar">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
                                     {% else %}
-                                    <span class="gestao-badge gestao-badge-secondary">Visualizador</span>
-                                    {% endif %}
-                                {% else %}
-                                    <span class="gestao-badge gestao-badge-secondary">Sem usuário</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div class="gestao-actions-modern">
-                                    {% if u %}
-                                    <div class="gestao-action-group">
-                                        <form method="post" action="{{ url_for('usuarios.update_level', user_id=u.id) }}" class="gestao-inline-form">
-                                            <select name="nivel" class="gestao-select-modern gestao-select-sm">
-                                                <option value="visualizador" {% if u.nivel == 'visualizador' %}selected{% endif %}>Visualizador</option>
-                                                <option value="operador" {% if u.nivel == 'operador' %}selected{% endif %}>Operador</option>
-                                                <option value="admin" {% if u.nivel == 'admin' %}selected{% endif %}>Gerente</option>
-                                                {% if current_user.nivel == 'DEV' %}
-                                                <option value="DEV" {% if u.nivel == 'DEV' %}selected{% endif %}>Desenvolvedor</option>
-                                                {% endif %}
-                                            </select>
-                                            <button type="submit" class="gestao-btn-modern gestao-btn-sm gestao-btn-primary" title="Atualizar nível">
-                                                <i class="bi bi-check"></i>
-                                            </button>
-                                        </form>
-                                        <form method="post" action="{{ url_for('usuarios.update_password', user_id=u.id) }}" class="gestao-inline-form">
-                                            <input type="password" name="new_password" class="gestao-input-modern gestao-input-sm" placeholder="Nova senha" required>
-                                            <button type="submit" class="gestao-btn-modern gestao-btn-sm gestao-btn-outline" title="Alterar senha">
-                                                <i class="bi bi-key"></i>
-                                            </button>
-                                        </form>
-                                        <form method="post" action="{{ url_for('usuarios.reset_password', user_id=u.id) }}" class="gestao-inline-form">
-                                            <button type="submit" class="gestao-btn-modern gestao-btn-sm gestao-btn-outline" title="Redefinir senha">
-                                                <i class="bi bi-arrow-clockwise"></i>
-                                            </button>
-                                        </form>
-                                        {% if u.id != current_user.id %}
-                                        <form method="post" action="{{ url_for('usuarios.excluir_user', user_id=u.id) }}" class="gestao-inline-form" onsubmit="return confirm('Excluir {{ u.name }} ({{ u.username }})?')">
-                                            <button type="submit" class="gestao-btn-modern gestao-btn-sm gestao-btn-danger" title="Excluir">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
-                                        {% else %}
-                                        <span class="gestao-badge gestao-badge-warning">Você</span>
-                                        {% endif %}
-                                        {% if not c.collaborator %}
-                                        <button class="gestao-btn-modern gestao-btn-sm gestao-btn-primary" data-bs-toggle="modal" data-bs-target="#modalCriarColabUser{{ u.id }}" title="Criar Collaborator para gerenciar em Ciclos">
-                                            <i class="bi bi-plus"></i>
-                                            Criar Colab
-                                        </button>
-                                        {% endif %}
-                                    </div>
-                                    {% else %}
-                                    <button class="gestao-btn-modern gestao-btn-sm gestao-btn-primary" data-bs-toggle="modal" data-bs-target="#modalCriarColabUser{{ u.id }}" title="Criar Collaborator para gerenciar em Ciclos">
-                                        <i class="bi bi-plus"></i>
-                                        Criar Colab
-                                    </button>
-                                    {% endif %}
-                                    {% if c.collaborator %}
-                                    <button class="gestao-btn-modern gestao-btn-sm gestao-btn-outline" data-bs-toggle="modal" data-bs-target="#modalEditColab{{ c.collaborator.id }}" title="Editar">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="4" class="gestao-empty-cell">
-                                <div class="gestao-empty-state">
-                                    <i class="bi bi-people"></i>
-                                    <span>Nenhum colaborador</span>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            <div class="gestao-pagination-modern">
-                <span class="gestao-pagination-info">Página {{ u_page }} de {{ u_total_pages }}</span>
-                <div class="gestao-pagination-btns">
-                    <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page-1 if u_page>1 else 1 }}&l_page={{ l_page }}&q={{ q }}&view={{ view }}">
-                        <i class="bi bi-chevron-left"></i>
-                    </a>
-                    <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?u_page={{ u_page+1 if u_page<u_total_pages else u_total_pages }}&l_page={{ l_page }}&q={{ q }}&view={{ view }}">
-                        <i class="bi bi-chevron-right"></i>
-                    </a>
+                                    <tr>
+                                        <td colspan="4" class="gestao-empty-cell">
+                                            <div class="gestao-empty-state">
+                                                <i class="bi bi-people"></i>
+                                                <span>Nenhum colaborador</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="gestao-pagination-modern">
+                            <span class="gestao-pagination-info">Página {{ c_page }} de {{ c_total_pages }}</span>
+                            <div class="gestao-pagination-btns">
+                                <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?c_page={{ c_page-1 if c_page>1 else 1 }}&u_page={{ u_page }}&l_page={{ l_page }}&q={{ q }}&view={{ view }}">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                                <a class="gestao-btn-pagination" href="{{ url_for('usuarios.gestao') }}?c_page={{ c_page+1 if c_page<c_total_pages else c_total_pages }}&u_page={{ u_page }}&l_page={{ l_page }}&q={{ q }}&view={{ view }}">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
+                {% endif %}
 
     <!-- Cargos e Permissões -->
     {% if not view or view == 'roles' %}
@@ -722,9 +656,8 @@
 </div>
 
 <!-- Modals para criar Collaborator para usuários sem um -->
-{% for c in users_page %}
-{% set u = c.user %}
-{% if u and not c.collaborator %}
+{% for u in users_page %}
+{% if not u._collaborator %}
 <div class="modal fade" id="modalCriarColabUser{{ u.id }}" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <form method="post" action="{{ url_for('usuarios.gestao_usuario_criar_colaborador', user_id=u.id) }}">
