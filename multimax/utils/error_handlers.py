@@ -55,7 +55,6 @@ def init_error_handlers(app):
     @app.errorhandler(Exception)
     def handle_exception(error):
         """Catch-all para exceções não tratadas"""
-
         # SQLAlchemy errors
         if isinstance(error, SQLAlchemyError):
             db.session.rollback()
@@ -76,9 +75,10 @@ def _handle_error(error, status_code, error_type, severity="WARNING", notify=Fal
         severity: Nível de severidade (DEBUG, INFO, WARNING, ERROR, CRITICAL)
         notify: Se deve notificar via WhatsApp
     """
-    
+
     # Log imediato do erro com logging module
     import logging
+
     _logger = logging.getLogger("error_handler")
     _logger.critical(f"ERRO CAPTURADO: {error_type}: {error}")
     _logger.critical(f"Stack trace: {traceback.format_exc()}")

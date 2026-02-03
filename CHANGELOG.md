@@ -8,6 +8,17 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 ---
 ### IA responsável pelo envio
 - Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
+## [3.7.11] - 2026-02-03 04:10:00
+
+### Fixed
+- Ajustes de lint no handler de erros para cumprir regras de docstring/whitespace
+
+---
+
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
 - Modelo: Claude Sonnet 4.5
 
 ## [3.7.10] - 2026-02-03 04:00:00
