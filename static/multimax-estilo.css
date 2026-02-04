@@ -482,14 +482,14 @@ body.login-page {
     margin: 0;
     font-size: 1.25rem;
     font-weight: 700;
-    color: #1f2430;
+    color: #0b0f19;
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
 .central-card-subtitle {
-    color: #4b5563;
+    color: #111827;
     font-size: 0.95rem;
 }
 
