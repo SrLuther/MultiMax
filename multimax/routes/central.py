@@ -41,9 +41,10 @@ def _can_assign_permission(target_level: str) -> bool:
 
 
 def _log_action(action: str, target: CentralColaborador | None, details: str | None = None) -> None:
+    actor_name = getattr(current_user, "nome", None) or getattr(current_user, "name", None) or current_user.username
     entry = CentralLog(
         action=action,
-        actor=(current_user.nome or current_user.username),
+        actor=actor_name,
         target_id=(target.id if target else None),
         target_nome=(target.nome if target else None),
         details=details,
@@ -120,7 +121,9 @@ def create():
         permissao=permissao,
         ativo=ativo,
         password_hash=password_hash,
-        created_by=(current_user.nome or current_user.username),
+        created_by=(
+            getattr(current_user, "nome", None) or getattr(current_user, "name", None) or current_user.username
+        ),
     )
 
     db.session.add(colaborador)
@@ -146,7 +149,9 @@ def edit(colab_id: int):
     colaborador.setor = (request.form.get("setor") or "").strip() or None
     colaborador.ativo = (request.form.get("ativo") or "1").strip() == "1"
     colaborador.updated_at = datetime.now(ZoneInfo("America/Sao_Paulo"))
-    colaborador.updated_by = current_user.nome or current_user.username
+    colaborador.updated_by = (
+        getattr(current_user, "nome", None) or getattr(current_user, "name", None) or current_user.username
+    )
 
     _log_action("editar", colaborador)
     db.session.commit()
@@ -175,7 +180,9 @@ def update_permission(colab_id: int):
 
     colaborador.permissao = nova_permissao
     colaborador.updated_at = datetime.now(ZoneInfo("America/Sao_Paulo"))
-    colaborador.updated_by = current_user.nome or current_user.username
+    colaborador.updated_by = (
+        getattr(current_user, "nome", None) or getattr(current_user, "name", None) or current_user.username
+    )
 
     _log_action("permissao", colaborador, details=f"Permissão {nova_permissao}")
     db.session.commit()
@@ -201,7 +208,9 @@ def update_password(colab_id: int):
     colaborador.password_hash = generate_password_hash(senha)
     colaborador.last_password_at = datetime.now(ZoneInfo("America/Sao_Paulo"))
     colaborador.updated_at = datetime.now(ZoneInfo("America/Sao_Paulo"))
-    colaborador.updated_by = current_user.nome or current_user.username
+    colaborador.updated_by = (
+        getattr(current_user, "nome", None) or getattr(current_user, "name", None) or current_user.username
+    )
 
     _log_action("senha", colaborador, details="Senha atualizada")
     db.session.commit()

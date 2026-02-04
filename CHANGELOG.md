@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.32] - 2026-02-04 21:00:00
+
+### Fixed
+- Central: corrigido uso do campo nome do usuário para evitar erro ao salvar colaborador
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.31] - 2026-02-04 10:00:00
 
 ### Added
