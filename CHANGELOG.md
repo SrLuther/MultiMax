@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.38] - 2026-02-04 22:20:00
+
+### Fixed
+- Models: FKs corrigidas para usar tabela colaboradores
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.37] - 2026-02-04 22:00:00
 
 ### Fixed

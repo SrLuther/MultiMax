@@ -17,11 +17,11 @@ class CustomSchedule(db.Model):
     __tablename__ = "custom_schedule"
     id = db.Column(db.Integer, primary_key=True)
     data = db.Column(db.Date, nullable=False)
-    collaborator_id = db.Column(db.Integer, db.ForeignKey("colaborador.id"), nullable=False)
+    collaborator_id = db.Column(db.Integer, db.ForeignKey("colaboradores.id"), nullable=False)
     turno_original = db.Column(db.String(50))
     turno_novo = db.Column(db.String(50))
     motivo = db.Column(db.String(255))
-    substituto_id = db.Column(db.Integer, db.ForeignKey("colaborador.id"), nullable=True)
+    substituto_id = db.Column(db.Integer, db.ForeignKey("colaboradores.id"), nullable=True)
     criado_por = db.Column(db.String(100))
     criado_em = db.Column(
         db.DateTime(timezone=True),

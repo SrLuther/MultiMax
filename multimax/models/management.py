@@ -46,7 +46,7 @@ class Shift(db.Model):
 
     __tablename__ = "shift"
     id = db.Column(db.Integer, primary_key=True)
-    collaborator_id = db.Column(db.Integer, db.ForeignKey("colaborador.id"))
+    collaborator_id = db.Column(db.Integer, db.ForeignKey("colaboradores.id"))
     date = db.Column(db.Date, nullable=False)
     turno = db.Column(db.String(20))
     observacao = db.Column(db.String(255))
@@ -84,7 +84,7 @@ class Vacation(db.Model):
 
     __tablename__ = "vacation"
     id = db.Column(db.Integer, primary_key=True)
-    collaborator_id = db.Column(db.Integer, db.ForeignKey("colaborador.id"), nullable=False)
+    collaborator_id = db.Column(db.Integer, db.ForeignKey("colaboradores.id"), nullable=False)
     data_inicio = db.Column(db.Date, nullable=False)
     data_fim = db.Column(db.Date, nullable=False)
     observacao = db.Column(db.String(255))
@@ -111,7 +111,7 @@ class MedicalCertificate(db.Model):
 
     __tablename__ = "medical_certificate"
     id = db.Column(db.Integer, primary_key=True)
-    collaborator_id = db.Column(db.Integer, db.ForeignKey("colaborador.id"), nullable=False)
+    collaborator_id = db.Column(db.Integer, db.ForeignKey("colaboradores.id"), nullable=False)
     data_inicio = db.Column(db.Date, nullable=False)
     data_fim = db.Column(db.Date, nullable=False)
     dias = db.Column(db.Integer, default=1)
