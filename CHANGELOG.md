@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.33] - 2026-02-04 21:15:00
+
+### Fixed
+- Central: aumentado contraste do topo dos cards de Colaboradores e Histórico
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.32] - 2026-02-04 21:00:00
 
 ### Fixed
