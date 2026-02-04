@@ -476,20 +476,25 @@ body.login-page {
     gap: 1rem;
     background: linear-gradient(90deg, rgba(110, 124, 255, 0.22), rgba(138, 107, 219, 0.14));
     box-shadow: inset 0 -1px 0 rgba(15, 23, 42, 0.08);
+    color: #0b0f19;
 }
 
 .central-card-title {
     margin: 0;
     font-size: 1.25rem;
     font-weight: 700;
-    color: #0b0f19;
+    color: #0b0f19 !important;
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
+.central-card-title i {
+    color: #0b0f19 !important;
+}
+
 .central-card-subtitle {
-    color: #111827;
+    color: #0b0f19 !important;
     font-size: 0.95rem;
 }
 

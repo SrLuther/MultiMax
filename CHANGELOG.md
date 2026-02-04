@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.35] - 2026-02-04 21:35:00
+
+### Fixed
+- Central: títulos dos cards forçados para preto
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.34] - 2026-02-04 21:25:00
 
 ### Fixed
