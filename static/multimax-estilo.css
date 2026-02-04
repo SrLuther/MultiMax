@@ -587,6 +587,28 @@ body.login-page {
     color: #1d4ed8;
 }
 
+.central-btn-permissao {
+    border-color: rgba(59, 130, 246, 0.4) !important;
+    color: #1d4ed8 !important;
+    background: rgba(59, 130, 246, 0.08) !important;
+}
+
+.central-btn-permissao:hover {
+    background: rgba(59, 130, 246, 0.18) !important;
+    color: #1e3a8a !important;
+}
+
+.central-btn-senha {
+    border-color: rgba(245, 158, 11, 0.45) !important;
+    color: #b45309 !important;
+    background: rgba(245, 158, 11, 0.12) !important;
+}
+
+.central-btn-senha:hover {
+    background: rgba(245, 158, 11, 0.22) !important;
+    color: #92400e !important;
+}
+
 @keyframes centralSpin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }

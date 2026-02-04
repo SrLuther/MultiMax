@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.37] - 2026-02-04 22:00:00
+
+### Fixed
+- Central: botões de permissão e senha ganharam cores e tooltips para identificação
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.36] - 2026-02-04 21:45:00
 
 ### Fixed
