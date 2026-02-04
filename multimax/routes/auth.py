@@ -45,8 +45,9 @@ def _create_user_and_collaborator(username, password, name):
         try:
             new_collaborator = Collaborator()
             new_collaborator.name = name[:100]
-            new_collaborator.user_id = new_user.id
-            new_collaborator.active = True
+            # CPF é obrigatório no modelo Colaborador; gerar placeholder único
+            new_collaborator.cpf = str(90000000000 + int(new_user.id or 0))
+            new_collaborator.ativo = True
             db.session.add(new_collaborator)
         except Exception as collab_e:
             logger.warning(f"Erro ao criar Collaborator para novo usuário {username}: {collab_e}")

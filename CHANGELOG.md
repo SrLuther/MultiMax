@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.39] - 2026-02-04 22:40:00
+
+### Fixed
+- Auth: cadastro cria colaborador com CPF placeholder para evitar erro NOT NULL
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.38] - 2026-02-04 22:20:00
 
 ### Fixed
