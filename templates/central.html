@@ -1,0 +1,331 @@
+{% extends 'base.html' %}
+{% block title %}Central — MultiMax{% endblock %}
+
+{% block content %}
+<div class="central-container">
+    <div class="central-hero">
+        <div class="central-hero-orb"></div>
+        <div class="central-hero-content">
+            <div class="central-hero-left">
+                <div class="central-hero-icon">
+                    <i class="bi bi-person-workspace"></i>
+                </div>
+                <div>
+                    <h1 class="central-title">Central de Colaboradores</h1>
+                    <p class="central-subtitle">Gerencie permissões, acessos e histórico com segurança</p>
+                </div>
+            </div>
+            <div class="central-hero-actions">
+                <button class="mm-btn mm-btn-primary" data-bs-toggle="modal" data-bs-target="#modalCentralNovo">
+                    <i class="bi bi-plus-circle"></i>
+                    Novo colaborador
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="central-kpi-grid">
+        <div class="mm-card mm-kpi-card">
+            <div class="mm-card-body">
+                <div class="mm-kpi-label">Total de colaboradores</div>
+                <div class="mm-kpi-value">{{ total_colaboradores }}</div>
+            </div>
+        </div>
+        <div class="mm-card mm-kpi-card">
+            <div class="mm-card-body">
+                <div class="mm-kpi-label">Ativos</div>
+                <div class="mm-kpi-value">{{ total_ativos }}</div>
+            </div>
+        </div>
+        <div class="mm-card mm-kpi-card">
+            <div class="mm-card-body">
+                <div class="mm-kpi-label">Desenvolvedores</div>
+                <div class="mm-kpi-value">{{ total_devs }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="central-card">
+        <div class="central-card-header">
+            <h3 class="central-card-title"><i class="bi bi-people"></i> Colaboradores</h3>
+            <span class="central-card-subtitle">Gestão independente da página de Gestão</span>
+        </div>
+        <div class="central-card-body">
+            <div class="central-table-wrapper">
+                <table class="central-table">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Usuário</th>
+                            <th>Cargo</th>
+                            <th>Setor</th>
+                            <th>Permissão</th>
+                            <th>Status</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in colaboradores %}
+                        <tr>
+                            <td>{{ c.nome }}</td>
+                            <td>{{ c.username }}</td>
+                            <td>{{ c.cargo or '-' }}</td>
+                            <td>{{ c.setor or '-' }}</td>
+                            <td>
+                                <span class="central-badge central-badge-{{ c.permissao }}">{{ c.permissao|capitalize }}</span>
+                            </td>
+                            <td>
+                                {% if c.ativo %}
+                                <span class="central-badge central-badge-ativo">Ativo</span>
+                                {% else %}
+                                <span class="central-badge central-badge-inativo">Inativo</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <button class="mm-btn mm-btn-secondary mm-btn-sm" data-bs-toggle="modal" data-bs-target="#modalCentralEditar{{ c.id }}">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                                <button class="mm-btn mm-btn-outline mm-btn-sm" data-bs-toggle="modal" data-bs-target="#modalCentralPermissao{{ c.id }}">
+                                    <i class="bi bi-shield-check"></i>
+                                </button>
+                                <button class="mm-btn mm-btn-outline mm-btn-sm" data-bs-toggle="modal" data-bs-target="#modalCentralSenha{{ c.id }}">
+                                    <i class="bi bi-key"></i>
+                                </button>
+                                <button class="mm-btn mm-btn-danger mm-btn-sm" data-bs-toggle="modal" data-bs-target="#modalCentralExcluir{{ c.id }}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="central-empty">
+                                <i class="bi bi-person-x"></i>
+                                Nenhum colaborador cadastrado na Central.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="central-card">
+        <div class="central-card-header">
+            <h3 class="central-card-title"><i class="bi bi-clock-history"></i> Histórico</h3>
+            <span class="central-card-subtitle">Registro completo das ações</span>
+        </div>
+        <div class="central-card-body">
+            <div class="central-table-wrapper">
+                <table class="central-table">
+                    <thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Ação</th>
+                            <th>Responsável</th>
+                            <th>Colaborador</th>
+                            <th>Detalhes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for l in logs %}
+                        <tr>
+                            <td>{{ l.created_at.strftime('%d/%m/%Y %H:%M') if l.created_at else '-' }}</td>
+                            <td><span class="central-badge central-badge-log">{{ l.action }}</span></td>
+                            <td>{{ l.actor or '-' }}</td>
+                            <td>{{ l.target_nome or '-' }}</td>
+                            <td>{{ l.details or '-' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="central-empty">
+                                <i class="bi bi-journal-x"></i>
+                                Nenhuma ação registrada.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Novo -->
+<div class="modal fade" id="modalCentralNovo" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" action="{{ url_for('central.create') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Novo colaborador</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nome</label>
+                            <input type="text" name="nome" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Usuário</label>
+                            <input type="text" name="username" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">E-mail</label>
+                            <input type="email" name="email" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Cargo</label>
+                            <input type="text" name="cargo" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Setor</label>
+                            <input type="text" name="setor" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Permissão</label>
+                            <select name="permissao" class="form-select">
+                                {% for value, label in permission_levels %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Senha inicial</label>
+                            <input type="password" name="senha" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Status</label>
+                            <select name="ativo" class="form-select">
+                                <option value="1" selected>Ativo</option>
+                                <option value="0">Inativo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% for c in colaboradores %}
+<!-- Modal Editar -->
+<div class="modal fade" id="modalCentralEditar{{ c.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" action="{{ url_for('central.edit', colab_id=c.id) }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar colaborador</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nome</label>
+                            <input type="text" name="nome" class="form-control" value="{{ c.nome }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">E-mail</label>
+                            <input type="email" name="email" class="form-control" value="{{ c.email or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Cargo</label>
+                            <input type="text" name="cargo" class="form-control" value="{{ c.cargo or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Setor</label>
+                            <input type="text" name="setor" class="form-control" value="{{ c.setor or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Status</label>
+                            <select name="ativo" class="form-select">
+                                <option value="1" {% if c.ativo %}selected{% endif %}>Ativo</option>
+                                <option value="0" {% if not c.ativo %}selected{% endif %}>Inativo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Permissão -->
+<div class="modal fade" id="modalCentralPermissao{{ c.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{{ url_for('central.update_permission', colab_id=c.id) }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Atualizar permissão</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label">Permissão</label>
+                    <select name="permissao" class="form-select">
+                        {% for value, label in permission_levels %}
+                        <option value="{{ value }}" {% if c.permissao == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">Seu nível atual: {{ actor_level|capitalize }}</small>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Atualizar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Senha -->
+<div class="modal fade" id="modalCentralSenha{{ c.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{{ url_for('central.update_password', colab_id=c.id) }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Atualizar senha</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label">Nova senha</label>
+                    <input type="password" name="senha" class="form-control" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Atualizar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Excluir -->
+<div class="modal fade" id="modalCentralExcluir{{ c.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{{ url_for('central.delete', colab_id=c.id) }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Excluir colaborador</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    Tem certeza que deseja excluir <strong>{{ c.nome }}</strong>?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Excluir</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

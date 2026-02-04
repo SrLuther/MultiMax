@@ -8,7 +8,21 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 ---
 ### IA responsável pelo envio
 - Nome da IA: GitHub Copilot
-- Modelo: Claude Haiku 4.5
+- Modelo: GPT-5.2-Codex
+
+## [3.7.31] - 2026-02-04 10:00:00
+
+### Added
+- Nova página Central independente da Gestão, com layout hero animado, KPIs e tabelas modernas
+- Modelos e tabelas exclusivas da Central (central_colaborador, central_log)
+- Rotas completas da Central: criar, editar, excluir, atualizar permissão e senha
+- Histórico detalhado de ações da Central
+- Link de acesso no menu de Administração
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
 
 ## [3.7.30] - 2026-02-03 22:45:00
 

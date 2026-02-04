@@ -14,6 +14,7 @@ from .. import db as app_db
 
 # Novos models (PostgreSQL)
 from .analytics import BackupVerification, MetricHistory, QueryLog
+from .central import CentralColaborador, CentralLog
 from .ciclo import CicloMensal, CicloSemanal, HistoricoColaborador
 from .colaborador import Colaborador
 from .content import ArticleVote, CustomSchedule, HelpArticle, Suggestion, SuggestionVote
@@ -143,6 +144,9 @@ __all__ = [
     "Suggestion",
     "SuggestionVote",
     "ArticleVote",
+    # Central
+    "CentralColaborador",
+    "CentralLog",
     # Analytics
     "MetricHistory",
     "QueryLog",

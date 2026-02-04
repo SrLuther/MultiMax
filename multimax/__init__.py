@@ -117,6 +117,7 @@ def _register_blueprints(app: Flask) -> tuple[bool, None]:
     # Auth route
     from .routes.auth import bp as auth_bp
     from .routes.carnes import bp as carnes_bp
+    from .routes.central import bp as central_bp
     from .routes.ciclos import bp as ciclos_bp
     from .routes.colaboradores import bp as colaboradores_bp
     from .routes.cronograma import bp as cronograma_bp
@@ -160,6 +161,7 @@ def _register_blueprints(app: Flask) -> tuple[bool, None]:
     app.register_blueprint(usuarios_bp)
     app.register_blueprint(carnes_bp)
     app.register_blueprint(colaboradores_bp)
+    app.register_blueprint(central_bp)
     app.register_blueprint(receitas_bp)
     app.register_blueprint(whatsapp_admin_bp)
     app.register_blueprint(whatsapp_config_bp)
