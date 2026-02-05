@@ -97,7 +97,13 @@
             </div>
             <div>
                 <label>Descrição</label>
-                <input type="text" name="descricao" class="form-control" required>
+                <select name="descricao" class="form-select" required>
+                    <option value="">Selecione</option>
+                    <option value="Domingo">Domingo</option>
+                    <option value="Folga">Folga</option>
+                    <option value="Feriado">Feriado</option>
+                    <option value="Outro">Outro</option>
+                </select>
             </div>
             <div>
                 <label>Data da ação</label>
@@ -220,7 +226,13 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Descrição</label>
-                        <input type="text" name="descricao" class="form-control" value="{{ l.descricao }}" required>
+                        <select name="descricao" class="form-select" required>
+                            <option value="">Selecione</option>
+                            <option value="Domingo" {% if l.descricao == 'Domingo' %}selected{% endif %}>Domingo</option>
+                            <option value="Folga" {% if l.descricao == 'Folga' %}selected{% endif %}>Folga</option>
+                            <option value="Feriado" {% if l.descricao == 'Feriado' %}selected{% endif %}>Feriado</option>
+                            <option value="Outro" {% if l.descricao not in ['Domingo','Folga','Feriado'] %}selected{% endif %}>Outro</option>
+                        </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Data</label>

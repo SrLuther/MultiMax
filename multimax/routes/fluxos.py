@@ -23,6 +23,7 @@ except Exception:
 bp = Blueprint("fluxos", __name__, url_prefix="/fluxos")
 
 VALOR_HORA_DIA = Decimal("8")
+VALID_DESCRICOES = {"Domingo", "Folga", "Feriado", "Outro"}
 
 
 def _month_bounds(ref: date) -> tuple[date, date]:
@@ -158,6 +159,19 @@ def _actor_name() -> str:
     return getattr(current_user, "nome", None) or getattr(current_user, "name", None) or current_user.username
 
 
+def _validar_lancamento(descricao: str, data_lanc: date, horas: float) -> str | None:
+    if descricao not in VALID_DESCRICOES:
+        return "Descrição inválida."
+    if descricao == "Domingo" and data_lanc.weekday() != 6:
+        return "A data não corresponde a um Domingo."
+    if descricao == "Folga":
+        if horas != -8:
+            return "Para Folga, as horas devem ser -8."
+        if horas >= 0:
+            return "Para Folga, as horas devem ser um valor negativo."
+    return None
+
+
 @bp.route("/", methods=["GET"])
 @login_required
 def index():
@@ -231,6 +245,11 @@ def novo_lancamento():
         flash("Data inválida.", "warning")
         return redirect(url_for("fluxos.index"))
 
+    erro_validacao = _validar_lancamento(descricao, data_lanc, horas)
+    if erro_validacao:
+        flash(erro_validacao, "warning")
+        return redirect(url_for("fluxos.index"))
+
     ciclo = _get_or_create_ciclo(fluxo, data_lanc)
 
     lanc = FluxoLancamento(
@@ -270,6 +289,11 @@ def editar_lancamento(lanc_id: int):
         data_lanc = datetime.strptime(data_str, "%Y-%m-%d").date()
     except Exception:
         flash("Data inválida.", "warning")
+        return redirect(url_for("fluxos.index"))
+
+    erro_validacao = _validar_lancamento(descricao, data_lanc, horas)
+    if erro_validacao:
+        flash(erro_validacao, "warning")
         return redirect(url_for("fluxos.index"))
 
     fluxo = db.session.get(Fluxo, lanc.fluxo_id)
