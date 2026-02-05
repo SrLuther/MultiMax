@@ -40,19 +40,19 @@
 
     <div class="resumo">
         <div class="resumo-item">
-            <span class="resumo-label">Horas Totais:</span> {{ summary.total_horas }}h
+            <span class="resumo-label">H Bruto:</span> {{ summary.total_horas }}h
+        </div>
+        <div class="resumo-item">
+            <span class="resumo-label">H Descontos:</span> {{ summary.horas_utilizadas }}h
+        </div>
+        <div class="resumo-item">
+            <span class="resumo-label">H Líquido:</span> {{ summary.restante }}h
         </div>
         <div class="resumo-item">
             <span class="resumo-label">Dias completos:</span> {{ summary.dias_completos }} dias
         </div>
         <div class="resumo-item">
-            <span class="resumo-label">Descontos:</span> {{ summary.horas_utilizadas }}h
-        </div>
-        <div class="resumo-item">
-            <span class="resumo-label">Restante de horas:</span> {{ summary.restante }}h
-        </div>
-        <div class="resumo-item">
-            <span class="resumo-label">Valor aproximado:</span> R$ {{ "%.2f"|format(summary.valor_receber) }}
+            <span class="resumo-label">R$ estimado:</span> R$ {{ "%.2f"|format(summary.valor_receber) }}
         </div>
     </div>
 

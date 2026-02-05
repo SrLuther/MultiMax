@@ -71,23 +71,23 @@
                 </div>
                 {% endif %}
                 <div class="fluxos-metric">
-                    <span>Total de horas</span>
+                    <span>H Bruto</span>
                     <strong>{{ s.total_horas }}</strong>
+                </div>
+                <div class="fluxos-metric">
+                    <span>H Descontos</span>
+                    <strong>{{ s.horas_utilizadas }}</strong>
+                </div>
+                <div class="fluxos-metric">
+                    <span>H Líquido</span>
+                    <strong>{{ s.restante }}</strong>
                 </div>
                 <div class="fluxos-metric">
                     <span>Dias completos</span>
                     <strong>{{ s.dias_completos }}</strong>
                 </div>
                 <div class="fluxos-metric">
-                    <span>Horas utilizadas</span>
-                    <strong>{{ s.horas_utilizadas }}</strong>
-                </div>
-                <div class="fluxos-metric">
-                    <span>Restante de horas</span>
-                    <strong>{{ s.restante }}</strong>
-                </div>
-                <div class="fluxos-metric">
-                    <span>Valor aproximado</span>
+                    <span>R$ estimado</span>
                     <strong>R$ {{ '%.2f'|format(s.valor_receber) }}</strong>
                 </div>
             </div>
@@ -287,11 +287,11 @@
                     <thead>
                         <tr>
                             <th>Colaborador</th>
-                            <th>Horas Totais</th>
+                            <th>H Bruto</th>
+                            <th>H Descontos</th>
+                            <th>H Líquido</th>
                             <th>Dias completos</th>
-                            <th>Descontos</th>
-                            <th>Restante</th>
-                            <th>Valor aprox.</th>
+                            <th>R$ estimado</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -299,19 +299,19 @@
                         {% set s = summaries[c.id] %}
                         <tr>
                             <td>{{ c.nome }}</td>
-                            <td>{{ s.total_horas }}h</td>
-                            <td>{{ s.dias_completos }} dias</td>
                             <td>{{ s.horas_utilizadas }}h</td>
+                            <td>{{ s.total_horas }}h</td>
                             <td>{{ s.restante }}h</td>
+                            <td>{{ s.dias_completos }} dias</td>
                             <td>R$ {{ '%.2f'|format(s.valor_receber) }}</td>
                         </tr>
                         {% endfor %}
                         <tr>
                             <td><strong>TOTAL</strong></td>
-                            <td><strong>{{ total_horas }}h</strong></td>
-                            <td><strong>{{ total_dias }} dias</strong></td>
                             <td><strong>{{ total_descontos }}h</strong></td>
+                            <td><strong>{{ total_horas }}h</strong></td>
                             <td><strong>{{ total_restante }}h</strong></td>
+                            <td><strong>{{ total_dias }} dias</strong></td>
                             <td><strong>R$ {{ '%.2f'|format(total_valor) }}</strong></td>
                         </tr>
                     </tbody>

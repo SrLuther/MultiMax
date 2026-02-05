@@ -136,11 +136,11 @@
         <thead>
             <tr>
                 <th>Colaborador</th>
-                <th>Horas Totais</th>
+                <th>H Bruto</th>
+                <th>H Descontos</th>
+                <th>H Líquido</th>
                 <th>Dias completos</th>
-                <th>Descontos</th>
-                <th>Restante de horas</th>
-                <th>Valor aproximado</th>
+                <th>R$ estimado</th>
             </tr>
         </thead>
         <tbody>
@@ -148,19 +148,19 @@
             {% set s = summaries[c.id] %}
             <tr>
                 <td>{{ c.nome }}</td>
-                <td>{{ s.total_horas }}h</td>
-                <td>{{ s.dias_completos }} dias</td>
                 <td>{{ s.horas_utilizadas }}h</td>
+                <td>{{ s.total_horas }}h</td>
                 <td>{{ s.restante }}h</td>
+                <td>{{ s.dias_completos }} dias</td>
                 <td>R$ {{ "%.2f"|format(s.valor_receber) }}</td>
             </tr>
             {% endfor %}
             <tr class="total-row">
                 <td><strong>TOTAL</strong></td>
-                <td><strong>{{ total_horas }}h</strong></td>
-                <td><strong>{{ total_dias }} dias</strong></td>
                 <td><strong>{{ total_descontos }}h</strong></td>
+                <td><strong>{{ total_horas }}h</strong></td>
                 <td><strong>{{ total_restante }}h</strong></td>
+                <td><strong>{{ total_dias }} dias</strong></td>
                 <td><strong>R$ {{ "%.2f"|format(total_valor) }}</strong></td>
             </tr>
         </tbody>
@@ -175,16 +175,19 @@
             <span class="resumo-label">Valor por Dia (8h):</span> R$ {{ "%.2f"|format(valor_diaria) }}
         </div>
         <div class="resumo-item">
-            <span class="resumo-label">Total de Horas:</span> {{ total_horas }}h
+            <span class="resumo-label">H Bruto:</span> {{ total_horas }}h
         </div>
         <div class="resumo-item">
-            <span class="resumo-label">Total de Descontos:</span> {{ total_descontos }}h
+            <span class="resumo-label">H Descontos:</span> {{ total_descontos }}h
         </div>
         <div class="resumo-item">
-            <span class="resumo-label">Total de Dias:</span> {{ total_dias }} dias
+            <span class="resumo-label">H Líquido:</span> {{ total_restante }}h
         </div>
         <div class="resumo-item">
-            <span class="resumo-label">Valor Total:</span> R$ {{ "%.2f"|format(total_valor) }}
+            <span class="resumo-label">Dias completos:</span> {{ total_dias }} dias
+        </div>
+        <div class="resumo-item">
+            <span class="resumo-label">R$ estimado:</span> R$ {{ "%.2f"|format(total_valor) }}
         </div>
     </div>
 
@@ -195,19 +198,19 @@
         {% set s = summaries[c.id] %}
         <div class="resumo" style="margin-top: 0.75rem;">
             <div class="resumo-item">
-                <span class="resumo-label">Horas Totais:</span> {{ s.total_horas }}h
+                <span class="resumo-label">H Bruto:</span> {{ s.total_horas }}h
+            </div>
+            <div class="resumo-item">
+                <span class="resumo-label">H Descontos:</span> {{ s.horas_utilizadas }}h
+            </div>
+            <div class="resumo-item">
+                <span class="resumo-label">H Líquido:</span> {{ s.restante }}h
             </div>
             <div class="resumo-item">
                 <span class="resumo-label">Dias completos:</span> {{ s.dias_completos }} dias
             </div>
             <div class="resumo-item">
-                <span class="resumo-label">Descontos:</span> {{ s.horas_utilizadas }}h
-            </div>
-            <div class="resumo-item">
-                <span class="resumo-label">Restante de horas:</span> {{ s.restante }}h
-            </div>
-            <div class="resumo-item">
-                <span class="resumo-label">Valor aproximado:</span> R$ {{ "%.2f"|format(s.valor_receber) }}
+                <span class="resumo-label">R$ estimado:</span> R$ {{ "%.2f"|format(s.valor_receber) }}
             </div>
         </div>
 
