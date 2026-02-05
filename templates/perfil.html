@@ -16,10 +16,10 @@
             </div>
             <div style="flex: 1; min-width: 200px;">
                 <h1 class="mm-page-title" style="margin: 0 0 var(--mm-space-2) 0; font-size: 2rem;">
-                    {{ current_user.name }}
+                    {{ central_collab.nome if central_collab else current_user.name }}
                 </h1>
                 <p class="mm-text-muted" style="margin: 0 0 var(--mm-space-3) 0; font-size: var(--mm-text-base);">
-                    <i class="bi bi-at"></i> {{ current_user.username }}
+                    <i class="bi bi-at"></i> {{ central_collab.username if central_collab else current_user.username }}
                 </p>
                 <div class="mm-flex mm-gap-3 mm-items-center mm-flex-wrap">
                     {% if current_user.nivel == 'DEV' %}
@@ -39,9 +39,12 @@
                         <i class="bi bi-eye"></i> Visualizador
                     </span>
                     {% endif %}
-                    {% if collab and collab.role %}
+                    {% if central_collab %}
                     <span class="mm-badge mm-badge-outline" style="font-size: var(--mm-text-sm); padding: var(--mm-space-1) var(--mm-space-3); border: 1px solid var(--mm-border);">
-                        <i class="bi bi-briefcase"></i> {{ collab.role }}
+                        <i class="bi bi-briefcase"></i> {{ central_collab.cargo or 'Colaborador' }}
+                    </span>
+                    <span class="mm-badge mm-badge-secondary" style="font-size: var(--mm-text-sm); padding: var(--mm-space-1) var(--mm-space-3);">
+                        <i class="bi bi-shield-check"></i> {{ central_collab.permissao|capitalize }}
                     </span>
                     {% endif %}
                 </div>
@@ -128,30 +131,40 @@
         <div class="mm-grid mm-grid-cols-2 mm-gap-4">
             <div class="mm-info-item">
                 <span class="mm-info-label">Nome Completo</span>
-                <span class="mm-info-value">{{ current_user.name }}</span>
+                <span class="mm-info-value">{{ central_collab.nome if central_collab else current_user.name }}</span>
             </div>
             <div class="mm-info-item">
                 <span class="mm-info-label">Login</span>
-                <span class="mm-info-value">{{ current_user.username }}</span>
+                <span class="mm-info-value">{{ central_collab.username if central_collab else current_user.username }}</span>
             </div>
-            {% if collab %}
+            {% if central_collab %}
             <div class="mm-info-item">
                 <span class="mm-info-label">Cargo</span>
-                <span class="mm-info-value">{{ collab.role or '-' }}</span>
+                <span class="mm-info-value">{{ central_collab.cargo or '-' }}</span>
+            </div>
+            <div class="mm-info-item">
+                <span class="mm-info-label">Setor</span>
+                <span class="mm-info-value">{{ central_collab.setor or '-' }}</span>
             </div>
             <div class="mm-info-item">
                 <span class="mm-info-label">Status</span>
                 <span class="mm-info-value">
-                    {% if collab.active %}
+                    {% if central_collab.ativo %}
                     <span class="mm-badge mm-badge-success">Ativo</span>
                     {% else %}
                     <span class="mm-badge mm-badge-secondary">Inativo</span>
                     {% endif %}
                 </span>
             </div>
+            <div class="mm-info-item">
+                <span class="mm-info-label">Permissão na Central</span>
+                <span class="mm-info-value">
+                    <span class="mm-badge mm-badge-outline">{{ central_collab.permissao|capitalize }}</span>
+                </span>
+            </div>
             {% endif %}
             <div class="mm-info-item">
-                <span class="mm-info-label">Nível de Acesso</span>
+                <span class="mm-info-label">Nível do Sistema</span>
                 <span class="mm-info-value">
                     {% if current_user.nivel == 'DEV' %}
                     <span class="mm-badge mm-badge-danger">Desenvolvedor</span>
@@ -168,72 +181,84 @@
     </div>
 </div>
 
-<!-- Banco de Horas - Sistema de Ciclos (se tiver colaborador vinculado) -->
-{% if collab and balance_data %}
+{% if not central_collab %}
+<div class="mm-card mm-mb-6">
+    <div class="mm-card-body">
+        <div class="mm-alert mm-alert-info">
+            <i class="bi bi-info-circle"></i>
+            <div>
+                <strong>Conta não vinculada à Central</strong>
+                <p class="mm-mb-0">Sua conta ainda não está vinculada a um colaborador da Central. Entre em contato com um administrador para realizar o vínculo.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Resumo do Fluxo Atual (se tiver colaborador vinculado) -->
+{% if central_collab and balance_data %}
 <div class="mm-grid mm-grid-cols-4 mm-gap-4 mm-mb-6">
     <div class="mm-card mm-kpi-card">
         <div class="mm-kpi-icon {% if balance_data.horas_restantes >= 0 %}mm-kpi-icon-pos mm-text-success{% else %}mm-kpi-icon-neg mm-text-danger{% endif %}">
             <i class="bi bi-clock-history"></i>
         </div>
-        <div class="mm-kpi-label">Total de Horas</div>
+        <div class="mm-kpi-label">H Bruto</div>
         <div class="mm-kpi-value {% if balance_data.total_horas >= 0 %}mm-text-success{% else %}mm-text-danger{% endif %}">
             {{ '%.1f'|format(balance_data.total_horas) }}h
         </div>
-        <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Horas acumuladas</small>
+        <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Horas registradas</small>
     </div>
 
     <div class="mm-card mm-kpi-card">
-        <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-success);">
-            <i class="bi bi-calendar-check"></i>
+        <div class="mm-kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--mm-warning);">
+            <i class="bi bi-dash-circle"></i>
         </div>
-        <div class="mm-kpi-label">Dias Completos</div>
-        <div class="mm-kpi-value mm-text-success">{{ balance_data.dias_completos }} dias</div>
-        {% if collab %}
-        <div class="mm-kpi-action mt-2">
-            <a href="/ciclos/"
-               class="btn btn-sm btn-outline-primary"
-               target="_blank"
-               title="Visualizar histórico completo (abre em nova aba)">
-                <i class="bi bi-clock-history"></i>
-                Ver Ciclos
-            </a>
-        </div>
-        {% endif %}
-        <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Conversíveis em R$</small>
+        <div class="mm-kpi-label">H Descontos</div>
+        <div class="mm-kpi-value mm-text-warning">{{ '%.1f'|format(balance_data.horas_descontos) }}h</div>
+        <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Folgas e ajustes</small>
     </div>
 
     <div class="mm-card mm-kpi-card">
         <div class="mm-kpi-icon {% if balance_data.horas_restantes >= 0 %}mm-kpi-icon-pos mm-text-warning{% else %}mm-kpi-icon-neg mm-text-danger{% endif %}">
             <i class="bi bi-hourglass-split"></i>
         </div>
-        <div class="mm-kpi-label">Horas Restantes</div>
+        <div class="mm-kpi-label">H Líquido</div>
         <div class="mm-kpi-value {% if balance_data.horas_restantes >= 0 %}mm-text-warning{% else %}mm-text-danger{% endif %}">
             {{ '%.1f'|format(balance_data.horas_restantes) }}h
         </div>
-        <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Aguardando próximo ciclo</small>
+        <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Após descontos</small>
+    </div>
+
+    <div class="mm-card mm-kpi-card">
+        <div class="mm-kpi-icon" style="background: rgba(34, 197, 94, 0.15); color: var(--mm-success);">
+            <i class="bi bi-calendar-check"></i>
+        </div>
+        <div class="mm-kpi-label">Dias completos</div>
+        <div class="mm-kpi-value mm-text-success">{{ balance_data.dias_completos }} dias</div>
+        <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Convertíveis em R$</small>
     </div>
 
     <div class="mm-card mm-kpi-card">
         <div class="mm-kpi-icon" style="background: rgba(139, 92, 246, 0.15); color: #8B5CF6;">
             <i class="bi bi-cash-coin"></i>
         </div>
-        <div class="mm-kpi-label">Valor Aproximado</div>
+        <div class="mm-kpi-label">R$ estimado</div>
         <div class="mm-kpi-value" style="color: #8B5CF6;">R$ {{ '%.2f'|format(balance_data.valor_aproximado) }}</div>
-        <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Dias completos convertidos</small>
+        <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">Valor do fluxo atual</small>
     </div>
 </div>
 
 <!-- Valores a Receber (se tiver colaborador vinculado) -->
-{% if collab %}
+{% if central_collab %}
 <div class="mm-card mm-mb-6" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05)); border-left: 4px solid var(--mm-success);">
     <div class="mm-card-header">
         <h3 class="mm-card-title">
             <i class="bi bi-cash-coin mm-text-success"></i>
-            Valores a Receber
+            Valores do Fluxo
         </h3>
-        <a href="/ciclos/" class="mm-btn mm-btn-outline mm-btn-sm">
+        <a href="/fluxos/" class="mm-btn mm-btn-outline mm-btn-sm">
             <i class="bi bi-arrow-right"></i>
-            Ver Detalhes nos Ciclos
+            Ver Detalhes nos Fluxos
         </a>
     </div>
     <div class="mm-card-body">
@@ -277,7 +302,7 @@
                     R$ {{ "%.2f"|format(collaborator_values.value_total_individual) }}
                 </div>
                 <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">
-                    Dias completos + Horas parciais
+                    Fluxo atual
                 </small>
             </div>
 
@@ -291,7 +316,7 @@
                     R$ {{ "%.2f"|format(day_value) }}
                 </div>
                 <small class="mm-text-muted" style="font-size: var(--mm-text-xs);">
-                    Configurado no sistema
+                    Configurado no fluxo
                 </small>
             </div>
         </div>
@@ -299,26 +324,26 @@
         {% if day_value == 0 %}
         <div class="mm-info-box mm-mt-4" style="background: rgba(245, 158, 11, 0.1); border-left: 3px solid var(--mm-warning);">
             <i class="bi bi-exclamation-triangle mm-text-warning"></i>
-            <span><strong>Atenção:</strong> O valor por dia ainda não foi configurado. Entre em contato com o administrador para configurar o valor.</span>
+            <span><strong>Atenção:</strong> O valor da diária ainda não foi configurado. Entre em contato com o administrador para configurar o valor.</span>
         </div>
         {% endif %}
         {% else %}
         <div class="mm-info-box" style="background: rgba(59, 130, 246, 0.1); border-left: 3px solid var(--mm-primary);">
             <i class="bi bi-info-circle mm-text-primary"></i>
-            <span>Os valores serão calculados automaticamente quando houver dados de ciclos disponíveis.</span>
+            <span>Os valores serão calculados automaticamente quando houver dados de fluxo disponíveis.</span>
         </div>
         {% endif %}
     </div>
 </div>
 {% endif %}
 
-<!-- Detalhamento de Lançamentos - Sistema de Ciclos -->
-{% if collab and balance_data %}
+<!-- Detalhamento de Lançamentos - Sistema de Fluxos -->
+{% if central_collab and balance_data %}
 <div class="mm-card mm-mb-6">
     <div class="mm-card-header">
         <h3 class="mm-card-title">
             <i class="bi bi-clock-history mm-text-primary"></i>
-            Lançamentos de Horas
+            Lançamentos do Fluxo
         </h3>
             <span class="mm-badge {% if balance_data.horas_restantes > 0 %}mm-badge-success{% elif balance_data.horas_restantes < 0 %}mm-badge-danger{% endif %}">
                 {{ '%.1f'|format(balance_data.horas_restantes) }}h restantes
@@ -327,46 +352,48 @@
         <div class="mm-card-body">
             <div class="mm-info-box mm-mb-4">
                 <i class="bi bi-info-circle"></i>
-                <span>Total: {{ '%.1f'|format(balance_data.total_horas) }}h | Dias completos: {{ balance_data.dias_completos }} dias</span>
+                <span>H Bruto: {{ '%.1f'|format(balance_data.total_horas) }}h | Dias completos: {{ balance_data.dias_completos }} dias</span>
             </div>
             <div class="mm-info-box mm-mb-4" style="background: rgba(59, 130, 246, 0.1);">
                 <i class="bi bi-lightbulb"></i>
-                <span>Regra: a cada 8h acumuladas vira 1 dia completo. Horas restantes aguardam o próximo ciclo.</span>
+                <span>Regra: a cada 8h líquidas vira 1 dia completo. Horas restantes aguardam o próximo fluxo.</span>
             </div>
             <div class="mm-table-wrapper">
                 <table class="mm-table">
                     <thead>
                         <tr>
                             <th>Data</th>
-                            <th>Origem</th>
+                            <th>Ciclo</th>
+                            <th>Tipo</th>
                             <th style="text-align: right;">Horas</th>
-                            <th>Descrição</th>
+                            <th>Observação</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for e in entries %}
                         <tr>
-                            <td>{{ e.data_lancamento.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ e.lancamento.data.strftime('%d/%m/%Y') }}</td>
                             <td>
-                                <span class="mm-badge mm-badge-info">{{ e.origem }}</span>
+                                <span class="mm-badge mm-badge-info">{{ e.ciclo.label }}</span>
                             </td>
+                            <td>{{ e.lancamento.descricao }}</td>
                             <td style="text-align: right;">
-                                {% if e.valor_horas > 0 %}
-                                <span class="mm-badge mm-badge-success">+{{ '%.1f'|format(e.valor_horas) }}h</span>
-                                {% elif e.valor_horas < 0 %}
-                                <span class="mm-badge mm-badge-danger">{{ '%.1f'|format(e.valor_horas) }}h</span>
+                                {% if e.lancamento.horas > 0 %}
+                                <span class="mm-badge mm-badge-success">+{{ '%.1f'|format(e.lancamento.horas) }}h</span>
+                                {% elif e.lancamento.horas < 0 %}
+                                <span class="mm-badge mm-badge-danger">{{ '%.1f'|format(e.lancamento.horas) }}h</span>
                                 {% else %}
-                                <span class="mm-badge">{{ '%.1f'|format(e.valor_horas) }}h</span>
+                                <span class="mm-badge">{{ '%.1f'|format(e.lancamento.horas) }}h</span>
                                 {% endif %}
                             </td>
-                            <td>{{ e.descricao or '-' }}</td>
+                            <td>{{ e.lancamento.observacao or '-' }}</td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="4" class="mm-empty-cell">
+                            <td colspan="5" class="mm-empty-cell">
                                 <div class="mm-empty-inline">
                                     <i class="bi bi-clock-history"></i>
-                                    <span>Sem lançamentos</span>
+                                    <span>Sem lançamentos no fluxo</span>
                                 </div>
                             </td>
                         </tr>
@@ -377,20 +404,7 @@
         </div>
         <div class="mm-card-footer">
             <i class="bi bi-info-circle"></i>
-            Para ver todos os registros, acesse <a href="/ciclos/" class="mm-link">Ciclos</a>.
-        </div>
-    </div>
-</div>
-{% endif %}
-{% elif not collab %}
-<div class="mm-card mm-mb-6">
-    <div class="mm-card-body">
-        <div class="mm-alert mm-alert-info">
-            <i class="bi bi-info-circle"></i>
-            <div>
-                <strong>Conta não vinculada a colaborador</strong>
-                <p class="mm-mb-0">Sua conta ainda não está vinculada a um colaborador. Entre em contato com um administrador para vincular sua conta e ter acesso ao banco de horas e folgas.</p>
-            </div>
+            Para ver todos os registros, acesse <a href="/fluxos/" class="mm-link">Fluxos</a>.
         </div>
     </div>
 </div>

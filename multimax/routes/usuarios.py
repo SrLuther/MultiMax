@@ -3,7 +3,8 @@ import shutil
 import subprocess
 import threading
 import time
-from datetime import datetime
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Sequence, cast
 
@@ -17,6 +18,7 @@ from ..models import (
     Ciclo,
     CleaningHistory,
     CleaningTask,
+    CentralColaborador,
     Collaborator,
     Historico,
     Holiday,
@@ -33,6 +35,9 @@ from ..models import (
     TimeOffRecord,
     User,
     UserLogin,
+    Fluxo,
+    FluxoCiclo,
+    FluxoLancamento,
     Vacation,
 )
 from ..password_hash import check_password_hash, generate_password_hash
@@ -95,7 +100,12 @@ def _update_viewer_profile():
     if not name:
         flash("Nome é obrigatório.", "warning")
         return redirect(url_for("usuarios.perfil"))
+    central = _perfil_central_payload(current_user.username, getattr(current_user, "email", None))
     current_user.name = name
+    if central:
+        central.nome = name
+        central.updated_at = datetime.now(ZoneInfo("America/Sao_Paulo"))
+        central.updated_by = _central_actor_name()
     return _commit_and_redirect("Perfil atualizado.")
 
 
@@ -109,6 +119,8 @@ def _update_full_profile():
         flash("Login é obrigatório.", "warning")
         return redirect(url_for("usuarios.perfil"))
 
+    central = _perfil_central_payload(current_user.username, getattr(current_user, "email", None))
+
     base_username = "".join(ch for ch in username_input if ch.isalnum())
     if not base_username:
         flash("Login deve conter apenas letras e números.", "warning")
@@ -117,8 +129,22 @@ def _update_full_profile():
         if User.query.filter_by(username=base_username).first() is not None:
             flash("Login já existe. Escolha outro.", "danger")
             return redirect(url_for("usuarios.perfil"))
+        if central:
+            existing_central = CentralColaborador.query.filter(
+                CentralColaborador.username == base_username,
+                CentralColaborador.id != central.id,
+            ).first()
+            if existing_central:
+                flash("Login já existe na Central. Escolha outro.", "danger")
+                return redirect(url_for("usuarios.perfil"))
         current_user.username = base_username
     current_user.name = name
+    if central:
+        central.nome = name
+        if base_username:
+            central.username = base_username
+        central.updated_at = datetime.now(ZoneInfo("America/Sao_Paulo"))
+        central.updated_by = _central_actor_name()
     return _commit_and_redirect("Perfil atualizado.")
 
 
@@ -169,6 +195,68 @@ def _ensure_collaborator_schema():
             pass
 
 
+def _perfil_central_payload(username: str, email: str | None):
+    central = None
+    try:
+        if username:
+            central = CentralColaborador.query.filter_by(username=username).first()
+        if not central and email:
+            central = CentralColaborador.query.filter_by(email=email).first()
+    except Exception:
+        central = None
+    return central
+
+
+def _central_actor_name() -> str:
+    return getattr(current_user, "nome", None) or getattr(current_user, "name", None) or current_user.username
+
+
+def _perfil_fluxos_payload(central_collab: CentralColaborador | None):
+    if not central_collab:
+        return None, [], None
+
+    fluxo = Fluxo.query.filter_by(mes_ano=date.today().strftime("%Y-%m")).first()
+    if not fluxo:
+        from ..routes.fluxos import _get_or_create_fluxo
+
+        fluxo = _get_or_create_fluxo(date.today())
+
+    lancs = FluxoLancamento.query.filter_by(fluxo_id=fluxo.id, collaborator_id=central_collab.id).all()
+    total_pos = sum(lanc.horas for lanc in lancs if lanc.horas > 0)
+    total_neg = sum(abs(lanc.horas) for lanc in lancs if lanc.horas < 0)
+    restante = total_pos - total_neg
+    horas_base = restante if restante > 0 else 0
+    dias_completos = int(horas_base // 8)
+    valor_diaria = float(fluxo.valor_diaria or 0)
+    valor_receber = dias_completos * valor_diaria
+
+    balance_data = {
+        "total_horas": round(total_pos, 2),
+        "horas_descontos": round(total_neg, 2),
+        "dias_completos": dias_completos,
+        "horas_restantes": round(restante, 2),
+        "valor_aproximado": round(valor_receber, 2),
+        "valor_diaria": valor_diaria,
+    }
+
+    entries = []
+    ciclos = FluxoCiclo.query.filter_by(fluxo_id=fluxo.id).order_by(FluxoCiclo.week_start.asc()).all()
+    for ciclo in ciclos:
+        ciclo_lancs = (
+            FluxoLancamento.query.filter_by(
+                fluxo_id=fluxo.id,
+                ciclo_id=ciclo.id,
+                collaborator_id=central_collab.id,
+            )
+            .order_by(FluxoLancamento.data.asc(), FluxoLancamento.id.asc())
+            .all()
+        )
+        for lanc in ciclo_lancs:
+            entries.append({"ciclo": ciclo, "lancamento": lanc})
+
+    return balance_data, entries, fluxo
+
+
 def _perfil_collaborator_payload():
     collab = None
     balance_data = None
@@ -198,15 +286,16 @@ def _perfil_collaborator_payload():
     return collab, balance_data, entries
 
 
-def _perfil_values(collab, balance_data):
+def _perfil_values(collab, balance_data, day_value: float | None = None):
     if not (collab and balance_data):
         return None, 0.0
-    day_value = _perfil_day_value()
+    day_value = day_value if day_value is not None else _perfil_day_value()
+    value_full_days = balance_data["dias_completos"] * day_value
     collaborator_values = {
         "full_days": balance_data["dias_completos"],
         "residual_hours": balance_data["horas_restantes"],
         "day_value": day_value,
-        "value_full_days": balance_data["valor_aproximado"],
+        "value_full_days": value_full_days,
         "value_residual_hours": 0.0,
         "value_total_individual": balance_data["valor_aproximado"],
     }
@@ -1431,23 +1520,28 @@ def perfil():
         return _handle_perfil_post()
 
     _ensure_collaborator_schema()
-    collab, balance_data, entries = _perfil_collaborator_payload()
+    central_collab = _perfil_central_payload(current_user.username, getattr(current_user, "email", None))
+    collab, _, _ = _perfil_collaborator_payload()
+    balance_data, fluxo_entries, fluxo = _perfil_fluxos_payload(central_collab)
 
     residual_hours = balance_data["horas_restantes"] if balance_data else 0.0
     dias_completos = balance_data["dias_completos"] if balance_data else 0
-    collaborator_values, day_value = _perfil_values(collab, balance_data)
+    valor_diaria = balance_data.get("valor_diaria") if balance_data else None
+    collaborator_values, day_value = _perfil_values(central_collab, balance_data, valor_diaria)
     status = _perfil_status_flags(collab)
 
     return render_template(
         "perfil.html",
         active_page="perfil",
+        central_collab=central_collab,
         collab=collab,
         balance_data=balance_data,
-        entries=entries,
+        entries=fluxo_entries,
         residual_hours=residual_hours,
         dias_completos=dias_completos,
         collaborator_values=collaborator_values,
         day_value=day_value,
+        fluxo=fluxo,
         **status,
     )
 
