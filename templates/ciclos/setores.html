@@ -60,6 +60,35 @@
             </div>
             {% endif %}
 
+            <!-- Cargos do Setor -->
+            {% set cargos = cargos_by_setor.get(setor.id, []) %}
+            <div class="setor-cargos">
+                <div class="setor-cargos-header">
+                    <i class="bi bi-award"></i>
+                    Cargos do Setor
+                </div>
+                <div class="setor-cargos-list">
+                    {% for cargo in cargos %}
+                    <span class="setor-cargo-chip">
+                        {{ cargo.nome }}
+                        <button type="button" class="setor-cargo-remove" data-cargo-id="{{ cargo.id }}" title="Excluir cargo">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </span>
+                    {% else %}
+                    <span class="setor-cargos-empty">Nenhum cargo cadastrado</span>
+                    {% endfor %}
+                </div>
+                <form class="setor-cargo-form" data-setor-id="{{ setor.id }}">
+                    <input type="text" name="nome" class="setor-cargo-input" placeholder="Novo cargo" maxlength="120" required>
+                    <button type="submit" class="setor-cargo-add">
+                        <i class="bi bi-plus-lg"></i>
+                        Adicionar
+                    </button>
+                </form>
+                <small class="setor-cargos-hint">Cargos internos não alteram permissões do sistema.</small>
+            </div>
+
             <!-- Card Meta Info - Criação -->
             <div class="setor-card-meta">
                 {% if setor.created_by %}
@@ -516,6 +545,90 @@
 
 .setor-card-description p {
     margin: 0;
+}
+
+/* Cargos do setor */
+.setor-cargos {
+    border: 1px solid var(--mm-border);
+    border-radius: 14px;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.02);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.setor-cargos-header {
+    font-weight: 600;
+    color: var(--mm-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.setor-cargos-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.setor-cargo-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 999px;
+    background: rgba(59, 130, 246, 0.12);
+    color: #1d4ed8;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.setor-cargo-remove {
+    border: none;
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.setor-cargos-empty {
+    color: var(--mm-text-muted);
+    font-size: 0.85rem;
+}
+
+.setor-cargo-form {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.setor-cargo-input {
+    flex: 1;
+    min-width: 160px;
+    padding: 0.5rem 0.75rem;
+    border-radius: 10px;
+    border: 1px solid var(--mm-border);
+    background: #fff;
+}
+
+.setor-cargo-add {
+    border: none;
+    border-radius: 10px;
+    padding: 0.5rem 0.9rem;
+    background: #1d4ed8;
+    color: #fff;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.setor-cargos-hint {
+    color: var(--mm-text-muted);
+    font-size: 0.8rem;
 }
 
 /* Card Meta Info */
@@ -980,6 +1093,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    document.querySelectorAll('.setor-cargo-form').forEach(form => {
+        form.addEventListener('submit', handleCargoNovo);
+    });
+
+    document.querySelectorAll('.setor-cargo-remove').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const cargoId = this.dataset.cargoId;
+            excluirCargo(cargoId);
+        });
+    });
+
     // Fechar modal ao clicar fora
     window.addEventListener('click', function(event) {
         if (event.target.classList.contains('mm-modal')) {
@@ -1066,6 +1190,59 @@ function handleEditarSetor(e) {
     .catch(error => {
         console.error('Error:', error);
         alert('Erro ao editar setor');
+    });
+}
+
+// Handle novo cargo
+function handleCargoNovo(e) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const setorId = form.dataset.setorId;
+    const formData = new FormData(form);
+
+    fetch(`/ciclos/setores/${setorId}/cargos/novo`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': getCookie('csrf_token')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.ok) {
+            location.reload();
+        } else {
+            alert(data.error || 'Erro ao criar cargo');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erro ao criar cargo');
+    });
+}
+
+// Excluir cargo
+function excluirCargo(cargoId) {
+    if (!confirm('Excluir este cargo do setor?')) return;
+
+    fetch(`/ciclos/setores/cargos/${cargoId}/excluir`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrf_token')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.ok) {
+            location.reload();
+        } else {
+            alert(data.error || 'Erro ao excluir cargo');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erro ao excluir cargo');
     });
 }
 

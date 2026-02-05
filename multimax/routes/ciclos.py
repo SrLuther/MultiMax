@@ -30,6 +30,7 @@ from multimax.models import (
     EscalaEspecial,
     MedicalCertificate,
     Setor,
+    SetorCargo,
     SystemLog,
     TimeOffRecord,
     Vacation,
@@ -2931,7 +2932,11 @@ def setores_index():
         return redirect(url_for("home.index"))
 
     setores = Setor.query.order_by(Setor.nome.asc()).all()
-    return render_template("ciclos/setores.html", setores=setores)
+    cargos = SetorCargo.query.order_by(SetorCargo.nome.asc()).all()
+    cargos_by_setor: dict[int, list[SetorCargo]] = {}
+    for cargo in cargos:
+        cargos_by_setor.setdefault(cargo.setor_id, []).append(cargo)
+    return render_template("ciclos/setores.html", setores=setores, cargos_by_setor=cargos_by_setor)
 
 
 @bp.route("/setores/novo", methods=["POST"])
@@ -3006,6 +3011,52 @@ def setores_editar(
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@bp.route("/setores/<int:setor_id>/cargos/novo", methods=["POST"])
+@login_required
+def setores_cargos_novo(setor_id: int) -> tuple[Response, Literal[403]] | tuple[Response, Literal[400]] | Response:
+    """Criar cargo dentro do setor"""
+    if current_user.nivel not in ("admin", "DEV"):
+        return jsonify({"ok": False, "error": "forbidden"}), 403
+
+    payload = request.get_json(silent=True) or {}
+    nome = (request.form.get("nome") or payload.get("nome") or "").strip()
+    if not nome:
+        return jsonify({"ok": False, "error": "Nome do cargo é obrigatório"}), 400
+
+    setor = Setor.query.get_or_404(setor_id)
+    existente = SetorCargo.query.filter_by(setor_id=setor.id, nome=nome).first()
+    if existente:
+        return jsonify({"ok": False, "error": "Cargo já existe neste setor"}), 400
+
+    cargo = SetorCargo()
+    cargo.setor_id = setor.id
+    cargo.nome = nome
+    cargo.created_by = current_user.username if current_user else "system"
+    db.session.add(cargo)
+    db.session.commit()
+
+    return jsonify({"ok": True, "cargo": {"id": cargo.id, "nome": cargo.nome}})
+
+
+@bp.route("/setores/cargos/<int:cargo_id>/excluir", methods=["POST"])
+@login_required
+def setores_cargos_excluir(
+    cargo_id: int,
+) -> tuple[Response, Literal[403]] | Response | tuple[Response, Literal[500]]:
+    """Excluir cargo do setor"""
+    if current_user.nivel not in ("admin", "DEV"):
+        return jsonify({"ok": False, "error": "forbidden"}), 403
+
+    cargo = SetorCargo.query.get_or_404(cargo_id)
+    try:
+        db.session.delete(cargo)
+        db.session.commit()
+        return jsonify({"ok": True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @bp.route("/setores/<int:setor_id>/toggle", methods=["POST"])
 @login_required
 def setores_toggle(
@@ -3075,6 +3126,7 @@ def setores_excluir(
         ocorrencias_vinculadas: int = CicloOcorrencia.query.filter_by(setor_id=setor_id).count()
         fechamentos_vinculados: int = CicloFechamento.query.filter_by(setor_id=setor_id).count()
         escalas_vinculadas: int = EscalaEspecial.query.filter_by(equipe_id=setor_id).count()
+        cargos_vinculados: int = SetorCargo.query.filter_by(setor_id=setor_id).count()
 
         colaboradores_vinculados: int = 0
         try:
@@ -3096,6 +3148,7 @@ def setores_excluir(
             "fechamentos": fechamentos_vinculados,
             "colaboradores": colaboradores_vinculados,
             "escalas especiais": escalas_vinculadas,
+            "cargos": cargos_vinculados,
         }
 
         if any(valor > 0 for valor in bloqueios.values()) and not force_delete:
@@ -3118,6 +3171,7 @@ def setores_excluir(
             CicloFolga.query.filter_by(setor_id=setor_id).delete(synchronize_session=False)
             CicloOcorrencia.query.filter_by(setor_id=setor_id).delete(synchronize_session=False)
             CicloFechamento.query.filter_by(setor_id=setor_id).delete(synchronize_session=False)
+            SetorCargo.query.filter_by(setor_id=setor_id).delete(synchronize_session=False)
             EscalaEspecial.query.filter_by(equipe_id=setor_id).update(
                 {EscalaEspecial.equipe_id: None}, synchronize_session=False
             )

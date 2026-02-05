@@ -21,7 +21,7 @@ from .fluxos import Fluxo, FluxoArquivo, FluxoCiclo, FluxoConfig, FluxoLancament
 from .holidays import Holiday
 from .logs import Heartbeat, LogDeploy, LogErro, LogWhatsapp
 from .logs_auth import SystemLog, UserLogin
-from .management import JobRole, MedicalCertificate, Setor, Shift, Vacation
+from .management import JobRole, MedicalCertificate, Setor, SetorCargo, Shift, Vacation
 from .meats import MeatCarrier, MeatPart, MeatReception
 from .monitoring import Alert, Incident, MaintenanceLog, NotificationRead
 from .notifications import EventoDoDia, NotificacaoDiaria, NotificacaoPersonalizada
@@ -104,6 +104,7 @@ __all__ = [
     "FluxoArquivo",
     # Setores e Gestão
     "Setor",
+    "SetorCargo",
     "Shift",
     "JobRole",
     "Vacation",

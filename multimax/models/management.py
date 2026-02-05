@@ -1,6 +1,4 @@
-"""
-Modelos para Gestão de Setores, Turnos, Funções e Folgas
-"""
+"""Modelos para Gestão de Setores, Turnos, Funções e Folgas."""
 
 from datetime import datetime
 from typing import Any
@@ -28,9 +26,11 @@ class Setor(db.Model):
     updated_by = db.Column(db.String(100), nullable=True)
 
     def __repr__(self):
+        """Representação do setor."""
         return f"<Setor {self.nome}>"
 
     def to_dict(self):
+        """Serializa o setor para dicionário."""
         return {
             "id": self.id,
             "nome": self.nome,
@@ -64,6 +64,7 @@ class Shift(db.Model):
     )
 
     def __repr__(self):
+        """Representação do turno."""
         return f"<Shift {self.collaborator_id} - {self.date} - {self.turno}>"
 
 
@@ -76,7 +77,36 @@ class JobRole(db.Model):
     nivel = db.Column(db.String(20), nullable=False)
 
     def __repr__(self):
+        """Representação do cargo do sistema."""
         return f"<JobRole {self.name} - {self.nivel}>"
+
+
+class SetorCargo(db.Model):
+    """Cargos internos por setor (não afetam permissões do sistema)."""
+
+    __tablename__ = "setor_cargo"
+    __table_args__ = (db.UniqueConstraint("setor_id", "nome", name="uq_setor_cargo_nome"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    setor_id = db.Column(db.Integer, db.ForeignKey("setor.id"), nullable=False, index=True)
+    nome = db.Column(db.String(120), nullable=False, index=True)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
+    created_by = db.Column(db.String(100), nullable=True)
+
+    setor = db.relationship(
+        "Setor",
+        foreign_keys=[setor_id],
+        primaryjoin="SetorCargo.setor_id==Setor.id",
+        backref=db.backref("cargos", lazy=True, cascade="all, delete-orphan"),
+    )
+
+    def __repr__(self):
+        """Representação do cargo do setor."""
+        return f"<SetorCargo {self.nome} (setor {self.setor_id})>"
 
 
 class Vacation(db.Model):
@@ -103,6 +133,7 @@ class Vacation(db.Model):
     )
 
     def __repr__(self):
+        """Representação das férias."""
         return f"<Vacation {self.collaborator_id} - {self.data_inicio} a {self.data_fim}>"
 
 
@@ -133,4 +164,5 @@ class MedicalCertificate(db.Model):
     )
 
     def __repr__(self):
+        """Representação do atestado médico."""
         return f"<MedicalCertificate {self.collaborator_id} - {self.data_inicio} a {self.data_fim}>"
