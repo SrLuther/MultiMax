@@ -138,6 +138,7 @@
                 <th>Colaborador</th>
                 <th>Horas Totais</th>
                 <th>Dias completos</th>
+                <th>Descontos</th>
                 <th>Restante de horas</th>
                 <th>Valor aproximado</th>
             </tr>
@@ -149,6 +150,7 @@
                 <td>{{ c.nome }}</td>
                 <td>{{ s.total_horas }}h</td>
                 <td>{{ s.dias_completos }} dias</td>
+                <td>{{ s.horas_utilizadas }}h</td>
                 <td>{{ s.restante }}h</td>
                 <td>R$ {{ "%.2f"|format(s.valor_receber) }}</td>
             </tr>
@@ -157,6 +159,7 @@
                 <td><strong>TOTAL</strong></td>
                 <td><strong>{{ total_horas }}h</strong></td>
                 <td><strong>{{ total_dias }} dias</strong></td>
+                <td><strong>{{ total_descontos }}h</strong></td>
                 <td><strong>{{ total_restante }}h</strong></td>
                 <td><strong>R$ {{ "%.2f"|format(total_valor) }}</strong></td>
             </tr>
@@ -175,6 +178,9 @@
             <span class="resumo-label">Total de Horas:</span> {{ total_horas }}h
         </div>
         <div class="resumo-item">
+            <span class="resumo-label">Total de Descontos:</span> {{ total_descontos }}h
+        </div>
+        <div class="resumo-item">
             <span class="resumo-label">Total de Dias:</span> {{ total_dias }} dias
         </div>
         <div class="resumo-item">
@@ -185,6 +191,25 @@
     {% for c in colaboradores %}
     <div class="colaborador-section">
         <h3>{{ c.nome }} — Ciclos Semanais</h3>
+
+        {% set s = summaries[c.id] %}
+        <div class="resumo" style="margin-top: 0.75rem;">
+            <div class="resumo-item">
+                <span class="resumo-label">Horas Totais:</span> {{ s.total_horas }}h
+            </div>
+            <div class="resumo-item">
+                <span class="resumo-label">Dias completos:</span> {{ s.dias_completos }} dias
+            </div>
+            <div class="resumo-item">
+                <span class="resumo-label">Descontos:</span> {{ s.horas_utilizadas }}h
+            </div>
+            <div class="resumo-item">
+                <span class="resumo-label">Restante de horas:</span> {{ s.restante }}h
+            </div>
+            <div class="resumo-item">
+                <span class="resumo-label">Valor aproximado:</span> R$ {{ "%.2f"|format(s.valor_receber) }}
+            </div>
+        </div>
 
         {% for g in historicos[c.id] %}
         <div class="week-header">{{ g.ciclo.label }} ({{ g.ciclo.week_start.strftime('%d/%m') }} - {{ g.ciclo.week_end.strftime('%d/%m') }})</div>

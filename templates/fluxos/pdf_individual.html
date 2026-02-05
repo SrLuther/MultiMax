@@ -8,6 +8,18 @@
         .header img { height: 48px; }
         h1 { font-size: 20px; margin: 0; }
         .meta { margin-bottom: 12px; }
+        .resumo {
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 12px 0 16px 0;
+        }
+        .resumo-item {
+            display: inline-block;
+            margin-right: 16px;
+            margin-bottom: 6px;
+        }
+        .resumo-label { font-weight: bold; }
         .cycle { margin-top: 18px; }
         .cycle-title { font-weight: bold; margin-bottom: 6px; }
         table { width: 100%; border-collapse: collapse; }
@@ -23,6 +35,24 @@
         <div>
             <h1>Fluxo {{ fluxo.mes_ano }} — {{ collaborator.nome }}</h1>
             <div class="meta">Gerado em {{ data_geracao.strftime('%d/%m/%Y %H:%M') }}</div>
+        </div>
+    </div>
+
+    <div class="resumo">
+        <div class="resumo-item">
+            <span class="resumo-label">Horas Totais:</span> {{ summary.total_horas }}h
+        </div>
+        <div class="resumo-item">
+            <span class="resumo-label">Dias completos:</span> {{ summary.dias_completos }} dias
+        </div>
+        <div class="resumo-item">
+            <span class="resumo-label">Descontos:</span> {{ summary.horas_utilizadas }}h
+        </div>
+        <div class="resumo-item">
+            <span class="resumo-label">Restante de horas:</span> {{ summary.restante }}h
+        </div>
+        <div class="resumo-item">
+            <span class="resumo-label">Valor aproximado:</span> R$ {{ "%.2f"|format(summary.valor_receber) }}
         </div>
     </div>
 

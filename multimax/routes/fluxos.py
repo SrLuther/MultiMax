@@ -6,7 +6,7 @@ from decimal import Decimal
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from flask import Blueprint, abort, flash, make_response, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, make_response, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
 
 from .. import db
@@ -122,6 +122,12 @@ def _get_or_create_ciclo(fluxo: Fluxo, lanc_date: date) -> FluxoCiclo:
     return ciclo
 
 
+def _get_fluxos_archive_dir() -> str:
+    base_dir = os.path.join(os.getcwd(), "instance", "fluxos", "arquivo_morto")
+    os.makedirs(base_dir, exist_ok=True)
+    return base_dir
+
+
 def _summaries(fluxo: Fluxo, colaboradores: list[CentralColaborador]) -> dict[int, dict[str, Any]]:
     summaries: dict[int, dict[str, Any]] = {}
     for c in colaboradores:
@@ -194,6 +200,106 @@ def index():
         summaries=summaries,
         historicos=historicos,
     )
+
+
+@bp.route("/arquivos", methods=["GET"], strict_slashes=False)
+@login_required
+def arquivos_index():
+    if current_user.nivel not in ("admin", "DEV"):
+        flash("Acesso negado.", "danger")
+        return redirect(url_for("fluxos.index"))
+
+    query = (request.args.get("q") or "").strip().lower()
+    archive_dir = _get_fluxos_archive_dir()
+
+    arquivos = []
+    for name in sorted(os.listdir(archive_dir)):
+        if not name.lower().endswith(".pdf"):
+            continue
+        if query and query not in name.lower():
+            continue
+        full_path = os.path.join(archive_dir, name)
+        if not os.path.isfile(full_path):
+            continue
+        stat = os.stat(full_path)
+        arquivos.append(
+            {
+                "name": name,
+                "size": stat.st_size,
+                "updated_at": datetime.fromtimestamp(stat.st_mtime, ZoneInfo("America/Sao_Paulo")),
+            }
+        )
+
+    return render_template("fluxos/arquivos.html", arquivos=arquivos, query=query)
+
+
+@bp.route("/arquivos/upload", methods=["POST"], strict_slashes=False)
+@login_required
+def arquivos_upload():
+    if current_user.nivel not in ("admin", "DEV"):
+        flash("Acesso negado.", "danger")
+        return redirect(url_for("fluxos.arquivos_index"))
+
+    if "pdf" not in request.files:
+        flash("Nenhum arquivo enviado.", "warning")
+        return redirect(url_for("fluxos.arquivos_index"))
+
+    pdf = request.files["pdf"]
+    if not pdf or not pdf.filename:
+        flash("Arquivo inválido.", "warning")
+        return redirect(url_for("fluxos.arquivos_index"))
+
+    if "." not in pdf.filename or pdf.filename.rsplit(".", 1)[1].lower() != "pdf":
+        flash("Envie apenas arquivos PDF.", "warning")
+        return redirect(url_for("fluxos.arquivos_index"))
+
+    try:
+        from ..filename_utils import secure_filename
+
+        archive_dir = _get_fluxos_archive_dir()
+        pdf.seek(0, 2)
+        size = pdf.tell()
+        pdf.seek(0)
+        if size > 20 * 1024 * 1024:
+            flash("Arquivo muito grande. Máximo 20MB.", "warning")
+            return redirect(url_for("fluxos.arquivos_index"))
+
+        safe_name = secure_filename(pdf.filename)
+        timestamp = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%Y%m%d%H%M%S")
+        filename = f"{timestamp}_{safe_name}"
+        pdf.save(os.path.join(archive_dir, filename))
+        flash("PDF enviado com sucesso!", "success")
+    except Exception as e:
+        flash(f"Erro ao enviar PDF: {e}", "danger")
+
+    return redirect(url_for("fluxos.arquivos_index"))
+
+
+@bp.route("/arquivos/arquivo/<path:name>", methods=["GET"], strict_slashes=False)
+@login_required
+def arquivos_download(name: str):
+    if current_user.nivel not in ("admin", "DEV"):
+        flash("Acesso negado.", "danger")
+        return redirect(url_for("fluxos.arquivos_index"))
+
+    archive_dir = _get_fluxos_archive_dir()
+    safe_name = os.path.basename(name)
+    if not safe_name.lower().endswith(".pdf"):
+        flash("Arquivo inválido.", "warning")
+        return redirect(url_for("fluxos.arquivos_index"))
+
+    full_path = os.path.join(archive_dir, safe_name)
+    if not os.path.isfile(full_path):
+        flash("Arquivo não encontrado.", "warning")
+        return redirect(url_for("fluxos.arquivos_index"))
+
+    mode = (request.args.get("mode") or "").strip().lower()
+    if mode == "view":
+        as_attach = False
+    else:
+        as_attach = True
+
+    return send_file(full_path, as_attachment=as_attach, download_name=safe_name, mimetype="application/pdf")
 
 
 @bp.route("/config/valor-diaria", methods=["POST"])
@@ -330,6 +436,8 @@ def pdf_individual(collaborator_id: int):
     if not collaborator:
         abort(404)
     historicos = _group_history(fluxo, collaborator_id)
+    summaries = _summaries(fluxo, [collaborator])
+    summary = summaries.get(collaborator.id, {})
 
     try:
         import sys
@@ -346,6 +454,7 @@ def pdf_individual(collaborator_id: int):
             collaborator=collaborator,
             historicos=historicos,
             fluxo=fluxo,
+            summary=summary,
             logo_header=logo_header,
             data_geracao=datetime.now(ZoneInfo("America/Sao_Paulo")),
         )
@@ -383,6 +492,7 @@ def pdf_geral():
 
     total_horas = sum(s["total_horas"] for s in summaries.values())
     total_dias = sum(s["dias_completos"] for s in summaries.values())
+    total_descontos = sum(s["horas_utilizadas"] for s in summaries.values())
     total_restante = sum(s["restante"] for s in summaries.values())
     total_valor = sum(s["valor_receber"] for s in summaries.values())
 
@@ -404,6 +514,7 @@ def pdf_geral():
             historicos=historicos,
             total_horas=total_horas,
             total_dias=total_dias,
+            total_descontos=total_descontos,
             total_restante=total_restante,
             total_valor=total_valor,
             nome_empresa="MultiMax",

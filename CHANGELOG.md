@@ -10,6 +10,36 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.51] - 2026-02-05 20:35:00
+
+### Added
+- Fluxos: subpágina Arquivos com upload, busca, visualização e download de PDFs
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
+## [3.7.50] - 2026-02-05 20:25:00
+
+### Changed
+- Fluxos: resumo geral dos PDFs inclui descontos em horas
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
+## [3.7.49] - 2026-02-05 20:20:00
+
+### Changed
+- Fluxos: resumo por colaborador nos PDFs (inclui descontos em horas)
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.48] - 2026-02-05 02:00:00
 
 ### Changed
