@@ -13,7 +13,7 @@ from typing import cast
 from zoneinfo import ZoneInfo
 
 import qrcode  # type: ignore
-from flask import Blueprint, flash, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
 from qrcode.constants import ERROR_CORRECT_L  # type: ignore
 from reportlab.lib import colors
@@ -386,7 +386,9 @@ def editar_produto(id: int):
     if current_user.nivel == "visualizador":
         flash("Visualizadores não têm permissão para fazer alterações no sistema.", "danger")
         return redirect(url_for("estoque_producao.lista_produtos"))
-    produto = Produto.query.get_or_404(id)
+    produto = db.session.get(Produto, id)
+    if not produto:
+        abort(404)
     produto.nome = request.form.get("nome")
     produto.estoque_minimo = int(request.form.get("estoque_minimo", "0"))
     produto.preco_custo = float(request.form.get("preco_custo", str(produto.preco_custo)))
@@ -412,7 +414,9 @@ def excluir_produto(id: int):
     if current_user.nivel not in ("admin", "DEV", "operador"):
         flash("Você não tem permissão para excluir produtos.", "danger")
         return redirect(url_for("estoque_producao.lista_produtos"))
-    produto = Produto.query.get_or_404(id)
+    produto = db.session.get(Produto, id)
+    if not produto:
+        abort(404)
     try:
         Historico.query.filter_by(product_id=id).delete()
         db.session.delete(produto)
@@ -430,7 +434,9 @@ def entrada_produto(id: int):
     if current_user.nivel == "visualizador":
         flash("Visualizadores não têm permissão para fazer alterações no sistema.", "danger")
         return redirect(url_for("estoque_producao.lista_produtos"))
-    produto = Produto.query.get_or_404(id)
+    produto = db.session.get(Produto, id)
+    if not produto:
+        abort(404)
     qtd = int(request.form.get("quantidade", "0"))
     produto.quantidade += qtd
     db.session.commit()
@@ -459,7 +465,9 @@ def saida_produto(id: int):
     if current_user.nivel == "visualizador":
         flash("Visualizadores não têm permissão para fazer alterações no sistema.", "danger")
         return redirect(url_for("estoque_producao.lista_produtos"))
-    produto = Produto.query.get_or_404(id)
+    produto = db.session.get(Produto, id)
+    if not produto:
+        abort(404)
     qtd = int(request.form.get("quantidade", "0"))
     if produto.quantidade < qtd:
         flash("Quantidade insuficiente em estoque.", "danger")
@@ -493,7 +501,9 @@ def atualizar_minimo(id: int):
     if current_user.nivel not in ["operador", "admin", "DEV"]:
         flash("Você não tem permissão para atualizar estoque mínimo.", "danger")
         return redirect(url_for("estoque_producao.index"))
-    produto = Produto.query.get_or_404(id)
+    produto = db.session.get(Produto, id)
+    if not produto:
+        abort(404)
     try:
         novo_min = int(request.form.get("novo_minimo", str(produto.estoque_minimo)))
         if novo_min < 0:
@@ -510,7 +520,9 @@ def atualizar_minimo(id: int):
 @bp.route("/produtos/<int:id>/qrcode")
 @login_required
 def qrcode_produto(id: int):
-    produto = Produto.query.get_or_404(id)
+    produto = db.session.get(Produto, id)
+    if not produto:
+        abort(404)
     qr = qrcode.QRCode(version=1, error_correction=ERROR_CORRECT_L, box_size=10, border=4)
     qr_data = f"MULTIMAX|{produto.codigo}|{produto.nome}|{produto.id}"
     qr.add_data(qr_data)
@@ -581,7 +593,9 @@ def entrada(id: int):
     if current_user.nivel not in ["operador", "admin", "DEV"]:
         flash("Você não tem permissão para registrar entrada.", "danger")
         return redirect(url_for("estoque_producao.index"))
-    produto = Produto.query.get_or_404(id)
+    produto = db.session.get(Produto, id)
+    if not produto:
+        abort(404)
     try:
         quantidade_str = request.form.get("quantidade", "0") or "0"
         try:
@@ -619,7 +633,9 @@ def saida(id: int):
     if current_user.nivel not in ["operador", "admin", "DEV"]:
         flash("Você não tem permissão para registrar saída.", "danger")
         return redirect(url_for("estoque_producao.index"))
-    produto = Produto.query.get_or_404(id)
+    produto = db.session.get(Produto, id)
+    if not produto:
+        abort(404)
     try:
         quantidade_str = request.form.get("quantidade", "0") or "0"
         try:

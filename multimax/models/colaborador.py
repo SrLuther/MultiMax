@@ -1,6 +1,6 @@
 """Model: Colaboradores"""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import DateTime, Float, Integer, String
@@ -8,6 +8,10 @@ from sqlalchemy import DateTime, Float, Integer, String
 from .. import db as app_db
 
 db: Any = app_db
+
+
+def _utcnow() -> datetime:
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 class Colaborador(db.Model):
@@ -38,8 +42,8 @@ class Colaborador(db.Model):
     saldo_horas = db.Column(Float, default=0.0, nullable=False)
 
     # Auditoria
-    created_at = db.Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
 
     def __repr__(self):
         """String representation of Colaborador."""

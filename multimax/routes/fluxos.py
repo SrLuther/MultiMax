@@ -1,0 +1,388 @@
+from __future__ import annotations
+
+import os
+from datetime import date, datetime, timedelta
+from decimal import Decimal
+from typing import Any
+from zoneinfo import ZoneInfo
+
+from flask import Blueprint, abort, flash, make_response, redirect, render_template, request, url_for
+from flask_login import current_user, login_required
+
+from .. import db
+from ..models import CentralColaborador, Fluxo, FluxoArquivo, FluxoCiclo, FluxoConfig, FluxoLancamento
+
+try:
+    from weasyprint import HTML  # type: ignore
+
+    WEASYPRINT_AVAILABLE = True
+except Exception:
+    HTML = None
+    WEASYPRINT_AVAILABLE = False
+
+bp = Blueprint("fluxos", __name__, url_prefix="/fluxos")
+
+VALOR_HORA_DIA = Decimal("8")
+
+
+def _month_bounds(ref: date) -> tuple[date, date]:
+    start = ref.replace(day=1)
+    next_month = (start.replace(day=28) + timedelta(days=4)).replace(day=1)
+    end = next_month - timedelta(days=1)
+    return start, end
+
+
+def _week_bounds(ref: date) -> tuple[date, date]:
+    # Semana começa no domingo
+    days_since_sunday = (ref.weekday() + 1) % 7
+    start = ref - timedelta(days=days_since_sunday)
+    end = start + timedelta(days=6)
+    return start, end
+
+
+def _weekly_cycles_for_month(start: date, end: date) -> list[dict[str, Any]]:
+    cycles = []
+    cursor = start
+    week_start, week_end = _week_bounds(cursor)
+    # garantir ciclo que intersecta o mês
+    while week_end < start:
+        week_start += timedelta(days=7)
+        week_end += timedelta(days=7)
+    index = 1
+    while week_start <= end:
+        cycles.append(
+            {
+                "label": f"Ciclo {index}",
+                "week_start": week_start,
+                "week_end": week_end,
+            }
+        )
+        index += 1
+        week_start += timedelta(days=7)
+        week_end += timedelta(days=7)
+    return cycles
+
+
+def _get_or_create_config() -> FluxoConfig:
+    config = FluxoConfig.query.first()
+    if not config:
+        config = FluxoConfig(valor_diaria=0)
+        db.session.add(config)
+        db.session.commit()
+    return config
+
+
+def _get_or_create_fluxo(ref: date) -> Fluxo:
+    mes_ano = ref.strftime("%Y-%m")
+    fluxo = Fluxo.query.filter_by(mes_ano=mes_ano).first()
+    if fluxo:
+        return fluxo
+
+    start, end = _month_bounds(ref)
+    config = _get_or_create_config()
+    fluxo = Fluxo(
+        mes_ano=mes_ano,
+        data_inicio=start,
+        data_fim=end,
+        status="aberto",
+        valor_diaria=config.valor_diaria,
+    )
+    db.session.add(fluxo)
+    db.session.flush()
+
+    for cycle in _weekly_cycles_for_month(start, end):
+        db.session.add(
+            FluxoCiclo(
+                fluxo_id=fluxo.id,
+                week_start=cycle["week_start"],
+                week_end=cycle["week_end"],
+                label=cycle["label"],
+            )
+        )
+
+    db.session.commit()
+    return fluxo
+
+
+def _get_or_create_ciclo(fluxo: Fluxo, lanc_date: date) -> FluxoCiclo:
+    week_start, week_end = _week_bounds(lanc_date)
+    ciclo = (
+        FluxoCiclo.query.filter_by(fluxo_id=fluxo.id)
+        .filter(FluxoCiclo.week_start == week_start, FluxoCiclo.week_end == week_end)
+        .first()
+    )
+    if ciclo:
+        return ciclo
+    # Criar ciclo (caso data extrapole ciclos existentes)
+    label_index = FluxoCiclo.query.filter_by(fluxo_id=fluxo.id).count() + 1
+    ciclo = FluxoCiclo(fluxo_id=fluxo.id, week_start=week_start, week_end=week_end, label=f"Ciclo {label_index}")
+    db.session.add(ciclo)
+    db.session.commit()
+    return ciclo
+
+
+def _summaries(fluxo: Fluxo, colaboradores: list[CentralColaborador]) -> dict[int, dict[str, Any]]:
+    summaries: dict[int, dict[str, Any]] = {}
+    for c in colaboradores:
+        lancs = FluxoLancamento.query.filter_by(fluxo_id=fluxo.id, collaborator_id=c.id).all()
+        total_pos = sum(lanc.horas for lanc in lancs if lanc.horas > 0)
+        total_neg = sum(abs(lanc.horas) for lanc in lancs if lanc.horas < 0)
+        dias_completos = int(total_pos // 8)
+        restante = total_pos - total_neg
+        valor_diaria = float(fluxo.valor_diaria or 0)
+        valor_receber = dias_completos * valor_diaria
+        summaries[c.id] = {
+            "total_horas": round(total_pos, 2),
+            "horas_utilizadas": round(total_neg, 2),
+            "dias_completos": dias_completos,
+            "restante": round(restante, 2),
+            "valor_receber": round(valor_receber, 2),
+        }
+    return summaries
+
+
+def _group_history(fluxo: Fluxo, collaborator_id: int) -> list[dict[str, Any]]:
+    ciclos = FluxoCiclo.query.filter_by(fluxo_id=fluxo.id).order_by(FluxoCiclo.week_start.asc()).all()
+    grupos = []
+    for c in ciclos:
+        lancs = (
+            FluxoLancamento.query.filter_by(fluxo_id=fluxo.id, ciclo_id=c.id, collaborator_id=collaborator_id)
+            .order_by(FluxoLancamento.data.asc(), FluxoLancamento.id.asc())
+            .all()
+        )
+        grupos.append({"ciclo": c, "lancamentos": lancs})
+    return grupos
+
+
+def _actor_name() -> str:
+    return getattr(current_user, "nome", None) or getattr(current_user, "name", None) or current_user.username
+
+
+@bp.route("/", methods=["GET"])
+@login_required
+def index():
+    if current_user.nivel not in ("admin", "DEV"):
+        flash("Acesso negado.", "danger")
+        return redirect(url_for("home.index"))
+
+    fluxo = _get_or_create_fluxo(date.today())
+    colaboradores = CentralColaborador.query.order_by(CentralColaborador.nome.asc()).all()
+    summaries = _summaries(fluxo, colaboradores)
+
+    historicos = {c.id: _group_history(fluxo, c.id) for c in colaboradores}
+
+    return render_template(
+        "fluxos/index.html",
+        fluxo=fluxo,
+        colaboradores=colaboradores,
+        summaries=summaries,
+        historicos=historicos,
+    )
+
+
+@bp.route("/config/valor-diaria", methods=["POST"])
+@login_required
+def atualizar_valor_diaria():
+    if current_user.nivel not in ("admin", "DEV"):
+        flash("Acesso negado.", "danger")
+        return redirect(url_for("fluxos.index"))
+
+    valor_raw = (request.form.get("valor_diaria") or "0").replace(",", ".")
+    try:
+        valor = Decimal(valor_raw)
+    except Exception:
+        flash("Valor inválido.", "warning")
+        return redirect(url_for("fluxos.index"))
+
+    config = _get_or_create_config()
+    config.valor_diaria = valor
+    config.updated_at = datetime.now(ZoneInfo("America/Sao_Paulo"))
+
+    fluxo = _get_or_create_fluxo(date.today())
+    fluxo.valor_diaria = valor
+    fluxo.updated_at = datetime.now(ZoneInfo("America/Sao_Paulo"))
+
+    db.session.commit()
+    flash("Valor da diária atualizado.", "success")
+    return redirect(url_for("fluxos.index"))
+
+
+@bp.route("/lancamentos/novo", methods=["POST"])
+@login_required
+def novo_lancamento():
+    if current_user.nivel not in ("admin", "DEV"):
+        flash("Acesso negado.", "danger")
+        return redirect(url_for("fluxos.index"))
+
+    fluxo = _get_or_create_fluxo(date.today())
+    collaborator_id = int(request.form.get("collaborator_id") or 0)
+    horas = float((request.form.get("horas") or "0").replace(",", "."))
+    descricao = (request.form.get("descricao") or "").strip()
+    data_str = (request.form.get("data") or "").strip()
+    observacao = (request.form.get("observacao") or "").strip()
+
+    if not collaborator_id or not descricao or not data_str:
+        flash("Preencha colaborador, descrição e data.", "warning")
+        return redirect(url_for("fluxos.index"))
+
+    try:
+        data_lanc = datetime.strptime(data_str, "%Y-%m-%d").date()
+    except Exception:
+        flash("Data inválida.", "warning")
+        return redirect(url_for("fluxos.index"))
+
+    ciclo = _get_or_create_ciclo(fluxo, data_lanc)
+
+    lanc = FluxoLancamento(
+        fluxo_id=fluxo.id,
+        ciclo_id=ciclo.id,
+        collaborator_id=collaborator_id,
+        data=data_lanc,
+        horas=horas,
+        descricao=descricao,
+        observacao=observacao or None,
+        created_by=_actor_name(),
+    )
+    db.session.add(lanc)
+    db.session.commit()
+
+    flash("Lançamento registrado.", "success")
+    return redirect(url_for("fluxos.index"))
+
+
+@bp.route("/lancamentos/<int:lanc_id>/editar", methods=["POST"])
+@login_required
+def editar_lancamento(lanc_id: int):
+    if current_user.nivel not in ("admin", "DEV"):
+        flash("Acesso negado.", "danger")
+        return redirect(url_for("fluxos.index"))
+
+    lanc = db.session.get(FluxoLancamento, lanc_id)
+    if not lanc:
+        abort(404)
+
+    horas = float((request.form.get("horas") or lanc.horas).replace(",", "."))
+    descricao = (request.form.get("descricao") or lanc.descricao).strip()
+    data_str = (request.form.get("data") or lanc.data.strftime("%Y-%m-%d")).strip()
+    observacao = (request.form.get("observacao") or "").strip()
+
+    try:
+        data_lanc = datetime.strptime(data_str, "%Y-%m-%d").date()
+    except Exception:
+        flash("Data inválida.", "warning")
+        return redirect(url_for("fluxos.index"))
+
+    fluxo = db.session.get(Fluxo, lanc.fluxo_id)
+    if fluxo:
+        ciclo = _get_or_create_ciclo(fluxo, data_lanc)
+        lanc.ciclo_id = ciclo.id
+
+    lanc.horas = horas
+    lanc.descricao = descricao
+    lanc.data = data_lanc
+    lanc.observacao = observacao or None
+    lanc.updated_at = datetime.now(ZoneInfo("America/Sao_Paulo"))
+    db.session.commit()
+
+    flash("Lançamento atualizado.", "success")
+    return redirect(url_for("fluxos.index"))
+
+
+@bp.route("/pdf/individual/<int:collaborator_id>", methods=["GET"], strict_slashes=False)
+@login_required
+def pdf_individual(collaborator_id: int):
+    if not WEASYPRINT_AVAILABLE:
+        flash("WeasyPrint não está disponível.", "danger")
+        return redirect(url_for("fluxos.index"))
+
+    if current_user.nivel not in ["operador", "admin", "DEV"]:
+        flash("Acesso negado.", "danger")
+        return redirect(url_for("fluxos.index"))
+
+    fluxo = _get_or_create_fluxo(date.today())
+    collaborator = db.session.get(CentralColaborador, collaborator_id)
+    if not collaborator:
+        abort(404)
+    historicos = _group_history(fluxo, collaborator_id)
+
+    try:
+        import sys
+
+        base_dir: Any | str = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        logo_header_path: str = os.path.join(base_dir, "static", "icons", "logo black.png")
+        if os.path.exists(logo_header_path):
+            logo_header: str = os.path.relpath(logo_header_path, base_dir).replace("\\", "/")
+        else:
+            logo_header = ""
+
+        html = render_template(
+            "fluxos/pdf_individual.html",
+            collaborator=collaborator,
+            historicos=historicos,
+            fluxo=fluxo,
+            logo_header=logo_header,
+            data_geracao=datetime.now(ZoneInfo("America/Sao_Paulo")),
+        )
+
+        base_url: str = str(base_dir) if base_dir else os.getcwd()
+        assert HTML is not None
+        pdf: bytes | None = HTML(string=html, base_url=base_url).write_pdf()
+
+        response = make_response(pdf)
+        response.headers["Content-Type"] = "application/pdf"
+        response.headers["Content-Disposition"] = (
+            f'inline; filename=fluxo_{fluxo.mes_ano}_{collaborator.nome.replace(" ", "_")}.pdf'
+        )
+        return response
+    except Exception as e:
+        flash(f"Erro ao gerar PDF: {str(e)}", "danger")
+        return redirect(url_for("fluxos.index"))
+
+
+@bp.route("/fechar", methods=["POST"])
+@login_required
+def fechar_fluxo():
+    if current_user.nivel not in ("admin", "DEV"):
+        flash("Acesso negado.", "danger")
+        return redirect(url_for("fluxos.index"))
+
+    fluxo = _get_or_create_fluxo(date.today())
+    if fluxo.status == "fechado":
+        flash("Fluxo já está fechado.", "warning")
+        return redirect(url_for("fluxos.index"))
+
+    storage_dir = os.path.join(os.getcwd(), "instance", "fluxos", fluxo.mes_ano)
+    os.makedirs(storage_dir, exist_ok=True)
+
+    colaboradores = CentralColaborador.query.order_by(CentralColaborador.nome.asc()).all()
+    for c in colaboradores:
+        if not WEASYPRINT_AVAILABLE:
+            continue
+        historicos = _group_history(fluxo, c.id)
+        html = render_template(
+            "fluxos/pdf_individual.html",
+            collaborator=c,
+            historicos=historicos,
+            fluxo=fluxo,
+            logo_header="",
+            data_geracao=datetime.now(ZoneInfo("America/Sao_Paulo")),
+        )
+        base_url = os.getcwd()
+        assert HTML is not None
+        pdf = HTML(string=html, base_url=base_url).write_pdf()
+        filename = f"fluxo_{fluxo.mes_ano}_{c.nome.replace(' ', '_')}.pdf"
+        filepath = os.path.join(storage_dir, filename)
+        with open(filepath, "wb") as f:
+            f.write(pdf)
+        db.session.add(FluxoArquivo(fluxo_id=fluxo.id, collaborator_id=c.id, arquivo_path=filepath))
+
+    fluxo.status = "fechado"
+    fluxo.updated_at = datetime.now(ZoneInfo("America/Sao_Paulo"))
+    db.session.commit()
+
+    # iniciar novo fluxo
+    next_month = (fluxo.data_fim + timedelta(days=1)).replace(day=1)
+    _get_or_create_fluxo(next_month)
+
+    flash("Fluxo fechado e novo fluxo iniciado.", "success")
+    return redirect(url_for("fluxos.index"))

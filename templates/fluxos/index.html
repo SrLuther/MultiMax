@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+{% block title %}Fluxos — MultiMax{% endblock %}
+
+{% block content %}
+<div class="fluxos-container">
+    <div class="fluxos-hero">
+        <div class="fluxos-hero-orb"></div>
+        <div class="fluxos-hero-content">
+            <div class="fluxos-hero-left">
+                <div class="fluxos-hero-icon"><i class="bi bi-diagram-3"></i></div>
+                <div>
+                    <h1 class="fluxos-title">Fluxos</h1>
+                    <p class="fluxos-subtitle">Controle mensal em horas com ciclos semanais</p>
+                </div>
+            </div>
+            <div class="fluxos-hero-actions">
+                <form method="post" action="{{ url_for('fluxos.fechar_fluxo') }}">
+                    <button class="mm-btn mm-btn-outline" type="submit">
+                        <i class="bi bi-box-arrow-in-down"></i>
+                        Fechar fluxo
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="fluxos-config">
+        <form method="post" action="{{ url_for('fluxos.atualizar_valor_diaria') }}" class="fluxos-config-form">
+            <div>
+                <h3>Valor da diária</h3>
+                <p>Valor utilizado para calcular o pagamento dos dias completos.</p>
+            </div>
+            <div class="fluxos-config-actions">
+                <input type="text" name="valor_diaria" class="form-control" value="{{ fluxo.valor_diaria }}">
+                <button class="mm-btn mm-btn-primary" type="submit">Salvar</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="fluxos-cards-grid">
+        {% for c in colaboradores %}
+        {% set s = summaries[c.id] %}
+        <div class="fluxos-card">
+            <div class="fluxos-card-header">
+                <div>
+                    <h3>{{ c.nome }}</h3>
+                    <span class="fluxos-card-tag">{{ 'Ativo' if c.ativo else 'Inativo' }}</span>
+                </div>
+                <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('fluxos.pdf_individual', collaborator_id=c.id) }}" target="_blank">
+                    <i class="bi bi-filetype-pdf"></i>
+                </a>
+            </div>
+            <div class="fluxos-card-body">
+                <div class="fluxos-metric">
+                    <span>Total de horas</span>
+                    <strong>{{ s.total_horas }}</strong>
+                </div>
+                <div class="fluxos-metric">
+                    <span>Dias completos</span>
+                    <strong>{{ s.dias_completos }}</strong>
+                </div>
+                <div class="fluxos-metric">
+                    <span>Horas utilizadas</span>
+                    <strong>{{ s.horas_utilizadas }}</strong>
+                </div>
+                <div class="fluxos-metric">
+                    <span>Restante de horas</span>
+                    <strong>{{ s.restante }}</strong>
+                </div>
+                <div class="fluxos-metric">
+                    <span>Valor aproximado</span>
+                    <strong>R$ {{ '%.2f'|format(s.valor_receber) }}</strong>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="fluxos-form-card">
+        <div class="fluxos-form-header">
+            <h3>Inserção de horas</h3>
+            <span>Registre ganhos e usos por data</span>
+        </div>
+        <form method="post" action="{{ url_for('fluxos.novo_lancamento') }}" class="fluxos-form-grid">
+            <div>
+                <label>Colaborador</label>
+                <select name="collaborator_id" class="form-select" required>
+                    <option value="">Selecione</option>
+                    {% for c in colaboradores %}
+                    <option value="{{ c.id }}">{{ c.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Horas</label>
+                <input type="number" step="0.5" name="horas" class="form-control" required>
+            </div>
+            <div>
+                <label>Descrição</label>
+                <input type="text" name="descricao" class="form-control" required>
+            </div>
+            <div>
+                <label>Data da ação</label>
+                <input type="date" name="data" class="form-control" required>
+            </div>
+            <div class="fluxos-form-full">
+                <label>Observações</label>
+                <input type="text" name="observacao" class="form-control">
+            </div>
+            <div class="fluxos-form-actions">
+                <button class="mm-btn mm-btn-primary" type="submit">Salvar lançamento</button>
+            </div>
+        </form>
+    </div>
+
+    {% for c in colaboradores %}
+    <div class="fluxos-history-card">
+        <div class="fluxos-history-header">
+            <h3>Histórico — {{ c.nome }}</h3>
+        </div>
+        <div class="fluxos-history-body">
+            {% for g in historicos[c.id] %}
+            <div class="fluxos-cycle-block">
+                <div class="fluxos-cycle-title">
+                    {{ g.ciclo.label }} ({{ g.ciclo.week_start.strftime('%d/%m') }} - {{ g.ciclo.week_end.strftime('%d/%m') }})
+                </div>
+                <table class="fluxos-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Horas</th>
+                            <th>Descrição</th>
+                            <th>Observação</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for l in g.lancamentos %}
+                        <tr>
+                            <td>{{ l.data.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ l.horas }}</td>
+                            <td>{{ l.descricao }}</td>
+                            <td>{{ l.observacao or '-' }}</td>
+                            <td class="text-end">
+                                <button class="mm-btn mm-btn-secondary mm-btn-sm" data-bs-toggle="modal" data-bs-target="#modalFluxoEditar{{ l.id }}">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="fluxos-empty">Sem lançamentos.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% for c in colaboradores %}
+{% for g in historicos[c.id] %}
+{% for l in g.lancamentos %}
+<div class="modal fade" id="modalFluxoEditar{{ l.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{{ url_for('fluxos.editar_lancamento', lanc_id=l.id) }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar lançamento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Horas</label>
+                        <input type="number" step="0.5" name="horas" class="form-control" value="{{ l.horas }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descrição</label>
+                        <input type="text" name="descricao" class="form-control" value="{{ l.descricao }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Data</label>
+                        <input type="date" name="data" class="form-control" value="{{ l.data.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Observação</label>
+                        <input type="text" name="observacao" class="form-control" value="{{ l.observacao or '' }}">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endfor %}
+{% endfor %}
+{% endblock %}

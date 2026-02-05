@@ -5,7 +5,7 @@ Middleware Global de Erros - Logging centralizado
 import os
 import traceback
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from flask import g, jsonify, request
 from sqlalchemy.exc import SQLAlchemyError
@@ -20,7 +20,7 @@ def init_error_handlers(app):
     def before_request():
         """Antes de processar request - gerar request_id e setup logging"""
         g.request_id = str(uuid.uuid4())
-        g.request_start_time = datetime.utcnow()
+        g.request_start_time = datetime.now(UTC)
 
     @app.errorhandler(400)
     def bad_request(error):
@@ -161,7 +161,7 @@ Descrição: {error_msg[:100]}...
 Container: {container}
 Rota: {rota}
 Request: {request_id}
-Hora: {datetime.utcnow().isoformat()}
+Hora: {datetime.now(UTC).isoformat()}
 """
 
         # Enviar via WhatsApp Service

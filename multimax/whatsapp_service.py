@@ -8,7 +8,7 @@ automaticamente para o WhatsApp
 import os
 import socket
 import traceback
-from datetime import datetime
+from datetime import UTC, datetime
 
 import requests
 from flask import g, request
@@ -91,7 +91,7 @@ def send_error_alert(**kwargs):
             "context": f"api_error_{kwargs.get('method', 'UNKNOWN')}_{kwargs.get('route', 'unknown')}",
             "route": kwargs.get("route", ""),
             "host": HOSTNAME,
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             "statusCode": kwargs.get("status_code", 500),
             "user": kwargs.get("user_id", None),
         }

@@ -10,6 +10,22 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.41] - 2026-02-04 23:50:00
+
+### Added
+- Fluxos: módulo mensal com ciclos semanais, PDF individual e fechamento automático
+- Migração 005 para tabelas de Fluxos
+- Tests: cobertura completa de Fluxos e rotas principais
+
+### Fixed
+- Tests: encerramento de conexões SQLite e remoção de warnings deprecados
+- Core: ajustes de UTC e substituição de Query.get por db.session.get
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.40] - 2026-02-04 23:00:00
 
 ### Added

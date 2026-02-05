@@ -2,7 +2,7 @@
 Models: Logging e Monitoramento
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import DateTime, Integer, String, Text
@@ -10,6 +10,10 @@ from sqlalchemy import DateTime, Integer, String, Text
 from .. import db as app_db
 
 db: Any = app_db
+
+
+def _utcnow() -> datetime:
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 class LogErro(db.Model):
@@ -31,8 +35,8 @@ class LogErro(db.Model):
     request_id = db.Column(String(100), nullable=True, index=True)
 
     # Auditoria
-    created_at = db.Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
-    updated_at = db.Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(DateTime, default=_utcnow, nullable=False, index=True)
+    updated_at = db.Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
 
     __table_args__ = (db.Index("ix_log_erros_nivel_data", "nivel", "created_at"),)
 
@@ -53,8 +57,8 @@ class LogWhatsapp(db.Model):
     resposta_api = db.Column(Text, nullable=True)
 
     # Auditoria
-    created_at = db.Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
-    updated_at = db.Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(DateTime, default=_utcnow, nullable=False, index=True)
+    updated_at = db.Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
 
     def __repr__(self):
         return f"<LogWhatsapp {self.acao} {self.status}>"
@@ -73,7 +77,7 @@ class LogDeploy(db.Model):
     container = db.Column(String(100), nullable=False)  # 'multimax', 'whatsapp-service', 'postgres'
 
     # Auditoria
-    created_at = db.Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = db.Column(DateTime, default=_utcnow, nullable=False, index=True)
 
     def __repr__(self):
         return f"<LogDeploy {self.versao} {self.evento}>"
@@ -94,7 +98,7 @@ class Heartbeat(db.Model):
     detalhes = db.Column(Text, nullable=True)
 
     # Auditoria
-    created_at = db.Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = db.Column(DateTime, default=_utcnow, nullable=False, index=True)
 
     __table_args__ = (db.Index("ix_heartbeat_container_data", "container", "created_at"),)
 

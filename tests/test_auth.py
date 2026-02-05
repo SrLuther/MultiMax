@@ -1,8 +1,8 @@
 """
 Testes para rotas de autenticação.
 """
+
 import pytest
-from flask import url_for
 
 from multimax import create_app, db
 from multimax.models import User
@@ -21,6 +21,8 @@ def app():
         db.create_all()
         yield app
         db.drop_all()
+        db.session.remove()
+        db.engine.dispose()
 
 
 @pytest.fixture

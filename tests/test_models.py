@@ -1,8 +1,6 @@
 """
 Testes unitários para os modelos do MultiMax.
 """
-from datetime import date, datetime
-from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -23,6 +21,8 @@ def app():
         db.create_all()
         yield app
         db.drop_all()
+        db.session.remove()
+        db.engine.dispose()
 
 
 @pytest.fixture
@@ -93,10 +93,10 @@ class TestProduto:
     def test_produto_update(self, app, test_produto):
         """Testa atualização de produto."""
         with app.app_context():
-            produto = Produto.query.get(test_produto.id)
+            produto = db.session.get(Produto, test_produto.id)
             produto.quantidade = 20
             db.session.commit()
-            updated = Produto.query.get(test_produto.id)
+            updated = db.session.get(Produto, test_produto.id)
             assert updated.quantidade == 20
 
     def test_produto_delete(self, app, test_produto):
@@ -105,7 +105,7 @@ class TestProduto:
             produto_id = test_produto.id
             db.session.delete(test_produto)
             db.session.commit()
-            deleted = Produto.query.get(produto_id)
+            deleted = db.session.get(Produto, produto_id)
             assert deleted is None
 
 
@@ -142,5 +142,5 @@ class TestHistorico:
             db.session.add(hist)
             db.session.commit()
 
-            produto = Produto.query.get(test_produto.id)
+            produto = db.session.get(Produto, test_produto.id)
             assert len(produto.historicos) > 0

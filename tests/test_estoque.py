@@ -1,8 +1,8 @@
 """
 Testes para rotas de estoque.
 """
+
 import pytest
-from flask import url_for
 
 from multimax import create_app, db
 from multimax.models import Historico, Produto, User
@@ -21,6 +21,8 @@ def app():
         db.create_all()
         yield app
         db.drop_all()
+        db.session.remove()
+        db.engine.dispose()
 
 
 @pytest.fixture
@@ -118,7 +120,7 @@ class TestEstoqueRoutes:
             assert response.status_code == 200
 
             # Verifica se a quantidade foi atualizada
-            produto = Produto.query.get(test_produto.id)
+            produto = db.session.get(Produto, test_produto.id)
             assert produto.quantidade == quantidade_inicial + 5
 
             # Verifica se o histórico foi criado
@@ -138,7 +140,7 @@ class TestEstoqueRoutes:
             assert response.status_code == 200
 
             # Verifica se a quantidade foi atualizada
-            produto = Produto.query.get(test_produto.id)
+            produto = db.session.get(Produto, test_produto.id)
             assert produto.quantidade == quantidade_inicial - 3
 
     def test_saida_insuficiente(self, logged_in_client, app, test_produto):
@@ -153,5 +155,5 @@ class TestEstoqueRoutes:
             assert response.status_code == 200
 
             # Verifica que a quantidade não mudou
-            produto = Produto.query.get(test_produto.id)
+            produto = db.session.get(Produto, test_produto.id)
             assert produto.quantidade == quantidade_inicial

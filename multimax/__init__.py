@@ -125,6 +125,7 @@ def _register_blueprints(app: Flask) -> tuple[bool, None]:
     from .routes.escala_especial import bp as escala_especial_bp
     from .routes.estoque_producao import bp as estoque_producao_bp
     from .routes.exportacao import bp as exportacao_bp
+    from .routes.fluxos import bp as fluxos_bp
     from .routes.home import bp as home_bp
     from .routes.receitas import bp as receitas_bp
     from .routes.usuarios import bp as usuarios_bp
@@ -163,6 +164,7 @@ def _register_blueprints(app: Flask) -> tuple[bool, None]:
     app.register_blueprint(colaboradores_bp)
     app.register_blueprint(central_bp)
     app.register_blueprint(receitas_bp)
+    app.register_blueprint(fluxos_bp)
     app.register_blueprint(whatsapp_admin_bp)
     app.register_blueprint(whatsapp_config_bp)
     app.register_blueprint(api_bp)
@@ -210,7 +212,7 @@ def _setup_login_manager(app: Flask) -> None:
     @login_manager.user_loader
     def load_user(user_id):
         try:
-            return User.query.get(int(user_id))
+            return db.session.get(User, int(user_id))
         except Exception:
             try:
                 db.session.rollback()

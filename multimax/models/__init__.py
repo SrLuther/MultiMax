@@ -19,6 +19,7 @@ from .ciclo import CicloMensal, CicloSemanal, HistoricoColaborador
 from .colaborador import Colaborador
 from .content import ArticleVote, CustomSchedule, HelpArticle, Suggestion, SuggestionVote
 from .escala import Escala
+from .fluxos import Fluxo, FluxoArquivo, FluxoCiclo, FluxoConfig, FluxoLancamento
 from .holidays import Holiday
 from .logs import Heartbeat, LogDeploy, LogErro, LogWhatsapp
 from .logs_auth import SystemLog, UserLogin
@@ -97,6 +98,12 @@ __all__ = [
     # Escala
     "Escala",
     "EscalaEspecial",
+    # Fluxos
+    "Fluxo",
+    "FluxoCiclo",
+    "FluxoLancamento",
+    "FluxoConfig",
+    "FluxoArquivo",
     # Setores e Gestão
     "Setor",
     "Shift",

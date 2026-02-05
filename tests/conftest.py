@@ -1,6 +1,7 @@
 """
 Configuração compartilhada para testes pytest.
 """
+
 import os
 
 import pytest
@@ -27,6 +28,8 @@ def app():
         db.create_all()
         yield app
         db.drop_all()
+        db.session.remove()
+        db.engine.dispose()
 
 
 @pytest.fixture

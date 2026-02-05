@@ -2,7 +2,7 @@
 Model: Usuários
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from flask_login import UserMixin
@@ -11,6 +11,10 @@ from sqlalchemy import Boolean, DateTime, Integer, String, Text
 from .. import db as app_db
 
 db: Any = app_db
+
+
+def _utcnow() -> datetime:
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 class User(UserMixin, db.Model):
@@ -31,8 +35,8 @@ class User(UserMixin, db.Model):
     ativo = db.Column(Boolean, default=True, nullable=False)
 
     # Auditoria
-    created_at = db.Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
 
     @property
     def collaborator_name(self):

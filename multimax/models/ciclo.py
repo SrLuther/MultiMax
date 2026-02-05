@@ -2,7 +2,7 @@
 Models: Ciclos e Histórico
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, Text
@@ -10,6 +10,10 @@ from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, Text
 from .. import db as app_db
 
 db: Any = app_db
+
+
+def _utcnow() -> datetime:
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 class CicloSemanal(db.Model):
@@ -25,8 +29,8 @@ class CicloSemanal(db.Model):
     observacoes = db.Column(Text, nullable=True)
 
     # Auditoria
-    created_at = db.Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
 
     def __repr__(self):
         return f"<CicloSemanal {self.numero_ciclo}>"
@@ -45,8 +49,8 @@ class CicloMensal(db.Model):
     fechado = db.Column(db.Boolean, default=False, nullable=False)
 
     # Auditoria
-    created_at = db.Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
 
     __table_args__ = (db.UniqueConstraint("mes", "ano", name="uq_ciclo_mes_ano"),)
 
@@ -73,8 +77,8 @@ class HistoricoColaborador(db.Model):
     observacoes = db.Column(Text, nullable=True)
 
     # Auditoria
-    created_at = db.Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
 
     def __repr__(self):
         return f"<HistoricoColaborador col:{self.colaborador_id} ciclo:{self.ciclo_semanal_id}>"

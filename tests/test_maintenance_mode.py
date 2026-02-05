@@ -6,11 +6,20 @@ Este arquivo demonstra como testar o modo de manutenÃ§Ã£o.
 
 import os
 
-from multimax import create_app
+from multimax import create_app, db
 
 
 class TestMaintenanceMode:
     """Testes para o modo de manutenÃ§Ã£o"""
+
+    @staticmethod
+    def _cleanup_db(app):
+        try:
+            with app.app_context():
+                db.session.remove()
+                db.engine.dispose()
+        except Exception:
+            pass
 
     def test_maintenance_mode_disabled_by_default(self):
         """Sistema deve funcionar normalmente quando MAINTENANCE_MODE nÃ£o estÃ¡ definido"""
@@ -21,6 +30,7 @@ class TestMaintenanceMode:
         app = create_app()
         assert app is not None
         assert app.config.get("DB_OK") is not None
+        self._cleanup_db(app)
 
     def test_maintenance_mode_when_false(self):
         """Sistema deve funcionar normalmente quando MAINTENANCE_MODE=false"""
@@ -31,6 +41,7 @@ class TestMaintenanceMode:
             assert app is not None
             # Sistema deve inicializar banco normalmente
             assert app.config.get("SQLALCHEMY_DATABASE_URI") is not None
+            self._cleanup_db(app)
         finally:
             if "MAINTENANCE_MODE" in os.environ:
                 del os.environ["MAINTENANCE_MODE"]
@@ -58,6 +69,8 @@ class TestMaintenanceMode:
 
                 # Verificar header Retry-After
                 assert "Retry-After" in response.headers
+
+            self._cleanup_db(app)
 
         finally:
             if "MAINTENANCE_MODE" in os.environ:
@@ -93,6 +106,8 @@ class TestMaintenanceMode:
                 # Tipografia
                 assert "Inter" in html or "IBM Plex Sans" in html
 
+            self._cleanup_db(app)
+
         finally:
             if "MAINTENANCE_MODE" in os.environ:
                 del os.environ["MAINTENANCE_MODE"]
@@ -106,6 +121,8 @@ class TestMaintenanceMode:
 
             # Verificar que DB_OK nÃ£o foi definido (banco nÃ£o foi inicializado)
             assert app.config.get("DB_OK") is None
+
+            self._cleanup_db(app)
 
         finally:
             if "MAINTENANCE_MODE" in os.environ:

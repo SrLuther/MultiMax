@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
@@ -470,7 +470,7 @@ def dashboard_authenticated():  # noqa: C901 - função principal do dashboard a
             events.append(
                 {
                     "title": f"📦 {t}: {h.product_name} {sign}{qty}",
-                    "start": (h.data or datetime.utcnow()).isoformat(),
+                    "start": (h.data or datetime.now(UTC).replace(tzinfo=None)).isoformat(),
                     "color": "#198754",
                     "url": url_for("estoque.editar", id=h.product_id) if h.product_id else None,
                 }
@@ -516,7 +516,7 @@ def dashboard_authenticated():  # noqa: C901 - função principal do dashboard a
             events.append(
                 {
                     "title": f"✅ Limpeza concluída: {c.nome_limpeza}",
-                    "start": (c.data_conclusao or datetime.utcnow()).isoformat(),
+                    "start": (c.data_conclusao or datetime.now(UTC).replace(tzinfo=None)).isoformat(),
                     "color": "#198754",
                     "url": url_for("cronograma.cronograma"),
                 }
@@ -530,7 +530,7 @@ def dashboard_authenticated():  # noqa: C901 - função principal do dashboard a
             events.append(
                 {
                     "title": f"🥩 Recepção de carnes: {r.fornecedor} ({r.tipo})",
-                    "start": (r.data or datetime.utcnow()).isoformat(),
+                    "start": (r.data or datetime.now(UTC).replace(tzinfo=None)).isoformat(),
                     "color": "#6c757d",
                     "url": url_for("carnes.index"),
                 }
@@ -544,7 +544,7 @@ def dashboard_authenticated():  # noqa: C901 - função principal do dashboard a
             events.append(
                 {
                     "title": f"⚙️ {lg.origem}: {lg.evento}",
-                    "start": (lg.data or datetime.utcnow()).isoformat(),
+                    "start": (lg.data or datetime.now(UTC).replace(tzinfo=None)).isoformat(),
                     "color": "#6610f2",
                     "url": url_for("usuarios.monitor") if lg.origem in ("Usuarios", "Sistema") else None,
                 }

@@ -618,6 +618,70 @@ body.login-page {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-6px); }
 }
+
+/* ============================= */
+/* ===== FLUXOS ================ */
+/* ============================= */
+
+.fluxos-container { display: flex; flex-direction: column; gap: 1.5rem; }
+
+.fluxos-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 22px;
+    padding: 2.2rem;
+    background: linear-gradient(135deg, #6e7cff 0%, #8a6bdb 45%, #7b59d2 100%);
+    box-shadow: 0 10px 32px rgba(76, 82, 255, 0.25);
+    color: #fff;
+}
+
+.fluxos-hero-orb {
+    position: absolute;
+    width: 240px;
+    height: 240px;
+    right: -80px;
+    bottom: -100px;
+    background: radial-gradient(circle, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.05) 65%, transparent 75%);
+    filter: blur(2px);
+    animation: centralSpin 20s linear infinite;
+}
+
+.fluxos-hero-content { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; }
+.fluxos-hero-left { display: flex; align-items: center; gap: 1.25rem; }
+.fluxos-hero-icon { width: 64px; height: 64px; border-radius: 18px; background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 6px 18px rgba(0,0,0,0.15); animation: centralFloat 3.5s ease-in-out infinite; }
+.fluxos-title { font-size: 2.2rem; font-weight: 700; margin: 0; text-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+.fluxos-subtitle { margin: 0.35rem 0 0; font-size: 1.05rem; color: rgba(255,255,255,0.85); }
+
+.fluxos-config { background: #fff; border-radius: 18px; border: 1px solid rgba(15,23,42,0.08); box-shadow: 0 6px 18px rgba(15,23,42,0.08); padding: 1.5rem; }
+.fluxos-config-form { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.fluxos-config-actions { display: flex; gap: 0.75rem; align-items: center; }
+.fluxos-config h3 { margin: 0; font-size: 1.2rem; color: #0b0f19; }
+.fluxos-config p { margin: 0.2rem 0 0; color: #475569; }
+
+.fluxos-cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+.fluxos-card { background: #fff; border-radius: 16px; border: 1px solid rgba(15,23,42,0.08); box-shadow: 0 6px 18px rgba(15,23,42,0.08); padding: 1rem 1.25rem; }
+.fluxos-card-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.fluxos-card-header h3 { margin: 0; font-size: 1.05rem; color: #0b0f19; }
+.fluxos-card-tag { display: inline-flex; margin-top: 0.35rem; padding: 0.2rem 0.5rem; border-radius: 999px; font-size: 0.75rem; background: rgba(16,185,129,0.15); color: #059669; }
+.fluxos-card-body { margin-top: 0.75rem; display: grid; gap: 0.35rem; }
+.fluxos-metric { display: flex; justify-content: space-between; font-size: 0.95rem; color: #1f2937; }
+
+.fluxos-form-card { background: #fff; border-radius: 18px; border: 1px solid rgba(15,23,42,0.08); box-shadow: 0 6px 18px rgba(15,23,42,0.08); padding: 1.5rem; }
+.fluxos-form-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.fluxos-form-header h3 { margin: 0; color: #0b0f19; }
+.fluxos-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+.fluxos-form-full { grid-column: 1 / -1; }
+.fluxos-form-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
+
+.fluxos-history-card { background: #fff; border-radius: 18px; border: 1px solid rgba(15,23,42,0.08); box-shadow: 0 6px 18px rgba(15,23,42,0.08); }
+.fluxos-history-header { padding: 1rem 1.5rem; border-bottom: 1px solid rgba(15,23,42,0.08); background: rgba(110,124,255,0.12); }
+.fluxos-history-header h3 { margin: 0; color: #0b0f19; }
+.fluxos-history-body { padding: 1rem 1.5rem 1.5rem; }
+.fluxos-cycle-title { font-weight: 700; margin: 0.5rem 0; color: #0b0f19; }
+.fluxos-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.fluxos-table th { text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.04em; color: #6b7280; padding: 0.65rem; border-bottom: 1px solid rgba(15,23,42,0.12); }
+.fluxos-table td { padding: 0.65rem; border-bottom: 1px solid rgba(15,23,42,0.08); }
+.fluxos-empty { text-align: center; color: #9ca3af; padding: 1rem; }
 .header-animated {
     background: linear-gradient(135deg, #0d0f10, #141719, #0f1112);
     background-size: 300% 300%;

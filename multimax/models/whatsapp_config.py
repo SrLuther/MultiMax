@@ -2,7 +2,7 @@
 Models: Configurações WhatsApp
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import Boolean, DateTime, Integer, String, Text
@@ -10,6 +10,10 @@ from sqlalchemy import Boolean, DateTime, Integer, String, Text
 from .. import db as app_db
 
 db: Any = app_db
+
+
+def _utcnow() -> datetime:
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 class WhatsappConfig(db.Model):
@@ -24,8 +28,8 @@ class WhatsappConfig(db.Model):
     ativo = db.Column(Boolean, default=True, nullable=False)
 
     # Auditoria
-    created_at = db.Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
 
     def __repr__(self):
         return f"<WhatsappConfig {self.chave}>"
@@ -49,8 +53,8 @@ class WhatsappMessage(db.Model):
     colaborador_id = db.Column(Integer, nullable=True)
 
     # Auditoria
-    created_at = db.Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
     enviado_em = db.Column(DateTime, nullable=True)
 
     __table_args__ = (
