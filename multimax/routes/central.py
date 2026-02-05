@@ -5,7 +5,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from .. import db
-from ..models import CentralColaborador, CentralLog
+from ..models import CentralColaborador, CentralLog, Setor, SetorCargo
 from ..password_hash import generate_password_hash
 
 bp = Blueprint("central", __name__, url_prefix="/central")
@@ -61,6 +61,17 @@ def index():
         return redirect(url_for("home.index"))
 
     colaboradores = CentralColaborador.query.order_by(CentralColaborador.nome.asc()).all()
+    setores = Setor.query.filter(Setor.ativo.is_(True)).order_by(Setor.nome.asc()).all()
+    cargos_by_setor: dict[str, list[str]] = {}
+    if setores:
+        cargos = (
+            SetorCargo.query.join(Setor)
+            .filter(SetorCargo.ativo.is_(True), Setor.ativo.is_(True))
+            .order_by(Setor.nome.asc(), SetorCargo.nome.asc())
+            .all()
+        )
+        for cargo in cargos:
+            cargos_by_setor.setdefault(cargo.setor.nome, []).append(cargo.nome)
     logs = CentralLog.query.order_by(CentralLog.created_at.desc()).limit(50).all()
 
     total = len(colaboradores)
@@ -70,6 +81,8 @@ def index():
     return render_template(
         "central.html",
         colaboradores=colaboradores,
+        setores=setores,
+        cargos_by_setor=cargos_by_setor,
         logs=logs,
         total_colaboradores=total,
         total_ativos=ativos,
@@ -112,12 +125,32 @@ def create():
 
     password_hash = generate_password_hash(senha) if senha else None
 
+    setor_nome = setor or None
+    cargo_nome = cargo or None
+    if setor_nome:
+        setor_ref = Setor.query.filter_by(nome=setor_nome, ativo=True).first()
+        if not setor_ref:
+            setor_nome = None
+            cargo_nome = None
+    if cargo_nome and setor_nome:
+        cargo_ref = (
+            SetorCargo.query.join(Setor)
+            .filter(
+                SetorCargo.ativo.is_(True),
+                Setor.nome == setor_nome,
+                SetorCargo.nome == cargo_nome,
+            )
+            .first()
+        )
+        if not cargo_ref:
+            cargo_nome = None
+
     colaborador = CentralColaborador(
         nome=nome,
         username=username,
         email=email or None,
-        cargo=cargo or None,
-        setor=setor or None,
+        cargo=cargo_nome,
+        setor=setor_nome,
         permissao=permissao,
         ativo=ativo,
         password_hash=password_hash,
@@ -145,8 +178,30 @@ def edit(colab_id: int):
 
     colaborador.nome = (request.form.get("nome") or colaborador.nome).strip()
     colaborador.email = (request.form.get("email") or "").strip() or None
-    colaborador.cargo = (request.form.get("cargo") or "").strip() or None
-    colaborador.setor = (request.form.get("setor") or "").strip() or None
+    setor = (request.form.get("setor") or "").strip()
+    cargo = (request.form.get("cargo") or "").strip()
+    setor_nome = setor or None
+    cargo_nome = cargo or None
+    if setor_nome:
+        setor_ref = Setor.query.filter_by(nome=setor_nome, ativo=True).first()
+        if not setor_ref:
+            setor_nome = None
+            cargo_nome = None
+    if cargo_nome and setor_nome:
+        cargo_ref = (
+            SetorCargo.query.join(Setor)
+            .filter(
+                SetorCargo.ativo.is_(True),
+                Setor.nome == setor_nome,
+                SetorCargo.nome == cargo_nome,
+            )
+            .first()
+        )
+        if not cargo_ref:
+            cargo_nome = None
+
+    colaborador.cargo = cargo_nome
+    colaborador.setor = setor_nome
     colaborador.ativo = (request.form.get("ativo") or "1").strip() == "1"
     colaborador.updated_at = datetime.now(ZoneInfo("America/Sao_Paulo"))
     colaborador.updated_by = (

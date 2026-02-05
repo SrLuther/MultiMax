@@ -155,7 +155,7 @@
 <div class="modal fade" id="modalCentralNovo" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form method="post" action="{{ url_for('central.create') }}">
+            <form method="post" action="{{ url_for('central.create') }}" data-central-form="1">
                 <div class="modal-header">
                     <h5 class="modal-title">Novo colaborador</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -175,12 +175,19 @@
                             <input type="email" name="email" class="form-control">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Cargo</label>
-                            <input type="text" name="cargo" class="form-control">
+                            <label class="form-label">Setor</label>
+                            <select name="setor" class="form-select central-setor-select" data-current="">
+                                <option value="">Selecione o setor</option>
+                                {% for setor in setores %}
+                                <option value="{{ setor.nome }}">{{ setor.nome }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Setor</label>
-                            <input type="text" name="setor" class="form-control">
+                            <label class="form-label">Cargo</label>
+                            <select name="cargo" class="form-select central-cargo-select" data-current="">
+                                <option value="">Selecione o cargo</option>
+                            </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Permissão</label>
@@ -217,7 +224,7 @@
 <div class="modal fade" id="modalCentralEditar{{ c.id }}" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form method="post" action="{{ url_for('central.edit', colab_id=c.id) }}">
+            <form method="post" action="{{ url_for('central.edit', colab_id=c.id) }}" data-central-form="1">
                 <div class="modal-header">
                     <h5 class="modal-title">Editar colaborador</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -233,12 +240,23 @@
                             <input type="email" name="email" class="form-control" value="{{ c.email or '' }}">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Cargo</label>
-                            <input type="text" name="cargo" class="form-control" value="{{ c.cargo or '' }}">
+                            <label class="form-label">Setor</label>
+                            {% set setor_ns = namespace(found=false) %}
+                            <select name="setor" class="form-select central-setor-select" data-current="{{ c.setor or '' }}">
+                                <option value="">Selecione o setor</option>
+                                {% for setor in setores %}
+                                <option value="{{ setor.nome }}" {% if c.setor == setor.nome %}selected{% set setor_ns.found = true %}{% endif %}>{{ setor.nome }}</option>
+                                {% endfor %}
+                                {% if c.setor and not setor_ns.found %}
+                                <option value="{{ c.setor }}" selected>{{ c.setor }} (não cadastrado)</option>
+                                {% endif %}
+                            </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Setor</label>
-                            <input type="text" name="setor" class="form-control" value="{{ c.setor or '' }}">
+                            <label class="form-label">Cargo</label>
+                            <select name="cargo" class="form-select central-cargo-select" data-current="{{ c.cargo or '' }}">
+                                <option value="">Selecione o cargo</option>
+                            </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Status</label>
@@ -328,4 +346,54 @@
     </div>
 </div>
 {% endfor %}
+<script>
+    const cargosBySetor = {{ cargos_by_setor|tojson }};
+
+    const buildCargoOptions = (cargoSelect, setorNome, cargoAtual) => {
+        cargoSelect.innerHTML = "";
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "Selecione o cargo";
+        cargoSelect.appendChild(placeholder);
+
+        const cargos = (setorNome && cargosBySetor[setorNome]) ? cargosBySetor[setorNome] : [];
+        cargos.forEach((cargoNome) => {
+            const option = document.createElement("option");
+            option.value = cargoNome;
+            option.textContent = cargoNome;
+            if (cargoNome === cargoAtual) {
+                option.selected = true;
+            }
+            cargoSelect.appendChild(option);
+        });
+
+        if (cargoAtual && !cargos.includes(cargoAtual)) {
+            const option = document.createElement("option");
+            option.value = cargoAtual;
+            option.textContent = `${cargoAtual} (não cadastrado)`;
+            option.selected = true;
+            cargoSelect.appendChild(option);
+        }
+    };
+
+    document.querySelectorAll("form[data-central-form='1']").forEach((form) => {
+        const setorSelect = form.querySelector("select[name='setor']");
+        const cargoSelect = form.querySelector("select[name='cargo']");
+        if (!setorSelect || !cargoSelect) {
+            return;
+        }
+
+        const currentSetor = setorSelect.dataset.current || "";
+        const currentCargo = cargoSelect.dataset.current || "";
+        if (!setorSelect.value && currentSetor) {
+            setorSelect.value = currentSetor;
+        }
+
+        buildCargoOptions(cargoSelect, setorSelect.value, currentCargo);
+
+        setorSelect.addEventListener("change", (event) => {
+            buildCargoOptions(cargoSelect, event.target.value, "");
+        });
+    });
+</script>
 {% endblock %}
