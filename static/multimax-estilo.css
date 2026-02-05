@@ -385,19 +385,23 @@ body.login-page {
 .central-hero {
     position: relative;
     overflow: hidden;
-    border-radius: 22px;
-    padding: 2.2rem;
-    background: linear-gradient(135deg, #6e7cff 0%, #8a6bdb 45%, #7b59d2 100%);
-    box-shadow: 0 10px 32px rgba(76, 82, 255, 0.25);
+    border-radius: 20px;
+    padding: 3rem 2.5rem;
+    margin-bottom: 2.5rem;
+    background: linear-gradient(135deg, #0f766e 0%, #0ea5e9 48%, #2563eb 100%);
+    box-shadow: 0 12px 40px rgba(14, 165, 233, 0.35);
     color: #fff;
 }
 
-.central-hero::after {
+.central-hero::before {
     content: "";
     position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 15% 20%, rgba(255,255,255,0.25), transparent 45%);
-    opacity: 0.6;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
+    animation: heroRotate 20s linear infinite;
     pointer-events: none;
 }
 
@@ -407,7 +411,7 @@ body.login-page {
     height: 220px;
     right: -70px;
     bottom: -90px;
-    background: radial-gradient(circle, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.05) 65%, transparent 75%);
+    background: radial-gradient(circle, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.08) 65%, transparent 75%);
     filter: blur(2px);
     animation: centralSpin 18s linear infinite;
 }
@@ -619,6 +623,11 @@ body.login-page {
     50% { transform: translateY(-6px); }
 }
 
+@keyframes heroRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 /* ============================= */
 /* ===== FLUXOS ================ */
 /* ============================= */
@@ -628,11 +637,23 @@ body.login-page {
 .fluxos-hero {
     position: relative;
     overflow: hidden;
-    border-radius: 22px;
-    padding: 2.2rem;
-    background: linear-gradient(135deg, #6e7cff 0%, #8a6bdb 45%, #7b59d2 100%);
-    box-shadow: 0 10px 32px rgba(76, 82, 255, 0.25);
+    border-radius: 20px;
+    padding: 3rem 2.5rem;
+    margin-bottom: 2.5rem;
+    background: linear-gradient(135deg, #f97316 0%, #ec4899 48%, #8b5cf6 100%);
+    box-shadow: 0 12px 40px rgba(236, 72, 153, 0.35);
     color: #fff;
+}
+
+.fluxos-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
+    animation: heroRotate 20s linear infinite;
 }
 
 .fluxos-hero-orb {
@@ -683,9 +704,84 @@ body.login-page {
 .fluxos-table td { padding: 0.65rem; border-bottom: 1px solid rgba(15,23,42,0.08); }
 .fluxos-empty { text-align: center; color: #9ca3af; padding: 1rem; }
 
+.fluxos-card {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.fluxos-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--fluxo-accent, #f97316), rgba(15, 23, 42, 0.04));
+}
+
+.fluxos-card:nth-child(3n + 1) { --fluxo-accent: #f97316; }
+.fluxos-card:nth-child(3n + 2) { --fluxo-accent: #0ea5e9; }
+.fluxos-card:nth-child(3n) { --fluxo-accent: #8b5cf6; }
+
+.fluxos-card-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.fluxos-card-body strong {
+    color: #111827;
+}
+
+.fluxos-card-tag {
+    border: 1px solid rgba(16,185,129,0.2);
+    font-weight: 600;
+}
+
+.fluxos-history-header {
+    background: linear-gradient(90deg, rgba(249, 115, 22, 0.15), rgba(236, 72, 153, 0.1));
+}
+
+.fluxos-cycle-block {
+    --cycle-accent: #f97316;
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.10), rgba(249, 115, 22, 0.02));
+    border: 1px solid rgba(249, 115, 22, 0.2);
+    border-left: 4px solid var(--cycle-accent);
+    border-radius: 14px;
+    padding: 0.85rem 1rem;
+    margin: 0.85rem 0 1.1rem;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.fluxos-cycle-block:nth-of-type(2n) {
+    --cycle-accent: #0ea5e9;
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(14, 165, 233, 0.02));
+    border-color: rgba(14, 165, 233, 0.25);
+}
+
+.fluxos-cycle-block:nth-of-type(3n) {
+    --cycle-accent: #8b5cf6;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(139, 92, 246, 0.02));
+    border-color: rgba(139, 92, 246, 0.25);
+}
+
+.fluxos-cycle-title {
+    color: #1f2937;
+}
+
+.fluxos-table thead th {
+    background: rgba(15, 23, 42, 0.04);
+}
+
+.fluxos-table tbody tr:nth-child(even) {
+    background: rgba(148, 163, 184, 0.08);
+}
+
 /* ===== FLUXOS (DARK) ===== */
 [data-theme="dark"] .fluxos-hero {
-    background: linear-gradient(135deg, #2b2f6f 0%, #3a2d6f 45%, #3b2b7a 100%);
+    background: linear-gradient(135deg, #7c2d12 0%, #9d174d 45%, #4c1d95 100%);
     box-shadow: 0 12px 30px rgba(10, 10, 35, 0.6);
 }
 
@@ -753,6 +849,46 @@ body.login-page {
 [data-theme="dark"] .fluxos-form-card .form-select:focus {
     border-color: rgba(99, 102, 241, 0.6);
     box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.2);
+}
+
+[data-theme="dark"] .fluxos-card {
+    background: linear-gradient(180deg, #0f172a 0%, #0b1220 100%);
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="dark"] .fluxos-card::before {
+    background: linear-gradient(90deg, var(--fluxo-accent, #f97316), rgba(148, 163, 184, 0.08));
+}
+
+[data-theme="dark"] .fluxos-card-body strong {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .fluxos-history-header {
+    background: linear-gradient(90deg, rgba(249, 115, 22, 0.16), rgba(236, 72, 153, 0.14));
+}
+
+[data-theme="dark"] .fluxos-cycle-block {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.18), rgba(15, 23, 42, 0.4));
+    border-color: rgba(249, 115, 22, 0.35);
+}
+
+[data-theme="dark"] .fluxos-cycle-block:nth-of-type(2n) {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.18), rgba(15, 23, 42, 0.4));
+    border-color: rgba(14, 165, 233, 0.35);
+}
+
+[data-theme="dark"] .fluxos-cycle-block:nth-of-type(3n) {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.18), rgba(15, 23, 42, 0.4));
+    border-color: rgba(139, 92, 246, 0.35);
+}
+
+[data-theme="dark"] .fluxos-table thead th {
+    background: rgba(148, 163, 184, 0.08);
+}
+
+[data-theme="dark"] .fluxos-table tbody tr:nth-child(even) {
+    background: rgba(148, 163, 184, 0.06);
 }
 .header-animated {
     background: linear-gradient(135deg, #0d0f10, #141719, #0f1112);

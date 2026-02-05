@@ -10,6 +10,17 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.43] - 2026-02-05 00:10:00
+
+### Changed
+- Central/Fluxos: cabeçalho com estilo do dashboard e paletas exclusivas por página
+- Fluxos: visual premium com diferenciação de ciclos, cards e tabelas
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.42] - 2026-02-04 23:58:00
 
 ### Fixed
