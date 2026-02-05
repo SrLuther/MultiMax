@@ -365,6 +365,67 @@ def pdf_individual(collaborator_id: int):
         return redirect(url_for("fluxos.index"))
 
 
+@bp.route("/pdf/geral", methods=["GET"], strict_slashes=False)
+@login_required
+def pdf_geral():
+    if not WEASYPRINT_AVAILABLE:
+        flash("WeasyPrint não está disponível.", "danger")
+        return redirect(url_for("fluxos.index"))
+
+    if current_user.nivel not in ["operador", "admin", "DEV"]:
+        flash("Acesso negado.", "danger")
+        return redirect(url_for("fluxos.index"))
+
+    fluxo = _get_or_create_fluxo(date.today())
+    colaboradores = CentralColaborador.query.order_by(CentralColaborador.nome.asc()).all()
+    summaries = _summaries(fluxo, colaboradores)
+    historicos = {c.id: _group_history(fluxo, c.id) for c in colaboradores}
+
+    total_horas = sum(s["total_horas"] for s in summaries.values())
+    total_dias = sum(s["dias_completos"] for s in summaries.values())
+    total_restante = sum(s["restante"] for s in summaries.values())
+    total_valor = sum(s["valor_receber"] for s in summaries.values())
+
+    try:
+        import sys
+
+        base_dir: Any | str = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        logo_header_path: str = os.path.join(base_dir, "static", "icons", "logo black.png")
+        if os.path.exists(logo_header_path):
+            logo_header: str = os.path.relpath(logo_header_path, base_dir).replace("\\", "/")
+        else:
+            logo_header = ""
+
+        html = render_template(
+            "fluxos/pdf_geral.html",
+            fluxo=fluxo,
+            colaboradores=colaboradores,
+            summaries=summaries,
+            historicos=historicos,
+            total_horas=total_horas,
+            total_dias=total_dias,
+            total_restante=total_restante,
+            total_valor=total_valor,
+            nome_empresa="MultiMax",
+            valor_diaria=float(fluxo.valor_diaria or 0),
+            logo_header=logo_header,
+            logo_footer=logo_header,
+            data_geracao=datetime.now(ZoneInfo("America/Sao_Paulo")),
+        )
+
+        base_url: str = str(base_dir) if base_dir else os.getcwd()
+        assert HTML is not None
+        pdf: bytes | None = HTML(string=html, base_url=base_url).write_pdf()
+
+        response = make_response(pdf)
+        response.headers["Content-Type"] = "application/pdf"
+        response.headers["Content-Disposition"] = f"inline; filename=fluxo_geral_{fluxo.mes_ano}.pdf"
+        return response
+    except Exception as e:
+        flash(f"Erro ao gerar PDF: {str(e)}", "danger")
+        return redirect(url_for("fluxos.index"))
+
+
 @bp.route("/fechar", methods=["POST"])
 @login_required
 def fechar_fluxo():

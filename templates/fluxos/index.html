@@ -14,6 +14,10 @@
                 </div>
             </div>
             <div class="fluxos-hero-actions">
+                <a class="mm-btn mm-btn-outline" href="{{ url_for('fluxos.pdf_geral') }}" target="_blank">
+                    <i class="bi bi-file-earmark-pdf"></i>
+                    PDF geral
+                </a>
                 <form method="post" action="{{ url_for('fluxos.fechar_fluxo') }}">
                     <button class="mm-btn mm-btn-outline" type="submit">
                         <i class="bi bi-box-arrow-in-down"></i>
