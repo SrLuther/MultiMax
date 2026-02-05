@@ -1,6 +1,4 @@
-"""
-SQLAlchemy Models - PostgreSQL como fonte única da verdade
-"""
+"""SQLAlchemy Models - PostgreSQL como fonte única da verdade."""
 
 from __future__ import annotations
 

@@ -10,6 +10,17 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.59] - 2026-02-05 23:30:00
+
+### Changed
+- Reorganizados scripts em scripts/migrations, scripts/maintenance e scripts/automation
+- Ajustes de lint e compatibilidade de download de PDF
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.58] - 2026-02-05 23:05:00
 
 ### Changed

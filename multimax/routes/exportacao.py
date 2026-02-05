@@ -266,6 +266,8 @@ def _template_has_footer() -> bool:
 
 
 class InfoCard(Flowable):
+    """Card informativo com borda e faixa de destaque."""
+
     def __init__(
         self,
         inner: Any,
@@ -274,6 +276,7 @@ class InfoCard(Flowable):
         stroke_color: str = "#e2e8f0",
         accent_color: str | None = None,
     ):
+        """Inicializa um card contendo um Flowable interno."""
         super().__init__()
         self.inner = inner
         self.padding = padding
@@ -284,6 +287,7 @@ class InfoCard(Flowable):
         self._ih = 0
 
     def wrap(self, availWidth, availHeight):
+        """Calcula o tamanho do card para o layout."""
         iw, ih = 0, 0
         try:
             iw, ih = self.inner.wrap(availWidth - 2 * self.padding, 1e9)
@@ -293,6 +297,7 @@ class InfoCard(Flowable):
         return (min(availWidth, iw + 2 * self.padding), ih + 2 * self.padding)
 
     def draw(self):
+        """Desenha o card e seu conteúdo interno."""
         from reportlab.lib.colors import HexColor
 
         c = self.canv
@@ -687,7 +692,7 @@ def exportar_historico_limpeza_pdf(id):
 
 @bp.route("/exportar/estoque/pdf")
 @login_required
-def exportar():
+def exportar():  # noqa: C901
     try:
         filename = "relatorio_estoque_multimax.pdf"
         pdf_buffer = BytesIO()
@@ -824,7 +829,7 @@ def exportar():
 
 @bp.route("/exportar/graficos/produto/<int:id>.pdf")
 @login_required
-def exportar_graficos_produto(id):
+def exportar_graficos_produto(id):  # noqa: C901
     try:
         produto = Produto.query.get_or_404(id)
         data_inicio_str = request.args.get("data_inicio", "").strip()
@@ -1047,7 +1052,7 @@ def exportar_graficos_produto(id):
 
 @bp.route("/exportar/carnes/relatorio/<int:id>.pdf")
 @login_required
-def exportar_relatorio_carnes_pdf(id):
+def exportar_relatorio_carnes_pdf(id):  # noqa: C901
     if current_user.nivel not in ["operador", "admin", "DEV"]:
         flash("Você não tem permissão para exportar relatório de carnes.", "danger")
         return redirect(url_for("carnes.index"))
@@ -1280,7 +1285,7 @@ def exportar_relatorio_carnes_pdf(id):
 
 @bp.route("/exportar/carnes/relatorio/periodo.pdf")
 @login_required
-def exportar_relatorio_carnes_periodo():
+def exportar_relatorio_carnes_periodo():  # noqa: C901
     if current_user.nivel not in ["operador", "admin", "DEV"]:
         flash("Você não tem permissão para exportar relatório de carnes.", "danger")
         return redirect(url_for("carnes.index"))

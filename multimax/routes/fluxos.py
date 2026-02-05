@@ -378,7 +378,7 @@ def arquivos_download(name: str):
     else:
         as_attach = True
 
-    return send_file(full_path, as_attachment=as_attach, download_name=safe_name, mimetype="application/pdf")
+    return send_file(full_path, as_attachment=as_attach, attachment_filename=safe_name, mimetype="application/pdf")
 
 
 @bp.route("/ferias/adicionar", methods=["POST"], strict_slashes=False)

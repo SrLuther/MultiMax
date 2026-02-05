@@ -33,6 +33,7 @@ class CentralColaborador(db.Model):
     last_password_at = db.Column(db.DateTime(timezone=True), nullable=True)
 
     def __repr__(self) -> str:
+        """Representação do colaborador da Central."""
         return f"<CentralColaborador {self.id} {self.nome}>"
 
 
@@ -54,6 +55,7 @@ class CentralLog(db.Model):
     )
 
     def __repr__(self) -> str:
+        """Representação do log da Central."""
         return f"<CentralLog {self.action} {self.target_nome}>"
 
 
@@ -81,4 +83,5 @@ class CentralVacation(db.Model):
     )
 
     def __repr__(self) -> str:
+        """Representação das férias da Central."""
         return f"<CentralVacation {self.collaborator_id} {self.data_inicio} a {self.data_fim}>"
