@@ -33,7 +33,7 @@ def test_fluxo_creation_and_summary(app, db_session):
         collaborator_id=colab.id,
         data=date(2026, 2, 5),
         horas=9,
-        descricao="hora extra",
+        descricao="Outro",
     )
     db_session.add(lanc)
     db_session.commit()
@@ -58,7 +58,7 @@ def test_group_history(app, db_session):
         collaborator_id=colab.id,
         data=date(2026, 2, 6),
         horas=-8,
-        descricao="folga",
+        descricao="Folga",
     )
     db_session.add(lanc)
     db_session.commit()
@@ -111,9 +111,9 @@ def test_fluxos_routes_admin_flow(client, app, db_session):
         data={
             "collaborator_id": str(colab.id),
             "horas": "9",
-            "descricao": "Hora extra",
+            "descricao": "Outro",
             "data": hoje.strftime("%Y-%m-%d"),
-            "observacao": "ok",
+            "observacao": "Hora extra",
         },
         follow_redirects=False,
     )
@@ -121,13 +121,13 @@ def test_fluxos_routes_admin_flow(client, app, db_session):
 
     lanc = FluxoLancamento.query.filter_by(collaborator_id=colab.id).first()
     assert lanc is not None
-    assert lanc.descricao == "Hora extra"
+    assert lanc.descricao == "Outro"
 
     resp = client.post(
         f"/fluxos/lancamentos/{lanc.id}/editar",
         data={
             "horas": "7",
-            "descricao": "Ajuste",
+            "descricao": "Feriado",
             "data": hoje.strftime("%Y-%m-%d"),
             "observacao": "ajustado",
         },
@@ -136,7 +136,7 @@ def test_fluxos_routes_admin_flow(client, app, db_session):
     assert resp.status_code in (302, 303)
     db_session.refresh(lanc)
     assert lanc.horas == 7.0
-    assert lanc.descricao == "Ajuste"
+    assert lanc.descricao == "Feriado"
 
     pdf_resp = client.get(f"/fluxos/pdf/individual/{colab.id}", follow_redirects=False)
     if fluxos.WEASYPRINT_AVAILABLE:
