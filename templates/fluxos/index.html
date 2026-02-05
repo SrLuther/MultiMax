@@ -97,7 +97,7 @@
             </div>
             <div>
                 <label>Descrição</label>
-                <select name="descricao" class="form-select" required>
+                <select name="descricao" class="form-select js-desc-select" required>
                     <option value="">Selecione</option>
                     <option value="Domingo">Domingo</option>
                     <option value="Folga">Folga</option>
@@ -111,7 +111,7 @@
             </div>
             <div class="fluxos-form-full">
                 <label>Observações</label>
-                <input type="text" name="observacao" class="form-control">
+                <input type="text" name="observacao" class="form-control js-observacao">
             </div>
             <div class="fluxos-form-actions">
                 <button class="mm-btn mm-btn-primary" type="submit">Salvar lançamento</button>
@@ -208,6 +208,28 @@
 })();
 </script>
 
+<script>
+(() => {
+    const bindRequirement = (scope) => {
+        const desc = scope.querySelector('.js-desc-select');
+        const obs = scope.querySelector('.js-observacao');
+        if (!desc || !obs) return;
+
+        const update = () => {
+            const isOutro = desc.value === 'Outro';
+            obs.required = isOutro;
+            obs.toggleAttribute('data-required', isOutro);
+        };
+
+        desc.addEventListener('change', update);
+        update();
+    };
+
+    bindRequirement(document);
+    document.querySelectorAll('.modal-content').forEach(bindRequirement);
+})();
+</script>
+
 {% for c in colaboradores %}
 {% for g in historicos[c.id] %}
 {% for l in g.lancamentos %}
@@ -226,7 +248,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Descrição</label>
-                        <select name="descricao" class="form-select" required>
+                        <select name="descricao" class="form-select js-desc-select" required>
                             <option value="">Selecione</option>
                             <option value="Domingo" {% if l.descricao == 'Domingo' %}selected{% endif %}>Domingo</option>
                             <option value="Folga" {% if l.descricao == 'Folga' %}selected{% endif %}>Folga</option>
@@ -240,7 +262,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Observação</label>
-                        <input type="text" name="observacao" class="form-control" value="{{ l.observacao or '' }}">
+                        <input type="text" name="observacao" class="form-control js-observacao" value="{{ l.observacao or '' }}">
                     </div>
                 </div>
                 <div class="modal-footer">

@@ -159,7 +159,7 @@ def _actor_name() -> str:
     return getattr(current_user, "nome", None) or getattr(current_user, "name", None) or current_user.username
 
 
-def _validar_lancamento(descricao: str, data_lanc: date, horas: float) -> str | None:
+def _validar_lancamento(descricao: str, data_lanc: date, horas: float, observacao: str) -> str | None:
     if descricao not in VALID_DESCRICOES:
         return "Descrição inválida."
     if descricao == "Domingo" and data_lanc.weekday() != 6:
@@ -169,6 +169,8 @@ def _validar_lancamento(descricao: str, data_lanc: date, horas: float) -> str | 
             return "Para Folga, as horas devem ser -8."
         if horas >= 0:
             return "Para Folga, as horas devem ser um valor negativo."
+    if descricao == "Outro" and not observacao.strip():
+        return "Para Outro, preencha o campo Observações com a descrição."
     return None
 
 
@@ -245,7 +247,7 @@ def novo_lancamento():
         flash("Data inválida.", "warning")
         return redirect(url_for("fluxos.index"))
 
-    erro_validacao = _validar_lancamento(descricao, data_lanc, horas)
+    erro_validacao = _validar_lancamento(descricao, data_lanc, horas, observacao)
     if erro_validacao:
         flash(erro_validacao, "warning")
         return redirect(url_for("fluxos.index"))
@@ -291,7 +293,7 @@ def editar_lancamento(lanc_id: int):
         flash("Data inválida.", "warning")
         return redirect(url_for("fluxos.index"))
 
-    erro_validacao = _validar_lancamento(descricao, data_lanc, horas)
+    erro_validacao = _validar_lancamento(descricao, data_lanc, horas, observacao)
     if erro_validacao:
         flash(erro_validacao, "warning")
         return redirect(url_for("fluxos.index"))
