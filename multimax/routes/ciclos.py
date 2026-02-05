@@ -26,6 +26,7 @@ from multimax.models import (
     CicloOcorrencia,
     CicloSemana,
     Collaborator,
+    EscalaEspecial,
     MedicalCertificate,
     Setor,
     SystemLog,
@@ -3058,14 +3059,35 @@ def setores_excluir(
     try:
         setor = Setor.query.get_or_404(setor_id)
 
-        # Verificar se há ciclos vinculados
+        # Verificar vínculos
         ciclos_vinculados: int = Ciclo.query.filter_by(setor_id=setor_id).count()
-        if ciclos_vinculados > 0:
+        semanas_vinculadas: int = CicloSemana.query.filter_by(setor_id=setor_id).count()
+        folgas_vinculadas: int = CicloFolga.query.filter_by(setor_id=setor_id).count()
+        ocorrencias_vinculadas: int = CicloOcorrencia.query.filter_by(setor_id=setor_id).count()
+        fechamentos_vinculados: int = CicloFechamento.query.filter_by(setor_id=setor_id).count()
+        colaboradores_vinculados: int = Collaborator.query.filter_by(setor_id=setor_id).count()
+        escalas_vinculadas: int = EscalaEspecial.query.filter_by(equipe_id=setor_id).count()
+
+        bloqueios = {
+            "ciclos": ciclos_vinculados,
+            "semanas": semanas_vinculadas,
+            "folgas": folgas_vinculadas,
+            "ocorrencias": ocorrencias_vinculadas,
+            "fechamentos": fechamentos_vinculados,
+            "colaboradores": colaboradores_vinculados,
+            "escalas especiais": escalas_vinculadas,
+        }
+
+        if any(valor > 0 for valor in bloqueios.values()):
+            detalhes = ", ".join([f"{k}: {v}" for k, v in bloqueios.items() if v > 0])
             return (
                 jsonify(
                     {
                         "ok": False,
-                        "error": f"Não é possível excluir este setor. Existem {ciclos_vinculados} ciclos vinculados.",
+                        "error": (
+                            "Não é possível excluir este setor. Existem vínculos ativos: "
+                            f"{detalhes}."
+                        ),
                     }
                 ),
                 400,
