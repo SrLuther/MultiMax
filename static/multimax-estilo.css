@@ -704,6 +704,9 @@ body.login-page {
 .fluxos-table td { padding: 0.65rem; border-bottom: 1px solid rgba(15,23,42,0.08); }
 .fluxos-empty { text-align: center; color: #9ca3af; padding: 1rem; }
 
+.fluxos-history-card { display: none; }
+.fluxos-history-card.is-visible { display: block; }
+
 .fluxos-card {
     position: relative;
     overflow: hidden;

@@ -113,8 +113,26 @@
         </form>
     </div>
 
+    <div class="fluxos-form-card">
+        <div class="fluxos-form-header">
+            <h3>Histórico por colaborador</h3>
+            <span>Selecione um colaborador para visualizar</span>
+        </div>
+        <div class="fluxos-form-grid">
+            <div class="fluxos-form-full">
+                <label>Colaborador</label>
+                <select id="fluxos-collab-select" class="form-select">
+                    <option value="">Selecione</option>
+                    {% for c in colaboradores %}
+                    <option value="{{ c.id }}">{{ c.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+
     {% for c in colaboradores %}
-    <div class="fluxos-history-card">
+    <div class="fluxos-history-card" data-collab-id="{{ c.id }}">
         <div class="fluxos-history-header">
             <h3>Histórico — {{ c.nome }}</h3>
         </div>
@@ -160,6 +178,29 @@
     </div>
     {% endfor %}
 </div>
+
+<script>
+(() => {
+    const select = document.getElementById('fluxos-collab-select');
+    const cards = document.querySelectorAll('.fluxos-history-card');
+
+    const updateVisibility = () => {
+        const value = select ? select.value : '';
+        cards.forEach((card) => {
+            if (value && card.dataset.collabId === value) {
+                card.classList.add('is-visible');
+            } else {
+                card.classList.remove('is-visible');
+            }
+        });
+    };
+
+    if (select) {
+        select.addEventListener('change', updateVisibility);
+        updateVisibility();
+    }
+})();
+</script>
 
 {% for c in colaboradores %}
 {% for g in historicos[c.id] %}
