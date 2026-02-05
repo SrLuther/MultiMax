@@ -22,12 +22,10 @@
                     <i class="bi bi-archive"></i>
                     Arquivos
                 </a>
-                <form method="post" action="{{ url_for('fluxos.fechar_fluxo') }}">
-                    <button class="mm-btn mm-btn-outline" type="submit">
-                        <i class="bi bi-box-arrow-in-down"></i>
-                        Fechar fluxo
-                    </button>
-                </form>
+                <button class="mm-btn mm-btn-outline" type="button" data-bs-toggle="modal" data-bs-target="#modalFecharFluxo">
+                    <i class="bi bi-box-arrow-in-down"></i>
+                    Fechar fluxo
+                </button>
             </div>
         </div>
     </div>
@@ -191,6 +189,59 @@
         </div>
     </div>
     {% endfor %}
+</div>
+
+<div class="modal fade" id="modalFecharFluxo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Fechar Fluxo — Resumo Geral</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Confira o resumo geral dos colaboradores antes de fechar o fluxo.</p>
+                <table class="fluxos-table">
+                    <thead>
+                        <tr>
+                            <th>Colaborador</th>
+                            <th>Horas Totais</th>
+                            <th>Dias completos</th>
+                            <th>Descontos</th>
+                            <th>Restante</th>
+                            <th>Valor aprox.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in colaboradores %}
+                        {% set s = summaries[c.id] %}
+                        <tr>
+                            <td>{{ c.nome }}</td>
+                            <td>{{ s.total_horas }}h</td>
+                            <td>{{ s.dias_completos }} dias</td>
+                            <td>{{ s.horas_utilizadas }}h</td>
+                            <td>{{ s.restante }}h</td>
+                            <td>R$ {{ '%.2f'|format(s.valor_receber) }}</td>
+                        </tr>
+                        {% endfor %}
+                        <tr>
+                            <td><strong>TOTAL</strong></td>
+                            <td><strong>{{ total_horas }}h</strong></td>
+                            <td><strong>{{ total_dias }} dias</strong></td>
+                            <td><strong>{{ total_descontos }}h</strong></td>
+                            <td><strong>{{ total_restante }}h</strong></td>
+                            <td><strong>R$ {{ '%.2f'|format(total_valor) }}</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <form method="post" action="{{ url_for('fluxos.fechar_fluxo') }}">
+                    <button type="submit" class="btn btn-primary">Confirmar</button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>

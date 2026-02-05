@@ -24,22 +24,6 @@
 
     <div class="fluxos-form-card">
         <div class="fluxos-form-header">
-            <h3>Arquivo morto</h3>
-            <span>Envie PDFs para guardar e consultar depois</span>
-        </div>
-        <form method="post" action="{{ url_for('fluxos.arquivos_upload') }}" enctype="multipart/form-data" class="fluxos-form-grid">
-            <div class="fluxos-form-full">
-                <label>PDF</label>
-                <input type="file" name="pdf" accept="application/pdf" class="form-control" required>
-            </div>
-            <div class="fluxos-form-actions">
-                <button class="mm-btn mm-btn-primary" type="submit">Enviar PDF</button>
-            </div>
-        </form>
-    </div>
-
-    <div class="fluxos-form-card">
-        <div class="fluxos-form-header">
             <h3>Buscar</h3>
             <span>Pesquise por nome do arquivo</span>
         </div>
@@ -56,7 +40,55 @@
 
     <div class="fluxos-history-card is-visible">
         <div class="fluxos-history-header">
-            <h3>Arquivos salvos</h3>
+            <h3>BLOCO A - Uploads</h3>
+        </div>
+        <div class="fluxos-history-body">
+            <form method="post" action="{{ url_for('fluxos.arquivos_upload') }}" enctype="multipart/form-data" class="fluxos-form-grid" style="margin-bottom: 1rem;">
+                <div class="fluxos-form-full">
+                    <label>PDF</label>
+                    <input type="file" name="pdf" accept="application/pdf" class="form-control" required>
+                </div>
+                <div class="fluxos-form-actions">
+                    <button class="mm-btn mm-btn-primary" type="submit">Enviar PDF</button>
+                </div>
+            </form>
+            <table class="fluxos-table">
+                <thead>
+                    <tr>
+                        <th>Arquivo</th>
+                        <th>Tamanho</th>
+                        <th>Atualizado em</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in uploads %}
+                    <tr>
+                        <td>{{ a.name }}</td>
+                        <td>{{ (a.size / 1024) | round(1) }} KB</td>
+                        <td>{{ a.updated_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td class="text-end">
+                            <a class="mm-btn mm-btn-secondary mm-btn-sm" href="{{ url_for('fluxos.arquivos_download', name=a.name, mode='view', tipo='uploads') }}" target="_blank">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('fluxos.arquivos_download', name=a.name, mode='download', tipo='uploads') }}">
+                                <i class="bi bi-download"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="fluxos-empty">Nenhum PDF encontrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="fluxos-history-card is-visible">
+        <div class="fluxos-history-header">
+            <h3>BLOCO B - Fluxos</h3>
         </div>
         <div class="fluxos-history-body">
             <table class="fluxos-table">
@@ -69,16 +101,16 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for a in arquivos %}
+                    {% for a in fluxos %}
                     <tr>
                         <td>{{ a.name }}</td>
                         <td>{{ (a.size / 1024) | round(1) }} KB</td>
                         <td>{{ a.updated_at.strftime('%d/%m/%Y %H:%M') }}</td>
                         <td class="text-end">
-                            <a class="mm-btn mm-btn-secondary mm-btn-sm" href="{{ url_for('fluxos.arquivos_download', name=a.name, mode='view') }}" target="_blank">
+                            <a class="mm-btn mm-btn-secondary mm-btn-sm" href="{{ url_for('fluxos.arquivos_download', name=a.name, mode='view', tipo='fluxos') }}" target="_blank">
                                 <i class="bi bi-eye"></i>
                             </a>
-                            <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('fluxos.arquivos_download', name=a.name, mode='download') }}">
+                            <a class="mm-btn mm-btn-outline mm-btn-sm" href="{{ url_for('fluxos.arquivos_download', name=a.name, mode='download', tipo='fluxos') }}">
                                 <i class="bi bi-download"></i>
                             </a>
                         </td>

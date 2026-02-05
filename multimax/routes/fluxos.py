@@ -122,10 +122,51 @@ def _get_or_create_ciclo(fluxo: Fluxo, lanc_date: date) -> FluxoCiclo:
     return ciclo
 
 
-def _get_fluxos_archive_dir() -> str:
-    base_dir = os.path.join(os.getcwd(), "instance", "fluxos", "arquivo_morto")
+def _get_fluxos_archive_dir(kind: str) -> str:
+    base_dir = os.path.join(os.getcwd(), "instance", "fluxos", "arquivo_morto", kind)
     os.makedirs(base_dir, exist_ok=True)
     return base_dir
+
+
+def _list_pdf_files(base_dir: str, query: str) -> list[dict[str, Any]]:
+    arquivos = []
+    for name in sorted(os.listdir(base_dir)):
+        if not name.lower().endswith(".pdf"):
+            continue
+        if query and query not in name.lower():
+            continue
+        full_path = os.path.join(base_dir, name)
+        if not os.path.isfile(full_path):
+            continue
+        stat = os.stat(full_path)
+        arquivos.append(
+            {
+                "name": name,
+                "size": stat.st_size,
+                "updated_at": datetime.fromtimestamp(stat.st_mtime, ZoneInfo("America/Sao_Paulo")),
+            }
+        )
+    return arquivos
+
+
+def _fluxo_referencia_label(fluxo: Fluxo) -> str:
+    meses = [
+        "Janeiro",
+        "Fevereiro",
+        "Março",
+        "Abril",
+        "Maio",
+        "Junho",
+        "Julho",
+        "Agosto",
+        "Setembro",
+        "Outubro",
+        "Novembro",
+        "Dezembro",
+    ]
+    ref_date = fluxo.data_inicio or date.today()
+    mes_nome = meses[ref_date.month - 1]
+    return f"{mes_nome}{ref_date.year}"
 
 
 def _summaries(fluxo: Fluxo, colaboradores: list[CentralColaborador]) -> dict[int, dict[str, Any]]:
@@ -192,6 +233,11 @@ def index():
     summaries = _summaries(fluxo, colaboradores)
 
     historicos = {c.id: _group_history(fluxo, c.id) for c in colaboradores}
+    total_horas = sum(s["total_horas"] for s in summaries.values())
+    total_dias = sum(s["dias_completos"] for s in summaries.values())
+    total_descontos = sum(s["horas_utilizadas"] for s in summaries.values())
+    total_restante = sum(s["restante"] for s in summaries.values())
+    total_valor = sum(s["valor_receber"] for s in summaries.values())
 
     return render_template(
         "fluxos/index.html",
@@ -199,6 +245,11 @@ def index():
         colaboradores=colaboradores,
         summaries=summaries,
         historicos=historicos,
+        total_horas=total_horas,
+        total_dias=total_dias,
+        total_descontos=total_descontos,
+        total_restante=total_restante,
+        total_valor=total_valor,
     )
 
 
@@ -210,27 +261,18 @@ def arquivos_index():
         return redirect(url_for("fluxos.index"))
 
     query = (request.args.get("q") or "").strip().lower()
-    archive_dir = _get_fluxos_archive_dir()
+    uploads_dir = _get_fluxos_archive_dir("uploads")
+    fluxos_dir = _get_fluxos_archive_dir("fluxos")
 
-    arquivos = []
-    for name in sorted(os.listdir(archive_dir)):
-        if not name.lower().endswith(".pdf"):
-            continue
-        if query and query not in name.lower():
-            continue
-        full_path = os.path.join(archive_dir, name)
-        if not os.path.isfile(full_path):
-            continue
-        stat = os.stat(full_path)
-        arquivos.append(
-            {
-                "name": name,
-                "size": stat.st_size,
-                "updated_at": datetime.fromtimestamp(stat.st_mtime, ZoneInfo("America/Sao_Paulo")),
-            }
-        )
+    uploads = _list_pdf_files(uploads_dir, query)
+    fluxos = _list_pdf_files(fluxos_dir, query)
 
-    return render_template("fluxos/arquivos.html", arquivos=arquivos, query=query)
+    return render_template(
+        "fluxos/arquivos.html",
+        uploads=uploads,
+        fluxos=fluxos,
+        query=query,
+    )
 
 
 @bp.route("/arquivos/upload", methods=["POST"], strict_slashes=False)
@@ -256,7 +298,7 @@ def arquivos_upload():
     try:
         from ..filename_utils import secure_filename
 
-        archive_dir = _get_fluxos_archive_dir()
+        archive_dir = _get_fluxos_archive_dir("uploads")
         pdf.seek(0, 2)
         size = pdf.tell()
         pdf.seek(0)
@@ -282,7 +324,12 @@ def arquivos_download(name: str):
         flash("Acesso negado.", "danger")
         return redirect(url_for("fluxos.arquivos_index"))
 
-    archive_dir = _get_fluxos_archive_dir()
+    tipo = (request.args.get("tipo") or "uploads").strip().lower()
+    if tipo not in ("uploads", "fluxos"):
+        flash("Arquivo inválido.", "warning")
+        return redirect(url_for("fluxos.arquivos_index"))
+
+    archive_dir = _get_fluxos_archive_dir(tipo)
     safe_name = os.path.basename(name)
     if not safe_name.lower().endswith(".pdf"):
         flash("Arquivo inválido.", "warning")
@@ -549,19 +596,74 @@ def fechar_fluxo():
         flash("Fluxo já está fechado.", "warning")
         return redirect(url_for("fluxos.index"))
 
+    if not WEASYPRINT_AVAILABLE:
+        flash("WeasyPrint não está disponível.", "danger")
+        return redirect(url_for("fluxos.index"))
+
+    try:
+        colaboradores = CentralColaborador.query.order_by(CentralColaborador.nome.asc()).all()
+        summaries = _summaries(fluxo, colaboradores)
+        historicos = {c.id: _group_history(fluxo, c.id) for c in colaboradores}
+
+        total_horas = sum(s["total_horas"] for s in summaries.values())
+        total_dias = sum(s["dias_completos"] for s in summaries.values())
+        total_descontos = sum(s["horas_utilizadas"] for s in summaries.values())
+        total_restante = sum(s["restante"] for s in summaries.values())
+        total_valor = sum(s["valor_receber"] for s in summaries.values())
+
+        import sys
+
+        base_dir: Any | str = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        logo_header_path: str = os.path.join(base_dir, "static", "icons", "logo black.png")
+        if os.path.exists(logo_header_path):
+            logo_header: str = os.path.relpath(logo_header_path, base_dir).replace("\\", "/")
+        else:
+            logo_header = ""
+
+        html = render_template(
+            "fluxos/pdf_geral.html",
+            fluxo=fluxo,
+            colaboradores=colaboradores,
+            summaries=summaries,
+            historicos=historicos,
+            total_horas=total_horas,
+            total_dias=total_dias,
+            total_descontos=total_descontos,
+            total_restante=total_restante,
+            total_valor=total_valor,
+            nome_empresa="MultiMax",
+            valor_diaria=float(fluxo.valor_diaria or 0),
+            logo_header=logo_header,
+            logo_footer=logo_header,
+            data_geracao=datetime.now(ZoneInfo("America/Sao_Paulo")),
+        )
+
+        base_url: str = str(base_dir) if base_dir else os.getcwd()
+        assert HTML is not None
+        pdf: bytes | None = HTML(string=html, base_url=base_url).write_pdf()
+
+        fluxo_label = _fluxo_referencia_label(fluxo)
+        fluxos_archive_dir = _get_fluxos_archive_dir("fluxos")
+        pdf_path = os.path.join(fluxos_archive_dir, f"Fluxo_{fluxo_label}.pdf")
+        with open(pdf_path, "wb") as f:
+            f.write(pdf or b"")
+    except Exception as e:
+        flash(f"Erro ao gerar PDF geral: {e}", "danger")
+        return redirect(url_for("fluxos.index"))
+
     storage_dir = os.path.join(os.getcwd(), "instance", "fluxos", fluxo.mes_ano)
     os.makedirs(storage_dir, exist_ok=True)
 
-    colaboradores = CentralColaborador.query.order_by(CentralColaborador.nome.asc()).all()
+    summaries_individuais = _summaries(fluxo, colaboradores)
     for c in colaboradores:
-        if not WEASYPRINT_AVAILABLE:
-            continue
         historicos = _group_history(fluxo, c.id)
+        summary = summaries_individuais.get(c.id, {})
         html = render_template(
             "fluxos/pdf_individual.html",
             collaborator=c,
             historicos=historicos,
             fluxo=fluxo,
+            summary=summary,
             logo_header="",
             data_geracao=datetime.now(ZoneInfo("America/Sao_Paulo")),
         )

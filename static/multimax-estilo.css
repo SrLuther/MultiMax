@@ -672,6 +672,8 @@ body.login-page {
 .fluxos-hero-icon { width: 64px; height: 64px; border-radius: 18px; background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 6px 18px rgba(0,0,0,0.15); animation: centralFloat 3.5s ease-in-out infinite; }
 .fluxos-title { font-size: 2.2rem; font-weight: 700; margin: 0; text-shadow: 0 2px 10px rgba(0,0,0,0.2); }
 .fluxos-subtitle { margin: 0.35rem 0 0; font-size: 1.05rem; color: rgba(255,255,255,0.85); }
+.fluxos-hero-actions { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.fluxos-hero-actions form { margin: 0; }
 
 .fluxos-config { background: #fff; border-radius: 18px; border: 1px solid rgba(15,23,42,0.08); box-shadow: 0 6px 18px rgba(15,23,42,0.08); padding: 1.5rem; }
 .fluxos-config-form { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }

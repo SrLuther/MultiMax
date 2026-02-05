@@ -10,6 +10,27 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.53] - 2026-02-05 21:05:00
+
+### Fixed
+- Fluxos: evitar erro 500 ao fechar fluxo com PDFs individuais
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
+## [3.7.52] - 2026-02-05 20:50:00
+
+### Changed
+- Fluxos: modal de confirmação no fechamento com resumo geral
+- Arquivos: separação dos blocos A (Uploads) e B (Fluxos) e nomeação por mês/ano
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.51] - 2026-02-05 20:35:00
 
 ### Added
