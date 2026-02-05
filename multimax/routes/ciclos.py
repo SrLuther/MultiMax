@@ -3017,16 +3017,18 @@ def setores_toggle(
     try:
         setor = Setor.query.get_or_404(setor_id)
 
-        # Verificar se há ciclos ativos vinculados
-        ciclos_ativos: int = Ciclo.query.filter_by(setor_id=setor_id, status_ciclo="ativo").count()
-        if ciclos_ativos > 0 and setor.ativo:
+        # Verificar se há registros ativos vinculados ao setor
+        folgas_ativas: int = CicloFolga.query.filter_by(setor_id=setor_id, status_ciclo="ativo").count()
+        ocorrencias_ativas: int = CicloOcorrencia.query.filter_by(setor_id=setor_id, status_ciclo="ativo").count()
+        registros_ativos: int = folgas_ativas + ocorrencias_ativas
+        if registros_ativos > 0 and setor.ativo:
             return (
                 jsonify(
                     {
                         "ok": False,
                         "error": (
                             f"Não é possível desativar este setor. "
-                            f"Existem {ciclos_ativos} ciclos ativos vinculados."
+                            f"Existem {registros_ativos} registros ativos vinculados."
                         ),
                     }
                 ),
@@ -3060,7 +3062,6 @@ def setores_excluir(
         setor = Setor.query.get_or_404(setor_id)
 
         # Verificar vínculos
-        ciclos_vinculados: int = Ciclo.query.filter_by(setor_id=setor_id).count()
         semanas_vinculadas: int = CicloSemana.query.filter_by(setor_id=setor_id).count()
         folgas_vinculadas: int = CicloFolga.query.filter_by(setor_id=setor_id).count()
         ocorrencias_vinculadas: int = CicloOcorrencia.query.filter_by(setor_id=setor_id).count()
@@ -3069,7 +3070,6 @@ def setores_excluir(
         escalas_vinculadas: int = EscalaEspecial.query.filter_by(equipe_id=setor_id).count()
 
         bloqueios = {
-            "ciclos": ciclos_vinculados,
             "semanas": semanas_vinculadas,
             "folgas": folgas_vinculadas,
             "ocorrencias": ocorrencias_vinculadas,
