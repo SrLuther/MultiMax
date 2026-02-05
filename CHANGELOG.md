@@ -10,6 +10,19 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.54] - 2026-02-05 21:40:00
+
+### Added
+- Fluxos: registro de férias com modal e bloqueio de lançamentos durante o período
+
+### Technical Details
+- Criada tabela central_vacation para colaboradores da Central
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.53] - 2026-02-05 21:05:00
 
 ### Fixed

@@ -696,8 +696,8 @@ body.login-page {
 .fluxos-form-full { grid-column: 1 / -1; }
 .fluxos-form-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
 
-.fluxos-history-card { background: #fff; border-radius: 18px; border: 1px solid rgba(15,23,42,0.08); box-shadow: 0 6px 18px rgba(15,23,42,0.08); }
-.fluxos-history-header { padding: 1rem 1.5rem; border-bottom: 1px solid rgba(15,23,42,0.08); background: rgba(110,124,255,0.12); }
+.fluxos-history-card { background: #fff; border-radius: 18px; border: 1px solid rgba(15,23,42,0.08); box-shadow: 0 6px 18px rgba(15,23,42,0.08); overflow: hidden; }
+.fluxos-history-header { padding: 1rem 1.5rem; border-bottom: 1px solid rgba(15,23,42,0.08); background: rgba(110,124,255,0.12); border-radius: 18px 18px 0 0; }
 .fluxos-history-header h3 { margin: 0; color: #0b0f19; }
 .fluxos-history-body { padding: 1rem 1.5rem 1.5rem; }
 .fluxos-cycle-title { font-weight: 700; margin: 0.5rem 0; color: #0b0f19; }

@@ -22,6 +22,10 @@
                     <i class="bi bi-archive"></i>
                     Arquivos
                 </a>
+                <button class="mm-btn mm-btn-outline" type="button" data-bs-toggle="modal" data-bs-target="#modalFerias">
+                    <i class="bi bi-airplane"></i>
+                    Férias
+                </button>
                 <button class="mm-btn mm-btn-outline" type="button" data-bs-toggle="modal" data-bs-target="#modalFecharFluxo">
                     <i class="bi bi-box-arrow-in-down"></i>
                     Fechar fluxo
@@ -190,6 +194,69 @@
     </div>
     {% endfor %}
 </div>
+
+<div class="modal fade" id="modalFerias" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{{ url_for('fluxos.ferias_adicionar') }}" onsubmit="return confirm('Após salvar, não será possível editar ou excluir este registro. Deseja continuar?');">
+                <div class="modal-header">
+                    <h5 class="modal-title">Registrar Férias</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Colaborador</label>
+                        <select name="collaborator_id" class="form-select" required>
+                            <option value="">Selecione</option>
+                            {% for c in colaboradores %}
+                            <option value="{{ c.id }}">{{ c.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Data de início</label>
+                        <input type="date" name="data_inicio" class="form-control" id="feriasDataInicio" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Data de fim</label>
+                        <input type="date" name="data_fim" class="form-control" id="feriasDataFim" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Quantidade de dias</label>
+                        <input type="number" class="form-control" id="feriasDias" readonly value="0">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+(() => {
+    const inicio = document.getElementById('feriasDataInicio');
+    const fim = document.getElementById('feriasDataFim');
+    const dias = document.getElementById('feriasDias');
+
+    const updateDias = () => {
+        if (!inicio || !fim || !dias) return;
+        if (!inicio.value || !fim.value) {
+            dias.value = 0;
+            return;
+        }
+        const d1 = new Date(inicio.value);
+        const d2 = new Date(fim.value);
+        const diff = Math.floor((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+        dias.value = diff > 0 ? diff : 0;
+    };
+
+    if (inicio) inicio.addEventListener('change', updateDias);
+    if (fim) fim.addEventListener('change', updateDias);
+})();
+</script>
 
 <div class="modal fade" id="modalFecharFluxo" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">

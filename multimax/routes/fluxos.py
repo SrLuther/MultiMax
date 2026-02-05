@@ -10,7 +10,7 @@ from flask import Blueprint, abort, flash, make_response, redirect, render_templ
 from flask_login import current_user, login_required
 
 from .. import db
-from ..models import CentralColaborador, Fluxo, FluxoArquivo, FluxoCiclo, FluxoConfig, FluxoLancamento
+from ..models import CentralColaborador, CentralVacation, Fluxo, FluxoArquivo, FluxoCiclo, FluxoConfig, FluxoLancamento
 
 try:
     from weasyprint import HTML  # type: ignore
@@ -206,6 +206,19 @@ def _actor_name() -> str:
     return getattr(current_user, "nome", None) or getattr(current_user, "name", None) or current_user.username
 
 
+def _is_on_vacation(collaborator_id: int, dia_data: date) -> bool:
+    try:
+        v = CentralVacation.query.filter(
+            CentralVacation.collaborator_id == collaborator_id,
+            CentralVacation.ativo.is_(True),
+            CentralVacation.data_inicio <= dia_data,
+            CentralVacation.data_fim >= dia_data,
+        ).first()
+        return v is not None
+    except Exception:
+        return False
+
+
 def _validar_lancamento(descricao: str, data_lanc: date, horas: float, observacao: str) -> str | None:
     if descricao not in VALID_DESCRICOES:
         return "Descrição inválida."
@@ -349,6 +362,44 @@ def arquivos_download(name: str):
     return send_file(full_path, as_attachment=as_attach, download_name=safe_name, mimetype="application/pdf")
 
 
+@bp.route("/ferias/adicionar", methods=["POST"], strict_slashes=False)
+@login_required
+def ferias_adicionar():
+    if current_user.nivel not in ("admin", "DEV"):
+        flash("Acesso negado.", "danger")
+        return redirect(url_for("fluxos.index"))
+
+    try:
+        cid_str: str = (request.form.get("collaborator_id") or "").strip()
+        di_str: str = (request.form.get("data_inicio") or "").strip()
+        df_str: str = (request.form.get("data_fim") or "").strip()
+        if not cid_str or not di_str or not df_str:
+            flash("Dados obrigatórios ausentes.", "warning")
+            return redirect(url_for("fluxos.index"))
+
+        cid = int(cid_str)
+        data_inicio: date = datetime.strptime(di_str, "%Y-%m-%d").date()
+        data_fim: date = datetime.strptime(df_str, "%Y-%m-%d").date()
+
+        if data_fim < data_inicio:
+            flash("Data final deve ser maior ou igual à data inicial.", "warning")
+            return redirect(url_for("fluxos.index"))
+
+        v = CentralVacation()
+        v.collaborator_id = cid
+        v.data_inicio = data_inicio
+        v.data_fim = data_fim
+        v.criado_por = _actor_name()
+        db.session.add(v)
+        db.session.commit()
+        flash("Férias registradas com sucesso!", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Erro ao registrar férias: {e}", "danger")
+
+    return redirect(url_for("fluxos.index"))
+
+
 @bp.route("/config/valor-diaria", methods=["POST"])
 @login_required
 def atualizar_valor_diaria():
@@ -400,6 +451,10 @@ def novo_lancamento():
         flash("Data inválida.", "warning")
         return redirect(url_for("fluxos.index"))
 
+    if _is_on_vacation(collaborator_id, data_lanc):
+        flash("Colaborador está de férias neste período. Não é possível registrar lançamentos.", "warning")
+        return redirect(url_for("fluxos.index"))
+
     erro_validacao = _validar_lancamento(descricao, data_lanc, horas, observacao)
     if erro_validacao:
         flash(erro_validacao, "warning")
@@ -444,6 +499,10 @@ def editar_lancamento(lanc_id: int):
         data_lanc = datetime.strptime(data_str, "%Y-%m-%d").date()
     except Exception:
         flash("Data inválida.", "warning")
+        return redirect(url_for("fluxos.index"))
+
+    if _is_on_vacation(lanc.collaborator_id, data_lanc):
+        flash("Colaborador está de férias neste período. Não é possível alterar lançamentos.", "warning")
         return redirect(url_for("fluxos.index"))
 
     erro_validacao = _validar_lancamento(descricao, data_lanc, horas, observacao)
