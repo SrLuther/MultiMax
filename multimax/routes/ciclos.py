@@ -3059,6 +3059,13 @@ def setores_excluir(
         return jsonify({"ok": False, "error": "forbidden"}), 403
 
     try:
+        force_param = (request.args.get("force") or "").strip()
+        force_json = False
+        if request.is_json:
+            payload = request.get_json(silent=True) or {}
+            force_json = bool(payload.get("force"))
+        force_delete = force_param == "1" or force_json
+
         setor = Setor.query.get_or_404(setor_id)
 
         # Verificar vínculos
@@ -3078,7 +3085,7 @@ def setores_excluir(
             "escalas especiais": escalas_vinculadas,
         }
 
-        if any(valor > 0 for valor in bloqueios.values()):
+        if any(valor > 0 for valor in bloqueios.values()) and not force_delete:
             detalhes = ", ".join([f"{k}: {v}" for k, v in bloqueios.items() if v > 0])
             return (
                 jsonify(
@@ -3091,6 +3098,18 @@ def setores_excluir(
                     }
                 ),
                 400,
+            )
+
+        if force_delete:
+            CicloSemana.query.filter_by(setor_id=setor_id).delete(synchronize_session=False)
+            CicloFolga.query.filter_by(setor_id=setor_id).delete(synchronize_session=False)
+            CicloOcorrencia.query.filter_by(setor_id=setor_id).delete(synchronize_session=False)
+            CicloFechamento.query.filter_by(setor_id=setor_id).delete(synchronize_session=False)
+            EscalaEspecial.query.filter_by(equipe_id=setor_id).update(
+                {EscalaEspecial.equipe_id: None}, synchronize_session=False
+            )
+            Collaborator.query.filter_by(setor_id=setor_id).update(
+                {Collaborator.setor_id: None}, synchronize_session=False
             )
 
         # Excluir setor

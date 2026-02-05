@@ -1109,9 +1109,36 @@ function excluirSetor(id, nome) {
         .then(data => {
             if (data.ok) {
                 location.reload();
-            } else {
-                alert(data.error || 'Erro ao excluir setor');
+                return;
             }
+
+            const errorMsg = data.error || 'Erro ao excluir setor';
+            const hasLinks = errorMsg.toLowerCase().includes('vínculos') || errorMsg.toLowerCase().includes('vinculos');
+            if (hasLinks && confirm('Há vínculos com este setor. Deseja FORÇAR a exclusão? Isso removerá os vínculos.')) {
+                fetch(`/ciclos/setores/${id}/excluir?force=1`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrf_token')
+                    },
+                    body: JSON.stringify({ force: true })
+                })
+                .then(response => response.json())
+                .then(forceData => {
+                    if (forceData.ok) {
+                        location.reload();
+                    } else {
+                        alert(forceData.error || 'Erro ao forçar exclusão');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Erro ao forçar exclusão');
+                });
+                return;
+            }
+
+            alert(errorMsg);
         })
         .catch(error => {
             console.error('Error:', error);
