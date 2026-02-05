@@ -13,7 +13,8 @@ from flask import Blueprint, flash, jsonify, make_response, redirect, render_tem
 from flask.wrappers import Response
 from flask_login import current_user, login_required
 from flask_sqlalchemy.query import Query
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, text
+from sqlalchemy import inspect as sa_inspect
 from werkzeug.datastructures.file_storage import FileStorage
 
 from multimax import db
@@ -3073,8 +3074,20 @@ def setores_excluir(
         folgas_vinculadas: int = CicloFolga.query.filter_by(setor_id=setor_id).count()
         ocorrencias_vinculadas: int = CicloOcorrencia.query.filter_by(setor_id=setor_id).count()
         fechamentos_vinculados: int = CicloFechamento.query.filter_by(setor_id=setor_id).count()
-        colaboradores_vinculados: int = Collaborator.query.filter_by(setor_id=setor_id).count()
         escalas_vinculadas: int = EscalaEspecial.query.filter_by(equipe_id=setor_id).count()
+
+        colaboradores_vinculados: int = 0
+        try:
+            insp = sa_inspect(db.engine)
+            col_names = [c["name"] for c in insp.get_columns("colaboradores")]
+            if "setor_id" in col_names:
+                result = db.session.execute(
+                    text("SELECT COUNT(1) FROM colaboradores WHERE setor_id = :setor_id"),
+                    {"setor_id": setor_id},
+                )
+                colaboradores_vinculados = int(result.scalar() or 0)
+        except Exception:
+            colaboradores_vinculados = 0
 
         bloqueios = {
             "semanas": semanas_vinculadas,
@@ -3108,9 +3121,16 @@ def setores_excluir(
             EscalaEspecial.query.filter_by(equipe_id=setor_id).update(
                 {EscalaEspecial.equipe_id: None}, synchronize_session=False
             )
-            Collaborator.query.filter_by(setor_id=setor_id).update(
-                {Collaborator.setor_id: None}, synchronize_session=False
-            )
+            try:
+                insp = sa_inspect(db.engine)
+                col_names = [c["name"] for c in insp.get_columns("colaboradores")]
+                if "setor_id" in col_names:
+                    db.session.execute(
+                        text("UPDATE colaboradores SET setor_id = NULL WHERE setor_id = :setor_id"),
+                        {"setor_id": setor_id},
+                    )
+            except Exception:
+                pass
 
         # Excluir setor
         db.session.delete(setor)
