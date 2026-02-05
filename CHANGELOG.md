@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.57] - 2026-02-05 22:45:00
+
+### Fixed
+- Fluxos: cálculo de dias completos agora considera descontos (restante de horas)
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.56] - 2026-02-05 22:25:00
 
 ### Added

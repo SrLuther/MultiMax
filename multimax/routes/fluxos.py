@@ -175,8 +175,9 @@ def _summaries(fluxo: Fluxo, colaboradores: list[CentralColaborador]) -> dict[in
         lancs = FluxoLancamento.query.filter_by(fluxo_id=fluxo.id, collaborator_id=c.id).all()
         total_pos = sum(lanc.horas for lanc in lancs if lanc.horas > 0)
         total_neg = sum(abs(lanc.horas) for lanc in lancs if lanc.horas < 0)
-        dias_completos = int(total_pos // 8)
         restante = total_pos - total_neg
+        horas_base = restante if restante > 0 else 0
+        dias_completos = int(horas_base // 8)
         valor_diaria = float(fluxo.valor_diaria or 0)
         valor_receber = dias_completos * valor_diaria
         summaries[c.id] = {
