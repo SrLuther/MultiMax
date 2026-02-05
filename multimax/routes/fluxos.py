@@ -219,6 +219,22 @@ def _is_on_vacation(collaborator_id: int, dia_data: date) -> bool:
         return False
 
 
+def _get_vacations_for_fluxo(collaborator_id: int, fluxo: Fluxo) -> list[CentralVacation]:
+    try:
+        return (
+            CentralVacation.query.filter(
+                CentralVacation.collaborator_id == collaborator_id,
+                CentralVacation.ativo.is_(True),
+                CentralVacation.data_inicio <= fluxo.data_fim,
+                CentralVacation.data_fim >= fluxo.data_inicio,
+            )
+            .order_by(CentralVacation.data_inicio.asc())
+            .all()
+        )
+    except Exception:
+        return []
+
+
 def _validar_lancamento(descricao: str, data_lanc: date, horas: float, observacao: str) -> str | None:
     if descricao not in VALID_DESCRICOES:
         return "Descrição inválida."
@@ -246,6 +262,7 @@ def index():
     summaries = _summaries(fluxo, colaboradores)
 
     historicos = {c.id: _group_history(fluxo, c.id) for c in colaboradores}
+    ferias_map = {c.id: _get_vacations_for_fluxo(c.id, fluxo) for c in colaboradores}
     total_horas = sum(s["total_horas"] for s in summaries.values())
     total_dias = sum(s["dias_completos"] for s in summaries.values())
     total_descontos = sum(s["horas_utilizadas"] for s in summaries.values())
@@ -258,6 +275,7 @@ def index():
         colaboradores=colaboradores,
         summaries=summaries,
         historicos=historicos,
+        ferias_map=ferias_map,
         total_horas=total_horas,
         total_dias=total_dias,
         total_descontos=total_descontos,

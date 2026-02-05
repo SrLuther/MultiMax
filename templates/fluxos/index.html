@@ -61,6 +61,15 @@
                 </a>
             </div>
             <div class="fluxos-card-body">
+                {% set ferias = ferias_map[c.id] if ferias_map is defined else [] %}
+                {% if ferias and ferias|length > 0 %}
+                {% set f = ferias[0] %}
+                <div class="fluxos-vacation-note">
+                    <span>Férias:</span>
+                    {{ f.data_inicio.strftime('%d/%m/%Y') }} até {{ f.data_fim.strftime('%d/%m/%Y') }}
+                    • {{ (f.data_fim - f.data_inicio).days + 1 }} dias
+                </div>
+                {% endif %}
                 <div class="fluxos-metric">
                     <span>Total de horas</span>
                     <strong>{{ s.total_horas }}</strong>

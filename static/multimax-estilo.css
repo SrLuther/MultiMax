@@ -688,6 +688,18 @@ body.login-page {
 .fluxos-card-tag { display: inline-flex; margin-top: 0.35rem; padding: 0.2rem 0.5rem; border-radius: 999px; font-size: 0.75rem; background: rgba(16,185,129,0.15); color: #059669; }
 .fluxos-card-body { margin-top: 0.75rem; display: grid; gap: 0.35rem; }
 .fluxos-metric { display: flex; justify-content: space-between; font-size: 0.95rem; color: #1f2937; }
+.fluxos-vacation-note {
+    display: inline-flex;
+    gap: 0.4rem;
+    align-items: center;
+    padding: 0.35rem 0.6rem;
+    border-radius: 10px;
+    background: rgba(249, 115, 22, 0.14);
+    color: #7c2d12;
+    font-size: 0.82rem;
+    margin-bottom: 0.4rem;
+}
+.fluxos-vacation-note span { font-weight: 600; }
 
 .fluxos-form-card { background: #fff; border-radius: 18px; border: 1px solid rgba(15,23,42,0.08); box-shadow: 0 6px 18px rgba(15,23,42,0.08); padding: 1.5rem; }
 .fluxos-form-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
@@ -797,6 +809,29 @@ body.login-page {
     background: #0f172a;
     border-color: rgba(148, 163, 184, 0.2);
     box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+[data-theme="dark"] .modal-content {
+    background: #0f172a;
+    color: #e2e8f0;
+    border-color: rgba(148, 163, 184, 0.25);
+}
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .modal-footer {
+    border-color: rgba(148, 163, 184, 0.2);
+}
+[data-theme="dark"] .modal-title {
+    color: #e2e8f0;
+}
+[data-theme="dark"] .btn-close {
+    filter: invert(1) grayscale(1);
+}
+[data-theme="dark"] .modal .form-control,
+[data-theme="dark"] .modal .form-select {
+    background: #0b1220;
+    color: #e2e8f0;
+    border-color: rgba(148, 163, 184, 0.28);
+}
+[data-theme="dark"] .modal .form-control::placeholder {
+    color: #94a3b8;
 }
 
 [data-theme="dark"] .fluxos-config h3,
@@ -867,6 +902,10 @@ body.login-page {
 
 [data-theme="dark"] .fluxos-card-body strong {
     color: #e2e8f0;
+}
+[data-theme="dark"] .fluxos-vacation-note {
+    background: rgba(251, 146, 60, 0.18);
+    color: #fed7aa;
 }
 
 [data-theme="dark"] .fluxos-history-header {

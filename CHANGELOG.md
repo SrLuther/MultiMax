@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.55] - 2026-02-05 22:05:00
+
+### Added
+- Fluxos: aviso compacto de férias no card de resumo do colaborador
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.54] - 2026-02-05 21:40:00
 
 ### Added
