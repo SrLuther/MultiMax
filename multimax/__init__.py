@@ -856,6 +856,69 @@ def _setup_maintenance_mode(app: Flask) -> None:
         return response
 
 
+def _ensure_default_dev_account(app: Flask) -> None:
+    """Garante a conta dev padrão vinculada à Central."""
+    try:
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+
+        from .models import CentralColaborador, User
+        from .password_hash import check_password_hash, generate_password_hash
+
+        username = "dev"
+        password = "Maxdev963@"
+        display_name = "Desenvolvedor"
+        now = datetime.now(ZoneInfo("America/Sao_Paulo"))
+
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            user = User()
+            user.username = username
+            user.name = display_name
+            user.nivel = "DEV"
+            user.ativo = True
+            user.password_hash = generate_password_hash(password)
+            db.session.add(user)
+        else:
+            user.name = display_name
+            user.nivel = "DEV"
+            user.ativo = True
+            if not user.password_hash or not check_password_hash(user.password_hash, password):
+                user.password_hash = generate_password_hash(password)
+
+        central = CentralColaborador.query.filter_by(username=username).first()
+        if not central:
+            central = CentralColaborador(
+                nome=display_name,
+                username=username,
+                permissao="desenvolvedor",
+                ativo=True,
+                password_hash=generate_password_hash(password),
+                created_by="sistema",
+                created_at=now,
+            )
+            db.session.add(central)
+        else:
+            central.nome = display_name
+            central.permissao = "desenvolvedor"
+            central.ativo = True
+            central.updated_at = now
+            central.updated_by = "sistema"
+            if not central.password_hash or not check_password_hash(central.password_hash, password):
+                central.password_hash = generate_password_hash(password)
+
+        db.session.commit()
+    except Exception as e:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        try:
+            app.logger.error(f"Erro ao garantir conta dev padrão: {e}")
+        except Exception:
+            pass
+
+
 def create_app():
     """Função principal de criação da aplicação Flask."""
     base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(__file__)))
@@ -894,6 +957,7 @@ def create_app():
         try:
             db.create_all()
             app.config["DB_OK"] = True
+            _ensure_default_dev_account(app)
         except Exception as e:
             app.logger.error(f"Erro ao criar tabelas: {e}", exc_info=True)
             app.config["DB_OK"] = False

@@ -4,7 +4,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
 from .. import db
-from ..models import Collaborator, SystemLog, User, UserLogin
+from ..models import CentralColaborador, Collaborator, SystemLog, User, UserLogin
 from ..password_hash import check_password_hash, generate_password_hash
 
 logger = logging.getLogger(__name__)
@@ -62,24 +62,7 @@ def _create_user_and_collaborator(username, password, name):
 
 def _handle_registration():
     """Processa cadastro de novo usuário."""
-    username = request.form.get("username", "").strip()
-    password = request.form.get("password", "")
-    confirm_password = request.form.get("confirm_password", "")
-    name = request.form.get("name", "").strip() or username
-
-    # Validar dados
-    valid, error_msg = _validate_registration_data(username, password, confirm_password)
-    if not valid:
-        flash(error_msg, "danger")
-        return render_template("login.html", show_register=True)
-
-    # Criar usuário
-    success, error_msg = _create_user_and_collaborator(username, password, name)
-    if not success:
-        flash(error_msg, "danger")
-        return render_template("login.html", show_register=True)
-
-    flash("Cadastro realizado com sucesso! Faça login para continuar.", "success")
+    flash("Cadastro desativado. Solicite acesso na Central de Colaboradores.", "warning")
     return render_template("login.html", show_register=False)
 
 
@@ -132,14 +115,19 @@ def _handle_login():
     password = request.form.get("password", "")
     user = User.query.filter_by(username=username).first()
 
-    if user and check_password_hash(user.password_hash, password):
-        login_user(user)
-        _log_user_login(user)
-        flash("Login realizado com sucesso!", "success")
-        return redirect(url_for("usuarios.perfil"))
-    else:
+    if not user or not check_password_hash(user.password_hash, password):
         flash("Nome de usuário ou senha inválidos.", "danger")
         return None
+
+    central = CentralColaborador.query.filter_by(username=username).first()
+    if not central or not central.ativo:
+        flash("Acesso negado. Usuário não está ativo na Central.", "danger")
+        return None
+
+    login_user(user)
+    _log_user_login(user)
+    flash("Login realizado com sucesso!", "success")
+    return redirect(url_for("usuarios.perfil"))
 
 
 @bp.route("/login", methods=["GET", "POST"])
