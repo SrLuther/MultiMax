@@ -1,7 +1,7 @@
 """create setor_cargo table
 
-Revision ID: 007_create_setor_cargo
-Revises: 006_create_central_vacation
+Revision ID: 007
+Revises: 006
 Create Date: 2026-02-05
 """
 
@@ -9,8 +9,8 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = "007_create_setor_cargo"
-down_revision = "006_create_central_vacation"
+revision = "007"
+down_revision = "006"
 branch_labels = None
 depends_on = None
 
