@@ -188,6 +188,13 @@
                                 <button class="mm-btn mm-btn-secondary mm-btn-sm" data-bs-toggle="modal" data-bs-target="#modalFluxoEditar{{ l.id }}">
                                     <i class="bi bi-pencil-square"></i>
                                 </button>
+                                {% if current_user.nivel in ('admin', 'DEV') %}
+                                <form method="post" action="{{ url_for('fluxos.excluir_lancamento', lanc_id=l.id) }}" style="display: inline;" onsubmit="return confirm('Excluir lançamento?');">
+                                    <button class="mm-btn mm-btn-outline mm-btn-sm" type="submit">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
                             </td>
                         </tr>
                         {% else %}

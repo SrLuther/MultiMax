@@ -544,6 +544,27 @@ def editar_lancamento(lanc_id: int):
     return redirect(url_for("fluxos.index"))
 
 
+@bp.route("/lancamentos/<int:lanc_id>/excluir", methods=["POST"])
+@login_required
+def excluir_lancamento(lanc_id: int):
+    if current_user.nivel not in ("admin", "DEV"):
+        flash("Acesso negado.", "danger")
+        return redirect(url_for("fluxos.index"))
+
+    lanc = db.session.get(FluxoLancamento, lanc_id)
+    if not lanc:
+        abort(404)
+
+    if _is_on_vacation(lanc.collaborator_id, lanc.data):
+        flash("Colaborador está de férias neste período. Não é possível remover lançamentos.", "warning")
+        return redirect(url_for("fluxos.index"))
+
+    db.session.delete(lanc)
+    db.session.commit()
+    flash("Lançamento removido.", "info")
+    return redirect(url_for("fluxos.index"))
+
+
 @bp.route("/pdf/individual/<int:collaborator_id>", methods=["GET"], strict_slashes=False)
 @login_required
 def pdf_individual(collaborator_id: int):
