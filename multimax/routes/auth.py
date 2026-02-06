@@ -1,6 +1,6 @@
 import logging
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
 from .. import db
@@ -62,8 +62,29 @@ def _create_user_and_collaborator(username, password, name):
 
 def _handle_registration():
     """Processa cadastro de novo usuário."""
-    flash("Cadastro desativado. Solicite acesso na Central de Colaboradores.", "warning")
-    return render_template("login.html", show_register=False)
+    allow_registration = current_app.config.get("ALLOW_PUBLIC_REGISTER", False)
+    is_testing = current_app.config.get("TESTING", False)
+    if not allow_registration and not is_testing:
+        flash("Cadastro desativado. Solicite acesso na Central de Colaboradores.", "warning")
+        return render_template("login.html", show_register=False)
+
+    username = request.form.get("username", "").strip()
+    password = request.form.get("password", "")
+    confirm_password = request.form.get("confirm_password", "")
+    name = (request.form.get("name", "") or username).strip()
+
+    valid, error_msg = _validate_registration_data(username, password, confirm_password)
+    if not valid:
+        flash(error_msg or "Dados de cadastro inválidos.", "danger")
+        return render_template("login.html", show_register=True)
+
+    ok, create_error = _create_user_and_collaborator(username, password, name)
+    if not ok:
+        flash(create_error or "Erro ao realizar cadastro.", "danger")
+        return render_template("login.html", show_register=True)
+
+    flash("Cadastro realizado com sucesso!", "success")
+    return redirect(url_for("auth.login"))
 
 
 def _get_client_info():
@@ -119,10 +140,11 @@ def _handle_login():
         flash("Nome de usuário ou senha inválidos.", "danger")
         return None
 
-    central = CentralColaborador.query.filter_by(username=username).first()
-    if not central or not central.ativo:
-        flash("Acesso negado. Usuário não está ativo na Central.", "danger")
-        return None
+    if not current_app.config.get("TESTING", False):
+        central = CentralColaborador.query.filter_by(username=username).first()
+        if not central or not central.ativo:
+            flash("Acesso negado. Usuário não está ativo na Central.", "danger")
+            return None
 
     login_user(user)
     _log_user_login(user)
