@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   # ============================================================================
   # PostgreSQL - Banco de dados único para TUDO
