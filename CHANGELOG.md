@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.65] - 2026-02-06 23:25:00
+
+### Fixed
+- Central WhatsApp: salvar número no Bloco D grava direto no banco
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.64] - 2026-02-06 23:10:00
 
 ### Fixed

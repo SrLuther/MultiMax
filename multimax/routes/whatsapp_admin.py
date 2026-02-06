@@ -3,13 +3,14 @@ import os
 from flask import Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
+from ..models import WhatsappConfig, db
 from ..services.whatsapp_gateway import (
     get_auto_notifications_enabled,
     get_gateway_display_url,
     send_whatsapp_message,
     set_auto_notifications_enabled,
 )
-from ..whatsapp_service import get_alert_phone, send_alert_phone_test, set_alert_phone
+from ..whatsapp_service import send_alert_phone_test
 
 bp = Blueprint("whatsapp_admin", __name__, url_prefix="/dev/whatsapp")
 
@@ -163,10 +164,30 @@ def toggle_auto_rest():
 @login_required
 def get_alert_phone_rest():
     _require_dev()
-    ok, payload = get_alert_phone()
-    if ok:
-        return jsonify({"ok": True, "data": payload}), 200
-    return jsonify({"ok": False, "error": payload}), 502
+    try:
+        config = WhatsappConfig.query.filter_by(chave="alert_phone", ativo=True).first()
+        if not config:
+            return jsonify({"ok": False, "error": "Telefone de alerta não configurado"}), 404
+        return (
+            jsonify(
+                {
+                    "ok": True,
+                    "data": {
+                        "phone": config.valor,
+                        "description": config.descricao,
+                        "active": config.ativo,
+                        "updated_at": config.updated_at.isoformat() if config.updated_at else None,
+                    },
+                }
+            ),
+            200,
+        )
+    except Exception as exc:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        return jsonify({"ok": False, "error": f"Erro ao recuperar número: {exc}"}), 500
 
 
 @bp.route("/alert-phone", methods=["PUT"], strict_slashes=False)
@@ -177,10 +198,40 @@ def set_alert_phone_rest():
     phone = (data.get("phone") or "").strip()
     if not phone:
         return jsonify({"ok": False, "error": "Número obrigatório"}), 400
-    ok, payload = set_alert_phone(phone)
-    if ok:
-        return jsonify({"ok": True, "data": payload}), 200
-    return jsonify({"ok": False, "error": payload}), 502
+    try:
+        config = WhatsappConfig.query.filter_by(chave="alert_phone").first()
+        if not config:
+            config = WhatsappConfig(
+                chave="alert_phone",
+                valor=phone,
+                descricao="Telefone de alerta padrão",
+                ativo=True,
+            )
+            db.session.add(config)
+        else:
+            config.valor = phone
+            config.ativo = True
+        db.session.commit()
+        return (
+            jsonify(
+                {
+                    "ok": True,
+                    "data": {
+                        "phone": config.valor,
+                        "description": config.descricao,
+                        "active": config.ativo,
+                        "updated_at": config.updated_at.isoformat() if config.updated_at else None,
+                    },
+                }
+            ),
+            200,
+        )
+    except Exception as exc:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        return jsonify({"ok": False, "error": f"Erro ao salvar número: {exc}"}), 500
 
 
 @bp.route("/alert-phone/test", methods=["POST"], strict_slashes=False)
