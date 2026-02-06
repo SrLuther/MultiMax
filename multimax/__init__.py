@@ -1,4 +1,6 @@
-﻿import os
+﻿"""Inicialização do app MultiMax."""
+
+import os
 import shutil
 import sys
 import threading
