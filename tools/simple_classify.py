@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import sys
 from pathlib import Path
+from typing import Any
 
 CRITICAL = [
     "Jinja2 em fetch() sem tojson",
@@ -25,8 +26,8 @@ def classify(t):
 
 
 def parse_file(fpath):
-    alerts = []
-    current = {}
+    alerts: list[dict[str, Any]] = []
+    current: dict[str, Any] = {}
 
     with open(fpath, "r", encoding="utf-8", errors="replace") as f:
         for line in f:
@@ -44,7 +45,7 @@ def parse_file(fpath):
                 if len(parts) > 1:
                     try:
                         current["line"] = int(parts[1].strip())
-                    except:
+                    except Exception:
                         pass
             elif "Tipo:" in line:
                 parts = line.split("Tipo:", 1)
@@ -61,13 +62,13 @@ def parse_file(fpath):
     return alerts
 
 
-def generate_report(alerts):
+def generate_report(alerts):  # noqa: C901
     critical = [a for a in alerts if classify(a["type"]) == "CRÍTICO"]
     attention = [a for a in alerts if classify(a["type"]) == "ATENÇÃO"]
     maintenance = [a for a in alerts if classify(a["type"]) == "MANUTENÇÃO"]
 
     def group_by_file(alerts_list):
-        grouped = {}
+        grouped: dict[str, list[dict[str, Any]]] = {}
         for alert in alerts_list:
             f = alert["file"]
             if f not in grouped:

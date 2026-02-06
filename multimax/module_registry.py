@@ -6,6 +6,8 @@ from typing import Iterable
 
 @dataclass(frozen=True)
 class ModuleInfo:
+    """Metadados do módulo exibido no painel."""
+
     key: str
     label: str
     blueprint_names: tuple[str, ...]

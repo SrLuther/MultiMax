@@ -10,6 +10,19 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.60] - 2026-02-06 00:05:00
+
+### Fixed
+- Fluxos: uploads do Bloco A persistem após atualizar a página
+
+### Changed
+- Lint: ajustes de regras e anotações de tipos em ferramentas/scripts para validação consistente
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.59] - 2026-02-05 23:30:00
 
 ### Changed

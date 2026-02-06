@@ -4,10 +4,12 @@ Alembic version configuration file
 
 import os
 from logging.config import fileConfig
+from typing import Any
 
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
+from multimax.models import db
 
 # Gets the Alembic Config object
 config = context.config
@@ -16,11 +18,6 @@ config = context.config
 # This line sets up loggers basically
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
-
-# add your model's MetaData object for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-from multimax.models import db
 
 target_metadata = db.Model.metadata
 
@@ -37,7 +34,7 @@ def run_migrations_offline() -> None:
     if not url:
         raise ValueError("DATABASE_URL environment variable is not set")
 
-    configuration = config.get_section(config.config_ini_section)
+    configuration: dict[str, Any] = config.get_section(config.config_ini_section) or {}
     configuration["sqlalchemy.url"] = url
 
     connectable = engine_from_config(
@@ -60,7 +57,7 @@ def run_migrations_online() -> None:
     if not url:
         raise ValueError("DATABASE_URL environment variable is not set")
 
-    configuration = config.get_section(config.config_ini_section)
+    configuration: dict[str, Any] = config.get_section(config.config_ini_section) or {}
     configuration["sqlalchemy.url"] = url
 
     connectable = engine_from_config(

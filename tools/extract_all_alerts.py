@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import sys
 from pathlib import Path
+from typing import Any
 
 CRITICAL = [
     "Jinja2 em fetch() sem tojson",
@@ -29,8 +30,8 @@ def parse():
     if not fpath.exists():
         return []
 
-    alerts = []
-    current = {}
+    alerts: list[dict[str, Any]] = []
+    current: dict[str, Any] = {}
 
     with open(fpath, "r", encoding="utf-8", errors="replace") as f:
         lines = f.readlines()
@@ -48,7 +49,7 @@ def parse():
         elif line.startswith("Linha:"):
             try:
                 current["line"] = int(line[6:].strip())
-            except:
+            except Exception:
                 pass
         elif line.startswith("Tipo:"):
             current["type"] = line[5:].strip()
@@ -63,13 +64,13 @@ def parse():
     return alerts
 
 
-def generate_report(alerts):
+def generate_report(alerts):  # noqa: C901
     critical = [a for a in alerts if classify(a["type"]) == "CRÍTICO"]
     attention = [a for a in alerts if classify(a["type"]) == "ATENÇÃO"]
     maintenance = [a for a in alerts if classify(a["type"]) == "MANUTENÇÃO"]
 
     def group_by_file(alerts_list):
-        grouped = {}
+        grouped: dict[str, list[dict[str, Any]]] = {}
         for alert in alerts_list:
             f = alert["file"]
             if f not in grouped:
@@ -116,7 +117,7 @@ def generate_report(alerts):
     if attention:
         for file in sorted(attention_by_file.keys()):
             count = len(attention_by_file[file])
-            types = {}
+            types: dict[str, int] = {}
             for alert in attention_by_file[file]:
                 t = alert["type"]
                 types[t] = types.get(t, 0) + 1
@@ -176,16 +177,16 @@ def generate_report(alerts):
             lines.append(f"- **Total:** {len(jinja_string_alerts)} ocorrências")
             lines.append("  - Risco: Quebra parsing quando valores contêm aspas ou caracteres especiais")
             lines.append("  - Solução: Extrair para constantes JS usando `|tojson` ou meta tags")
-            files_affected = {}
+            files_affected: dict[str, list[int]] = {}
             for alert in jinja_string_alerts:
                 f = alert["file"]
                 if f not in files_affected:
                     files_affected[f] = []
                 files_affected[f].append(alert.get("line", 0))
             for f, lines_list in sorted(files_affected.items()):
-                lines.append(
-                    f"  - `{f}`: {len(lines_list)} ocorrências (linhas: {', '.join(map(str, sorted(lines_list)[:10]))}{'...' if len(lines_list) > 10 else ''})"
-                )
+                preview = ", ".join(map(str, sorted(lines_list)[:10]))
+                suffix = "..." if len(lines_list) > 10 else ""
+                lines.append(f"  - `{f}`: {len(lines_list)} ocorrências (linhas: {preview}{suffix})")
             lines.append("")
 
         lines.append("### Prioridade 3: innerHTML com dados dinâmicos\n")
@@ -193,11 +194,11 @@ def generate_report(alerts):
             lines.append(f"- **Total:** {len(innerhtml_alerts)} ocorrências")
             lines.append("  - Risco: XSS (Cross-Site Scripting) se dados vierem do backend")
             lines.append("  - Solução: Usar `textContent` ou sanitizar dados antes de inserir")
-            files_affected = {}
+            files_affected_counts: dict[str, int] = {}
             for alert in innerhtml_alerts:
                 f = alert["file"]
-                files_affected[f] = files_affected.get(f, 0) + 1
-            for f, count in sorted(files_affected.items()):
+                files_affected_counts[f] = files_affected_counts.get(f, 0) + 1
+            for f, count in sorted(files_affected_counts.items()):
                 lines.append(f"  - `{f}`: {count} ocorrências")
             lines.append("")
 
@@ -206,11 +207,11 @@ def generate_report(alerts):
             lines.append(f"- **Total:** {len(template_alerts)} ocorrências")
             lines.append("  - Risco: XSS se dados não forem escapados corretamente")
             lines.append("  - Solução: Escapar dados ou usar `textContent`/`createElement`")
-            files_affected = {}
+            files_affected_templates: dict[str, int] = {}
             for alert in template_alerts:
                 f = alert["file"]
-                files_affected[f] = files_affected.get(f, 0) + 1
-            for f, count in sorted(files_affected.items()):
+                files_affected_templates[f] = files_affected_templates.get(f, 0) + 1
+            for f, count in sorted(files_affected_templates.items()):
                 lines.append(f"  - `{f}`: {count} ocorrências")
             lines.append("")
     else:

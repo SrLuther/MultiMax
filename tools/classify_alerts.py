@@ -4,9 +4,9 @@
 Script auxiliar para classificar alertas de segurança JavaScript
 """
 
-import re
 import sys
 from pathlib import Path
+from typing import Any
 
 # Classificação dos tipos de alerta
 CRITICAL_PATTERNS = [
@@ -22,8 +22,8 @@ ATTENTION_PATTERNS = ["Evento onclick inline", "Evento onchange inline", "Evento
 
 def parse_alerts_from_file(file_path):
     """Parseia alertas de um arquivo de texto"""
-    alerts = []
-    current_alert = {}
+    alerts: list[dict[str, Any]] = []
+    current_alert: dict[str, Any] = {}
 
     try:
         with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
@@ -83,7 +83,7 @@ def classify_alert(alert_type):
     return "MANUTENÇÃO"
 
 
-def generate_report(alerts):
+def generate_report(alerts):  # noqa: C901
     """Gera o relatório de classificação"""
     critical = []
     attention = []
@@ -100,7 +100,7 @@ def generate_report(alerts):
 
     # Agrupar por arquivo
     def group_by_file(alerts_list):
-        grouped = {}
+        grouped: dict[str, list[dict[str, Any]]] = {}
         for alert in alerts_list:
             file = alert["file"]
             if file not in grouped:
@@ -235,7 +235,8 @@ if __name__ == "__main__":
         alerts = parse_alerts_from_file(temp_file)
     else:
         print(
-            "Arquivo temp_alerts.txt não encontrado. Execute primeiro: python tools/js_safety_check.py > temp_alerts.txt"
+            "Arquivo temp_alerts.txt não encontrado. Execute primeiro: "
+            "python tools/js_safety_check.py > temp_alerts.txt"
         )
         sys.exit(1)
 

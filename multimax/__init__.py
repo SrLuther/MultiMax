@@ -223,6 +223,14 @@ def _setup_login_manager(app: Flask) -> None:
             return None
 
 
+DEFAULT_VERSION = "3.7.60"
+
+
+def _get_version_fallback() -> str:
+    """VersÃ£o fixa quando Git/Banco nÃ£o estÃ£o disponÃ­veis."""
+    return DEFAULT_VERSION
+
+
 def _get_version_from_git() -> str:
     """ObtÃ©m versÃ£o do git."""
     try:
@@ -268,6 +276,8 @@ def _setup_context_processors(app: Flask) -> None:
             except Exception as e:
                 app.logger.warning(f"Erro ao obter versÃ£o do banco: {e}")
                 ver = ""
+        if not ver:
+            ver = _get_version_fallback()
         return {"git_version": ver or "dev"}
 
 

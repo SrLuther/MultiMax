@@ -1,1 +1,1 @@
-# Tests package for MultiMax
+"""Pacote de testes do MultiMax."""

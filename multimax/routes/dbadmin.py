@@ -203,7 +203,7 @@ def _check_backend_health():
         }
 
 
-def _check_nginx_health():
+def _check_nginx_health():  # noqa: C901
     """Verifica saúde do Nginx - testa portas 80 (HTTP) e 443 (HTTPS) e segue redirecionamentos"""
     try:
         # Função auxiliar para testar conexão em uma porta
@@ -529,7 +529,7 @@ ALERT_THRESHOLDS = {
 }
 
 
-def _check_and_create_alerts(health_checks):
+def _check_and_create_alerts(health_checks):  # noqa: C901
     """Verifica métricas e cria alertas proativos"""
     try:
         # CPU
@@ -1488,7 +1488,7 @@ def _list_backups():
 
 @bp.route("/", methods=["GET"], strict_slashes=False)
 @login_required
-def index():
+def index():  # noqa: C901
     """Página principal - Acesso exclusivo para desenvolvedores"""
     try:
         if not _check_dev_access():
@@ -2065,7 +2065,7 @@ def restaurar(name: str):
 
 @bp.route("/restaurar/snapshot", methods=["POST"], strict_slashes=False)
 @login_required
-def restaurar_snapshot():
+def restaurar_snapshot():  # noqa: C901
     if not _check_dev_access():
         _log_unauthorized_access()
         flash("Acesso negado.", "danger")
@@ -2118,7 +2118,7 @@ def restaurar_snapshot():
 
 @bp.route("/git/status", methods=["GET"], strict_slashes=False)
 @login_required
-def git_status():
+def git_status():  # noqa: C901
     """Retorna status do Git e commit mais recente
 
     Parâmetros:

@@ -4,13 +4,9 @@ Data: 2026-01-22
 Versão: v2.8.0+
 """
 
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
-from flask import current_app
+from sqlalchemy import text
 
 from multimax import db
-from multimax.models import EscalaEspecial
 
 
 def migrate_up():
@@ -28,7 +24,7 @@ def migrate_up():
 def migrate_down():
     """Remove a tabela escala_especial"""
     try:
-        db.session.execute("DROP TABLE IF EXISTS escala_especial")
+        db.session.execute(text("DROP TABLE IF EXISTS escala_especial"))
         db.session.commit()
         print("✅ Tabela 'escala_especial' removida com sucesso!")
         return True
@@ -42,7 +38,7 @@ def verify():
     """Verifica se a migração foi aplicada corretamente"""
     try:
         # Tenta criar uma instância para verificar
-        result = db.session.execute("SELECT COUNT(*) FROM escala_especial")
+        db.session.execute(text("SELECT COUNT(*) FROM escala_especial"))
         print("✅ Tabela 'escala_especial' existe e está acessível!")
         return True
     except Exception as e:

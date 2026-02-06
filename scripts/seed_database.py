@@ -2,8 +2,6 @@
 Seed data - Inicializar banco com dados padrão
 """
 
-import os
-
 from flask import Flask
 from werkzeug.security import generate_password_hash
 

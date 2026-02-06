@@ -6,7 +6,18 @@ from decimal import Decimal
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from flask import Blueprint, abort, flash, make_response, redirect, render_template, request, send_file, url_for
+from flask import (
+    Blueprint,
+    abort,
+    current_app,
+    flash,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    url_for,
+)
 from flask_login import current_user, login_required
 
 from .. import db
@@ -123,7 +134,8 @@ def _get_or_create_ciclo(fluxo: Fluxo, lanc_date: date) -> FluxoCiclo:
 
 
 def _get_fluxos_archive_dir(kind: str) -> str:
-    base_dir = os.path.join(os.getcwd(), "instance", "fluxos", "arquivo_morto", kind)
+    instance_dir = getattr(current_app, "instance_path", None) or os.path.join(os.getcwd(), "instance")
+    base_dir = os.path.join(instance_dir, "fluxos", "arquivo_morto", kind)
     os.makedirs(base_dir, exist_ok=True)
     return base_dir
 

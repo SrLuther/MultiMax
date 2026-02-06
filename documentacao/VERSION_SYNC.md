@@ -34,7 +34,7 @@ Quando for solicitada a atualização da versão, verificar e atualizar:
 - `README.md` e `requirements.txt` contêm `Flask>=2.3.0` - isso é a versão da biblioteca Flask, NÃO a versão do projeto MultiMax. Não alterar.
 - `docker-compose.yml` contém `version: '3.9'` - isso é a versão do formato do docker-compose, NÃO a versão do projeto. Não alterar.
 
-## Versão atual: 2.6.73
+## Versão atual: 3.7.60
 
 ## Processo de Release:
 

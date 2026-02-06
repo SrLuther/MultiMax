@@ -360,7 +360,7 @@ def cronograma():
 
 @bp.route("/cronograma/salvar", methods=["POST"])
 @login_required
-def salvar_cronograma():
+def salvar_cronograma():  # noqa: C901
     if current_user.nivel not in ("admin", "DEV"):
         flash("Apenas Gerente (Admin) pode concluir e atualizar o cronograma.", "danger")
         return redirect(url_for("cronograma.cronograma"))

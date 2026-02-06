@@ -162,7 +162,7 @@ def index():
 
 @bp.route("/nova", methods=["GET", "POST"], strict_slashes=False)
 @login_required
-def nova():
+def nova():  # noqa: C901
     if current_user.nivel not in ["operador", "admin", "DEV"]:
         return redirect(url_for("estoque.index"))
     _check_schema_once()

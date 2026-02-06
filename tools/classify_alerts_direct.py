@@ -4,10 +4,10 @@
 Script para classificar alertas diretamente da saída do js_safety_check.py
 """
 
-import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 # Classificação dos tipos de alerta
 CRITICAL_PATTERNS = [
@@ -35,8 +35,8 @@ def run_check():
 
 def parse_output(output):
     """Parseia a saída do script"""
-    alerts = []
-    current = {}
+    alerts: list[dict[str, Any]] = []
+    current: dict[str, Any] = {}
 
     for line in output.split("\n"):
         if line.strip() == "[ALERTA]":
@@ -48,7 +48,7 @@ def parse_output(output):
         elif line.startswith("Linha:"):
             try:
                 current["line"] = int(line.replace("Linha:", "").strip())
-            except:
+            except Exception:
                 pass
         elif line.startswith("Tipo:"):
             current["type"] = line.replace("Tipo:", "").strip()
@@ -72,14 +72,14 @@ def classify(alert_type):
     return "MANUTENÇÃO"
 
 
-def generate_report(alerts):
+def generate_report(alerts):  # noqa: C901
     """Gera o relatório"""
     critical = [a for a in alerts if classify(a["type"]) == "CRÍTICO"]
     attention = [a for a in alerts if classify(a["type"]) == "ATENÇÃO"]
     maintenance = [a for a in alerts if classify(a["type"]) == "MANUTENÇÃO"]
 
     def group_by_file(alerts_list):
-        grouped = {}
+        grouped: dict[str, list[dict[str, Any]]] = {}
         for alert in alerts_list:
             f = alert["file"]
             if f not in grouped:

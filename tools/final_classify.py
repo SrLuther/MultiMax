@@ -3,6 +3,7 @@
 import re
 import sys
 from pathlib import Path
+from typing import Any
 
 CRITICAL = [
     "Jinja2 em fetch() sem tojson",
@@ -35,7 +36,10 @@ def parse():
     content = fpath.read_text(encoding="utf-8", errors="replace")
 
     # Regex para encontrar blocos de alerta - formato mais flexível
-    pattern = r"\[ALERTA\]\s*\n\s*Arquivo:\s*(.+?)\s*\n\s*Linha:\s*(\d+)\s*\n\s*Tipo:\s*(.+?)\s*\n\s*Trecho:\s*(.+?)(?=\s*\n\s*\[ALERTA\]|\s*\n\s*===|$)"
+    pattern = (
+        r"\[ALERTA\]\s*\n\s*Arquivo:\s*(.+?)\s*\n\s*Linha:\s*(\d+)\s*\n"
+        r"\s*Tipo:\s*(.+?)\s*\n\s*Trecho:\s*(.+?)(?=\s*\n\s*\[ALERTA\]|\s*\n\s*===|$)"
+    )
     matches = re.findall(pattern, content, re.MULTILINE | re.DOTALL)
 
     alerts = []
@@ -52,13 +56,13 @@ def parse():
     return alerts
 
 
-def generate_report(alerts):
+def generate_report(alerts):  # noqa: C901
     critical = [a for a in alerts if classify(a["type"]) == "CRÍTICO"]
     attention = [a for a in alerts if classify(a["type"]) == "ATENÇÃO"]
     maintenance = [a for a in alerts if classify(a["type"]) == "MANUTENÇÃO"]
 
     def group_by_file(alerts_list):
-        grouped = {}
+        grouped: dict[str, list[dict[str, Any]]] = {}
         for alert in alerts_list:
             f = alert["file"]
             if f not in grouped:

@@ -1,7 +1,6 @@
 """
 Testes para funções de hash de senha.
 """
-import pytest
 
 from multimax.password_hash import check_password_hash, generate_password_hash
 
