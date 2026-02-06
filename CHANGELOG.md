@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.61] - 2026-02-06 22:10:00
+
+### Fixed
+- WhatsApp Service: log detalhado de erros no startup
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.60] - 2026-02-06 00:05:00
 
 ### Fixed

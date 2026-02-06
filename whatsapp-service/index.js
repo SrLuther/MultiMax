@@ -32,6 +32,25 @@ const DockerListener = require("./dockerListener");
 const { initDb } = require("./db");
 
 // Custom logger que garante output em Docker
+const serializeError = (err) => {
+  if (!err) return undefined;
+  if (err instanceof Error) {
+    return {
+      name: err.name,
+      message: err.message,
+      stack: err.stack,
+    };
+  }
+  if (typeof err === "object") {
+    return {
+      message: err.message || String(err),
+      stack: err.stack,
+      ...err,
+    };
+  }
+  return { message: String(err) };
+};
+
 const createLogger = (module) => {
   return {
     info: (msg) => {
@@ -40,7 +59,11 @@ const createLogger = (module) => {
       process.stdout.write('');
     },
     error: (data, msg) => {
-      const logEntry = JSON.stringify({ level: 50, time: Date.now(), module, ...data, msg });
+      const payload = { ...data };
+      if (payload && payload.err) {
+        payload.err = serializeError(payload.err);
+      }
+      const logEntry = JSON.stringify({ level: 50, time: Date.now(), module, ...payload, msg });
       console.error(logEntry);
       process.stderr.write('');
     },
