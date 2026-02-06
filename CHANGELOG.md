@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.69] - 2026-02-07 00:05:00
+
+### Changed
+- WhatsApp Service: teste de alertas agora envia para o grupo Notify
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.68] - 2026-02-06 23:55:00
 
 ### Fixed

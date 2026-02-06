@@ -543,29 +543,9 @@ function setupHttpServer(db) {
         return res.status(503).json({ erro: "WhatsApp não está conectado" });
       }
 
-      const { phone, status, payload } = await fetchAlertPhoneFromApi();
-      if (status >= 400 || !phone) {
-        return res.status(404).json({ erro: payload?.message || payload?.erro || "Número não configurado" });
-      }
-
-      const jid = formatPhoneForWhatsApp(phone);
-      if (!jid) {
-        return res.status(400).json({ erro: "Número inválido" });
-      }
-
-      try {
-        const existsCheck = await globalSocket.onWhatsApp(jid);
-        const exists = Array.isArray(existsCheck) && existsCheck[0] && existsCheck[0].exists;
-        if (!exists) {
-          return res.status(400).json({ erro: "Número não encontrado no WhatsApp" });
-        }
-      } catch (err) {
-        logger.warn({ err }, "Falha ao validar número no WhatsApp");
-      }
-
-      const testMessage = `🧪 Teste da Central MultiMax\n${new Date().toISOString()}`;
-      await globalSocket.sendMessage(jid, { text: testMessage });
-      logger.info({ jid }, "Teste enviado direto ao número configurado");
+      const testMessage = `🧪 Teste da Central MultiMax (Notify)\n${new Date().toISOString()}`;
+      await sendToNotifyGroup(testMessage);
+      logger.info("Teste enviado para o grupo Notify");
 
       res.status(200).json({
         sucesso: true,
