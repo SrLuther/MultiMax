@@ -190,6 +190,17 @@ def _summaries(fluxo: Fluxo, colaboradores: list[CentralColaborador]) -> dict[in
     return summaries
 
 
+def _fluxo_colaboradores() -> list[CentralColaborador]:
+    return (
+        CentralColaborador.query.filter(
+            CentralColaborador.ativo.is_(True),
+            CentralColaborador.username != "dev",
+        )
+        .order_by(CentralColaborador.nome.asc())
+        .all()
+    )
+
+
 def _group_history(fluxo: Fluxo, collaborator_id: int) -> list[dict[str, Any]]:
     ciclos = FluxoCiclo.query.filter_by(fluxo_id=fluxo.id).order_by(FluxoCiclo.week_start.asc()).all()
     grupos = []
@@ -259,7 +270,7 @@ def index():
         return redirect(url_for("home.index"))
 
     fluxo = _get_or_create_fluxo(date.today())
-    colaboradores = CentralColaborador.query.order_by(CentralColaborador.nome.asc()).all()
+    colaboradores = _fluxo_colaboradores()
     summaries = _summaries(fluxo, colaboradores)
 
     historicos = {c.id: _group_history(fluxo, c.id) for c in colaboradores}
@@ -632,7 +643,7 @@ def pdf_geral():
         return redirect(url_for("fluxos.index"))
 
     fluxo = _get_or_create_fluxo(date.today())
-    colaboradores = CentralColaborador.query.order_by(CentralColaborador.nome.asc()).all()
+    colaboradores = _fluxo_colaboradores()
     summaries = _summaries(fluxo, colaboradores)
     historicos = {c.id: _group_history(fluxo, c.id) for c in colaboradores}
 
@@ -700,7 +711,7 @@ def fechar_fluxo():
         return redirect(url_for("fluxos.index"))
 
     try:
-        colaboradores = CentralColaborador.query.order_by(CentralColaborador.nome.asc()).all()
+        colaboradores = _fluxo_colaboradores()
         summaries = _summaries(fluxo, colaboradores)
         historicos = {c.id: _group_history(fluxo, c.id) for c in colaboradores}
 
