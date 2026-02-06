@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.66] - 2026-02-06 23:35:00
+
+### Fixed
+- WhatsApp Service: teste de alerta força envio e evita bloqueio do anti-spam
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.65] - 2026-02-06 23:25:00
 
 ### Fixed

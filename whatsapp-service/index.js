@@ -553,11 +553,12 @@ function setupHttpServer(db) {
         level: "info",
         source: "whatsapp-service",
         description: "🧪 Teste da Central de Notificações MultiMax",
-        message: "Este é um teste de conectividade do sistema de alertas",
+        message: `Teste de conectividade do sistema de alertas (${new Date().toISOString()})`,
         context: "test_alert",
         host: process.env.HOSTNAME || "unknown",
         timestamp: new Date().toISOString(),
         phone,
+        force: true,
       }, db);
 
       if (!sent) {

@@ -179,16 +179,18 @@ async function sendEvent(sock, event, db = null) {
     }
 
     // Anti-spam: não reenviar evento idêntico em menos de 5 minutos
-    const hash = hashEvent(event);
-    const now = Date.now();
+    if (!event.force) {
+      const hash = hashEvent(event);
+      const now = Date.now();
 
-    if (hash === eventCache.lastHash && (now - eventCache.lastSent) < eventCache.ttl) {
-      console.log('[sendEvent] Evento ignorado por anti-spam');
-      return false;
+      if (hash === eventCache.lastHash && (now - eventCache.lastSent) < eventCache.ttl) {
+        console.log('[sendEvent] Evento ignorado por anti-spam');
+        return false;
+      }
+
+      eventCache.lastHash = hash;
+      eventCache.lastSent = now;
     }
-
-    eventCache.lastHash = hash;
-    eventCache.lastSent = now;
 
     // Buscar número de alerta do DB
     const phoneNumber = event?.phone || await getAlertPhone(db);
