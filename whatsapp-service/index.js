@@ -52,26 +52,48 @@ const serializeError = (err) => {
 };
 
 const createLogger = (module) => {
-  return {
-    info: (msg) => {
-      const logEntry = JSON.stringify({ level: 30, time: Date.now(), module, msg });
-      console.log(logEntry);
-      process.stdout.write('');
-    },
-    error: (data, msg) => {
-      const payload = { ...data };
-      if (payload && payload.err) {
-        payload.err = serializeError(payload.err);
-      }
-      const logEntry = JSON.stringify({ level: 50, time: Date.now(), module, ...payload, msg });
-      console.error(logEntry);
-      process.stderr.write('');
-    },
-    debug: (msg) => {
-      const logEntry = JSON.stringify({ level: 20, time: Date.now(), module, msg });
-      console.log(logEntry);
-      process.stdout.write('');
+  const levels = { trace: 10, debug: 20, info: 30, warn: 40, error: 50, fatal: 60 };
+
+  const writeLog = (levelName, dataOrMsg, maybeMsg) => {
+    let payload = {};
+    let msg = "";
+
+    if (typeof dataOrMsg === "string") {
+      msg = dataOrMsg;
+    } else if (dataOrMsg && typeof dataOrMsg === "object") {
+      payload = { ...dataOrMsg };
+      msg = typeof maybeMsg === "string" ? maybeMsg : "";
     }
+
+    if (payload && payload.err) {
+      payload.err = serializeError(payload.err);
+    }
+
+    const logEntry = JSON.stringify({
+      level: levels[levelName] ?? 30,
+      time: Date.now(),
+      module,
+      ...payload,
+      msg,
+    });
+
+    if (levels[levelName] >= 50) {
+      console.error(logEntry);
+      process.stderr.write("");
+    } else {
+      console.log(logEntry);
+      process.stdout.write("");
+    }
+  };
+
+  return {
+    trace: (dataOrMsg, maybeMsg) => writeLog("trace", dataOrMsg, maybeMsg),
+    debug: (dataOrMsg, maybeMsg) => writeLog("debug", dataOrMsg, maybeMsg),
+    info: (dataOrMsg, maybeMsg) => writeLog("info", dataOrMsg, maybeMsg),
+    warn: (dataOrMsg, maybeMsg) => writeLog("warn", dataOrMsg, maybeMsg),
+    error: (dataOrMsg, maybeMsg) => writeLog("error", dataOrMsg, maybeMsg),
+    fatal: (dataOrMsg, maybeMsg) => writeLog("fatal", dataOrMsg, maybeMsg),
+    child: () => createLogger(module),
   };
 };
 
