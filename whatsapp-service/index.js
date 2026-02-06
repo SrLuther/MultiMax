@@ -563,24 +563,9 @@ function setupHttpServer(db) {
         logger.warn({ err }, "Falha ao validar número no WhatsApp");
       }
 
-      const sent = await sendEvent(globalSocket, {
-        type: "test",
-        level: "info",
-        source: "whatsapp-service",
-        description: "🧪 Teste da Central de Notificações MultiMax",
-        message: `Teste de conectividade do sistema de alertas (${new Date().toISOString()})`,
-        context: "test_alert",
-        host: process.env.HOSTNAME || "unknown",
-        timestamp: new Date().toISOString(),
-        phone,
-        force: true,
-      }, db);
-
-      if (!sent) {
-        return res.status(500).json({
-          erro: "Falha ao enviar teste. Número configurado?",
-        });
-      }
+      const testMessage = `🧪 Teste da Central MultiMax\n${new Date().toISOString()}`;
+      await globalSocket.sendMessage(jid, { text: testMessage });
+      logger.info({ jid }, "Teste enviado direto ao número configurado");
 
       res.status(200).json({
         sucesso: true,
