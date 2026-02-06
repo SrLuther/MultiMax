@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.67] - 2026-02-06 23:45:00
+
+### Fixed
+- WhatsApp Service: validação do número antes do teste para indicar se existe no WhatsApp
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.66] - 2026-02-06 23:35:00
 
 ### Fixed

@@ -548,6 +548,21 @@ function setupHttpServer(db) {
         return res.status(404).json({ erro: payload?.message || payload?.erro || "Número não configurado" });
       }
 
+      const jid = formatPhoneForWhatsApp(phone);
+      if (!jid) {
+        return res.status(400).json({ erro: "Número inválido" });
+      }
+
+      try {
+        const existsCheck = await globalSocket.onWhatsApp(jid);
+        const exists = Array.isArray(existsCheck) && existsCheck[0] && existsCheck[0].exists;
+        if (!exists) {
+          return res.status(400).json({ erro: "Número não encontrado no WhatsApp" });
+        }
+      } catch (err) {
+        logger.warn({ err }, "Falha ao validar número no WhatsApp");
+      }
+
       const sent = await sendEvent(globalSocket, {
         type: "test",
         level: "info",
