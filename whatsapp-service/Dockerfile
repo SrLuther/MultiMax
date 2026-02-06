@@ -5,7 +5,7 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Instalar docker-cli para docker events
-RUN apk add --no-cache docker-cli
+RUN apk add --no-cache docker-cli curl
 
 # Copiar package.json e package-lock.json
 COPY package*.json ./
