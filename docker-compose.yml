@@ -98,6 +98,7 @@ services:
     environment:
       - NODE_ENV=production
       - LOG_LEVEL=info
+      - FLASK_API_URL=http://multimax:5000
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/health"]

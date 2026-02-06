@@ -16,6 +16,21 @@ const timezone = require('dayjs/plugin/timezone');
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+const FLASK_API_URL = (process.env.FLASK_API_URL || process.env.APP_BASE_URL || 'http://multimax:5000').replace(/\/$/, '');
+
+async function fetchAlertPhoneFromApi() {
+  try {
+    const resp = await fetch(`${FLASK_API_URL}/api/settings/alert-phone`, {
+      headers: { 'Accept': 'application/json' },
+    });
+    if (!resp.ok) return null;
+    const payload = await resp.json();
+    return payload?.data?.phone || payload?.phone || null;
+  } catch (err) {
+    return null;
+  }
+}
+
 // Cache de anti-spam: evita reenviar eventos idênticos consecutivos
 const eventCache = {
   lastHash: null,
@@ -123,6 +138,9 @@ function formatWhatsAppMessage(event, phoneNumber) {
  */
 async function getAlertPhone(db) {
   try {
+    const apiPhone = await fetchAlertPhoneFromApi();
+    if (apiPhone) return apiPhone;
+
     if (!db) return null;
 
     const result = await db.query(
@@ -173,7 +191,7 @@ async function sendEvent(sock, event, db = null) {
     eventCache.lastSent = now;
 
     // Buscar número de alerta do DB
-    const phoneNumber = await getAlertPhone(db);
+    const phoneNumber = event?.phone || await getAlertPhone(db);
     if (!phoneNumber) {
       console.warn('[sendEvent] Número de alerta não configurado');
       return false;

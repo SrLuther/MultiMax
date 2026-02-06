@@ -10,6 +10,20 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.64] - 2026-02-06 23:10:00
+
+### Fixed
+- Central WhatsApp: número de alerta agora usa API Flask (corrige erro db.query() deprecated)
+- WhatsApp Service: healthcheck e fluxo de teste ajustados para ambiente sem DB local
+
+### Changed
+- WhatsApp Service: consumo do número via API Flask e variável FLASK_API_URL
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.63] - 2026-02-06 22:30:00
 
 ### Added
@@ -17,6 +31,8 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ### Fixed
 - WhatsApp Service: QR registrado em texto e salvo em arquivo para evitar corrupção
+- Central WhatsApp: configuração do número agora usa API Flask (evita erro db.query() deprecated)
+- WhatsApp Service: healthcheck ajustado e imagem com curl para validação
 
 ---
 ### IA responsável pelo envio

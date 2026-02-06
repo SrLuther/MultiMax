@@ -31,6 +31,40 @@ const {
 const { sendEvent, validatePhoneNumber, formatPhoneForWhatsApp } = require("./errorWhatsapp");
 const DockerListener = require("./dockerListener");
 const { initDb } = require("./db");
+const FLASK_API_URL = (process.env.FLASK_API_URL || process.env.APP_BASE_URL || "http://multimax:5000").replace(/\/$/, "");
+
+async function fetchAlertPhoneFromApi() {
+  try {
+    const resp = await fetch(`${FLASK_API_URL}/api/settings/alert-phone`, {
+      headers: { Accept: "application/json" },
+    });
+    if (resp.status === 404) {
+      return { phone: null, status: 404, payload: null };
+    }
+    const payload = await resp.json().catch(() => null);
+    return {
+      phone: payload?.data?.phone || payload?.phone || null,
+      status: resp.status,
+      payload,
+    };
+  } catch (err) {
+    return { phone: null, status: 500, payload: { erro: err.message } };
+  }
+}
+
+async function updateAlertPhoneInApi(phone) {
+  try {
+    const resp = await fetch(`${FLASK_API_URL}/api/settings/alert-phone`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ phone }),
+    });
+    const payload = await resp.json().catch(() => null);
+    return { status: resp.status, payload };
+  } catch (err) {
+    return { status: 500, payload: { erro: err.message } };
+  }
+}
 
 // Custom logger que garante output em Docker
 const serializeError = (err) => {
@@ -447,17 +481,12 @@ function setupHttpServer(db) {
   // ========== CONFIGURAÇÃO: GET alert-phone ==========
   app.get("/settings/alert-phone", async (req, res) => {
     try {
-      if (!db) {
-        return res.status(503).json({ erro: "Banco de dados não disponível" });
+      const { phone, status, payload } = await fetchAlertPhoneFromApi();
+      if (status >= 400 && status !== 404) {
+        return res.status(status).json({ erro: payload?.message || payload?.erro || "Falha ao buscar número" });
       }
 
-      const result = await db.query(
-        `SELECT value FROM system_settings WHERE key = 'alert_whatsapp_phone' LIMIT 1`
-      );
-
-      const phone = (result?.rows?.[0]?.value) || null;
-
-      res.status(200).json({
+      return res.status(200).json({
         phone,
         configured: !!phone,
         last_test: null, // TODO: implementar rastreamento
@@ -485,38 +514,21 @@ function setupHttpServer(db) {
         });
       }
 
-      const formatted = formatPhoneForWhatsApp(validated);
-
-      if (!db) {
-        return res.status(503).json({ erro: "Banco de dados não disponível" });
+      const { status, payload } = await updateAlertPhoneInApi(validated);
+      if (status >= 400) {
+        return res.status(status).json({ erro: payload?.message || payload?.erro || "Falha ao atualizar número" });
       }
 
-      logger.info(`[PUT] Iniciando UPSERT para phone: ${formatted}`);
+      const formatted = formatPhoneForWhatsApp(validated);
+      const newPhone = payload?.data?.phone || payload?.phone || validated;
 
-      // Usar UPSERT: INSERT OR UPDATE
-      const query = `
-        INSERT INTO system_settings (key, value, created_at, updated_at)
-        VALUES ('alert_whatsapp_phone', $1, NOW(), NOW())
-        ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()
-        RETURNING value, updated_at
-      `;
-
-      logger.info(`[PUT] Query: ${query}`);
-      logger.info(`[PUT] Params: ${JSON.stringify([formatted])}`);
-
-      const result = await db.query(query, [formatted]);
-
-      logger.info(`[PUT] Resultado da query: ${JSON.stringify(result)}`);
-
-      const newPhone = result?.rows?.[0]?.value;
-
-      logger.info(`[PUT] newPhone extraído: ${newPhone}`);
       logger.info({ phone: newPhone }, "alert-phone atualizado");
 
-      res.status(200).json({
+      return res.status(200).json({
         sucesso: true,
         phone: newPhone,
         message: "Número de alerta atualizado com sucesso",
+        whatsapp_jid: formatted,
       });
     } catch (err) {
       logger.error({ err }, "Erro ao atualizar alert-phone");
@@ -531,6 +543,11 @@ function setupHttpServer(db) {
         return res.status(503).json({ erro: "WhatsApp não está conectado" });
       }
 
+      const { phone, status, payload } = await fetchAlertPhoneFromApi();
+      if (status >= 400 || !phone) {
+        return res.status(404).json({ erro: payload?.message || payload?.erro || "Número não configurado" });
+      }
+
       const sent = await sendEvent(globalSocket, {
         type: "test",
         level: "info",
@@ -540,26 +557,13 @@ function setupHttpServer(db) {
         context: "test_alert",
         host: process.env.HOSTNAME || "unknown",
         timestamp: new Date().toISOString(),
+        phone,
       }, db);
 
       if (!sent) {
         return res.status(500).json({
           erro: "Falha ao enviar teste. Número configurado?",
         });
-      }
-
-      // Registrar último teste
-      if (db) {
-        try {
-          await db.query(
-            `INSERT INTO system_settings (key, value, created_at, updated_at)
-             VALUES ('last_test_alert_at', $1, NOW(), NOW())
-             ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()`,
-            [new Date().toISOString()]
-          );
-        } catch (err) {
-          logger.warn({ err }, "Erro ao registrar last_test_alert_at");
-        }
       }
 
       res.status(200).json({
