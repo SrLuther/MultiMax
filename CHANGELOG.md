@@ -10,6 +10,19 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.63] - 2026-02-06 22:30:00
+
+### Added
+- WhatsApp Service: endpoint /qr.png para download do QR em imagem
+
+### Fixed
+- WhatsApp Service: QR registrado em texto e salvo em arquivo para evitar corrupção
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.62] - 2026-02-06 22:20:00
 
 ### Fixed

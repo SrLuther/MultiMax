@@ -12,7 +12,8 @@ exclude =
     .eggs,
     *.egg,
     build,
-    dist
+    dist,
+    node_modules
 per-file-ignores =
     __init__.py:F401
 max-complexity = 70

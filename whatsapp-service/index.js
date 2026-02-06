@@ -19,6 +19,7 @@ if (!global.crypto) {
 const path = require("path");
 const pino = require("pino");
 const qrcode = require("qrcode-terminal");
+const qrcodePng = require("qrcode");
 const express = require("express");
 const {
   default: makeWASocket,
@@ -107,6 +108,9 @@ let dockerListener = null;
 let startupAlertSent = false;
 let heartbeatInterval = null;
 let baileysConnected = false;
+let lastQr = null;
+let lastQrAt = null;
+let lastQrPng = null;
 
 // ============================================================================
 // STARTUP ALERT
@@ -326,6 +330,21 @@ async function connectToWhatsApp() {
 
     if (qr) {
       logger.info("Escaneie o QR Code abaixo para conectar:");
+      logger.info(`QR_CODE_DATA:${qr}`);
+      try {
+        const fs = require("fs");
+        fs.writeFileSync(path.join(__dirname, "auth", "last-qr.txt"), qr, "utf8");
+      } catch (err) {
+        logger.error({ err }, "Falha ao salvar QR em arquivo");
+      }
+      lastQr = qr;
+      lastQrAt = new Date();
+      try {
+        lastQrPng = await qrcodePng.toBuffer(qr, { type: "png", margin: 1, width: 320 });
+      } catch (err) {
+        logger.error({ err }, "Erro ao gerar QR em PNG");
+        lastQrPng = null;
+      }
       qrcode.generate(qr, { small: true });
     }
 
@@ -389,6 +408,21 @@ function setupHttpServer(db) {
       connected: baileysConnected,
       timestamp: new Date().toISOString(),
     });
+  });
+
+  // ========== QR CODE (PNG) ==========
+  app.get("/qr.png", (req, res) => {
+    if (!lastQrPng) {
+      return res.status(404).json({ status: "error", message: "QR Code não disponível" });
+    }
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    if (lastQrAt) {
+      res.setHeader("X-QR-Generated-At", lastQrAt.toISOString());
+    }
+    return res.status(200).send(lastQrPng);
   });
 
   // ========== NOTIFICAÇÕES (Grupo Notify) ==========
