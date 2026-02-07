@@ -87,7 +87,7 @@ def enviar_resumo_diario_fluxos(
         )
 
     if not ferias and not valor_diaria_msg and not lancamentos:
-        mensagem = "Sem novos lançamentos registrados até o momento"
+        mensagem = "🗓️ Não foram registradas movimentações no banco de horas hoje."
         sucesso, erro = send_whatsapp_message(
             message=mensagem,
             actor=actor,

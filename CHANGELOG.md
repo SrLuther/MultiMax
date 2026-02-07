@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.102] - 2026-02-07 08:55:00
+
+### Changed
+- Fluxos: mensagem padrão do resumo diário quando não há lançamentos
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.101] - 2026-02-07 08:35:00
 
 ### Fixed
