@@ -10,276 +10,435 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 {% endblock %}
 
-
 {% block content %}
-{% set auto_enabled = auto_enabled %}
 <style>
-  .whatsapp-hero-premium {
-    background: linear-gradient(90deg, #5f72bd 0%, #9a5be4 100%);
-    border-radius: 1.5rem;
-    box-shadow: 0 4px 32px 0 rgba(80, 80, 160, 0.10);
-    padding: 2.5rem 2rem 2rem 2rem;
-    display: flex;
-    align-items: center;
-      <a href="#blocoA" class="btn btn-light btn-lg px-4 shadow-sm" style="font-weight:600;">
-        <i class="bi bi-broadcast me-2"></i>Disparar mensagem agora
-      </a>
-                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.ok) {
-                                    const status = data.status || 'Indisponível';
-                                    document.getElementById('cronogramaStatusLabel').textContent = status;
-                                    setCronogramaBadge(status, true);
-                                } else {
-                                    document.getElementById('cronogramaStatusLabel').textContent = 'Indisponível';
-                                    setCronogramaBadge('Indisponível', false);
-                                }
-                            })
-                            .catch(() => {
-                                document.getElementById('cronogramaStatusLabel').textContent = 'Indisponível';
-                                setCronogramaBadge('Indisponível', false);
-                            });
-                        }
+    .whatsapp-hero {
+        background: linear-gradient(90deg, #5f72bd 0%, #9a5be4 100%);
+        border-radius: 1.5rem;
+        box-shadow: 0 4px 32px 0 rgba(80, 80, 160, 0.10);
+        padding: 2rem 2rem;
+        color: #fff;
+    }
+    .whatsapp-card {
+        border-radius: 1.25rem;
+        background: #1f1f28;
+        color: #fff;
+    }
+    .whatsapp-card .form-control,
+    .whatsapp-card .form-select {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
+    }
+    .whatsapp-card .form-control::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+    }
+</style>
 
-                        function enviarCronogramaAgora() {
-                            const btn = document.getElementById('btnEnviarCronograma');
-                            btn.disabled = true;
-                            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
-                            fetch('/dev/whatsapp/cronograma/enviar', {
-                                method: 'POST',
-                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.ok) {
-                                    notifyWhatsappAdmin('Sucesso', data.message || 'Mensagem enviada.', 'success');
-                                } else {
-                                    notifyWhatsappAdmin('Erro', data.error || 'Falha ao enviar mensagem', 'danger');
-                                }
-                            })
-                            .catch(error => {
-                                notifyWhatsappAdmin('Erro', 'Falha na comunicação: ' + error.message, 'danger');
-                            })
-                            .finally(() => {
-                                btn.disabled = false;
-                                btn.innerHTML = '<i class="bi bi-send-check me-1"></i> Enviar agora';
-                            });
-                        }
-
-                        document.addEventListener('DOMContentLoaded', () => {
-                            carregarStatusCronograma();
-                        });
-                    </script>
-                </div>
-            </div>
+<div class="container-xxl py-4">
+    <div class="whatsapp-hero d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-2">Painel WhatsApp</h1>
+            <p class="mb-0 text-white-50">Gerencie envios manuais e notificações automáticas.</p>
         </div>
-                            title="Enviar resumo diário do Fluxos agora"
-                            onclick="enviarResumoFluxos()"
-                        >
-                            <i class="bi bi-calendar-check me-2"></i> Resumo diário (Fluxos)
-                        </button>
+        <a href="#bloco-a" class="btn btn-light btn-lg px-4 shadow-sm" style="font-weight:600;">
+            <i class="bi bi-broadcast me-2"></i>Disparar mensagem agora
+        </a>
+    </div>
 
-                        <!-- Botão: Resumo geral do Fluxos -->
-                        <button
-                            type="button"
-                            class="btn btn-outline-primary whatsapp-btn-premium"
-                            id="btnEnviarResumoGeralFluxos"
-                            title="Enviar resumo geral do Fluxos agora"
-                            onclick="enviarResumoGeralFluxos()"
-                        >
-                            <i class="bi bi-clipboard-data me-2"></i> Resumo geral (Fluxos)
-                        </button>
-                    </div>
-
-                    <script>
-                        function enviarResumoFluxos() {
-                            const confirmacao = confirm(
-                                'Enviar o resumo diário do Fluxos agora?\n\nEsta ação ignora o horário das 20h e envia para o grupo configurado.'
-                            );
-                            if (!confirmacao) {
-                                return;
-                            }
-
-                            const btn = document.getElementById('btnEnviarResumoFluxos');
-                            btn.disabled = true;
-                            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
-
-                            fetch('/dev/whatsapp/fluxos/resumo-diario', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-Requested-With': 'XMLHttpRequest'
-                                }
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.ok) {
-                                    showNotification('Sucesso!', data.message, 'success');
-                                } else {
-                                    showNotification('Erro', data.error || 'Falha ao enviar resumo', 'danger');
-                                }
-                            })
-                            .catch(error => {
-                                showNotification('Erro', 'Falha na comunicação: ' + error.message, 'danger');
-                            })
-                            .finally(() => {
-                                btn.disabled = false;
-                                btn.innerHTML = '<i class="bi bi-calendar-check me-2"></i> Resumo diário (Fluxos)';
-                            });
-                        }
-
-                        function enviarResumoGeralFluxos() {
-                            const confirmacao = confirm(
-                                'Enviar o resumo geral do Fluxos agora?\n\nEsta ação envia o resumo completo do fluxo atual para o grupo configurado.'
-                            );
-                            if (!confirmacao) {
-                                return;
-                            }
-
-                            const btn = document.getElementById('btnEnviarResumoGeralFluxos');
-                            btn.disabled = true;
-                            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
-
-                            fetch('/dev/whatsapp/fluxos/resumo-geral', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-Requested-With': 'XMLHttpRequest'
-                                }
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.ok) {
-                                    showNotification('Sucesso!', data.message, 'success');
-                                } else {
-                                    showNotification('Erro', data.error || 'Falha ao enviar resumo geral', 'danger');
-                                }
-                            })
-                            .catch(error => {
-                                showNotification('Erro', 'Falha na comunicação: ' + error.message, 'danger');
-                            })
-                            .finally(() => {
-                                btn.disabled = false;
-                                btn.innerHTML = '<i class="bi bi-clipboard-data me-2"></i> Resumo geral (Fluxos)';
-                            });
-                        }
-
-                        function showNotification(title, message, type) {
-                            alert((title ? title + '\n' : '') + message);
-                        }
-                    </script>
-                </div>
-            </div>
-        </div>
-
-        <!-- Bloco D - Cronograma -->
+    <div class="row g-4">
         <div class="col-12">
-            <div class="card whatsapp-card-premium shadow-sm border-0">
+            <div class="card whatsapp-card shadow-sm border-0" id="bloco-a">
                 <div class="card-body p-4">
                     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
                         <div>
-                            <p class="text-uppercase text-white small mb-1">Bloco D — cronograma</p>
-                            <h3 class="whatsapp-card-title mb-2 text-white"><i class="bi bi-calendar-check me-2"></i>Alertas do Cronograma</h3>
-                            <p class="text-white-50 mb-0">Envio imediato da notificação do cronograma para o grupo.</p>
+                            <p class="text-uppercase text-white-50 small mb-1">Bloco A — envio manual</p>
+                            <h3 class="mb-1"><i class="bi bi-send-check me-2"></i>Mensagem manual</h3>
+                            <p class="text-white-50 mb-0">Envie uma mensagem personalizada para o WhatsApp.</p>
                         </div>
-                        <span id="badgeCronogramaStatus" class="badge bg-light text-dark border">Carregando...</span>
+                        <span class="badge bg-light text-dark border">Gateway: {{ gateway_url or 'não configurado' }}</span>
                     </div>
+
+                    <form action="{{ url_for('whatsapp_admin.enviar') }}" method="post" class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label text-white">Mensagem</label>
+                            <textarea
+                                name="message"
+                                class="form-control"
+                                rows="4"
+                                placeholder="Digite a mensagem a ser enviada"
+                                required
+                            ></textarea>
+                        </div>
+                        <div class="col-12 d-flex gap-2 flex-wrap">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-send-check me-1"></i> Enviar agora
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+            <div class="card whatsapp-card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <p class="text-uppercase text-white-50 small mb-1">Bloco B — automações</p>
+                    <h3 class="mb-2"><i class="bi bi-gear-wide-connected me-2"></i>Notificações automáticas</h3>
+                    <p class="text-white-50">Ative ou desative os envios automáticos do sistema.</p>
+
+                    <div class="form-check form-switch d-flex align-items-center gap-2">
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            role="switch"
+                            id="autoToggle"
+                            {% if auto_enabled %}checked{% endif %}
+                        >
+                        <label class="form-check-label text-white" for="autoToggle" id="autoToggleLabel">
+                            {% if auto_enabled %}Ativado{% else %}Desativado{% endif %}
+                        </label>
+                    </div>
+                    <div class="form-text text-white-50" id="autoToggleHint">
+                        Alterações são aplicadas imediatamente.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+            <div class="card whatsapp-card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <p class="text-uppercase text-white-50 small mb-1">Bloco C — telefone de alerta</p>
+                    <h3 class="mb-2"><i class="bi bi-telephone-forward me-2"></i>Contato de alerta</h3>
+                    <p class="text-white-50">Defina o número que recebe alertas críticos.</p>
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label text-white">Telefone</label>
+                            <input type="text" class="form-control" id="alertPhoneInput" placeholder="Ex: 5591999999999">
+                            <div class="form-text text-white-50" id="alertPhoneInfo">Carregando dados...</div>
+                        </div>
+                        <div class="col-12 d-flex gap-2 flex-wrap">
+                            <button type="button" class="btn btn-primary" id="btnSalvarTelefone">
+                                <i class="bi bi-save me-1"></i> Salvar
+                            </button>
+                            <button type="button" class="btn btn-outline-light" id="btnTestarTelefone">
+                                <i class="bi bi-telephone-check me-1"></i> Testar envio
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card whatsapp-card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <p class="text-uppercase text-white-50 small mb-1">Bloco D — cronograma</p>
+                    <h3 class="mb-2"><i class="bi bi-calendar-check me-2"></i>Alertas do Cronograma</h3>
+                    <p class="text-white-50">Envio imediato da notificação do cronograma para o grupo.</p>
 
                     <div class="row g-3 align-items-end">
                         <div class="col-12 col-lg-7">
                             <label class="form-label text-white">Status atual</label>
-                            <div class="form-control" style="background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.2);">
+                            <div class="form-control">
                                 <span id="cronogramaStatusLabel">Carregando...</span>
                             </div>
                             <div class="form-text text-white-50">O envio usa a mensagem oficial do status atual.</div>
                         </div>
                         <div class="col-12 col-lg-5 d-flex gap-2 flex-wrap">
-                            <button type="button" class="btn btn-success whatsapp-btn-premium" id="btnEnviarCronograma" onclick="enviarCronogramaAgora()">
+                            <span id="badgeCronogramaStatus" class="badge bg-light text-dark border">Carregando...</span>
+                            <button type="button" class="btn btn-success" id="btnEnviarCronograma">
                                 <i class="bi bi-send-check me-1"></i> Enviar agora
                             </button>
                         </div>
                     </div>
-
-                    <div class="alert alert-info mt-4 mb-0 whatsapp-alert-premium" role="alert" style="background:rgba(13,110,253,0.15);color:#fff;">
-                        <div class="d-flex align-items-start gap-2">
-                            <i class="bi bi-info-circle text-white fs-5"></i>
-                            <div class="small" style="color: #fff;">
-                                O botão envia imediatamente a mensagem correspondente ao status atual do cronograma.
-                            </div>
-                        </div>
-                    </div>
-
-                    <script>
-                        function notifyWhatsappAdmin(title, message, type) {
-                            if (typeof showNotification === 'function') {
-                                showNotification(title, message, type);
-                                return;
-                            }
-                            alert((title ? title + '\n' : '') + message);
-                        }
-
-                        function setCronogramaBadge(text, ok) {
-                            const badge = document.getElementById('badgeCronogramaStatus');
-                            badge.textContent = text;
-                            badge.className = ok
-                                ? 'badge bg-success-subtle text-success'
-                                : 'badge bg-light text-dark border';
-                        }
-
-                        function carregarStatusCronograma() {
-                            fetch('/dev/whatsapp/cronograma/status', {
-                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.ok) {
-                                    const status = data.status || 'Indisponível';
-                                    document.getElementById('cronogramaStatusLabel').textContent = status;
-                                    setCronogramaBadge(status, true);
-                                } else {
-                                    document.getElementById('cronogramaStatusLabel').textContent = 'Indisponível';
-                                    setCronogramaBadge('Indisponível', false);
-                                }
-                            })
-                            .catch(() => {
-                                document.getElementById('cronogramaStatusLabel').textContent = 'Indisponível';
-                                setCronogramaBadge('Indisponível', false);
-                            });
-                        }
-
-                        function enviarCronogramaAgora() {
-                            const btn = document.getElementById('btnEnviarCronograma');
-                            btn.disabled = true;
-                            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
-                            fetch('/dev/whatsapp/cronograma/enviar', {
-                                method: 'POST',
-                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.ok) {
-                                    notifyWhatsappAdmin('Sucesso', data.message || 'Mensagem enviada.', 'success');
-                                } else {
-                                    notifyWhatsappAdmin('Erro', data.error || 'Falha ao enviar mensagem', 'danger');
-                                }
-                            })
-                            .catch(error => {
-                                notifyWhatsappAdmin('Erro', 'Falha na comunicação: ' + error.message, 'danger');
-                            })
-                            .finally(() => {
-                                btn.disabled = false;
-                                btn.innerHTML = '<i class="bi bi-send-check me-1"></i> Enviar agora';
-                            });
-                        }
-
-                        document.addEventListener('DOMContentLoaded', () => {
-                            carregarStatusCronograma();
-                        });
-                    </script>
                 </div>
             </div>
         </div>
-        {% endif %}
+
+        <div class="col-12">
+            <div class="card whatsapp-card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <p class="text-uppercase text-white-50 small mb-1">Bloco E — fluxos</p>
+                    <h3 class="mb-2"><i class="bi bi-diagram-3 me-2"></i>Resumo Fluxos</h3>
+                    <p class="text-white-50">Forçar envio dos resumos de Fluxos.</p>
+
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button
+                            type="button"
+                            class="btn btn-outline-light"
+                            id="btnEnviarResumoFluxos"
+                            title="Enviar resumo diário do Fluxos agora"
+                        >
+                            <i class="bi bi-calendar-check me-2"></i> Resumo diário (Fluxos)
+                        </button>
+                        <button
+                            type="button"
+                            class="btn btn-outline-light"
+                            id="btnEnviarResumoGeralFluxos"
+                            title="Enviar resumo geral do Fluxos agora"
+                        >
+                            <i class="bi bi-clipboard-data me-2"></i> Resumo geral (Fluxos)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showNotification(title, message, type) {
+        alert((title ? title + '\n' : '') + message);
+    }
+
+    function notifyWhatsappAdmin(title, message, type) {
+        if (typeof showNotification === 'function') {
+            showNotification(title, message, type);
+            return;
+        }
+        alert((title ? title + '\n' : '') + message);
+    }
+
+    function setCronogramaBadge(text, ok) {
+        const badge = document.getElementById('badgeCronogramaStatus');
+        badge.textContent = text;
+        badge.className = ok
+            ? 'badge bg-success-subtle text-success'
+            : 'badge bg-light text-dark border';
+    }
+
+    function carregarStatusCronograma() {
+        fetch('/dev/whatsapp/cronograma/status', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.ok) {
+                const status = data.status || 'Indisponível';
+                document.getElementById('cronogramaStatusLabel').textContent = status;
+                setCronogramaBadge(status, true);
+            } else {
+                document.getElementById('cronogramaStatusLabel').textContent = 'Indisponível';
+                setCronogramaBadge('Indisponível', false);
+            }
+        })
+        .catch(() => {
+            document.getElementById('cronogramaStatusLabel').textContent = 'Indisponível';
+            setCronogramaBadge('Indisponível', false);
+        });
+    }
+
+    function enviarCronogramaAgora() {
+        const btn = document.getElementById('btnEnviarCronograma');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+        fetch('/dev/whatsapp/cronograma/enviar', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.ok) {
+                notifyWhatsappAdmin('Sucesso', data.message || 'Mensagem enviada.', 'success');
+            } else {
+                notifyWhatsappAdmin('Erro', data.error || 'Falha ao enviar mensagem', 'danger');
+            }
+        })
+        .catch(error => {
+            notifyWhatsappAdmin('Erro', 'Falha na comunicação: ' + error.message, 'danger');
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-send-check me-1"></i> Enviar agora';
+        });
+    }
+
+    function carregarAlertPhone() {
+        fetch('/dev/whatsapp/alert-phone', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.ok) {
+                document.getElementById('alertPhoneInput').value = data.data.phone || '';
+                document.getElementById('alertPhoneInfo').textContent = data.data.description || 'Contato ativo.';
+            } else {
+                document.getElementById('alertPhoneInfo').textContent = data.error || 'Telefone não configurado.';
+            }
+        })
+        .catch(() => {
+            document.getElementById('alertPhoneInfo').textContent = 'Falha ao carregar dados.';
+        });
+    }
+
+    function salvarAlertPhone() {
+        const phone = document.getElementById('alertPhoneInput').value.trim();
+        if (!phone) {
+            notifyWhatsappAdmin('Atenção', 'Informe o número antes de salvar.', 'warning');
+            return;
+        }
+        fetch('/dev/whatsapp/alert-phone', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ phone })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.ok) {
+                notifyWhatsappAdmin('Sucesso', 'Telefone atualizado.', 'success');
+                carregarAlertPhone();
+            } else {
+                notifyWhatsappAdmin('Erro', data.error || 'Falha ao salvar', 'danger');
+            }
+        })
+        .catch(error => {
+            notifyWhatsappAdmin('Erro', 'Falha na comunicação: ' + error.message, 'danger');
+        });
+    }
+
+    function testarAlertPhone() {
+        fetch('/dev/whatsapp/alert-phone/test', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.ok) {
+                notifyWhatsappAdmin('Sucesso', 'Mensagem de teste enviada.', 'success');
+            } else {
+                notifyWhatsappAdmin('Erro', data.error || 'Falha ao enviar teste', 'danger');
+            }
+        })
+        .catch(error => {
+            notifyWhatsappAdmin('Erro', 'Falha na comunicação: ' + error.message, 'danger');
+        });
+    }
+
+    function enviarResumoFluxos() {
+        const confirmacao = confirm(
+            'Enviar o resumo diário do Fluxos agora?\n\nEsta ação ignora o horário das 20h e envia para o grupo configurado.'
+        );
+        if (!confirmacao) {
+            return;
+        }
+
+        const btn = document.getElementById('btnEnviarResumoFluxos');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+
+        fetch('/dev/whatsapp/fluxos/resumo-diario', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.ok) {
+                showNotification('Sucesso!', data.message, 'success');
+            } else {
+                showNotification('Erro', data.error || 'Falha ao enviar resumo', 'danger');
+            }
+        })
+        .catch(error => {
+            showNotification('Erro', 'Falha na comunicação: ' + error.message, 'danger');
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-calendar-check me-2"></i> Resumo diário (Fluxos)';
+        });
+    }
+
+    function enviarResumoGeralFluxos() {
+        const confirmacao = confirm(
+            'Enviar o resumo geral do Fluxos agora?\n\nEsta ação envia o resumo completo do fluxo atual para o grupo configurado.'
+        );
+        if (!confirmacao) {
+            return;
+        }
+
+        const btn = document.getElementById('btnEnviarResumoGeralFluxos');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+
+        fetch('/dev/whatsapp/fluxos/resumo-geral', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.ok) {
+                showNotification('Sucesso!', data.message, 'success');
+            } else {
+                showNotification('Erro', data.error || 'Falha ao enviar resumo geral', 'danger');
+            }
+        })
+        .catch(error => {
+            showNotification('Erro', 'Falha na comunicação: ' + error.message, 'danger');
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-clipboard-data me-2"></i> Resumo geral (Fluxos)';
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const autoToggle = document.getElementById('autoToggle');
+        const autoToggleLabel = document.getElementById('autoToggleLabel');
+
+        if (autoToggle) {
+            autoToggle.addEventListener('change', () => {
+                const enabled = autoToggle.checked;
+                fetch('/dev/whatsapp/auto/toggle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ enabled })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ok) {
+                        autoToggle.checked = data.enabled;
+                        autoToggleLabel.textContent = data.enabled ? 'Ativado' : 'Desativado';
+                        notifyWhatsappAdmin('Sucesso', data.message || 'Atualizado.', 'success');
+                    } else {
+                        autoToggle.checked = !enabled;
+                        notifyWhatsappAdmin('Erro', data.error || 'Falha ao atualizar', 'danger');
+                    }
+                })
+                .catch(error => {
+                    autoToggle.checked = !enabled;
+                    notifyWhatsappAdmin('Erro', 'Falha na comunicação: ' + error.message, 'danger');
+                });
+            });
+        }
+
+        const btnSalvarTelefone = document.getElementById('btnSalvarTelefone');
+        const btnTestarTelefone = document.getElementById('btnTestarTelefone');
+        const btnEnviarCronograma = document.getElementById('btnEnviarCronograma');
+        const btnEnviarResumoFluxos = document.getElementById('btnEnviarResumoFluxos');
+        const btnEnviarResumoGeralFluxos = document.getElementById('btnEnviarResumoGeralFluxos');
+
+        if (btnSalvarTelefone) btnSalvarTelefone.addEventListener('click', salvarAlertPhone);
+        if (btnTestarTelefone) btnTestarTelefone.addEventListener('click', testarAlertPhone);
+        if (btnEnviarCronograma) btnEnviarCronograma.addEventListener('click', enviarCronogramaAgora);
+        if (btnEnviarResumoFluxos) btnEnviarResumoFluxos.addEventListener('click', enviarResumoFluxos);
+        if (btnEnviarResumoGeralFluxos) btnEnviarResumoGeralFluxos.addEventListener('click', enviarResumoGeralFluxos);
+
+        carregarAlertPhone();
+        carregarStatusCronograma();
+    });
+</script>
 {% endblock %}
