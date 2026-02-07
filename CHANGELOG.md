@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.81] - 2026-02-07 02:55:00
+
+### Fixed
+- Fluxos Arquivos: download/visualização de PDF com send_file compatível
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.80] - 2026-02-07 02:45:00
 
 ### Changed
