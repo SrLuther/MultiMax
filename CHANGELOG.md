@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.70] - 2026-02-07 00:25:00
+
+### Added
+- Fluxos: script diário de resumo (Açougue) com filtro por alterações do dia
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.69] - 2026-02-07 00:05:00
 
 ### Changed
