@@ -242,6 +242,17 @@ function toggleAutoNotificacoes() {
                         >
                             <i class="bi bi-calendar-check me-2"></i> Resumo diário (Fluxos)
                         </button>
+
+                        <!-- Botão: Resumo geral do Fluxos -->
+                        <button
+                            type="button"
+                            class="btn btn-outline-primary whatsapp-btn-premium"
+                            id="btnEnviarResumoGeralFluxos"
+                            title="Enviar resumo geral do Fluxos agora"
+                            onclick="enviarResumoGeralFluxos()"
+                        >
+                            <i class="bi bi-clipboard-data me-2"></i> Resumo geral (Fluxos)
+                        </button>
                     </div>
 
                     <script>
@@ -278,6 +289,42 @@ function toggleAutoNotificacoes() {
                             .finally(() => {
                                 btn.disabled = false;
                                 btn.innerHTML = '<i class="bi bi-calendar-check me-2"></i> Resumo diário (Fluxos)';
+                            });
+                        }
+
+                        function enviarResumoGeralFluxos() {
+                            const confirmacao = confirm(
+                                'Enviar o resumo geral do Fluxos agora?\n\nEsta ação envia o resumo completo do fluxo atual para o grupo configurado.'
+                            );
+                            if (!confirmacao) {
+                                return;
+                            }
+
+                            const btn = document.getElementById('btnEnviarResumoGeralFluxos');
+                            btn.disabled = true;
+                            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+
+                            fetch('/dev/whatsapp/fluxos/resumo-geral', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.ok) {
+                                    showNotification('Sucesso!', data.message, 'success');
+                                } else {
+                                    showNotification('Erro', data.error || 'Falha ao enviar resumo geral', 'danger');
+                                }
+                            })
+                            .catch(error => {
+                                showNotification('Erro', 'Falha na comunicação: ' + error.message, 'danger');
+                            })
+                            .finally(() => {
+                                btn.disabled = false;
+                                btn.innerHTML = '<i class="bi bi-clipboard-data me-2"></i> Resumo geral (Fluxos)';
                             });
                         }
 

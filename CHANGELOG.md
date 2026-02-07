@@ -10,6 +10,17 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.73] - 2026-02-07 01:25:00
+
+### Added
+- Central WhatsApp: botão no Bloco C para enviar resumo geral do Fluxos
+- Fluxos: envio manual do resumo geral com H Bruto/Descontos/Líquido, dias e valor estimado
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.72] - 2026-02-07 01:05:00
 
 ### Fixed
