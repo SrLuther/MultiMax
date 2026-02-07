@@ -90,153 +90,113 @@
     </div>
     <div class="whatsapp-hero-action">
       <a href="#blocoA" class="btn btn-light btn-lg px-4 shadow-sm" style="font-weight:600;">
-        <i class="bi bi-broadcast me-2"></i>Disparar mensagem agora
-      </a>
-    </div>
-  </div>
-</div>
-
-    {% if current_user.is_authenticated and current_user.nivel == "DEV" %}
-        <div class="alert alert-success mb-3 premium-alert" role="alert">
-            <i class="bi bi-person-badge"></i> Modo desenvolvedor ativo: todos os blocos visíveis e logs detalhados.
-        </div>
-    {% else %}
-        <div class="alert alert-danger mb-3 premium-alert" role="alert">
-            <i class="bi bi-exclamation-triangle"></i> Atenção: apenas usuários DEV podem acessar todos os recursos deste painel.
-        </div>
-    {% endif %}
-
-    <div class="row g-4">
-        <!-- Bloco A - Envio Manual -->
-        <div class="col-12 col-lg-7" id="blocoA">
-            <div class="card whatsapp-card-premium shadow-sm border-0 h-100">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div>
-                            <p class="text-uppercase text-white small mb-1">Bloco A — envio manual</p>
-                            <h3 class="whatsapp-card-title mb-2 text-white"><i class="bi bi-broadcast me-2"></i>Disparar mensagem agora</h3>
-                            <p class="text-white-50 mb-0">Entrega imediata para todos os grupos configurados no serviço Baileys. Ignora qualquer bloqueio ou agendamento.</p>
-                        </div>
-                        <span class="badge bg-primary-subtle text-primary">Envio prioritário</span>
-                    </div>
-                    <form method="post" action="{{ url_for('whatsapp_admin.enviar') }}" class="d-flex flex-column gap-3">
-                        <div class="form-floating">
-                            <textarea class="form-control" placeholder="Digite a mensagem" id="mensagem" name="message" style="height: 160px;" required></textarea>
-                            <label for="mensagem">Mensagem para o(s) grupo(s)</label>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
-                            <div class="text-white-50 small">
-                                Enviado para todos os grupos mantidos pelo serviço local. O MultiMax não envia IDs nem escolhe grupos.
-                            </div>
-                            <button type="submit" class="btn btn-success px-4 whatsapp-btn-premium">
-                                <i class="bi bi-send me-1"></i> Enviar mensagem
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- Bloco B - Controle Automático -->
-        {% if current_user.is_authenticated and current_user.nivel == "DEV" %}
-        <div class="col-12 col-lg-5">
-            <div class="card whatsapp-card-premium shadow-sm border-0 h-100">
-                <div class="card-body p-4 d-flex flex-column">
-                    <p class="text-uppercase text-white small mb-1">Bloco B — controle automático</p>
-                    <h3 class="whatsapp-card-title mb-2 text-white"><i class="bi bi-robot me-2"></i>Notificações automáticas do sistema</h3>
-                    <p class="text-white-50">Ligue ou pause envios gerados por automações (estoque, rotinas, ciclos abertos aos sábados). O envio manual permanece sempre liberado.</p>
-
-                    <form id="formToggleAuto" class="mt-3" autocomplete="off" onsubmit="return false;">
-                        <input type="hidden" name="auto_enabled" value="off">
-                        <div class="form-check form-switch fs-5 mb-3">
-                            <input class="form-check-input" type="checkbox" role="switch" id="autoSwitch" name="auto_enabled" value="on" {% if auto_enabled %}checked{% endif %}>
-                            <label class="form-check-label text-white" for="autoSwitch">Ativar notificações automáticas</label>
-                        </div>
-                        <div class="d-flex align-items-center gap-3 flex-wrap">
-                            <button type="button" class="btn btn-outline-primary whatsapp-btn-premium" id="btnToggleAuto" onclick="toggleAutoNotificacoes()">
-                                <i class="bi bi-save me-1"></i> Salvar estado
-                            </button>
-                            <span id="badgeAutoState" class="badge {% if auto_enabled %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
-                                Estado atual: <span id="badgeAutoStateText">{% if auto_enabled %}Ativado{% else %}Desativado{% endif %}</span>
-                            </span>
-                        </div>
-                    </form>
-<script>
-function toggleAutoNotificacoes() {
-    const btn = document.getElementById('btnToggleAuto');
-    const switchInput = document.getElementById('autoSwitch');
-    const badge = document.getElementById('badgeAutoState');
-    const badgeText = document.getElementById('badgeAutoStateText');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
-    const enabled = switchInput.checked;
-    fetch('/dev/whatsapp/auto/toggle', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({ enabled })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.ok) {
-            // Atualiza badge e switch
-            if (data.enabled) {
-                badge.className = 'badge bg-success-subtle text-success';
-                badgeText.textContent = 'Ativado';
-            } else {
-                badge.className = 'badge bg-secondary-subtle text-secondary';
-                badgeText.textContent = 'Desativado';
-            }
-            showNotification('Sucesso!', data.message, 'success');
-        } else {
-            // Reverte switch visualmente
-            switchInput.checked = !enabled;
-            showNotification('Erro', data.error || data.message || 'Falha ao salvar estado', 'danger');
-        }
-    })
-    .catch(error => {
-        switchInput.checked = !enabled;
-        showNotification('Erro', 'Falha na comunicação: ' + error.message, 'danger');
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-save me-1"></i> Salvar estado';
-    });
-}
-</script>
-
-                    <div class="alert alert-info mt-4 mb-0 whatsapp-alert-premium" role="alert" style="background:rgba(13,110,253,0.15);color:#fff;">
-                        <div class="d-flex align-items-start gap-2">
-                            <i class="bi bi-shield-lock text-white fs-5"></i>
-                            <div class="small" style="color: #fff;">
-                                Acesso restrito a DEV. O endpoint local ({{ gateway_url or 'não configurado' }}) concentra toda lógica de entrega e grupos. Se desligado, nenhuma automação enviará mensagens (ciclo aberto, estoque, etc).
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Bloco C - Ações Rápidas -->
-        {% if current_user.is_authenticated and current_user.nivel == "DEV" %}
+        <!-- Bloco D - Cronograma -->
         <div class="col-12">
             <div class="card whatsapp-card-premium shadow-sm border-0">
                 <div class="card-body p-4">
-                    <div class="mb-3">
-                        <p class="text-uppercase text-white small mb-1">Bloco C — ações rápidas</p>
-                        <h3 class="whatsapp-card-title mb-2 text-white"><i class="bi bi-lightning-charge me-2"></i>Executar ações de envio sob demanda</h3>
-                        <p class="text-white-50">Dispare ações específicas via WhatsApp independentemente do Bloco B. Útil para testes e execução manual de tarefas automáticas.</p>
+                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+                        <div>
+                            <p class="text-uppercase text-white small mb-1">Bloco D — cronograma</p>
+                            <h3 class="whatsapp-card-title mb-2 text-white"><i class="bi bi-calendar-check me-2"></i>Alertas do Cronograma</h3>
+                            <p class="text-white-50 mb-0">Envio imediato da notificação do cronograma para o grupo.</p>
+                        </div>
+                        <span id="badgeCronogramaStatus" class="badge bg-light text-dark border">Carregando...</span>
                     </div>
 
-                    <div class="d-flex flex-wrap gap-3">
-                        <!-- Botão: Resumo diário do Fluxos -->
-                        <button
-                            type="button"
-                            class="btn btn-outline-success whatsapp-btn-premium"
-                            id="btnEnviarResumoFluxos"
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12 col-lg-7">
+                            <label class="form-label text-white">Status atual</label>
+                            <div class="form-control" style="background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.2);">
+                                <span id="cronogramaStatusLabel">Carregando...</span>
+                            </div>
+                            <div class="form-text text-white-50">O envio usa a mensagem oficial do status atual.</div>
+                        </div>
+                        <div class="col-12 col-lg-5 d-flex gap-2 flex-wrap">
+                            <button type="button" class="btn btn-success whatsapp-btn-premium" id="btnEnviarCronograma" onclick="enviarCronogramaAgora()">
+                                <i class="bi bi-send-check me-1"></i> Enviar agora
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info mt-4 mb-0 whatsapp-alert-premium" role="alert" style="background:rgba(13,110,253,0.15);color:#fff;">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-info-circle text-white fs-5"></i>
+                            <div class="small" style="color: #fff;">
+                                O botão envia imediatamente a mensagem correspondente ao status atual do cronograma.
+                            </div>
+                        </div>
+                    </div>
+
+                    <script>
+                        function notifyWhatsappAdmin(title, message, type) {
+                            if (typeof showNotification === 'function') {
+                                showNotification(title, message, type);
+                                return;
+                            }
+                            alert((title ? title + '\n' : '') + message);
+                        }
+
+                        function setCronogramaBadge(text, ok) {
+                            const badge = document.getElementById('badgeCronogramaStatus');
+                            badge.textContent = text;
+                            badge.className = ok
+                                ? 'badge bg-success-subtle text-success'
+                                : 'badge bg-light text-dark border';
+                        }
+
+                        function carregarStatusCronograma() {
+                            fetch('/dev/whatsapp/cronograma/status', {
+                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.ok) {
+                                    const status = data.status || 'Indisponível';
+                                    document.getElementById('cronogramaStatusLabel').textContent = status;
+                                    setCronogramaBadge(status, true);
+                                } else {
+                                    document.getElementById('cronogramaStatusLabel').textContent = 'Indisponível';
+                                    setCronogramaBadge('Indisponível', false);
+                                }
+                            })
+                            .catch(() => {
+                                document.getElementById('cronogramaStatusLabel').textContent = 'Indisponível';
+                                setCronogramaBadge('Indisponível', false);
+                            });
+                        }
+
+                        function enviarCronogramaAgora() {
+                            const btn = document.getElementById('btnEnviarCronograma');
+                            btn.disabled = true;
+                            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+                            fetch('/dev/whatsapp/cronograma/enviar', {
+                                method: 'POST',
+                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.ok) {
+                                    notifyWhatsappAdmin('Sucesso', data.message || 'Mensagem enviada.', 'success');
+                                } else {
+                                    notifyWhatsappAdmin('Erro', data.error || 'Falha ao enviar mensagem', 'danger');
+                                }
+                            })
+                            .catch(error => {
+                                notifyWhatsappAdmin('Erro', 'Falha na comunicação: ' + error.message, 'danger');
+                            })
+                            .finally(() => {
+                                btn.disabled = false;
+                                btn.innerHTML = '<i class="bi bi-send-check me-1"></i> Enviar agora';
+                            });
+                        }
+
+                        document.addEventListener('DOMContentLoaded', () => {
+                            carregarStatusCronograma();
+                        });
+                    </script>
+                </div>
+            </div>
+        </div>
                             title="Enviar resumo diário do Fluxos agora"
                             onclick="enviarResumoFluxos()"
                         >

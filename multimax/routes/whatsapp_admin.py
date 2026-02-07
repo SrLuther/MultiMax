@@ -1,9 +1,10 @@
 import os
+from datetime import date
 
 from flask import Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from ..models import WhatsappConfig, db
+from ..models import CronogramaBloco, WhatsappConfig, db
 from ..services.fluxos_resumo_diario import enviar_resumo_diario_fluxos
 from ..services.fluxos_resumo_geral import enviar_resumo_geral_fluxos
 from ..services.whatsapp_gateway import (
@@ -234,6 +235,61 @@ def set_alert_phone_rest():
         except Exception:
             pass
         return jsonify({"ok": False, "error": f"Erro ao salvar número: {exc}"}), 500
+
+
+def _calcular_status_cronograma(bloco: CronogramaBloco | None) -> str:
+    if not bloco or not bloco.proxima_limpeza:
+        return "Em dias"
+    hoje = date.today()
+    if bloco.proxima_limpeza < hoje:
+        return "Em atraso"
+    if bloco.proxima_limpeza == hoje:
+        return "No limite"
+    return "Em dias"
+
+
+def _mensagem_cronograma(status: str) -> str:
+    mensagens = {
+        "Em dias": (
+            "🟢 A limpeza da Caixa de Gordura e do ralo do açougue foi realizada "
+            "dentro do prazo semanal estabelecido, após o expediente, em "
+            "conformidade com as boas práticas de higiene e manutenção do ambiente."
+        ),
+        "No limite": (
+            "🟡 A limpeza da Caixa de Gordura e do ralo do açougue deve ser "
+            "realizada hoje, após o expediente, a fim de manter a conformidade "
+            "com as boas práticas sanitárias e o cronograma de manutenção preventiva."
+        ),
+        "Em atraso": (
+            "🔴 Verifica-se que a limpeza da Caixa de Gordura e do ralo do açougue "
+            "ultrapassou o prazo semanal recomendado. A manutenção deve ser "
+            "realizada imediatamente após o expediente, a fim de restabelecer a "
+            "conformidade sanitária e prevenir riscos operacionais."
+        ),
+    }
+    return mensagens.get(status, mensagens["Em dias"])
+
+
+@bp.route("/cronograma/status", methods=["GET"], strict_slashes=False)
+@login_required
+def cronograma_status():
+    _require_dev()
+    bloco = CronogramaBloco.query.filter_by(ativo=True).order_by(CronogramaBloco.nome.asc()).first()
+    status = _calcular_status_cronograma(bloco)
+    return jsonify({"ok": True, "status": status}), 200
+
+
+@bp.route("/cronograma/enviar", methods=["POST"], strict_slashes=False)
+@login_required
+def cronograma_enviar():
+    _require_dev()
+    bloco = CronogramaBloco.query.filter_by(ativo=True).order_by(CronogramaBloco.nome.asc()).first()
+    status = _calcular_status_cronograma(bloco)
+    mensagem = _mensagem_cronograma(status)
+    ok, error = send_whatsapp_message(mensagem, actor=current_user.username, origin="cronograma")
+    if ok:
+        return jsonify({"ok": True, "message": "Mensagem enviada."}), 200
+    return jsonify({"ok": False, "error": error or "Falha ao enviar mensagem"}), 502
 
 
 @bp.route("/alert-phone/test", methods=["POST"], strict_slashes=False)
