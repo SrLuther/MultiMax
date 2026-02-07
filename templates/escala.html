@@ -27,197 +27,7 @@
             </div>
         </div>
     </div>
-
-    <!-- Tabs -->
-    <div class="escala-tabs">
-        <button class="escala-tab active" data-tab="grade">
-            <i class="bi bi-grid-3x3"></i>
-            <span>Grade Semanal</span>
-        </button>
-        <button class="escala-tab" data-tab="calendario">
-            <i class="bi bi-calendar3"></i>
-            <span>Calendário</span>
-        </button>
-        <button class="escala-tab" data-tab="feriados">
-            <i class="bi bi-calendar-heart"></i>
-            <span>Feriados</span>
-        </button>
-        <button class="escala-tab" data-tab="especiais">
-            <i class="bi bi-star"></i>
-            <span>Escalas Especiais</span>
-        </button>
-        <button class="escala-tab" data-tab="config">
-            <i class="bi bi-gear"></i>
-            <span>Configurações</span>
-        </button>
-    </div>
-
-    <!-- Tab: Grade Semanal -->
-    <div id="tab-grade" class="escala-tab-content active">
-        <!-- Navegação da Semana -->
-        <div class="semana-nav">
-            <div class="semana-info">
-                <h2 class="semana-title">
-                    <i class="bi bi-calendar-week"></i>
-                    Semana: {{ semana_inicio.strftime('%d/%m') }} a {{ semana_fim.strftime('%d/%m/%Y') }}
-                </h2>
-            </div>
-            <div class="semana-buttons">
-                <a href="{{ url_for('colaboradores.escala', semana=semana_anterior) }}" class="btn-semana">
-                    <i class="bi bi-chevron-left"></i>
-                    <span>Anterior</span>
-                </a>
-                <a href="{{ url_for('colaboradores.escala') }}" class="btn-semana btn-semana-today">
-                    <i class="bi bi-calendar3"></i>
-                    <span>Hoje</span>
-                </a>
-                <a href="{{ url_for('colaboradores.escala', semana=semana_proxima) }}" class="btn-semana">
-                    <span>Próxima</span>
-                    <i class="bi bi-chevron-right"></i>
-                </a>
-            </div>
-        </div>
-
-        <!-- Filtros Avançados -->
-        <div class="filtros-container">
-            <div class="filtro-group">
-                <label for="filtro-colab" class="filtro-label">
-                    <i class="bi bi-funnel"></i>
-                    Filtrar Colaborador
-                </label>
-                <input type="text" id="filtro-colab" class="filtro-input" placeholder="Buscar por nome...">
-            </div>
-            <div class="filtro-group">
-                <label for="filtro-turno" class="filtro-label">
-                    <i class="bi bi-clock"></i>
-                    Turno
-                </label>
-                <select id="filtro-turno" class="filtro-select">
-                    <option value="">Todos os turnos</option>
-                    <option value="Abertura 5h">Abertura 5h</option>
-                    <option value="Abertura 6h">Abertura 6h</option>
-                    <option value="Tarde">Tarde</option>
-                    <option value="Domingo 5h">Domingo 5h</option>
-                    <option value="Domingo 6h">Domingo 6h</option>
-                    <option value="Folga">Folga</option>
-                </select>
-            </div>
-            <div class="filtro-group">
-                <label for="filtro-status" class="filtro-label">
-                    <i class="bi bi-circle-fill"></i>
-                    Status
-                </label>
-                <select id="filtro-status" class="filtro-select">
-                    <option value="">Todos</option>
-                    <option value="Férias">Férias</option>
-                    <option value="Folga">Folga</option>
-                    <option value="Atestado">Atestado</option>
-                </select>
-            </div>
-            <button id="btn-limpar-filtros" class="btn-limpar-filtros" title="Limpar filtros">
-                <i class="bi bi-x-circle"></i>
-            </button>
-        </div>
-
-        <!-- Grade -->
-        <div class="grade-card">
-            <div class="grade-table-wrapper">
-                <table class="grade-table">
-                    <thead>
-                        <tr>
-                            <th class="grade-colab-header">Colaborador</th>
-                            {% for dia in dias_semana %}
-                            <th class="grade-dia-header {% if dia.is_today %}dia-today{% endif %}">
-                                <div class="grade-dia-content">
-                                    <span class="grade-dia-nome">{{ dia.nome }}</span>
-                                    <span class="grade-dia-data">{{ dia.data.strftime('%d/%m') }}</span>
-                                </div>
-                            </th>
-                            {% endfor %}
-                            <th class="grade-horas-header">Horas</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if colaboradores %}
-                        {% for colab in colaboradores %}
-                        <tr class="grade-row">
-                            <td class="grade-colab-cell">
-                                <div class="grade-colab-info">
-                                    <div class="grade-colab-avatar">
-                                        {{ colab.name[:2].upper() if colab.name else '?' }}
-                                    </div>
-                                    <div class="grade-colab-details">
-                                        <div class="grade-colab-nome">{{ colab.name or 'Sem nome' }}</div>
-                                        <div class="grade-colab-cargo">{{ colab.role or '-' }}</div>
-                                    </div>
-                                </div>
-                            </td>
-                            {% for dia in dias_semana %}
-                            {% set turno = turnos_map.get((colab.id, dia.data.isoformat())) %}
-                            {% set status = status_map.get((colab.id, dia.data.isoformat())) %}
-                            <td class="grade-turno-cell {% if dia.is_today %}dia-today{% endif %}">
-                                {% if status %}
-                                {# Prioridade: mostrar status (Folga, Férias, Atestado) sobre o turno #}
-                                <div class="grade-turno-badge grade-turno-status grade-status-{{ status|lower }}"
-                                     title="{{ status }}">
-                                    {{ status }}
-                                </div>
-                                {% elif turno %}
-                                <div class="grade-turno-badge grade-turno-{{ turno.turno|lower|replace(' ', '-') }} {% if current_user.nivel in ('operador', 'admin', 'DEV') %}grade-turno-editable{% endif %}"
-                                     title="{{ turno.observacao or '' }}"
-                                     {% if current_user.nivel in ('operador', 'admin', 'DEV') %}
-                                     data-turno-id="{{ turno.id }}"
-                                     data-colab-id="{{ colab.id }}"
-                                     data-data="{{ dia.data.isoformat() }}"
-                                     data-turno="{{ turno.turno or '' }}"
-                                     data-obs="{{ turno.observacao or '' }}"
-                                     style="cursor: pointer;"
-                                     {% endif %}>
-                                    {{ turno.turno }}
-                                </div>
-                                {% else %}
-                                {% if current_user.nivel in ('operador', 'admin', 'DEV') %}
-                                <button class="grade-btn-add"
-                                        data-colab-id="{{ colab.id }}"
-                                        data-data="{{ dia.data.isoformat() }}"
-                                        title="Adicionar turno">
-                                    <i class="bi bi-plus"></i>
-                                </button>
-                                {% else %}
-                                <span class="grade-empty">-</span>
-                                {% endif %}
-                                {% endif %}
-                            </td>
-                            {% endfor %}
-                            <td class="grade-horas-cell">
-                                <span class="grade-horas-total">{{ horas_semana.get(colab.id, 0) }}h</span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                        {% else %}
-                        <tr>
-                            <td colspan="{{ dias_semana|length + 2 }}" class="grade-empty-state">
-                                <div class="grade-empty-content">
-                                    <i class="bi bi-people"></i>
-                                    <h3>Nenhum colaborador ativo</h3>
-                                    <p>Cadastre colaboradores para começar a gerenciar escalas.</p>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tab: Calendário -->
-    <div id="tab-calendario" class="escala-tab-content">
-        <div class="calendario-card">
-            <div id="calendar"></div>
-        </div>
-        <script id="events-data" type="application/json">{{ events|tojson }}</script>
-    </div>
+</div>
 
     <!-- Tab: Feriados -->
     <div id="tab-feriados" class="escala-tab-content">
@@ -833,7 +643,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function alterarTipoEspecial() {
     var tipo = document.getElementById('especTipo').value;
     var secaoTurnos = document.getElementById('secaoTurnos');
-    
+
     // Mostrar/ocultar seção de turnos conforme tipo
     if (tipo === 'limpeza' || tipo === 'evento') {
         secaoTurnos.style.display = 'block';
@@ -848,7 +658,7 @@ function alterarAplicacao() {
     var aplicacao = document.getElementById('especAplicacao').value;
     var turnosDivididos = document.getElementById('turnosDivididos');
     var especTurno = document.getElementById('especTurno');
-    
+
     if (aplicacao === 'dividido') {
         turnosDivididos.style.display = 'block';
         especTurno.parentElement.parentElement.style.display = 'none';
@@ -865,7 +675,7 @@ function carregarEscalasEspeciais() {
         .then(data => {
             var container = document.querySelector('.especiais-list');
             if (!container) return;
-            
+
             if (data.length === 0) {
                 container.innerHTML = `
                     <div class="especiais-empty">
@@ -876,7 +686,7 @@ function carregarEscalasEspeciais() {
                 `;
                 return;
             }
-            
+
             // Montar cards das escalas especiais
             var html = '';
             data.forEach(escala => {
@@ -884,7 +694,7 @@ function carregarEscalasEspeciais() {
                 var dataFim = escala.end_date ? new Date(escala.end_date).toLocaleDateString('pt-BR') : 'Não definido';
                 var statusBadge = escala.is_active ? '✓ Ativa' : '✗ Inativa';
                 var statusColor = escala.is_active ? '#10b981' : '#6b7280';
-                
+
                 html += `
                     <div class="especial-item">
                         <div class="especial-item-header">
@@ -915,7 +725,7 @@ function carregarEscalasEspeciais() {
                     </div>
                 `;
             });
-            
+
             container.innerHTML = html;
             document.getElementById('totalEspeciais').textContent = data.filter(e => e.is_active).length;
         })
@@ -957,13 +767,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (tabEspeciais) {
         tabEspeciais.addEventListener('click', carregarEscalasEspeciais);
     }
-    
+
     // Atualizar ao submeter o form
     var formEspecial = document.getElementById('formEspecial');
     if (formEspecial) {
         formEspecial.addEventListener('submit', function(e) {
             e.preventDefault();
-            
+
             var formData = new FormData(this);
             fetch('/escala/especiais/criar', { method: 'POST', body: formData })
                 .then(response => response.json())
