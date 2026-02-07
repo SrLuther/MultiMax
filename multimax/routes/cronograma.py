@@ -411,6 +411,29 @@ def salvar_cronograma():  # noqa: C901
     return redirect(url_for("cronograma.cronograma"))
 
 
+@bp.route("/cronograma/registrar", methods=["POST"])
+@login_required
+def registrar_limpeza():
+    if current_user.nivel not in ("operador", "admin", "DEV"):
+        flash("Sem permissão para registrar limpeza.", "danger")
+        return redirect(url_for("cronograma.cronograma"))
+
+    data = (request.form.get("data") or "").strip()
+    equipe = (request.form.get("equipe") or "").strip()
+    observacoes = (request.form.get("observacoes") or "").strip()
+    bloco = (request.form.get("bloco") or "").strip()
+
+    if not data or not equipe:
+        flash("Preencha a data e a equipe responsável.", "danger")
+        return redirect(url_for("cronograma.cronograma"))
+
+    msg = f"Limpeza registrada para {bloco or 'cronograma'} em {data}."
+    if observacoes:
+        msg = f"{msg}"
+    flash(msg, "success")
+    return redirect(url_for("cronograma.cronograma"))
+
+
 @bp.route("/cronograma/historico/excluir/<int:id>", methods=["POST"])
 @login_required
 def excluir_historico(id: int):

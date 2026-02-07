@@ -7,7 +7,111 @@
 {% endblock %}
 
 {% block content %}
-<div class="cronograma-container"></div>
+<div class="cronograma-container">
+    <div class="cronograma-hero">
+        <div class="cronograma-hero-content">
+            <div>
+                <h1 class="cronograma-title">
+                    <i class="bi bi-calendar-check cronograma-title-icon"></i>
+                    Cronogramas
+                </h1>
+                <p class="cronograma-subtitle">Visão geral dos cronogramas existentes</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="tarefas-section" style="margin-top: 24px;">
+        <div class="section-header-modern">
+            <h2 class="section-title-modern">
+                <i class="bi bi-collection"></i>
+                Blocos
+            </h2>
+        </div>
+
+        <div class="tarefas-grid-modern">
+            <div class="tarefa-card-modern">
+                <div class="tarefa-header-modern">
+                    <h3 class="tarefa-title-modern">BLOCO A</h3>
+                    <div class="tarefa-badges">
+                        <span class="badge-status badge-primary">Semanal</span>
+                        <span class="badge-status badge-success">Em dias</span>
+                    </div>
+                </div>
+
+                <div class="tarefa-obs-modern">
+                    <i class="bi bi-geo-alt"></i>
+                    Setor: Açougue
+                </div>
+
+                <div class="tarefa-obs-modern">
+                    <i class="bi bi-droplet"></i>
+                    Tipo: Caixa de Gordura e Ralo
+                </div>
+
+                <div class="tarefa-dates-modern">
+                    <div class="date-badge-modern date-last">
+                        <i class="bi bi-calendar-check"></i>
+                        <div>
+                            <small>Última limpeza</small>
+                            <strong>dd/mm/aaaa</strong>
+                        </div>
+                    </div>
+                    <div class="date-badge-modern date-next">
+                        <i class="bi bi-calendar-event"></i>
+                        <div>
+                            <small>Próxima limpeza</small>
+                            <strong>dd/mm/aaaa</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tarefa-ajuste-modern">
+                    <i class="bi bi-info-circle"></i>
+                    Status atual: Em dias
+                </div>
+
+                <div class="tarefa-actions-modern">
+                    <button type="button" class="btn-concluir-modern" data-bs-toggle="modal" data-bs-target="#modal-limpeza-bloco-a">
+                        <i class="bi bi-check-lg"></i>
+                        Informar limpeza
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modal-limpeza-bloco-a" tabindex="-1" aria-labelledby="modal-limpeza-bloco-a-label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="post" action="{{ url_for('cronograma.registrar_limpeza') }}">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modal-limpeza-bloco-a-label">Informar limpeza — BLOCO A</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="bloco" value="BLOCO A">
+                        <div class="form-group-modern">
+                            <label class="form-label-modern">Data</label>
+                            <input type="date" name="data" class="form-input-modern" required>
+                        </div>
+                        <div class="form-group-modern">
+                            <label class="form-label-modern">Equipe responsável</label>
+                            <input type="text" name="equipe" class="form-input-modern" placeholder="Equipe" required>
+                        </div>
+                        <div class="form-group-modern">
+                            <label class="form-label-modern">Observações</label>
+                            <textarea name="observacoes" class="form-input-modern" rows="3" placeholder="Observações"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-filter-modern" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn-concluir-modern">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {#
 <div class="cronograma-container">
     <!-- Hero Header -->
