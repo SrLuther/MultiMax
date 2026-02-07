@@ -1,3 +1,13 @@
+#
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-4.1
+## [3.7.106] - 2026-02-07 10:00:00
+
+### Removed
+- Escala: página e rota totalmente limpas, sem conteúdo ou template. Remove tudo conforme solicitado.
+
+---
 # Changelog
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.

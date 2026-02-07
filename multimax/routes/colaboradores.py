@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, flash, jsonify, redirect, request, url_for
 from flask_login import current_user, login_required
 
 from .. import db
@@ -696,7 +696,7 @@ def _create_domingo_shifts(semana_inicio, tz):
 @bp.route("/escala", strict_slashes=False)
 @login_required
 def escala():
-    return render_template("escala.html")
+    return ""
 
 
 @bp.route("/escala/domingo/configurar", methods=["POST"], strict_slashes=False)
