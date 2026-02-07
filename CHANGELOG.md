@@ -10,6 +10,19 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.99] - 2026-02-07 08:00:00
+
+### Fixed
+- WhatsApp: painel administrativo alinhado ao design system do projeto
+
+### Changed
+- Versionamento: sincroniza version.txt e multimax/__init__.py
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.98] - 2026-02-07 07:45:00
 
 ### Fixed
