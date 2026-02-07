@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.96] - 2026-02-07 07:05:00
+
+### Fixed
+- WhatsApp: Bloco D do cronograma reposicionado e template corrigido
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.95] - 2026-02-07 06:50:00
 
 ### Added

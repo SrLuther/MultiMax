@@ -21,131 +21,9 @@
     padding: 2.5rem 2rem 2rem 2rem;
     display: flex;
     align-items: center;
-    gap: 2.5rem;
-    margin-bottom: 2.5rem;
-    position: relative;
-    overflow: hidden;
-  }
-  .whatsapp-hero-premium .whatsapp-hero-icon {
-    font-size: 4.5rem;
-    color: #fff;
-    background: rgba(0,0,0,0.10);
-    border-radius: 1rem;
-    padding: 1.2rem 1.5rem;
-    box-shadow: 0 2px 12px 0 rgba(80, 80, 160, 0.10);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .whatsapp-hero-premium .whatsapp-title {
-    color: #fff;
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-    letter-spacing: -1px;
-  }
-  .whatsapp-hero-premium .whatsapp-subtitle {
-    color: #e0e0ff;
-    font-size: 1.15rem;
-    margin-bottom: 0.5rem;
-  }
-  .whatsapp-hero-premium .whatsapp-hero-badges {
-    margin-top: 1.2rem;
-    display: flex;
-    gap: 0.7rem;
-    flex-wrap: wrap;
-  }
-  .whatsapp-hero-premium .whatsapp-hero-action {
-    margin-top: 1.5rem;
-  }
-  @media (max-width: 900px) {
-    .whatsapp-hero-premium {
-      flex-direction: column;
-      align-items: flex-start;
-      padding: 1.5rem 1rem 1.5rem 1rem;
-      gap: 1.2rem;
-    }
-    .whatsapp-hero-premium .whatsapp-title {
-      font-size: 2rem;
-    }
-    .whatsapp-hero-premium .whatsapp-hero-icon {
-      font-size: 2.5rem;
-      padding: 0.7rem 1rem;
-    }
-  }
-</style>
-<!-- Banner Hero Premium -->
-<div class="whatsapp-hero-premium">
-  <div class="whatsapp-hero-icon">
-    <i class="bi bi-whatsapp"></i>
-  </div>
-  <div style="flex:1;min-width:0;">
-    <h1 class="whatsapp-title mb-1">Central de Notificações WhatsApp</h1>
-    <p class="whatsapp-subtitle mb-0">Envie alertas diretamente para o gateway local. O MultiMax não conhece nem armazena IDs de grupos.</p>
-    <div class="whatsapp-hero-badges">
-      <span class="badge {% if auto_enabled %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
-        Automáticas: {% if auto_enabled %}ativadas{% else %}desativadas{% endif %}
-      </span>
-      <span class="badge bg-light text-dark border">Endpoint local: {{ gateway_url or 'não configurado' }}</span>
-    </div>
-    <div class="whatsapp-hero-action">
       <a href="#blocoA" class="btn btn-light btn-lg px-4 shadow-sm" style="font-weight:600;">
-        <!-- Bloco D - Cronograma -->
-        <div class="col-12">
-            <div class="card whatsapp-card-premium shadow-sm border-0">
-                <div class="card-body p-4">
-                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
-                        <div>
-                            <p class="text-uppercase text-white small mb-1">Bloco D — cronograma</p>
-                            <h3 class="whatsapp-card-title mb-2 text-white"><i class="bi bi-calendar-check me-2"></i>Alertas do Cronograma</h3>
-                            <p class="text-white-50 mb-0">Envio imediato da notificação do cronograma para o grupo.</p>
-                        </div>
-                        <span id="badgeCronogramaStatus" class="badge bg-light text-dark border">Carregando...</span>
-                    </div>
-
-                    <div class="row g-3 align-items-end">
-                        <div class="col-12 col-lg-7">
-                            <label class="form-label text-white">Status atual</label>
-                            <div class="form-control" style="background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.2);">
-                                <span id="cronogramaStatusLabel">Carregando...</span>
-                            </div>
-                            <div class="form-text text-white-50">O envio usa a mensagem oficial do status atual.</div>
-                        </div>
-                        <div class="col-12 col-lg-5 d-flex gap-2 flex-wrap">
-                            <button type="button" class="btn btn-success whatsapp-btn-premium" id="btnEnviarCronograma" onclick="enviarCronogramaAgora()">
-                                <i class="bi bi-send-check me-1"></i> Enviar agora
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="alert alert-info mt-4 mb-0 whatsapp-alert-premium" role="alert" style="background:rgba(13,110,253,0.15);color:#fff;">
-                        <div class="d-flex align-items-start gap-2">
-                            <i class="bi bi-info-circle text-white fs-5"></i>
-                            <div class="small" style="color: #fff;">
-                                O botão envia imediatamente a mensagem correspondente ao status atual do cronograma.
-                            </div>
-                        </div>
-                    </div>
-
-                    <script>
-                        function notifyWhatsappAdmin(title, message, type) {
-                            if (typeof showNotification === 'function') {
-                                showNotification(title, message, type);
-                                return;
-                            }
-                            alert((title ? title + '\n' : '') + message);
-                        }
-
-                        function setCronogramaBadge(text, ok) {
-                            const badge = document.getElementById('badgeCronogramaStatus');
-                            badge.textContent = text;
-                            badge.className = ok
-                                ? 'badge bg-success-subtle text-success'
-                                : 'badge bg-light text-dark border';
-                        }
-
-                        function carregarStatusCronograma() {
-                            fetch('/dev/whatsapp/cronograma/status', {
+        <i class="bi bi-broadcast me-2"></i>Disparar mensagem agora
+      </a>
                                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
                             })
                             .then(response => response.json())
@@ -296,37 +174,30 @@
             </div>
         </div>
 
-        <!-- Bloco D - Número de alertas de erro -->
+        <!-- Bloco D - Cronograma -->
         <div class="col-12">
             <div class="card whatsapp-card-premium shadow-sm border-0">
                 <div class="card-body p-4">
                     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
                         <div>
-                            <p class="text-uppercase text-white small mb-1">Bloco D — alertas de erro</p>
-                            <h3 class="whatsapp-card-title mb-2 text-white"><i class="bi bi-telephone-forward me-2"></i>Número de destino</h3>
-                            <p class="text-white-50 mb-0">Defina o número que receberá notificações críticas do sistema.</p>
+                            <p class="text-uppercase text-white small mb-1">Bloco D — cronograma</p>
+                            <h3 class="whatsapp-card-title mb-2 text-white"><i class="bi bi-calendar-check me-2"></i>Alertas do Cronograma</h3>
+                            <p class="text-white-50 mb-0">Envio imediato da notificação do cronograma para o grupo.</p>
                         </div>
-                        <span id="badgeAlertPhone" class="badge bg-light text-dark border">Carregando...</span>
+                        <span id="badgeCronogramaStatus" class="badge bg-light text-dark border">Carregando...</span>
                     </div>
 
                     <div class="row g-3 align-items-end">
                         <div class="col-12 col-lg-7">
-                            <label for="alertPhoneInput" class="form-label text-white">Número (com DDI)</label>
-                            <input
-                                type="text"
-                                id="alertPhoneInput"
-                                class="form-control"
-                                placeholder="Ex: 5575983555249"
-                                autocomplete="off"
-                            >
-                            <div class="form-text text-white-50">Use apenas dígitos com DDI (ex: 55 + DDD + número).</div>
+                            <label class="form-label text-white">Status atual</label>
+                            <div class="form-control" style="background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.2);">
+                                <span id="cronogramaStatusLabel">Carregando...</span>
+                            </div>
+                            <div class="form-text text-white-50">O envio usa a mensagem oficial do status atual.</div>
                         </div>
                         <div class="col-12 col-lg-5 d-flex gap-2 flex-wrap">
-                            <button type="button" class="btn btn-primary whatsapp-btn-premium" id="btnSalvarAlertPhone" onclick="salvarAlertPhone()">
-                                <i class="bi bi-save me-1"></i> Salvar número
-                            </button>
-                            <button type="button" class="btn btn-success whatsapp-btn-premium" id="btnTestarAlertPhone" onclick="testarAlertPhone()">
-                                <i class="bi bi-send-check me-1"></i> Enviar teste
+                            <button type="button" class="btn btn-success whatsapp-btn-premium" id="btnEnviarCronograma" onclick="enviarCronogramaAgora()">
+                                <i class="bi bi-send-check me-1"></i> Enviar agora
                             </button>
                         </div>
                     </div>
@@ -335,7 +206,7 @@
                         <div class="d-flex align-items-start gap-2">
                             <i class="bi bi-info-circle text-white fs-5"></i>
                             <div class="small" style="color: #fff;">
-                                O número é salvo no serviço WhatsApp e permanece após reinícios. Use o botão de teste para validar o envio.
+                                O botão envia imediatamente a mensagem correspondente ao status atual do cronograma.
                             </div>
                         </div>
                     </div>
@@ -349,84 +220,49 @@
                             alert((title ? title + '\n' : '') + message);
                         }
 
-                        function setAlertPhoneBadge(text, ok) {
-                            const badge = document.getElementById('badgeAlertPhone');
+                        function setCronogramaBadge(text, ok) {
+                            const badge = document.getElementById('badgeCronogramaStatus');
                             badge.textContent = text;
                             badge.className = ok
                                 ? 'badge bg-success-subtle text-success'
                                 : 'badge bg-light text-dark border';
                         }
 
-                        function carregarAlertPhone() {
-                            fetch('/dev/whatsapp/alert-phone', {
+                        function carregarStatusCronograma() {
+                            fetch('/dev/whatsapp/cronograma/status', {
                                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
                             })
                             .then(response => response.json())
                             .then(data => {
-                                if (data.ok && data.data) {
-                                    const phone = data.data.phone || data.data.value || '';
-                                    document.getElementById('alertPhoneInput').value = phone;
-                                    setAlertPhoneBadge(phone ? `Atual: ${phone}` : 'Não configurado', !!phone);
+                                if (data.ok) {
+                                    const status = data.status || 'Indisponível';
+                                    document.getElementById('cronogramaStatusLabel').textContent = status;
+                                    setCronogramaBadge(status, true);
                                 } else {
-                                    setAlertPhoneBadge('Não configurado', false);
+                                    document.getElementById('cronogramaStatusLabel').textContent = 'Indisponível';
+                                    setCronogramaBadge('Indisponível', false);
                                 }
                             })
                             .catch(() => {
-                                setAlertPhoneBadge('Indisponível', false);
+                                document.getElementById('cronogramaStatusLabel').textContent = 'Indisponível';
+                                setCronogramaBadge('Indisponível', false);
                             });
                         }
 
-                        function salvarAlertPhone() {
-                            const btn = document.getElementById('btnSalvarAlertPhone');
-                            const input = document.getElementById('alertPhoneInput');
-                            const phone = (input.value || '').replace(/\D/g, '');
-                            if (!phone) {
-                                notifyWhatsappAdmin('Atenção', 'Informe um número válido.', 'warning');
-                                return;
-                            }
-                            btn.disabled = true;
-                            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
-                            fetch('/dev/whatsapp/alert-phone', {
-                                method: 'PUT',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-Requested-With': 'XMLHttpRequest'
-                                },
-                                body: JSON.stringify({ phone })
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.ok) {
-                                    input.value = phone;
-                                    setAlertPhoneBadge(`Atual: ${phone}`, true);
-                                    notifyWhatsappAdmin('Sucesso!', 'Número atualizado com sucesso.', 'success');
-                                } else {
-                                    notifyWhatsappAdmin('Erro', data.error || 'Falha ao salvar número', 'danger');
-                                }
-                            })
-                            .catch(error => {
-                                notifyWhatsappAdmin('Erro', 'Falha na comunicação: ' + error.message, 'danger');
-                            })
-                            .finally(() => {
-                                btn.disabled = false;
-                                btn.innerHTML = '<i class="bi bi-save me-1"></i> Salvar número';
-                            });
-                        }
-
-                        function testarAlertPhone() {
-                            const btn = document.getElementById('btnTestarAlertPhone');
+                        function enviarCronogramaAgora() {
+                            const btn = document.getElementById('btnEnviarCronograma');
                             btn.disabled = true;
                             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
-                            fetch('/dev/whatsapp/alert-phone/test', {
+                            fetch('/dev/whatsapp/cronograma/enviar', {
                                 method: 'POST',
                                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
                             })
                             .then(response => response.json())
                             .then(data => {
                                 if (data.ok) {
-                                    notifyWhatsappAdmin('Sucesso!', 'Teste enviado com sucesso.', 'success');
+                                    notifyWhatsappAdmin('Sucesso', data.message || 'Mensagem enviada.', 'success');
                                 } else {
-                                    notifyWhatsappAdmin('Erro', data.error || 'Falha ao enviar teste', 'danger');
+                                    notifyWhatsappAdmin('Erro', data.error || 'Falha ao enviar mensagem', 'danger');
                                 }
                             })
                             .catch(error => {
@@ -434,11 +270,13 @@
                             })
                             .finally(() => {
                                 btn.disabled = false;
-                                btn.innerHTML = '<i class="bi bi-send-check me-1"></i> Enviar teste';
+                                btn.innerHTML = '<i class="bi bi-send-check me-1"></i> Enviar agora';
                             });
                         }
 
-                        document.addEventListener('DOMContentLoaded', carregarAlertPhone);
+                        document.addEventListener('DOMContentLoaded', () => {
+                            carregarStatusCronograma();
+                        });
                     </script>
                 </div>
             </div>
