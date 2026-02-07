@@ -277,7 +277,7 @@ def _validar_lancamento(descricao: str, data_lanc: date, horas: float, observaca
 @bp.route("/", methods=["GET"])
 @login_required
 def index():
-    if current_user.nivel not in ("admin", "DEV"):
+    if current_user.nivel not in ("operador", "admin", "DEV"):
         flash("Acesso negado.", "danger")
         return redirect(url_for("home.index"))
 

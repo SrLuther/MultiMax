@@ -10,6 +10,17 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.76] - 2026-02-07 02:05:00
+
+### Changed
+- Fluxos: acesso permitido para nível Operador
+- Navegação: link de Fluxos disponível em Operações
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.75] - 2026-02-07 01:55:00
 
 ### Changed

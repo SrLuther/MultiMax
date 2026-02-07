@@ -67,6 +67,12 @@
                     <i class="bi bi-people mm-nav-icon"></i>
                     <span class="mm-nav-text">Escalas</span>
                 </a>
+                {% if current_user.nivel in ('operador', 'admin', 'DEV') %}
+                <a href="{{ url_for('fluxos.index') }}" class="mm-nav-item {% if 'fluxos' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-diagram-3 mm-nav-icon"></i>
+                    <span class="mm-nav-text">Fluxos</span>
+                </a>
+                {% endif %}
 
             </div>
 
@@ -90,10 +96,6 @@
                 <a href="{{ url_for('central.index') }}" class="mm-nav-item {% if 'central' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-person-workspace mm-nav-icon"></i>
                     <span class="mm-nav-text">Central</span>
-                </a>
-                <a href="{{ url_for('fluxos.index') }}" class="mm-nav-item {% if 'fluxos' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-diagram-3 mm-nav-icon"></i>
-                    <span class="mm-nav-text">Fluxos</span>
                 </a>
                 {% if current_user.is_authenticated and current_user.nivel == 'DEV' %}
                 <a href="{{ url_for('whatsapp_admin.painel') }}" class="mm-nav-item {% if 'whatsapp_admin' in request.endpoint %}active{% endif %}">
