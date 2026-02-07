@@ -4,6 +4,7 @@ from flask import Blueprint, abort, current_app, flash, jsonify, redirect, rende
 from flask_login import current_user, login_required
 
 from ..models import WhatsappConfig, db
+from ..services.fluxos_resumo_diario import enviar_resumo_diario_fluxos
 from ..services.whatsapp_gateway import (
     get_auto_notifications_enabled,
     get_gateway_display_url,
@@ -242,3 +243,13 @@ def test_alert_phone_rest():
     if ok:
         return jsonify({"ok": True, "data": payload}), 200
     return jsonify({"ok": False, "error": payload}), 502
+
+
+@bp.route("/fluxos/resumo-diario", methods=["POST"], strict_slashes=False)
+@login_required
+def enviar_resumo_diario_fluxos_rest():
+    _require_dev()
+    ok, info = enviar_resumo_diario_fluxos(origin="fluxos_resumo_manual", actor=current_user.username)
+    if ok:
+        return jsonify({"ok": True, "message": info}), 200
+    return jsonify({"ok": False, "error": info}), 502

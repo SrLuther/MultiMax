@@ -232,36 +232,36 @@ function toggleAutoNotificacoes() {
                     </div>
 
                     <div class="d-flex flex-wrap gap-3">
-                        <!-- Botão: Ciclo Aberto -->
+                        <!-- Botão: Resumo diário do Fluxos -->
                         <button
                             type="button"
                             class="btn btn-outline-success whatsapp-btn-premium"
                             data-bs-toggle="modal"
-                            data-bs-target="#modalCicloAberto"
-                            title="Enviar PDF com registro de ciclo aberto para colaboradores"
+                            data-bs-target="#modalResumoFluxos"
+                            title="Enviar resumo diário do Fluxos agora"
                         >
-                            <i class="bi bi-file-pdf me-2"></i> Ciclo Aberto
+                            <i class="bi bi-calendar-check me-2"></i> Resumo diário (Fluxos)
                         </button>
 
-                        <!-- Modal para confirmação do envio de Ciclo Aberto -->
-                        <div class="modal fade" id="modalCicloAberto" tabindex="-1" role="dialog">
+                        <!-- Modal para confirmação do envio do resumo diário -->
+                        <div class="modal fade" id="modalResumoFluxos" tabindex="-1" role="dialog">
                             <div class="modal-dialog modal-dialog-centered" role="document">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                        <h5 class="modal-title">Enviar PDF de Ciclo Aberto</h5>
+                                        <h5 class="modal-title">Enviar resumo diário do Fluxos</h5>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                                     </div>
                                     <div class="modal-body">
-                                        <p class="text-secondary">Tem certeza que deseja enviar o PDF de ciclo aberto agora?</p>
-                                        <p class="text-secondary small mb-0"><strong>⚠️ Nota:</strong> Esta ação enviará o PDF para <strong>todos os grupos</strong> configurados no WhatsApp.</p>
+                                        <p class="text-secondary">Deseja enviar o resumo diário do Fluxos agora?</p>
+                                        <p class="text-secondary small mb-0"><strong>ℹ️ Nota:</strong> Esta ação ignora o horário das 20h e envia para o grupo configurado.</p>
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-secondary whatsapp-btn-premium" data-bs-dismiss="modal">Cancelar</button>
                                         <button
                                             type="button"
                                             class="btn btn-success whatsapp-btn-premium"
-                                            id="btnEnviarCicloAberto"
-                                            onclick="enviarCicloAberto()"
+                                            id="btnEnviarResumoFluxos"
+                                            onclick="enviarResumoFluxos()"
                                         >
                                             <i class="bi bi-send me-1"></i> Enviar Agora
                                         </button>
@@ -272,12 +272,12 @@ function toggleAutoNotificacoes() {
                     </div>
 
                     <script>
-                        function enviarCicloAberto() {
-                            const btn = document.getElementById('btnEnviarCicloAberto');
+                        function enviarResumoFluxos() {
+                            const btn = document.getElementById('btnEnviarResumoFluxos');
                             btn.disabled = true;
                             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
 
-                            fetch('/ciclos/enviar_pdf_ciclo_aberto', {
+                            fetch('/dev/whatsapp/fluxos/resumo-diario', {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -286,15 +286,15 @@ function toggleAutoNotificacoes() {
                             })
                             .then(response => response.json())
                             .then(data => {
-                                fecharModalCicloAberto();
+                                fecharModalResumoFluxos();
                                 if (data.ok) {
                                     showNotification('Sucesso!', data.message, 'success');
                                 } else {
-                                    showNotification('Erro', data.error || data.message || 'Falha ao enviar PDF', 'danger');
+                                    showNotification('Erro', data.error || 'Falha ao enviar resumo', 'danger');
                                 }
                             })
                             .catch(error => {
-                                fecharModalCicloAberto();
+                                fecharModalResumoFluxos();
                                 showNotification('Erro', 'Falha na comunicação: ' + error.message, 'danger');
                             })
                             .finally(() => {
@@ -303,14 +303,12 @@ function toggleAutoNotificacoes() {
                             });
                         }
 
-                        function fecharModalCicloAberto() {
-                            const modalEl = document.getElementById('modalCicloAberto');
+                        function fecharModalResumoFluxos() {
+                            const modalEl = document.getElementById('modalResumoFluxos');
                             try {
-                                // Sempre cria ou obtém a instância para garantir o controle
                                 const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
                                 modal.hide();
                             } catch (e) {
-                                // Fallback manual caso Bootstrap falhe
                                 modalEl.classList.remove('show');
                                 modalEl.style.display = 'none';
                                 document.body.classList.remove('modal-open');
@@ -320,7 +318,6 @@ function toggleAutoNotificacoes() {
                         }
 
                         function showNotification(title, message, type) {
-                            // Usar toast ou alert do sistema existente
                             alert((title ? title + '\n' : '') + message);
                         }
                     </script>

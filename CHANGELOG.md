@@ -10,6 +10,20 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.71] - 2026-02-07 00:45:00
+
+### Added
+- Central WhatsApp: botão no Bloco C para enviar resumo diário do Fluxos sob demanda
+- Fluxos: endpoint manual para envio do resumo diário pelo painel WhatsApp
+
+### Changed
+- Fluxos: envio do resumo diário extraído para serviço reutilizável
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.70] - 2026-02-07 00:25:00
 
 ### Added
