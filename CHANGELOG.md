@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.75] - 2026-02-07 01:55:00
+
+### Changed
+- Perfil: removido card "Valores do Fluxo"
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.74] - 2026-02-07 01:45:00
 
 ### Changed
