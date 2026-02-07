@@ -148,6 +148,7 @@ class CronogramaBloco(db.Model):
     frequencia = db.Column(db.String(40), nullable=False)
     ultima_limpeza = db.Column(db.Date, nullable=True)
     proxima_limpeza = db.Column(db.Date, nullable=True)
+    status_atual = db.Column(db.String(20))
     ativo = db.Column(db.Boolean, default=True)
     created_at = db.Column(
         db.DateTime(timezone=True),

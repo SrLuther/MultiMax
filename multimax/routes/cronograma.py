@@ -16,6 +16,7 @@ from ..models import (
     CronogramaBloco,
     CronogramaRegistro,
 )
+from ..services.whatsapp_gateway import send_whatsapp_message
 
 bp = Blueprint("cronograma", __name__)
 
@@ -62,6 +63,25 @@ STATUS_CLASSES = {
     "Em dias": "badge-success",
     "No limite": "badge-warning",
     "Em atraso": "badge-critical",
+}
+
+STATUS_MESSAGES = {
+    "Em dias": (
+        "🟢 A limpeza da Caixa de Gordura e do ralo do açougue foi realizada "
+        "dentro do prazo semanal estabelecido, após o expediente, em "
+        "conformidade com as boas práticas de higiene e manutenção do ambiente."
+    ),
+    "No limite": (
+        "🟡 A limpeza da Caixa de Gordura e do ralo do açougue deve ser "
+        "realizada hoje, após o expediente, a fim de manter a conformidade "
+        "com as boas práticas sanitárias e o cronograma de manutenção preventiva."
+    ),
+    "Em atraso": (
+        "🔴 Verifica-se que a limpeza da Caixa de Gordura e do ralo do açougue "
+        "ultrapassou o prazo semanal recomendado. A manutenção deve ser "
+        "realizada imediatamente após o expediente, a fim de restabelecer a "
+        "conformidade sanitária e prevenir riscos operacionais."
+    ),
 }
 
 # ============================================================================
@@ -311,6 +331,7 @@ def _ensure_default_blocos():
     bloco.frequencia = "Semanal"
     bloco.ultima_limpeza = hoje
     bloco.proxima_limpeza = hoje + timedelta(days=7)
+    bloco.status_atual = "Em dias"
     db.session.add(bloco)
     db.session.commit()
 
@@ -328,6 +349,16 @@ def _calcular_proxima_limpeza(base_date, frequencia):
     if frequencia == "Trimestral":
         return base_date + timedelta(days=90)
     return base_date + timedelta(days=7)
+
+
+def _calcular_status_bloco(proxima_limpeza, hoje):
+    if not proxima_limpeza:
+        return "Em dias"
+    if proxima_limpeza < hoje:
+        return "Em atraso"
+    if proxima_limpeza == hoje:
+        return "No limite"
+    return "Em dias"
 
 
 def _get_tarefas_filtradas(tipo_sel=None):
@@ -367,16 +398,26 @@ def cronograma():
     blocos = CronogramaBloco.query.filter_by(ativo=True).order_by(CronogramaBloco.nome.asc()).all()
     hoje = date.today()
     for bloco in blocos:
-        if bloco.proxima_limpeza:
-            if bloco.proxima_limpeza < hoje:
-                bloco.status = "Em atraso"
-            elif bloco.proxima_limpeza == hoje:
-                bloco.status = "No limite"
-            else:
-                bloco.status = "Em dias"
-        else:
-            bloco.status = "Em dias"
+        bloco.status = _calcular_status_bloco(bloco.proxima_limpeza, hoje)
         bloco.status_class = STATUS_CLASSES.get(bloco.status, "badge-success")
+        if not bloco.status_atual:
+            bloco.status_atual = bloco.status
+            db.session.add(bloco)
+        elif bloco.status_atual != bloco.status:
+            mensagem = STATUS_MESSAGES.get(bloco.status)
+            if mensagem:
+                ok, _erro = send_whatsapp_message(mensagem, origin="cronograma")
+                if ok:
+                    bloco.status_atual = bloco.status
+                    db.session.add(bloco)
+
+    try:
+        db.session.commit()
+    except Exception:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
 
     return render_template(
         "cronograma.html",
@@ -505,6 +546,15 @@ def registrar_limpeza():
 
     bloco.ultima_limpeza = data_limpeza
     bloco.proxima_limpeza = _calcular_proxima_limpeza(data_limpeza, bloco.frequencia)
+    novo_status = _calcular_status_bloco(bloco.proxima_limpeza, date.today())
+    if bloco.status_atual and bloco.status_atual != novo_status:
+        mensagem = STATUS_MESSAGES.get(novo_status)
+        if mensagem:
+            ok, _erro = send_whatsapp_message(mensagem, origin="cronograma")
+            if ok:
+                bloco.status_atual = novo_status
+    elif not bloco.status_atual:
+        bloco.status_atual = novo_status
     db.session.commit()
 
     flash(f"Limpeza registrada para {bloco.nome} em {data_limpeza.strftime('%d/%m/%Y')}", "success")

@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.94] - 2026-02-07 06:30:00
+
+### Added
+- Cronograma: alerta WhatsApp enviado quando o status muda
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.93] - 2026-02-07 06:10:00
 
 ### Changed
