@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.93] - 2026-02-07 06:10:00
+
+### Changed
+- Cronograma: Setor/Tipo sem fundo branco e com contraste ajustado
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.92] - 2026-02-07 05:55:00
 
 ### Changed
