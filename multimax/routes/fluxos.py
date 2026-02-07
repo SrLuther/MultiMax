@@ -311,7 +311,7 @@ def index():
 @bp.route("/arquivos", methods=["GET"], strict_slashes=False)
 @login_required
 def arquivos_index():
-    if current_user.nivel not in ("admin", "DEV"):
+    if current_user.nivel not in ("operador", "admin", "DEV"):
         flash("Acesso negado.", "danger")
         return redirect(url_for("fluxos.index"))
 
@@ -375,7 +375,7 @@ def arquivos_upload():
 @bp.route("/arquivos/arquivo/<path:name>", methods=["GET"], strict_slashes=False)
 @login_required
 def arquivos_download(name: str):
-    if current_user.nivel not in ("admin", "DEV"):
+    if current_user.nivel not in ("operador", "admin", "DEV"):
         flash("Acesso negado.", "danger")
         return redirect(url_for("fluxos.arquivos_index"))
 
