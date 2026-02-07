@@ -13,6 +13,8 @@ from ..models import (
     CleaningHistory,
     CleaningHistoryPhoto,
     CleaningTask,
+    CronogramaBloco,
+    CronogramaRegistro,
 )
 
 bp = Blueprint("cronograma", __name__)
@@ -55,6 +57,12 @@ TASK_MAPPING = {
 
 ALLOWED_TYPES = {"Parcial", "Geral", "Mensal", "Semanal"}
 ALLOWED_FREQUENCIES = {"Semanal", "15 dias", "Mensal", "40 dias", "Trimestral", "Personalizada"}
+
+STATUS_CLASSES = {
+    "Em dias": "badge-success",
+    "No limite": "badge-warning",
+    "Em atraso": "badge-critical",
+}
 
 # ============================================================================
 # Funções auxiliares - Cálculo de datas
@@ -291,6 +299,37 @@ def _calcular_kpis():
     }
 
 
+def _ensure_default_blocos():
+    """Garante que o BLOCO A exista no cronograma."""
+    if CronogramaBloco.query.count() > 0:
+        return
+    hoje = date.today()
+    bloco = CronogramaBloco()
+    bloco.nome = "BLOCO A"
+    bloco.setor = "Açougue"
+    bloco.tipo = "Caixa de Gordura e Ralo"
+    bloco.frequencia = "Semanal"
+    bloco.ultima_limpeza = hoje
+    bloco.proxima_limpeza = hoje + timedelta(days=7)
+    db.session.add(bloco)
+    db.session.commit()
+
+
+def _calcular_proxima_limpeza(base_date, frequencia):
+    """Calcula próxima limpeza com base na frequência do bloco."""
+    if frequencia == "Semanal":
+        return base_date + timedelta(days=7)
+    if frequencia == "15 dias":
+        return base_date + timedelta(days=15)
+    if frequencia == "Mensal":
+        return base_date + timedelta(days=30)
+    if frequencia == "40 dias":
+        return base_date + timedelta(days=40)
+    if frequencia == "Trimestral":
+        return base_date + timedelta(days=90)
+    return base_date + timedelta(days=7)
+
+
 def _get_tarefas_filtradas(tipo_sel=None):
     """Busca tarefas com filtro opcional por tipo"""
     query = CleaningTask.query
@@ -323,9 +362,27 @@ def cronograma():
         flash("Acesso negado. Apenas Operadores e Administradores podem visualizar o cronograma.", "danger")
         return redirect(url_for("estoque.index"))
 
+    _ensure_default_blocos()
+
+    blocos = CronogramaBloco.query.filter_by(ativo=True).order_by(CronogramaBloco.nome.asc()).all()
+    hoje = date.today()
+    for bloco in blocos:
+        if bloco.proxima_limpeza:
+            if bloco.proxima_limpeza < hoje:
+                bloco.status = "Em atraso"
+            elif bloco.proxima_limpeza == hoje:
+                bloco.status = "No limite"
+            else:
+                bloco.status = "Em dias"
+        else:
+            bloco.status = "Em dias"
+        bloco.status_class = STATUS_CLASSES.get(bloco.status, "badge-success")
+
     return render_template(
         "cronograma.html",
         active_page="cronograma",
+        blocos=blocos,
+        hoje=hoje,
     )
 
 
@@ -421,16 +478,36 @@ def registrar_limpeza():
     data = (request.form.get("data") or "").strip()
     equipe = (request.form.get("equipe") or "").strip()
     observacoes = (request.form.get("observacoes") or "").strip()
-    bloco = (request.form.get("bloco") or "").strip()
+    bloco_id = request.form.get("bloco_id", type=int)
 
     if not data or not equipe:
         flash("Preencha a data e a equipe responsável.", "danger")
         return redirect(url_for("cronograma.cronograma"))
 
-    msg = f"Limpeza registrada para {bloco or 'cronograma'} em {data}."
-    if observacoes:
-        msg = f"{msg}"
-    flash(msg, "success")
+    bloco = CronogramaBloco.query.get(bloco_id) if bloco_id else None
+    if not bloco:
+        flash("Bloco não encontrado.", "danger")
+        return redirect(url_for("cronograma.cronograma"))
+
+    try:
+        data_limpeza = datetime.strptime(data, "%Y-%m-%d").date()
+    except Exception:
+        flash("Data inválida.", "danger")
+        return redirect(url_for("cronograma.cronograma"))
+
+    registro = CronogramaRegistro()
+    registro.bloco_id = bloco.id
+    registro.data = data_limpeza
+    registro.equipe = equipe
+    registro.observacoes = observacoes or None
+    registro.created_by = current_user.name or current_user.username
+    db.session.add(registro)
+
+    bloco.ultima_limpeza = data_limpeza
+    bloco.proxima_limpeza = _calcular_proxima_limpeza(data_limpeza, bloco.frequencia)
+    db.session.commit()
+
+    flash(f"Limpeza registrada para {bloco.nome} em {data_limpeza.strftime('%d/%m/%Y')}", "success")
     return redirect(url_for("cronograma.cronograma"))
 
 

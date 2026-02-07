@@ -29,23 +29,24 @@
         </div>
 
         <div class="tarefas-grid-modern">
+            {% for bloco in blocos %}
             <div class="tarefa-card-modern">
                 <div class="tarefa-header-modern">
-                    <h3 class="tarefa-title-modern">BLOCO A</h3>
+                    <h3 class="tarefa-title-modern">{{ bloco.nome }}</h3>
                     <div class="tarefa-badges">
-                        <span class="badge-status badge-primary">Semanal</span>
-                        <span class="badge-status badge-success">Em dias</span>
+                        <span class="badge-status badge-primary">{{ bloco.frequencia }}</span>
+                        <span class="badge-status {{ bloco.status_class }}">{{ bloco.status }}</span>
                     </div>
                 </div>
 
                 <div class="tarefa-obs-modern">
                     <i class="bi bi-geo-alt"></i>
-                    Setor: Açougue
+                    Setor: {{ bloco.setor }}
                 </div>
 
                 <div class="tarefa-obs-modern">
                     <i class="bi bi-droplet"></i>
-                    Tipo: Caixa de Gordura e Ralo
+                    Tipo: {{ bloco.tipo }}
                 </div>
 
                 <div class="tarefa-dates-modern">
@@ -53,46 +54,48 @@
                         <i class="bi bi-calendar-check"></i>
                         <div>
                             <small>Última limpeza</small>
-                            <strong>dd/mm/aaaa</strong>
+                            <strong>{{ bloco.ultima_limpeza.strftime('%d/%m/%Y') if bloco.ultima_limpeza else '—' }}</strong>
                         </div>
                     </div>
                     <div class="date-badge-modern date-next">
                         <i class="bi bi-calendar-event"></i>
                         <div>
                             <small>Próxima limpeza</small>
-                            <strong>dd/mm/aaaa</strong>
+                            <strong>{{ bloco.proxima_limpeza.strftime('%d/%m/%Y') if bloco.proxima_limpeza else '—' }}</strong>
                         </div>
                     </div>
                 </div>
 
                 <div class="tarefa-ajuste-modern">
                     <i class="bi bi-info-circle"></i>
-                    Status atual: Em dias
+                    Status atual: {{ bloco.status }}
                 </div>
 
                 <div class="tarefa-actions-modern">
-                    <button type="button" class="btn-concluir-modern" data-bs-toggle="modal" data-bs-target="#modal-limpeza-bloco-a">
+                    <button type="button" class="btn-concluir-modern" data-bs-toggle="modal" data-bs-target="#modal-limpeza-{{ bloco.id }}">
                         <i class="bi bi-check-lg"></i>
                         Informar limpeza
                     </button>
                 </div>
             </div>
+            {% endfor %}
         </div>
     </div>
 
-    <div class="modal fade" id="modal-limpeza-bloco-a" tabindex="-1" aria-labelledby="modal-limpeza-bloco-a-label" aria-hidden="true">
+    {% for bloco in blocos %}
+    <div class="modal fade" id="modal-limpeza-{{ bloco.id }}" tabindex="-1" aria-labelledby="modal-limpeza-{{ bloco.id }}-label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <form method="post" action="{{ url_for('cronograma.registrar_limpeza') }}">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="modal-limpeza-bloco-a-label">Informar limpeza — BLOCO A</h5>
+                        <h5 class="modal-title" id="modal-limpeza-{{ bloco.id }}-label">Informar limpeza — {{ bloco.nome }}</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                     </div>
                     <div class="modal-body">
-                        <input type="hidden" name="bloco" value="BLOCO A">
+                        <input type="hidden" name="bloco_id" value="{{ bloco.id }}">
                         <div class="form-group-modern">
                             <label class="form-label-modern">Data</label>
-                            <input type="date" name="data" class="form-input-modern" required>
+                            <input type="date" name="data" class="form-input-modern" value="{{ hoje.strftime('%Y-%m-%d') }}" required>
                         </div>
                         <div class="form-group-modern">
                             <label class="form-label-modern">Equipe responsável</label>
@@ -111,6 +114,7 @@
             </div>
         </div>
     </div>
+    {% endfor %}
 </div>
 {#
 <div class="cronograma-container">

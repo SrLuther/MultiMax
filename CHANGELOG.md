@@ -10,6 +10,19 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.86] - 2026-02-07 04:20:00
+
+### Added
+- Cronograma: tabelas de blocos e registros com salvamento no banco
+
+### Changed
+- Cronograma: blocos renderizados a partir do banco e status calculado
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.85] - 2026-02-07 04:05:00
 
 ### Added

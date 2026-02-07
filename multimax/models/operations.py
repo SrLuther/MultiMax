@@ -135,3 +135,55 @@ class CleaningHistoryPhoto(db.Model):
 
     def __repr__(self):
         return f"<CleaningHistoryPhoto {self.filename}>"
+
+
+class CronogramaBloco(db.Model):
+    """Modelo para blocos do cronograma"""
+
+    __tablename__ = "cronograma_bloco"
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(120), nullable=False, unique=True)
+    setor = db.Column(db.String(120), nullable=False)
+    tipo = db.Column(db.String(120), nullable=False)
+    frequencia = db.Column(db.String(40), nullable=False)
+    ultima_limpeza = db.Column(db.Date, nullable=True)
+    proxima_limpeza = db.Column(db.Date, nullable=True)
+    ativo = db.Column(db.Boolean, default=True)
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
+    updated_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+        onupdate=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
+
+    registros = db.relationship(
+        "CronogramaRegistro",
+        backref="bloco",
+        lazy=True,
+        cascade="all, delete-orphan",
+    )
+
+    def __repr__(self):
+        return f"<CronogramaBloco {self.nome}>"
+
+
+class CronogramaRegistro(db.Model):
+    """Modelo para registro de limpezas do cronograma"""
+
+    __tablename__ = "cronograma_registro"
+    id = db.Column(db.Integer, primary_key=True)
+    bloco_id = db.Column(db.Integer, db.ForeignKey("cronograma_bloco.id"), nullable=False)
+    data = db.Column(db.Date, nullable=False)
+    equipe = db.Column(db.String(200), nullable=False)
+    observacoes = db.Column(db.String(500))
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
+    created_by = db.Column(db.String(100))
+
+    def __repr__(self):
+        return f"<CronogramaRegistro {self.id} - {self.data}>"
