@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.77] - 2026-02-07 02:15:00
+
+### Changed
+- Fluxos: Inserção de horas e valor da diária visíveis apenas para Gerente/DEV
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.76] - 2026-02-07 02:05:00
 
 ### Changed

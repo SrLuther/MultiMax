@@ -34,6 +34,7 @@
         </div>
     </div>
 
+    {% if current_user.nivel in ('admin', 'DEV') %}
     <div class="fluxos-config">
         <form method="post" action="{{ url_for('fluxos.atualizar_valor_diaria') }}" class="fluxos-config-form">
             <div>
@@ -46,6 +47,7 @@
             </div>
         </form>
     </div>
+    {% endif %}
 
     <div class="fluxos-cards-grid">
         {% for c in colaboradores %}
@@ -95,6 +97,7 @@
         {% endfor %}
     </div>
 
+    {% if current_user.nivel in ('admin', 'DEV') %}
     <div class="fluxos-form-card">
         <div class="fluxos-form-header">
             <h3>Inserção de horas</h3>
@@ -137,6 +140,7 @@
             </div>
         </form>
     </div>
+    {% endif %}
 
     <div class="fluxos-form-card">
         <div class="fluxos-form-header">
