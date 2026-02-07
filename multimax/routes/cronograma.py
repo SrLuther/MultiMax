@@ -511,6 +511,24 @@ def registrar_limpeza():
     return redirect(url_for("cronograma.cronograma"))
 
 
+@bp.route("/cronograma/bloco/<int:bloco_id>/historico", methods=["GET"])
+@login_required
+def historico_bloco(bloco_id: int):
+    if current_user.nivel not in ("operador", "admin", "DEV"):
+        flash("Sem permissão para visualizar o histórico.", "danger")
+        return redirect(url_for("cronograma.cronograma"))
+
+    bloco = CronogramaBloco.query.get_or_404(bloco_id)
+    registros = CronogramaRegistro.query.filter_by(bloco_id=bloco.id).order_by(CronogramaRegistro.data.desc()).all()
+
+    return render_template(
+        "cronograma_historico.html",
+        bloco=bloco,
+        registros=registros,
+        active_page="cronograma",
+    )
+
+
 @bp.route("/cronograma/historico/excluir/<int:id>", methods=["POST"])
 @login_required
 def excluir_historico(id: int):

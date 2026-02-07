@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.90] - 2026-02-07 05:25:00
+
+### Added
+- Cronograma: botão "Histórico" no BLOCO A e subpágina com registros de limpeza
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.89] - 2026-02-07 05:10:00
 
 ### Changed

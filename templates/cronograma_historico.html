@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Histórico do Cronograma — MultiMax{% endblock %}
+
+{% block breadcrumb %}
+<span class="mm-breadcrumb-separator">/</span>
+<a href="{{ url_for('cronograma.cronograma') }}">Cronograma</a>
+<span class="mm-breadcrumb-separator">/</span>
+<span>Histórico</span>
+{% endblock %}
+
+{% block content %}
+<div class="mm-card mm-mb-6">
+    <div class="mm-card-header">
+        <h3 class="mm-card-title">
+            <i class="bi bi-clock-history mm-text-primary"></i>
+            Histórico — {{ bloco.nome }}
+        </h3>
+        <span class="mm-badge mm-badge-info">{{ bloco.frequencia }}</span>
+    </div>
+    <div class="mm-card-body">
+        <div class="mm-info-box mm-mb-4">
+            <i class="bi bi-geo-alt"></i>
+            <span><strong>Setor:</strong> {{ bloco.setor }} | <strong>Tipo:</strong> {{ bloco.tipo }}</span>
+        </div>
+        <div class="mm-table-wrapper">
+            <table class="mm-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Equipe responsável</th>
+                        <th>Observações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in registros %}
+                    <tr>
+                        <td>{{ r.data.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ r.equipe }}</td>
+                        <td>{{ r.observacoes or '-' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="mm-empty-cell">
+                            <div class="mm-empty-inline">
+                                <i class="bi bi-clock-history"></i>
+                                <span>Sem registros de limpeza</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mm-mt-4">
+            <a href="{{ url_for('cronograma.cronograma') }}" class="mm-btn mm-btn-secondary">
+                <i class="bi bi-arrow-left"></i>
+                Voltar
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
