@@ -323,38 +323,9 @@ def cronograma():
         flash("Acesso negado. Apenas Operadores e Administradores podem visualizar o cronograma.", "danger")
         return redirect(url_for("estoque.index"))
 
-    # Garantir que tarefas padrão existam
-    _ensure_default_tasks()
-
-    # Parâmetros de filtro
-    tipo_sel = request.args.get("tipo", "").strip()
-    page_hist = request.args.get("hpage", 1, type=int)
-    htipo = request.args.get("htipo", "").strip()
-
-    # Buscar dados
-    tarefas = _get_tarefas_filtradas(tipo_sel)
-    ajustes = _calcular_ajustes_tarefas(tarefas)
-    _calcular_status_tarefas(tarefas)
-
-    # Histórico
-    hist_pag = _get_historico_filtrado(page_hist, htipo, per_page=5)
-
-    # KPIs
-    kpis = _calcular_kpis()
-
-    hoje = date.today()
-
     return render_template(
         "cronograma.html",
-        cronograma_tarefas=tarefas,
-        historico_limpezas=hist_pag.items,
-        historico_pagination=hist_pag,
         active_page="cronograma",
-        htipo=htipo,
-        ajustes=ajustes,
-        tipo=tipo_sel,
-        kpis=kpis,
-        hoje=hoje,
     )
 
 

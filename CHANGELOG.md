@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.83] - 2026-02-07 03:35:00
+
+### Changed
+- Cronograma: página limpa (sem conteúdo) e dados removidos do banco
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.82] - 2026-02-07 03:10:00
 
 ### Changed
