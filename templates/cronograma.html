@@ -41,12 +41,14 @@
 
                 <div class="tarefa-obs-modern">
                     <i class="bi bi-geo-alt"></i>
-                    Setor: {{ bloco.setor }}
+                    <span class="cronograma-label">Setor:</span>
+                    <span class="cronograma-highlight">{{ bloco.setor }}</span>
                 </div>
 
                 <div class="tarefa-obs-modern">
                     <i class="bi bi-droplet"></i>
-                    Tipo: {{ bloco.tipo }}
+                    <span class="cronograma-label">Tipo:</span>
+                    <span class="cronograma-highlight">{{ bloco.tipo }}</span>
                 </div>
 
                 <div class="tarefa-dates-modern">
@@ -641,6 +643,24 @@
 /* KPIs Grid */
 .kpis-grid {
     display: grid;
+
+.cronograma-label {
+    font-weight: 600;
+    color: #e2e8f0;
+    margin-right: 0.35rem;
+}
+
+.cronograma-highlight {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2rem;
