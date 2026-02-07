@@ -393,6 +393,20 @@ body.login-page {
     color: #fff;
 }
 
+.whatsapp-hero {
+    background: linear-gradient(135deg, #0f9b4d 0%, #18b361 45%, #22c1c3 100%);
+    box-shadow: 0 12px 40px rgba(24, 179, 97, 0.35);
+}
+
+.whatsapp-hero .central-hero-orb {
+    background: radial-gradient(circle, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.12) 65%, transparent 75%);
+}
+
+.whatsapp-hero .central-hero-icon {
+    background: rgba(255,255,255,0.22);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+}
+
 .central-hero::before {
     content: "";
     position: absolute;
