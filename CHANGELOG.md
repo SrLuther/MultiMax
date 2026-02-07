@@ -11,6 +11,17 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Modelo: GPT-5.2-Codex
 
 
+
+## [3.7.104] - 2026-02-07 09:25:00
+
+### Fixed
+- Escala: limpeza completa, agora exibe apenas o cabeçalho (corrige erro anterior)
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-4.1
+
 ## [3.7.103] - 2026-02-07 09:10:00
 
 ### Changed
