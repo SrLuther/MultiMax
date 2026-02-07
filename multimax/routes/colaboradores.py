@@ -696,49 +696,7 @@ def _create_domingo_shifts(semana_inicio, tz):
 @bp.route("/escala", strict_slashes=False)
 @login_required
 def escala():
-    _ensure_collaborator_name_column()
-    cols = CollaboratorModel.query.filter_by(ativo=True).order_by(CollaboratorModel.nome.asc()).all()
-    today = date.today()
-
-    semana_param = request.args.get("semana", "")
-    semana_inicio, semana_fim, semana_anterior, semana_proxima, dias_semana = _calculate_semana_context(
-        semana_param, today
-    )
-
-    turnos_semana, turnos_map = _load_turnos_for_week(semana_inicio, semana_fim)
-    status_map = _build_status_map(cols, dias_semana)
-    horas_semana = _calculate_horas_semana(cols, dias_semana, turnos_map)
-    total_turnos_semana = len(turnos_semana)
-
-    weeks, open_ref = _load_rodizio_weeks(today)
-    domingo_team, domingo_ref_date = _load_domingo_config()
-    conflicts = _collect_conflicts(turnos_semana, cols)
-    current_monday = today - timedelta(days=today.weekday())
-    events, feriados = _build_calendar_events(
-        today, current_monday, cols, turnos_semana, domingo_team, domingo_ref_date
-    )
-
-    return render_template(
-        "escala.html",
-        colaboradores=cols,
-        weeks=weeks,
-        ref_open=open_ref,
-        domingo_team=domingo_team,
-        domingo_ref_date=domingo_ref_date,
-        events=events,
-        feriados=feriados,
-        active_page="escala",
-        semana_inicio=semana_inicio,
-        semana_fim=semana_fim,
-        semana_anterior=semana_anterior,
-        semana_proxima=semana_proxima,
-        dias_semana=dias_semana,
-        turnos_map=turnos_map,
-        status_map=status_map,
-        horas_semana=horas_semana,
-        total_turnos_semana=total_turnos_semana,
-        conflicts=conflicts,
-    )
+    return render_template("escala.html")
 
 
 @bp.route("/escala/domingo/configurar", methods=["POST"], strict_slashes=False)

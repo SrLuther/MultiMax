@@ -5,33 +5,42 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
----
+
 ### IA responsável pelo envio
 - Nome da IA: GitHub Copilot
-- Modelo: GPT-5.2-Codex
+- Modelo: GPT-4.1
+## [3.7.105] - 2026-02-07 09:35:00
+
+### Fixed
+- Escala: rota simplificada, agora não carrega dados nem contexto (compatível com template limpo)
+
+---
 
 
-
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-4.1
 ## [3.7.104] - 2026-02-07 09:25:00
 
 ### Fixed
 - Escala: limpeza completa, agora exibe apenas o cabeçalho (corrige erro anterior)
 
 ---
+
 ### IA responsável pelo envio
 - Nome da IA: GitHub Copilot
-- Modelo: GPT-4.1
-
+- Modelo: GPT-5.2-Codex
 ## [3.7.103] - 2026-02-07 09:10:00
 
 ### Changed
 - Escala: página limpa, agora exibe apenas o cabeçalho (conteúdo removido conforme solicitado)
 
 ---
+
+
 ### IA responsável pelo envio
 - Nome da IA: GitHub Copilot
-- Modelo: GPT-4.1
-
+- Modelo: GPT-5.2-Codex
 ## [3.7.102] - 2026-02-07 08:55:00
 
 ### Changed
