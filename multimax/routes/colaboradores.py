@@ -649,7 +649,7 @@ def _create_domingo_shifts(semana_inicio, tz):
     domingo = semana_inicio + timedelta(days=6)
     domingo_team = _resolve_domingo_team(domingo)
     equipe_domingo = (
-        CollaboratorModel.query.filter_by(active=True, regular_team=domingo_team)
+        CollaboratorModel.query.filter_by(ativo=True, regular_team=domingo_team)
         .order_by(CollaboratorModel.team_position.asc())
         .all()[:3]
     )
@@ -697,7 +697,7 @@ def _create_domingo_shifts(semana_inicio, tz):
 @login_required
 def escala():
     _ensure_collaborator_name_column()
-    cols = CollaboratorModel.query.filter_by(active=True).order_by(CollaboratorModel.nome.asc()).all()
+    cols = CollaboratorModel.query.filter_by(ativo=True).order_by(CollaboratorModel.nome.asc()).all()
     today = date.today()
 
     semana_param = request.args.get("semana", "")
@@ -981,7 +981,7 @@ def _get_rodizio_teams(semana_inicio):
 def _load_team_collaborators(team_id):
     """Carrega colaboradores de uma equipe."""
     return (
-        CollaboratorModel.query.filter_by(active=True, regular_team=team_id)
+        CollaboratorModel.query.filter_by(ativo=True, regular_team=team_id)
         .order_by(CollaboratorModel.team_position.asc())
         .all()
     )

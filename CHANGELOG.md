@@ -10,6 +10,19 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.101] - 2026-02-07 08:35:00
+
+### Fixed
+- Escala: correção do filtro de colaboradores ativos (campo `ativo`)
+
+### Changed
+- Versionamento: sincroniza version.txt e multimax/__init__.py
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.100] - 2026-02-07 08:15:00
 
 ### Fixed
