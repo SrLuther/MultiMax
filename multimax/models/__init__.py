@@ -31,6 +31,8 @@ from .operations import (
     CleaningHistory,
     CleaningHistoryPhoto,
     CleaningTask,
+    CronogramaBloco,
+    CronogramaRegistro,
     Historico,
 )
 from .production import IngredientCatalog, Produto, Recipe, RecipeIngredient
@@ -134,6 +136,8 @@ __all__ = [
     "CleaningChecklistTemplate",
     "CleaningChecklistItem",
     "CleaningHistoryPhoto",
+    "CronogramaBloco",
+    "CronogramaRegistro",
     "Historico",
     # Monitoramento
     "NotificationRead",
