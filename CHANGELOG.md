@@ -10,6 +10,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.82] - 2026-02-07 03:10:00
+
+### Changed
+- Menu: botão de Notificações WhatsApp encurtado para "Whatsapp"
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.81] - 2026-02-07 02:55:00
 
 ### Fixed

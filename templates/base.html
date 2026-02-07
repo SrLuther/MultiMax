@@ -100,7 +100,7 @@
                 {% if current_user.is_authenticated and current_user.nivel == 'DEV' %}
                 <a href="{{ url_for('whatsapp_admin.painel') }}" class="mm-nav-item {% if 'whatsapp_admin' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-whatsapp mm-nav-icon"></i>
-                    <span class="mm-nav-text">Notificações WhatsApp</span>
+                    <span class="mm-nav-text">Whatsapp</span>
                 </a>
                 <a href="/db" class="mm-nav-item {% if 'dbadmin' in request.endpoint or request.path.startswith('/db') %}active{% endif %}">
                     <i class="bi bi-database mm-nav-icon"></i>
