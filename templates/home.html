@@ -143,22 +143,7 @@
                 <div class="shortcut-label">Escalas</div>
             </a>
 
-            <a href="{{ url_for('ciclos.index') }}" class="shortcut-card shortcut-primary">
-                <div class="shortcut-icon">
-                    <i class="bi bi-arrow-repeat"></i>
-                </div>
-                <div class="shortcut-label">Ciclos</div>
-            </a>
-
-
             {% if current_user.is_authenticated and current_user.nivel in ['admin', 'DEV'] %}
-            <a href="{{ url_for('usuarios.gestao') }}" class="shortcut-card shortcut-dark">
-                <div class="shortcut-icon">
-                    <i class="bi bi-gear"></i>
-                </div>
-                <div class="shortcut-label">Gestão</div>
-            </a>
-
             <a href="/db" class="shortcut-card shortcut-gray">
                 <div class="shortcut-icon">
                     <i class="bi bi-database"></i>

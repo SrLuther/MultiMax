@@ -10,6 +10,19 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-5.2-Codex
 
+## [3.7.74] - 2026-02-07 01:45:00
+
+### Changed
+- Navegação: removidos atalhos para Ciclos e Gestão
+
+### Fixed
+- Ciclos/Gestão: páginas agora retornam 404 (desativadas)
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-5.2-Codex
+
 ## [3.7.73] - 2026-02-07 01:25:00
 
 ### Added

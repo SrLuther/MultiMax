@@ -223,7 +223,7 @@ def _setup_login_manager(app: Flask) -> None:
             return None
 
 
-DEFAULT_VERSION = "3.7.73"
+DEFAULT_VERSION = "3.7.74"
 
 
 def _get_version_fallback() -> str:

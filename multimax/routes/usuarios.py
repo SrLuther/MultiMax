@@ -4,22 +4,25 @@ import subprocess
 import threading
 import time
 from datetime import date, datetime
-from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Sequence, cast
+from zoneinfo import ZoneInfo
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from .. import db
 from ..models import (
     AppSetting,
     ArticleVote,
+    CentralColaborador,
     Ciclo,
     CleaningHistory,
     CleaningTask,
-    CentralColaborador,
     Collaborator,
+    Fluxo,
+    FluxoCiclo,
+    FluxoLancamento,
     Historico,
     Holiday,
     JobRole,
@@ -35,9 +38,6 @@ from ..models import (
     TimeOffRecord,
     User,
     UserLogin,
-    Fluxo,
-    FluxoCiclo,
-    FluxoLancamento,
     Vacation,
 )
 from ..password_hash import check_password_hash, generate_password_hash
@@ -1574,6 +1574,7 @@ def perfil_senha():
 @bp.route("/gestao", methods=["GET"])
 @login_required
 def gestao():  # noqa: C901
+    abort(404)
     import logging
 
     logger = logging.getLogger(__name__)

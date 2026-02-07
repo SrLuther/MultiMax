@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from typing import cast
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import or_
@@ -51,11 +52,12 @@ def _fluxo_colaboradores_setor() -> list[CentralColaborador]:
         CentralColaborador.setor.ilike("%açougue%"),
         CentralColaborador.setor.ilike("%acougue%"),
     )
-    return (
+    colaboradores = (
         CentralColaborador.query.filter(CentralColaborador.ativo.is_(True), setor_filter)
         .order_by(CentralColaborador.nome.asc())
         .all()
     )
+    return cast(list[CentralColaborador], colaboradores)
 
 
 def _latest_lancamento_date(collab_ids: list[int]) -> date | None:
@@ -67,7 +69,7 @@ def _latest_lancamento_date(collab_ids: list[int]) -> date | None:
         .first()
     )
     if ultimo and ultimo.data:
-        return ultimo.data
+        return cast(date, ultimo.data)
     return None
 
 
@@ -83,7 +85,7 @@ def _latest_lancamento_date_fluxo(fluxo_id: int, collab_ids: list[int]) -> date 
         .first()
     )
     if ultimo and ultimo.data:
-        return ultimo.data
+        return cast(date, ultimo.data)
     return None
 
 

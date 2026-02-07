@@ -9,12 +9,13 @@ from types import SimpleNamespace
 from typing import Any, Literal
 from zoneinfo import ZoneInfo
 
-from flask import Blueprint, flash, jsonify, make_response, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, jsonify, make_response, redirect, render_template, request, url_for
 from flask.wrappers import Response
 from flask_login import current_user, login_required
 from flask_sqlalchemy.query import Query
-from sqlalchemy import func, or_, text
+from sqlalchemy import func
 from sqlalchemy import inspect as sa_inspect
+from sqlalchemy import or_, text
 from werkzeug.datastructures.file_storage import FileStorage
 
 from multimax import db
@@ -684,6 +685,7 @@ def _validate_hours_format(value_str, allow_negative=False):
 @login_required
 def index():
     """Página principal de Ciclos com cards de colaboradores"""
+    abort(404)
     if current_user.nivel not in ["operador", "admin", "DEV"]:
         flash("Acesso negado.", "danger")
         return redirect(url_for("home.index"))
@@ -3157,10 +3159,7 @@ def setores_excluir(
                 jsonify(
                     {
                         "ok": False,
-                        "error": (
-                            "Não é possível excluir este setor. Existem vínculos ativos: "
-                            f"{detalhes}."
-                        ),
+                        "error": ("Não é possível excluir este setor. Existem vínculos ativos: " f"{detalhes}."),
                     }
                 ),
                 400,

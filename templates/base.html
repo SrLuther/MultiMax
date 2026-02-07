@@ -67,14 +67,7 @@
                     <i class="bi bi-people mm-nav-icon"></i>
                     <span class="mm-nav-text">Escalas</span>
                 </a>
-                <a href="{{ url_for('ciclos.index') }}" class="mm-nav-item {% if 'ciclos' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-arrow-repeat mm-nav-icon"></i>
-                    <span class="mm-nav-text">Ciclos</span>
-                </a>
-                <a href="{{ url_for('ciclos.setores_index') }}" class="mm-nav-item {% if request.endpoint == 'ciclos.setores_index' %}active{% endif %}">
-                    <i class="bi bi-building mm-nav-icon"></i>
-                    <span class="mm-nav-text">Setores</span>
-                </a>
+
             </div>
 
             {% if current_user.nivel in ('admin', 'DEV') %}
@@ -93,10 +86,7 @@
             {% if current_user.is_authenticated and current_user.nivel in ('admin', 'DEV') %}
             <div class="mm-nav-section">
                 <div class="mm-nav-section-title">Administração</div>
-                <a href="{{ url_for('usuarios.gestao') }}" class="mm-nav-item {% if 'usuarios' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-gear mm-nav-icon"></i>
-                    <span class="mm-nav-text">Gestão</span>
-                </a>
+
                 <a href="{{ url_for('central.index') }}" class="mm-nav-item {% if 'central' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-person-workspace mm-nav-icon"></i>
                     <span class="mm-nav-text">Central</span>
