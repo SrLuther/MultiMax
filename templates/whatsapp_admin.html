@@ -236,43 +236,23 @@ function toggleAutoNotificacoes() {
                         <button
                             type="button"
                             class="btn btn-outline-success whatsapp-btn-premium"
-                            data-bs-toggle="modal"
-                            data-bs-target="#modalResumoFluxos"
+                            id="btnEnviarResumoFluxos"
                             title="Enviar resumo diário do Fluxos agora"
+                            onclick="enviarResumoFluxos()"
                         >
                             <i class="bi bi-calendar-check me-2"></i> Resumo diário (Fluxos)
                         </button>
-
-                        <!-- Modal para confirmação do envio do resumo diário -->
-                        <div class="modal fade" id="modalResumoFluxos" tabindex="-1" role="dialog">
-                            <div class="modal-dialog modal-dialog-centered" role="document">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title">Enviar resumo diário do Fluxos</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <p class="text-secondary">Deseja enviar o resumo diário do Fluxos agora?</p>
-                                        <p class="text-secondary small mb-0"><strong>ℹ️ Nota:</strong> Esta ação ignora o horário das 20h e envia para o grupo configurado.</p>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary whatsapp-btn-premium" data-bs-dismiss="modal">Cancelar</button>
-                                        <button
-                                            type="button"
-                                            class="btn btn-success whatsapp-btn-premium"
-                                            id="btnEnviarResumoFluxos"
-                                            onclick="enviarResumoFluxos()"
-                                        >
-                                            <i class="bi bi-send me-1"></i> Enviar Agora
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     <script>
                         function enviarResumoFluxos() {
+                            const confirmacao = confirm(
+                                'Enviar o resumo diário do Fluxos agora?\n\nEsta ação ignora o horário das 20h e envia para o grupo configurado.'
+                            );
+                            if (!confirmacao) {
+                                return;
+                            }
+
                             const btn = document.getElementById('btnEnviarResumoFluxos');
                             btn.disabled = true;
                             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
@@ -286,7 +266,6 @@ function toggleAutoNotificacoes() {
                             })
                             .then(response => response.json())
                             .then(data => {
-                                fecharModalResumoFluxos();
                                 if (data.ok) {
                                     showNotification('Sucesso!', data.message, 'success');
                                 } else {
@@ -294,27 +273,12 @@ function toggleAutoNotificacoes() {
                                 }
                             })
                             .catch(error => {
-                                fecharModalResumoFluxos();
                                 showNotification('Erro', 'Falha na comunicação: ' + error.message, 'danger');
                             })
                             .finally(() => {
                                 btn.disabled = false;
-                                btn.innerHTML = '<i class="bi bi-send me-1"></i> Enviar Agora';
+                                btn.innerHTML = '<i class="bi bi-calendar-check me-2"></i> Resumo diário (Fluxos)';
                             });
-                        }
-
-                        function fecharModalResumoFluxos() {
-                            const modalEl = document.getElementById('modalResumoFluxos');
-                            try {
-                                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                                modal.hide();
-                            } catch (e) {
-                                modalEl.classList.remove('show');
-                                modalEl.style.display = 'none';
-                                document.body.classList.remove('modal-open');
-                                const backdrop = document.querySelector('.modal-backdrop');
-                                if (backdrop) backdrop.remove();
-                            }
                         }
 
                         function showNotification(title, message, type) {
