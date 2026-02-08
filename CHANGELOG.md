@@ -1,12 +1,24 @@
 ### IA responsável pelo envio
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-4.1
+## [3.7.109] - 2026-02-07 11:00:00
+
+### Removed
+- Escalas: remoção completa de modelos, rotas, templates e referências. Sistema de escalas totalmente eliminado do projeto.
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-4.1
 ## [3.7.108] - 2026-02-07 10:30:00
 
 ### Removed
 - Escalas: remoção completa da página, links do menu lateral, atalho da home e template escala.html. Nenhum acesso ou vestígio restante.
 
 ---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-4.1
 ## [3.7.107] - 2026-02-07 10:10:00
 ### Added
 - Escala: página totalmente reconstruída com menu lateral, cabeçalho novo e layout moderno. Pronta para receber novas funcionalidades.

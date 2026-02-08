@@ -16,7 +16,6 @@ from .central import CentralColaborador, CentralLog, CentralVacation
 from .ciclo import CicloMensal, CicloSemanal, HistoricoColaborador
 from .colaborador import Colaborador
 from .content import ArticleVote, CustomSchedule, HelpArticle, Suggestion, SuggestionVote
-from .escala import Escala
 from .fluxos import Fluxo, FluxoArquivo, FluxoCiclo, FluxoConfig, FluxoLancamento
 from .holidays import Holiday
 from .logs import Heartbeat, LogDeploy, LogErro, LogWhatsapp
@@ -48,7 +47,7 @@ from .scheduling import (
     RegistroJornadaChange,
     TimeOffRecord,
 )
-from .special import AppSetting, EscalaEspecial, EstoqueProducao, HistoricoAjusteEstoque
+from .special import AppSetting, EstoqueProducao, HistoricoAjusteEstoque
 from .user import User
 from .whatsapp_config import WhatsappConfig, WhatsappMessage
 
@@ -95,9 +94,6 @@ __all__ = [
     "CicloSemana",
     "CicloFechamento",
     "CicloSaldo",
-    # Escala
-    "Escala",
-    "EscalaEspecial",
     # Fluxos
     "Fluxo",
     "FluxoCiclo",

@@ -267,7 +267,7 @@ def _get_sunday_event(current_monday: date, sunday: date) -> dict | None:
             "title": f"DOMINGO EQUIPE '{domingo_val}' (5h–13h)",
             "start": sunday.strftime("%Y-%m-%d"),
             "color": "#fd7e14",
-            "url": url_for("colaboradores.escala"),
+            "url": url_for("usuarios.gestao"),
             "kind": "rodizio-sunday",
             "team": domingo_val,
         }
@@ -291,7 +291,7 @@ def _build_rodizio_week_events(current_monday: date, open_ref: str) -> list[dict
                     "title": f"EQUIPE ABERTURA '{open_team}'",
                     "start": d.strftime("%Y-%m-%d"),
                     "color": "#198754",
-                    "url": url_for("colaboradores.escala"),
+                    "url": url_for("usuarios.gestao"),
                     "kind": "rodizio-open",
                     "team": open_team,
                 }
@@ -301,7 +301,7 @@ def _build_rodizio_week_events(current_monday: date, open_ref: str) -> list[dict
                     "title": f"EQUIPE FECHAMENTO '{close_team}'",
                     "start": d.strftime("%Y-%m-%d"),
                     "color": "#157347",
-                    "url": url_for("colaboradores.escala"),
+                    "url": url_for("usuarios.gestao"),
                     "kind": "rodizio-close",
                     "team": close_team,
                 }
@@ -669,7 +669,7 @@ def dashboard_authenticated():  # noqa: C901 - função principal do dashboard a
                     "title": f"🏖️ Crédito de Folga: +{lc.days}",
                     "start": lc.date.strftime("%Y-%m-%d"),
                     "color": "#ffa94d",
-                    "url": url_for("colaboradores.escala"),
+                    "url": url_for("usuarios.gestao"),
                 }
             )
     except Exception:
@@ -778,7 +778,7 @@ def dashboard_authenticated():  # noqa: C901 - função principal do dashboard a
                 "subtitle": f"Data: {next_holiday['date_str']}",
                 "color": "text-bg-primary",
                 "emoji": "🚩",
-                "url": url_for("colaboradores.escala"),
+                "url": url_for("usuarios.gestao"),
             }
         )
     metrics = get_dashboard_metrics()

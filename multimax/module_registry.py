@@ -16,7 +16,7 @@ class ModuleInfo:
 MODULE_REGISTRY: tuple[ModuleInfo, ...] = (
     ModuleInfo(key="estoque_producao", label="Gestão de Estoque", blueprint_names=("estoque_producao",)),
     ModuleInfo(key="ciclos", label="Ciclos e Pagamentos", blueprint_names=("ciclos",)),
-    ModuleInfo(key="colaboradores", label="Colaboradores e Escalas", blueprint_names=("colaboradores",)),
+    ModuleInfo(key="colaboradores", label="Colaboradores", blueprint_names=("colaboradores",)),
     ModuleInfo(key="relatorios", label="Relatórios e PDFs", blueprint_names=("exportacao",)),
     ModuleInfo(key="notificacoes", label="Notificações", blueprint_names=("notificacoes",)),
 )

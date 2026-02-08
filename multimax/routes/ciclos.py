@@ -28,7 +28,6 @@ from multimax.models import (
     CicloOcorrencia,
     CicloSemana,
     Collaborator,
-    EscalaEspecial,
     MedicalCertificate,
     Setor,
     SetorCargo,
@@ -3127,7 +3126,6 @@ def setores_excluir(
         folgas_vinculadas: int = CicloFolga.query.filter_by(setor_id=setor_id).count()
         ocorrencias_vinculadas: int = CicloOcorrencia.query.filter_by(setor_id=setor_id).count()
         fechamentos_vinculados: int = CicloFechamento.query.filter_by(setor_id=setor_id).count()
-        escalas_vinculadas: int = EscalaEspecial.query.filter_by(equipe_id=setor_id).count()
         cargos_vinculados: int = SetorCargo.query.filter_by(setor_id=setor_id).count()
 
         colaboradores_vinculados: int = 0
@@ -3149,7 +3147,6 @@ def setores_excluir(
             "ocorrencias": ocorrencias_vinculadas,
             "fechamentos": fechamentos_vinculados,
             "colaboradores": colaboradores_vinculados,
-            "escalas especiais": escalas_vinculadas,
             "cargos": cargos_vinculados,
         }
 
@@ -3171,9 +3168,6 @@ def setores_excluir(
             CicloOcorrencia.query.filter_by(setor_id=setor_id).delete(synchronize_session=False)
             CicloFechamento.query.filter_by(setor_id=setor_id).delete(synchronize_session=False)
             SetorCargo.query.filter_by(setor_id=setor_id).delete(synchronize_session=False)
-            EscalaEspecial.query.filter_by(equipe_id=setor_id).update(
-                {EscalaEspecial.equipe_id: None}, synchronize_session=False
-            )
             try:
                 insp = sa_inspect(db.engine)
                 col_names = [c["name"] for c in insp.get_columns("colaboradores")]

@@ -26,7 +26,7 @@ def test_get_active_module_labels_handles_iterable_types():
     assert labels == [
         "Gestão de Estoque",
         "Ciclos e Pagamentos",
-        "Colaboradores e Escalas",
+        "Colaboradores",
         "Relatórios e PDFs",
         "Notificações",
     ]
