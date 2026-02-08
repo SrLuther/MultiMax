@@ -1,11 +1,23 @@
 ### IA responsável pelo envio
 - Nome da IA: GitHub Copilot
+- Modelo: Grok Code Fast 1
+
+## [3.7.113] - 2026-02-08 16:00:00
+
+### Fixed
+- Fixed .env loading in containers by checking /app/.env first before base_dir.
+
+---
+
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
 - Modelo: Raptor mini (Preview)
 
 ## [3.7.112] - 2026-02-08 15:21:00
 
 ### Changed
 - Added Alembic migration `010_add_bulk_id_to_time_off_record.py` to add `bulk_id` column to `time_off_record`.
+- Fixed .env loading in containers by checking /app/.env first.
 
 ---
 

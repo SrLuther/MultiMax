@@ -931,7 +931,10 @@ def create_app():
     """Função principal de criação da aplicação Flask."""
     base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(__file__)))
     # Carregar .env e .env.txt (preferindo .env se ambos existirem)
+    # Primeiro tentar /app/.env (para containers), depois base_dir
+    _load_env("/app/.env")
     _load_env(os.path.join(base_dir, ".env"))
+    _load_env("/app/.env.txt")
     _load_env(os.path.join(base_dir, ".env.txt"))
 
     app = _create_flask_app(base_dir)
