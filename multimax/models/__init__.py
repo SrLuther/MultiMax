@@ -15,7 +15,7 @@ from .analytics import BackupVerification, MetricHistory, QueryLog
 from .central import CentralColaborador, CentralLog, CentralVacation
 from .ciclo import CicloMensal, CicloSemanal, HistoricoColaborador
 from .colaborador import Colaborador
-from .content import ArticleVote, CustomSchedule, HelpArticle, Suggestion, SuggestionVote
+from .content import ArticleVote, HelpArticle, Suggestion, SuggestionVote
 from .fluxos import Fluxo, FluxoArquivo, FluxoCiclo, FluxoConfig, FluxoLancamento
 from .holidays import Holiday
 from .logs import Heartbeat, LogDeploy, LogErro, LogWhatsapp
@@ -145,7 +145,6 @@ __all__ = [
     "NotificacaoDiaria",
     "NotificacaoPersonalizada",
     # Conteúdo
-    "CustomSchedule",
     "HelpArticle",
     "Suggestion",
     "SuggestionVote",

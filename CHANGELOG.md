@@ -1,6 +1,15 @@
 ### IA responsável pelo envio
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-4.1
+## [3.7.111] - 2026-02-07 13:30:00
+
+### Corrigido
+- Removidas referências ao `CustomSchedule` e corrigidos erros nos testes.
+
+---
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-4.1
 ## [3.7.110] - 2026-02-07 12:00:00
 
 ### Removed
