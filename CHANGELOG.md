@@ -1,4 +1,11 @@
-#
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: GPT-4.1
+## [3.7.107] - 2026-02-07 10:10:00
+### Added
+- Escala: página totalmente reconstruída com menu lateral, cabeçalho novo e layout moderno. Pronta para receber novas funcionalidades.
+
+---
 ### IA responsável pelo envio
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-4.1
@@ -8,14 +15,6 @@
 - Escala: página e rota totalmente limpas, sem conteúdo ou template. Remove tudo conforme solicitado.
 
 ---
-# Changelog
-
-Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
-
-O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
-e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
-
-
 ### IA responsável pelo envio
 - Nome da IA: GitHub Copilot
 - Modelo: GPT-4.1

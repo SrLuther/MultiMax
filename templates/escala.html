@@ -1,31 +1,94 @@
-*** End Patch
-                            Configuração de Turnos
-                        </h6>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="especTurno" class="form-label">Turno <span class="text-danger">*</span></label>
-                                <select name="turno_principal" id="especTurno" class="form-select">
-                                    <option value="">Selecione...</option>
-                                    <option value="Abertura 5h">Abertura 5h</option>
-                                    <option value="Abertura 6h">Abertura 6h</option>
-                                    <option value="Tarde">Tarde</option>
-                                    <option value="Domingo 5h">Domingo 5h</option>
-                                    <option value="Domingo 6h">Domingo 6h</option>
-                                    <option value="Limpeza">Limpeza</option>
-                                    <option value="Folga">Folga</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="especAplicacao" class="form-label">Aplicar para <span class="text-danger">*</span></label>
-                                <select name="aplicacao" id="especAplicacao" class="form-select" onchange="alterarAplicacao()">
-                                    <option value="todos">Todos os Colaboradores</option>
-                                    <option value="equipe1">Apenas Equipe 1</option>
-                                    <option value="equipe2">Apenas Equipe 2</option>
-                                    <option value="dividido">Dividir entre Equipes</option>
-                                </select>
-                            </div>
-                        </div>
-
+{% extends 'base.html' %}
+{% block content %}
+<div class="escala-layout">
+    <aside class="sidebar">
+        <nav>
+            <ul>
+                <li><a href="/dashboard">Dashboard</a></li>
+                <li><a href="/escala" class="active">Escala</a></li>
+                <li><a href="/colaboradores">Colaboradores</a></li>
+                <li><a href="/fluxos">Fluxos</a></li>
+                <!-- Adicione mais itens de menu conforme necessário -->
+            </ul>
+        </nav>
+    </aside>
+    <main class="main-content">
+        <header class="page-header">
+            <h1>Escala de Trabalho</h1>
+            <p class="subtitle">Organize e visualize as escalas dos colaboradores</p>
+        </header>
+        <section class="escala-body">
+            <!-- Conteúdo da escala será adicionado aqui -->
+            <div class="empty-state">
+                <p>Bem-vindo à nova página de Escala!<br>Em breve, funcionalidades e visualizações modernas estarão disponíveis aqui.</p>
+            </div>
+        </section>
+    </main>
+</div>
+<style>
+.escala-layout {
+    display: flex;
+    min-height: 80vh;
+    background: #f7f9fb;
+}
+.sidebar {
+    width: 220px;
+    background: #232946;
+    color: #fff;
+    padding: 0;
+    min-height: 100vh;
+}
+.sidebar nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.sidebar nav ul li {
+    border-bottom: 1px solid #2e3350;
+}
+.sidebar nav ul li a {
+    display: block;
+    color: #fff;
+    text-decoration: none;
+    padding: 18px 24px;
+    transition: background 0.2s;
+}
+.sidebar nav ul li a.active, .sidebar nav ul li a:hover {
+    background: #3e4a6d;
+}
+.main-content {
+    flex: 1;
+    padding: 40px 48px;
+}
+.page-header {
+    border-bottom: 2px solid #e0e6ed;
+    margin-bottom: 32px;
+    padding-bottom: 16px;
+}
+.page-header h1 {
+    margin: 0;
+    font-size: 2.2rem;
+    color: #232946;
+}
+.page-header .subtitle {
+    color: #6b7280;
+    font-size: 1.1rem;
+    margin-top: 6px;
+}
+.escala-body {
+    margin-top: 32px;
+}
+.empty-state {
+    background: #fff;
+    border: 1px dashed #bfc9d9;
+    border-radius: 8px;
+    padding: 48px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 1.2rem;
+}
+</style>
+{% endblock %}
                         <!-- Turnos divididos por equipe -->
                         <div id="turnosDivididos" style="display: none;" class="mb-3">
                             <div class="row">
