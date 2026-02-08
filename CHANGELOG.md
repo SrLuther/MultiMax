@@ -1,5 +1,16 @@
 ### IA responsável pelo envio
 - Nome da IA: GitHub Copilot
+- Modelo: Raptor mini (Preview)
+
+## [3.7.112] - 2026-02-08 15:21:00
+
+### Changed
+- Added Alembic migration `010_add_bulk_id_to_time_off_record.py` to add `bulk_id` column to `time_off_record`.
+
+---
+
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
 - Modelo: GPT-4.1
 ## [3.7.111] - 2026-02-07 13:30:00
 

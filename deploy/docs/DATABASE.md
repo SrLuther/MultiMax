@@ -1,6 +1,85 @@
 # MultiMax - Configuração de Banco de Dados
 
 ## Visão Geral
+## PostgreSQL (Produção)
+
+### Instalação
+### Criação de Usuário e Banco
+
+```bash
+### Configuração em `.env`
+
+```env
+### Backup (pg_dump)
+
+```bash
+### Restore
+
+```bash
+### Manutenção
+
+```bash
+### Monitoramento
+
+```bash
+### Tuning (Performance)
+
+Editar `/etc/postgresql/14/main/postgresql.conf`:
+```ini
+
+Depois restart:
+## SQLite (Desenvolvimento)
+
+### Configuração
+### Vantagens
+
+### Desvantagens
+### Backup
+
+```bash
+# MultiMax - Configuração de Banco de Dados
+---
+
+## Alembic Migrations
+
+### Estrutura
+### Criar Migration
+
+```bash
+### Aplicar Migrations
+
+```bash
+### Ver histórico
+
+```bash
+## Pooling de Conexão
+
+### SQLAlchemy Connection Pool
+### Monitoramento
+
+```bash
+## Backup Automatizado (Cron)
+
+### Configurar backup diário
+## Troubleshooting
+
+### Erro: "Connection refused"
+### Erro: "Database does not exist"
+
+### Erro: "Permission denied"
+### Banco muito grande
+
+### Segurança
+### Senhas Fortes
+
+### Permissões PostgreSQL
+### Backup Criptografado
+
+---
+**Última atualização:** 23 de janeiro de 2026  
+
+**PostgreSQL 14+** | **SQLite 3.40+** | **Ubuntu 24.04 LTS**
+## Visão Geral
 
 MultiMax suporta dois tipos de banco de dados:
 - **PostgreSQL** (recomendado para produção)
@@ -173,32 +252,6 @@ sudo -u multimax ./db-manager.sh backup
 
 ---
 
-## Migração PostgreSQL → SQLite ou vice-versa
-
-### PostgreSQL → SQLite
-
-```bash
-# 1. Dump PostgreSQL
-pg_dump DATABASE_URL > dump.sql
-
-# 2. Converter schema
-# (pode exigir ajustes manuais)
-
-# 3. Importar em SQLite
-sqlite3 /var/lib/multimax/estoque.db < dump.sql
-```
-
-### SQLite → PostgreSQL
-
-```bash
-# 1. Dump SQLite
-sqlite3 /var/lib/multimax/estoque.db ".dump" > dump.sql
-
-# 2. Importar PostgreSQL
-psql DATABASE_URL < dump.sql
-
-# Ou usar ferramenta como pgloader
-```
 
 ---
 
@@ -289,16 +342,7 @@ print(f'Tamanho: {db.engine.pool.size()}')
 
 ---
 
-## Replicação e HA (High Availability)
 
-### PostgreSQL Streaming Replication
-
-Para múltiplos servidores:
-
-1. **Primary** (servidor principal)
-2. **Standby** (servidor secundário, réplica)
-
-Consulte documentação PostgreSQL oficial para setup detalhado.
 
 ---
 
@@ -317,16 +361,7 @@ sudo -u multimax crontab -e
 # (Implementado em db-manager.sh)
 ```
 
-### Backup remoto
 
-```bash
-# Adicionar ao crontab
-0 2 * * * /opt/multimax/deploy/scripts/db-manager.sh backup && \
-           s3cmd put /var/lib/multimax/backups/*.sql.gz s3://seu-bucket/multimax/
-
-# Ou usar rclone
-rclone copy /var/lib/multimax/backups/ remote:multimax/backups/ --delete-after
-```
 
 ---
 
