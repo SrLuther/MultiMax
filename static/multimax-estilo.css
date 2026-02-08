@@ -952,6 +952,141 @@ body.login-page {
 [data-theme="dark"] .fluxos-table tbody tr:nth-child(even) {
     background: rgba(148, 163, 184, 0.06);
 }
+
+/* Bloco Explicativo dos Cálculos */
+.fluxos-info-card {
+    background: #fff;
+    border-radius: 18px;
+    border: 1px solid rgba(15,23,42,0.08);
+    box-shadow: 0 6px 18px rgba(15,23,42,0.08);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.fluxos-info-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid rgba(249, 115, 22, 0.2);
+}
+
+.fluxos-info-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    color: #0b0f19;
+    font-weight: 600;
+}
+
+.fluxos-info-header i {
+    color: #f97316;
+    font-size: 1.4rem;
+}
+
+.fluxos-info-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.fluxos-info-section h4 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1.1rem;
+    color: #0b0f19;
+    font-weight: 600;
+}
+
+.fluxos-info-section ul {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
+.fluxos-info-section li {
+    margin-bottom: 0.5rem;
+    color: #475569;
+    line-height: 1.5;
+}
+
+.fluxos-info-section li strong {
+    color: #0b0f19;
+}
+
+.fluxos-info-section p {
+    margin: 0.5rem 0;
+    color: #475569;
+    line-height: 1.6;
+}
+
+.fluxos-info-section p strong {
+    color: #0b0f19;
+    font-weight: 600;
+}
+
+.fluxos-examples {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.fluxos-example {
+    background: rgba(249, 115, 22, 0.05);
+    border: 1px solid rgba(249, 115, 22, 0.15);
+    border-radius: 8px;
+    padding: 0.75rem;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.fluxos-example strong {
+    color: #f97316;
+    font-weight: 600;
+}
+
+/* Dark theme para bloco explicativo */
+[data-theme="dark"] .fluxos-info-card {
+    background: #0f172a;
+    border-color: rgba(148, 163, 184, 0.2);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .fluxos-info-header {
+    border-bottom-color: rgba(249, 115, 22, 0.3);
+}
+
+[data-theme="dark"] .fluxos-info-header h3 {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .fluxos-info-section h4 {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .fluxos-info-section li {
+    color: #cbd5f5;
+}
+
+[data-theme="dark"] .fluxos-info-section li strong {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .fluxos-info-section p {
+    color: #cbd5f5;
+}
+
+[data-theme="dark"] .fluxos-info-section p strong {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .fluxos-example {
+    background: rgba(249, 115, 22, 0.1);
+    border-color: rgba(249, 115, 22, 0.25);
+}
+
+[data-theme="dark"] .fluxos-example strong {
+    color: #fbbf24;
+}
+
 .header-animated {
     background: linear-gradient(135deg, #0d0f10, #141719, #0f1112);
     background-size: 300% 300%;

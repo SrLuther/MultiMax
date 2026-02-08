@@ -51,6 +51,63 @@
     </div>
     {% endif %}
 
+    <!-- Bloco Explicativo dos Cálculos -->
+    <div class="fluxos-info-card">
+        <div class="fluxos-info-header">
+            <h3><i class="bi bi-info-circle"></i> Como funcionam os cálculos</h3>
+        </div>
+        <div class="fluxos-info-content">
+            <div class="fluxos-info-section">
+                <h4>Campos exibidos:</h4>
+                <ul>
+                    <li><strong>H Bruto</strong> - Horas positivas totais lançadas no fluxo</li>
+                    <li><strong>H Descontos</strong> - Horas negativas totais (descontos/utilizações)</li>
+                    <li><strong>H Líquido</strong> - Diferença entre H Bruto e H Descontos</li>
+                    <li><strong>Dias completos</strong> - Número de dias pagáveis calculados</li>
+                    <li><strong>R$ estimado</strong> - Valor monetário baseado nos dias completos</li>
+                </ul>
+            </div>
+
+            <div class="fluxos-info-section">
+                <h4>Regras de cálculo:</h4>
+                <ul>
+                    <li><strong>H Líquido</strong> = H Bruto - H Descontos</li>
+                    <li><strong>Dias completos</strong> = Parte inteira da divisão (H Líquido ÷ 8), apenas se H Líquido > 0</li>
+                    <li><strong>R$ estimado</strong> = Dias completos × R$ 65,00</li>
+                    <li><strong>H Descontos</strong> inclui férias, faltas e outros lançamentos negativos</li>
+                    <li><strong>Apenas dias completos</strong> geram valor em R$</li>
+                </ul>
+            </div>
+
+            <div class="fluxos-info-section">
+                <h4>Exemplos:</h4>
+                <div class="fluxos-examples">
+                    <div class="fluxos-example">
+                        <strong>Saldo positivo:</strong><br>
+                        H Bruto: 24.0h | H Descontos: 8.0h | H Líquido: 16.0h<br>
+                        Dias completos: 2 | R$ estimado: R$ 130,00
+                    </div>
+                    <div class="fluxos-example">
+                        <strong>Com horas quebradas:</strong><br>
+                        H Bruto: 25.5h | H Descontos: 6.0h | H Líquido: 19.5h<br>
+                        Dias completos: 2 | R$ estimado: R$ 130,00
+                    </div>
+                    <div class="fluxos-example">
+                        <strong>Saldo negativo:</strong><br>
+                        H Bruto: 12.0h | H Descontos: 20.0h | H Líquido: -8.0h<br>
+                        Dias completos: 0 | R$ estimado: R$ 0,00
+                    </div>
+                </div>
+            </div>
+
+            <div class="fluxos-info-section">
+                <h4>Princípio geral:</h4>
+                <p><strong>Cada 8 horas líquidas = 1 dia completo = R$ 65,00</strong></p>
+                <p>Horas que não completam 8h ficam como saldo para períodos futuros, mas não geram valor imediato no R$ estimado.</p>
+            </div>
+        </div>
+    </div>
+
     <div class="fluxos-cards-grid">
         {% for c in colaboradores %}
         {% set s = summaries[c.id] %}

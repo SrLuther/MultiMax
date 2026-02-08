@@ -2,6 +2,21 @@
 - Nome da IA: GitHub Copilot
 - Modelo: Grok Code Fast 1
 
+## [3.7.114] - 2026-02-08 17:00:00
+
+### Added
+- Added explanatory block in fluxos page explaining days calculation with examples and rules.
+- Added CSS styles for the explanatory block with light and dark theme support.
+
+### Fixed
+- Fixed import order in list_routes.py to comply with flake8 rules.
+
+---
+
+### IA responsável pelo envio
+- Nome da IA: GitHub Copilot
+- Modelo: Grok Code Fast 1
+
 ## [3.7.113] - 2026-02-08 16:00:00
 
 ### Fixed
