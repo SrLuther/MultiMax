@@ -8,8 +8,7 @@ import sqlite3
 import sys
 from datetime import datetime
 
-from sqlalchemy import create_engine, inspect, text
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, text
 
 # Configuração
 SQLITE_PATH = "/opt/multimax-data/estoque.db"
@@ -154,13 +153,13 @@ def migrate_table(sqlite_conn, pg_engine, table_name):
                 log_success(f"  {row_count} registros migrados para '{table_name}'")
                 return True
 
-            except Exception as e:
+            except Exception as err:
                 trans.rollback()
-                log_error(f"  Erro ao inserir dados em '{table_name}': {e}")
+                log_error(f"  Erro ao inserir dados em '{table_name}': {err}")
                 return False
 
-    except Exception as e:
-        log_error(f"  Erro ao migrar '{table_name}': {e}")
+    except Exception as err:
+        log_error(f"  Erro ao migrar '{table_name}': {err}")
         return False
 
 
@@ -184,7 +183,7 @@ def reset_sequences(pg_engine, tables):
                 conn.execute(query)
                 conn.commit()
                 log_success(f"  Sequence resetada para '{table}'")
-            except Exception as e:
+            except Exception:
                 # Ignorar erros (tabelas sem id ou sem sequence)
                 pass
 
@@ -268,8 +267,6 @@ def main():
         "departments",  # Departamentos
         "positions",  # Cargos
         "shifts",  # Turnos
-        "scales",  # Escalas
-        "scale_assignments",  # Atribuições de escala
         "points",  # Pontos
         "leaves",  # Folgas
         "worksheets",  # Folhas de trabalho

@@ -1,4 +1,4 @@
-# 🎉 SISTEMA DE ESCALAS ESPECIAIS - PRONTO PARA USO
+# 🎉 SISTEMA DE GESTÃO - PRONTO PARA USO
 
 ## ✅ STATUS: IMPLEMENTAÇÃO COMPLETA
 
@@ -12,7 +12,7 @@
 
 ### ✨ Um sistema completo que permite:
 
-1. **Criar escalas especiais** (limpeza, feriados, redistribuição, eventos, manutenção)
+1. **Criar turnos especiais** (limpeza, feriados, redistribuição, eventos, manutenção)
 2. **Atribuir a colaboradores** (todos, equipe, número, manual)
 3. **Aplicar automaticamente** (cria turnos no sistema)
 4. **Gerenciar facilmente** (editar, deletar, filtrar)
@@ -51,20 +51,20 @@ python 2026_01_22_create_escala_especial.py
 
 | Documento | Tempo | Para |
 |-----------|-------|------|
-| [README](./documentacao/README_ESCALA_ESPECIAL.md) | 10min | Visão geral |
-| [QUICKSTART](./documentacao/QUICKSTART_ESCALA_ESPECIAL.md) | 5min | Começar rápido |
-| [TÉCNICO](./documentacao/ESCALA_ESPECIAL.md) | 20min | Desenvolvedores |
-| [TESTES](./documentacao/TESTE_ESCALA_ESPECIAL.md) | 30min | QA |
-| [VISUAL](./documentacao/VISUAL_ESCALA_ESPECIAL.md) | 10min | Arquitetura |
-| [ÍNDICE](./documentacao/INDICE_ESCALA_ESPECIAL.md) | 5min | Navegação |
+| [README](./documentacao/README.md) | 10min | Visão geral |
+| [QUICKSTART](./documentacao/QUICKSTART.md) | 5min | Começar rápido |
+| [TÉCNICO](./documentacao/TECNICO.md) | 20min | Desenvolvedores |
+| [TESTES](./documentacao/TESTES.md) | 30min | QA |
+| [VISUAL](./documentacao/VISUAL.md) | 10min | Arquitetura |
+| [ÍNDICE](./documentacao/INDICE.md) | 5min | Navegação |
 
 ---
 
 ## 💾 ARQUIVOS CRIADOS
 
 ```
-✓ multimax/routes/escala_especial.py         (440 linhas - código)
-✓ templates/escala_especial.html             (600+ linhas - interface)
+✓ multimax/routes/turnos_especiais.py         (440 linhas - código)
+✓ templates/turnos_especiais.html             (600+ linhas - interface)
 ✓ one-time-migrations/2026_01_22_*.py        (70 linhas - migração)
 ✓ multimax/models.py                         (+70 linhas - modelo)
 ✓ multimax/__init__.py                       (+3 linhas - registro)
@@ -79,13 +79,13 @@ python 2026_01_22_create_escala_especial.py
 
 | Feature | Status | Detalhes |
 |---------|--------|----------|
-| Criar escalas | ✅ | Com 6 tipos |
-| Aplicar escalas | ✅ | Cria/atualiza turnos |
+| Criar turnos | ✅ | Com 6 tipos |
+| Aplicar turnos | ✅ | Cria/atualiza turnos |
 | 4 critérios | ✅ | Todos, Equipe, Número, Manual |
 | Editar/deletar | ✅ | Com confirmação |
 | Interface HTML | ✅ | Responsiva e intuitiva |
 | 10 rotas API | ✅ | REST completo |
-| Banco de dados | ✅ | Tabela escala_especial |
+| Banco de dados | ✅ | Tabela turnos_especiais |
 | Integração | ✅ | Com sistema de turnos |
 | Documentação | ✅ | Muito completa |
 | Testes definidos | ✅ | 50+ testes |
@@ -97,9 +97,9 @@ python 2026_01_22_create_escala_especial.py
 ```
 USUÁRIO
   ↓
-PÁGINA HTML (/escala-especial/)
+PÁGINA HTML (/turnos-especiais/)
   ↓
-API REST (/api/escala-especial/)
+API REST (/api/turnos-especiais/)
   ↓
 FLASK BACKEND
   ↓
@@ -209,16 +209,16 @@ python 2026_01_22_create_escala_especial.py
 ## ❓ PERGUNTAS FREQUENTES
 
 **P: Como começo?**  
-A: Leia [QUICKSTART](./documentacao/QUICKSTART_ESCALA_ESPECIAL.md) - 5 minutos!
+A: Leia [QUICKSTART](./documentacao/QUICKSTART.md) - 5 minutos!
 
 **P: Como funciona?**  
-A: Leia [TÉCNICO](./documentacao/ESCALA_ESPECIAL.md) - documentação completa
+A: Leia [TÉCNICO](./documentacao/TECNICO.md) - documentação completa
 
 **P: Como testo?**  
-A: Siga [TESTES](./documentacao/TESTE_ESCALA_ESPECIAL.md) - checklist completo
+A: Siga [TESTES](./documentacao/TESTES.md) - checklist completo
 
 **P: Preciso de ajuda?**  
-A: Veja [ÍNDICE](./documentacao/INDICE_ESCALA_ESPECIAL.md) - navegue documentação
+A: Veja [ÍNDICE](./documentacao/INDICE.md) - navegue documentação
 
 ---
 
@@ -243,10 +243,10 @@ A: Veja [ÍNDICE](./documentacao/INDICE_ESCALA_ESPECIAL.md) - navegue documenta�
 
 ## 📞 SUPORTE
 
-1. Dúvida sobre como usar? → [QUICKSTART](./documentacao/QUICKSTART_ESCALA_ESPECIAL.md)
+1. Dúvida sobre como usar? → [QUICKSTART](./documentacao/QUICKSTART.md)
 2. Erro técnico? → [TROUBLESHOOTING](./documentacao/IMPLEMENTACAO_ESCALA_ESPECIAL.md#-troubleshooting)
-3. Como testar? → [TESTES](./documentacao/TESTE_ESCALA_ESPECIAL.md)
-4. Documentação geral? → [ÍNDICE](./documentacao/INDICE_ESCALA_ESPECIAL.md)
+3. Como testar? → [TESTES](./documentacao/TESTES.md)
+4. Documentação geral? → [ÍNDICE](./documentacao/INDICE.md)
 
 ---
 
@@ -303,11 +303,11 @@ Você tem um **sistema completo, documentado e pronto para produção** que reso
 
 ## 📋 PRÓXIMO PASSO
 
-👉 Leia: [QUICKSTART](./documentacao/QUICKSTART_ESCALA_ESPECIAL.md)
+👉 Leia: [QUICKSTART](./documentacao/QUICKSTART.md)
 
 Ou se preferir visão geral:
 
-👉 Leia: [README](./documentacao/README_ESCALA_ESPECIAL.md)
+👉 Leia: [README](./documentacao/README.md)
 
 ---
 

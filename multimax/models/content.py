@@ -11,39 +11,6 @@ from .. import db as app_db
 db: Any = app_db
 
 
-class CustomSchedule(db.Model):
-    """Modelo para escalas customizadas"""
-
-    __tablename__ = "custom_schedule"
-    id = db.Column(db.Integer, primary_key=True)
-    data = db.Column(db.Date, nullable=False)
-    collaborator_id = db.Column(db.Integer, db.ForeignKey("colaboradores.id"), nullable=False)
-    turno_original = db.Column(db.String(50))
-    turno_novo = db.Column(db.String(50))
-    motivo = db.Column(db.String(255))
-    substituto_id = db.Column(db.Integer, db.ForeignKey("colaboradores.id"), nullable=True)
-    criado_por = db.Column(db.String(100))
-    criado_em = db.Column(
-        db.DateTime(timezone=True),
-        default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
-    )
-
-    collaborator = db.relationship(
-        "Colaborador",
-        foreign_keys=[collaborator_id],
-        primaryjoin="and_(CustomSchedule.collaborator_id==Colaborador.id)",
-        backref="custom_schedules",
-    )
-    substituto = db.relationship(
-        "Colaborador",
-        foreign_keys=[substituto_id],
-        primaryjoin="and_(CustomSchedule.substituto_id==Colaborador.id)",
-    )
-
-    def __repr__(self):
-        return f"<CustomSchedule {self.collaborator_id} - {self.data}>"
-
-
 class HelpArticle(db.Model):
     """Modelo para artigos de ajuda"""
 

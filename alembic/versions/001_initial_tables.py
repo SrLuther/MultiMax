@@ -116,37 +116,6 @@ def upgrade() -> None:
     op.create_index("ix_historico_colaborador_colaborador_id", "historico_colaborador", ["colaborador_id"])
     op.create_index("ix_historico_colaborador_ciclo_semanal_id", "historico_colaborador", ["ciclo_semanal_id"])
 
-    # Create escalas table
-    op.create_table(
-        "escalas",
-        sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("colaborador_id", sa.Integer(), nullable=False),
-        sa.Column("ciclo_semanal_id", sa.Integer(), nullable=False),
-        sa.Column("data_escala", sa.Date(), nullable=False),
-        sa.Column("tipo_dia", sa.String(20), nullable=False),
-        sa.Column("hora_entrada", sa.Time(), nullable=True),
-        sa.Column("hora_saida", sa.Time(), nullable=True),
-        sa.Column("intervalo_minutos", sa.Integer(), nullable=False, server_default="60"),
-        sa.Column("turno", sa.String(50), nullable=True),
-        sa.Column("setor", sa.String(100), nullable=True),
-        sa.Column("observacoes", sa.Text(), nullable=True),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["colaborador_id"],
-            ["colaboradores.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["ciclo_semanal_id"],
-            ["ciclos_semanais.id"],
-        ),
-        sa.PrimaryKeyConstraint("id"),
-    )
-    op.create_index("ix_escala_colaborador", "escalas", ["colaborador_id"])
-    op.create_index("ix_escala_ciclo_semanal_id", "escalas", ["ciclo_semanal_id"])
-    op.create_index("ix_escala_data", "escalas", ["data_escala"])
-    op.create_index("ix_escala_colaborador_data", "escalas", ["colaborador_id", "data_escala"])
-
     # Create whatsapp_config table
     op.create_table(
         "whatsapp_config",
@@ -261,7 +230,6 @@ def downgrade() -> None:
     op.drop_table("log_erros")
     op.drop_table("whatsapp_messages")
     op.drop_table("whatsapp_config")
-    op.drop_table("escalas")
     op.drop_table("historico_colaborador")
     op.drop_table("ciclos_mensais")
     op.drop_table("ciclos_semanais")

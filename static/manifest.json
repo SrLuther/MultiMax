@@ -2,7 +2,7 @@
   "id": "/?app=multimax",
   "name": "MultiMax | Controle inteligente",
   "short_name": "MultiMax",
-  "description": "Sistema de gestão completo para seu negócio. Controle estoque, fornecedores, escalas e muito mais.",
+  "description": "Sistema de gestão completo para seu negócio. Controle estoque, fornecedores e muito mais.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

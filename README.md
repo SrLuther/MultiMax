@@ -27,7 +27,7 @@ Plataforma web em Flask para gestão operacional com foco em rastreabilidade, co
 
 - Controle de estoque com histórico de auditoria.
 - Estoque de produção com previsão de uso e ajustes rastreáveis.
-- Gestão de colaboradores/escalas e ciclos operacionais.
+- Gestão de colaboradores e ciclos operacionais.
 - Perfis de acesso: visualizador, operador, admin, DEV.
 
 ---
@@ -37,7 +37,7 @@ Plataforma web em Flask para gestão operacional com foco em rastreabilidade, co
 - **Estoque**: cadastro, entradas/saídas, alerta de mínimo e histórico.
 - **Estoque de Produção**: previsão de uso, ajustes com motivo obrigatório, exportação em PDF (layout profissional).
 - **Ciclos**: acompanhamento e fechamento periódico de horas/valores.
-- **Colaboradores/Escalas**: gestão de pessoas e cronograma semanal.
+- **Colaboradores**: gestão de pessoas e cronograma semanal.
 - **Carnes/Receitas**: suporte a rastreabilidade e insumos.
 
 Consulte o [CHANGELOG](CHANGELOG.md) para o detalhe das versões.
@@ -150,7 +150,7 @@ waitress-serve --host=0.0.0.0 --port=8000 app:app
 - `multimax/routes/estoque.py` — produtos, histórico e movimentações.
 - `multimax/routes/estoque_producao.py` — estoque de produção, ajustes, PDF.
 - `multimax/routes/ciclos.py` — ciclos e fechamentos periódicos.
-- `multimax/routes/colaboradores.py` — colaboradores e escalas.
+- `multimax/routes/colaboradores.py` — colaboradores.
 - `multimax/routes/carnes.py`, `multimax/routes/receitas.py` — carnes e receitas.
 
 Templates em `templates/` e assets em `static/`.
