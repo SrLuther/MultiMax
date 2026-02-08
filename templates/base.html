@@ -63,10 +63,6 @@
                     <i class="bi bi-journal-text mm-nav-icon"></i>
                     <span class="mm-nav-text">Receitas</span>
                 </a>
-                <a href="{{ url_for('colaboradores.escala') }}" class="mm-nav-item {% if 'colaboradores' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-people mm-nav-icon"></i>
-                    <span class="mm-nav-text">Escalas</span>
-                </a>
                 {% if current_user.nivel in ('operador', 'admin', 'DEV') %}
                 <a href="{{ url_for('fluxos.index') }}" class="mm-nav-item {% if 'fluxos' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-diagram-3 mm-nav-icon"></i>

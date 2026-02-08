@@ -136,12 +136,6 @@
                 <div class="shortcut-label">Receitas</div>
             </a>
 
-            <a href="{{ url_for('colaboradores.escala') }}" class="shortcut-card shortcut-purple">
-                <div class="shortcut-icon">
-                    <i class="bi bi-people"></i>
-                </div>
-                <div class="shortcut-label">Escalas</div>
-            </a>
 
             {% if current_user.is_authenticated and current_user.nivel in ['admin', 'DEV'] %}
             <a href="/db" class="shortcut-card shortcut-gray">
